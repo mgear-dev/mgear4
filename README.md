@@ -1,4 +1,5 @@
-<img src="https://img.shields.io/badge/made%20with-python-blue.svg?style=flat-square" alt="made with python"><img src="https://img.shields.io/github/license/mgear-dev/mgear4?style=flat-square"><img src="https://img.shields.io/github/workflow/mgear-dev/mgear4/code_quality?style=flat-square">
+<img src="https://img.shields.io/badge/made%20with-python-blue.svg?style=flat-square" alt="made with python"><img src="https://img.shields.io/github/workflow/status/mgear-dev/mgear4/Code%20Quality?label=Flake8&style=flat-square"><img src="https://img.shields.io/github/workflow/status/mgear-dev/mgear4/Code%20Tests%20(Python%202)?label=Py2%20Tests&style=flat-square"><img src="https://img.shields.io/github/license/mgear-dev/mgear4?style=flat-square">
+
 # mgear 4
 mGear v.4.x.x (python 3 ready)
 
