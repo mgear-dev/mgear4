@@ -1,3 +1,5 @@
+<img src="https://img.shields.io/badge/made%20with-python-blue.svg?style=flat-square" alt="made with python">
+<img src="https://img.shields.io/github/license/mashape/apistatus.svgstyle=flat-square">
 
 # mgear 4
 mGear v.4.x.x (python 3 ready)
