@@ -1,0 +1,15 @@
+
+# Editors files
+*.code-workspace
+.vscode
+.project
+.pydevproject
+
+# File extension
+*.pyc
+
+# Unit tests & coverage reports
+.pytest_cache
+.coverage
+.tox
+nosetests.xml
