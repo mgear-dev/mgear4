@@ -30,3 +30,4 @@ def setup_path():
 
     # adds anim_scene_builder to python path
     sys.path.insert(0, os.path.abspath("./python"))
+    sys.path.insert(0, os.path.abspath("./mgear4/python"))
