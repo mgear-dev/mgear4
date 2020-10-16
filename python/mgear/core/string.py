@@ -1,4 +1,4 @@
-"""String management methods"""
+"""String management functions"""
 
 # Stdlib imports
 import re
@@ -59,13 +59,16 @@ def normalize(string, force_underscore=False):
         Invalid characters are punctuation and most of the symbols.
     """
 
+    # Force string argument as str
     string = str(string)
+
+    # Adds underscore in front if strings starts with digit
     if re.match("^[0-9]", string):
         string = "_" + string
 
-    if force_underscore:
+    if force_underscore: # Handles underscores
         token = "[^A-Za-z0-9_]"
-    else:
+    else: # Handles hyphens
         token = "[^A-Za-z0-9_-]"
 
     return re.sub(token, "_", str(string))
