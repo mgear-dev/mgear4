@@ -1,13 +1,13 @@
 """mgear.core.string test"""
 
 
-def tet_convert_RL_name(setup_path):
+def test_convert_RL_name(setup_path):
     # mGear imports
     from mgear.core.string import convert_RL_name
     names = {"token_L": "token_R",
              "token_L_token": "token_R_token",
              "L_token": "R_token",
-             "L_token_L_token": "R_token_R_token"}
+             "L_token_L_token": "R_tokenR_token"}
     for item in names:
         assert convert_RL_name(item) == names[item]
 
