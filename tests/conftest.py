@@ -1,7 +1,19 @@
+"""Pytest conftest module
+
+In this file you will find all **fixtures** that you are used while running
+mgear tests.
+
+Github Actions workflow will run Pytest but because their clusters will not have
+Autodesk Maya install / neither PyMel, most of the tests will be skip.
+
+In order to ensure all tests are correctly executed you must run them locally
+with both Maya and PyMel installed.
+"""
 
 # Stdlib imports
 import sys
 import os
+
 # Pytest imports
 import pytest
 
@@ -31,3 +43,17 @@ def setup_path():
     # adds anim_scene_builder to python path
     sys.path.insert(0, os.path.abspath("./python"))
     sys.path.insert(0, os.path.abspath("./mgear4/python"))
+
+
+@pytest.fixture(scope='session')
+def run_with_maya_standalone():
+    from maya import standalone
+    standalone.initialize(name="python")
+    yield
+    standalone.uninitialize()
+
+
+@pytest.fixture(scope='session')
+def run_with_maya_pymel():
+    import pymel.core as pm
+    yield
