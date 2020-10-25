@@ -66,9 +66,9 @@ def normalize(string, force_underscore=False):
     if re.match("^[0-9]", string):
         string = "_" + string
 
-    if force_underscore: # Handles underscores
+    if force_underscore:  # Handles underscores
         token = "[^A-Za-z0-9_]"
-    else: # Handles hyphens
+    else:  # Handles hyphens
         token = "[^A-Za-z0-9_-]"
 
     return re.sub(token, "_", str(string))
