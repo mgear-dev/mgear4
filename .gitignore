@@ -13,3 +13,4 @@
 .coverage
 .tox
 nosetests.xml
+tests/logs/*
