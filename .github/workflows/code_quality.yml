@@ -28,11 +28,11 @@ jobs:
         pip install radon
         pip install flake8
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-    - name: Code quality with flake8
-      run: |
-        # Runs code quality check
-        flake8 python --exit-zero --count --statistics --max-line-length=80 --max-complexity=10
     - name: Code complexity
       run: |
         # Runs Radon quality check
         radon cc python --total-average --show-complexity
+    - name: Code quality with flake8
+      run: |
+        # Runs code quality check
+        flake8 python --exit-zero --count --statistics --max-complexity=10
