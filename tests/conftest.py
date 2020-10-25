@@ -55,5 +55,5 @@ def run_with_maya_standalone():
 
 @pytest.fixture(scope='session')
 def run_with_maya_pymel():
-    import pymel.core as pm
+    import pymel.core
     yield
