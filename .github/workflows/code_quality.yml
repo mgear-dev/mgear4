@@ -27,6 +27,7 @@ jobs:
         python -m pip install --upgrade pip
         pip install radon
         pip install flake8
+        pip install flake8-polyfill
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
     - name: Code complexity
       run: |
