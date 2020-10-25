@@ -1,7 +1,7 @@
 """mgear.core.vector test"""
 
 
-def test_get_distance(run_with_maya_standalone, setup_path):
+def test_get_distance(run_with_maya_pymel, setup_path):
     # Maya imports
     from maya import OpenMaya
     # mGear imports

@@ -12,6 +12,7 @@ def test_convert_RL_name(setup_path):
     for item in names:
         assert convert_RL_name(item) == names[item]
 
+
 def test_normalize(setup_path):
     # mGear imports
     from mgear.core.string import normalize
