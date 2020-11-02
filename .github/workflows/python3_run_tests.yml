@@ -1,6 +1,6 @@
 # This workflow runs code tests using Pytest on with Python 3
 
-name: Code Tests (Python 3)
+name: Code Tests & Coverage (Python 3)
 
 on:
   push:
