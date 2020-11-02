@@ -1,3 +1,7 @@
+"""mGear rigging framework"""
+
+# mGear automatic imports resolution
+from mgear import core  # noqa: F401
 
 # Set mGear version
 __version_info__ = (1, 0, 0)
@@ -12,3 +16,6 @@ version = __version__
 version_info = ("{}(major={},minor={}, micro={})"
                 .format(__package__, major, minor, micro))
 """mGear version details"""
+
+# todo: Add Logger system
+# todo: Add modules documentation
