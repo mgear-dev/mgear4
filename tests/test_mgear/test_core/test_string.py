@@ -7,8 +7,12 @@ def test_convert_RL_name(setup_path):
 
     names = {"token_L": "token_R",
              "token_L_token": "token_R_token",
+             "token_R_token": "token_L_token",
              "L_token": "R_token",
-             "L_token_L_token": "R_tokenR_token"}
+             "L_token_L_token": "R_tokenR_token",
+             "L": "R",
+             "R": "L",
+             "token": "token"}
     for item in names:
         assert convert_RL_name(item) == names[item]
 
