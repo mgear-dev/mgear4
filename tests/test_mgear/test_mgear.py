@@ -1,5 +1,4 @@
 
-
 def test_mgear_version(setup_path):
     # mGear imports
     import mgear
