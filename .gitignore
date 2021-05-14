@@ -40,3 +40,8 @@ pip-log.txt
 excons.cache
 /.build/
 /debug/
+/mgear.env.tmp
+/mgear.config
+/mGear_cmd.cmd
+/mgear.status
+/mGear.mod
