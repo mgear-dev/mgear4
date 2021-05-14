@@ -1,0 +1,304 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>Form</class>
+ <widget class="QWidget" name="Form">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>312</width>
+    <height>655</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Form</string>
+  </property>
+  <layout class="QGridLayout" name="gridLayout">
+   <item row="0" column="0">
+    <widget class="QGroupBox" name="groupBox">
+     <property name="title">
+      <string>Custom Steps</string>
+     </property>
+     <layout class="QGridLayout" name="gridLayout_2">
+      <item row="0" column="0">
+       <layout class="QVBoxLayout" name="verticalLayout_3">
+        <item>
+         <layout class="QVBoxLayout" name="verticalLayout">
+          <item>
+           <widget class="QCheckBox" name="preCustomStep_checkBox">
+            <property name="text">
+             <string>Pre Custom Step</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QLineEdit" name="preSearch_lineEdit">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <layout class="QHBoxLayout" name="preCustomStep_horizontalLayout">
+            <item>
+             <layout class="QVBoxLayout" name="preCustomStep_verticalLayout_1">
+              <item>
+               <widget class="QListWidget" name="preCustomStep_listWidget">
+                <property name="dragDropOverwriteMode">
+                 <bool>true</bool>
+                </property>
+                <property name="dragDropMode">
+                 <enum>QAbstractItemView::InternalMove</enum>
+                </property>
+                <property name="defaultDropAction">
+                 <enum>Qt::MoveAction</enum>
+                </property>
+                <property name="alternatingRowColors">
+                 <bool>true</bool>
+                </property>
+                <property name="selectionMode">
+                 <enum>QAbstractItemView::ExtendedSelection</enum>
+                </property>
+                <property name="isWrapping" stdset="0">
+                 <bool>false</bool>
+                </property>
+                <property name="viewMode">
+                 <enum>QListView::ListMode</enum>
+                </property>
+               </widget>
+              </item>
+             </layout>
+            </item>
+            <item>
+             <layout class="QVBoxLayout" name="preCustomStep_verticalLayout_2">
+              <item>
+               <widget class="QPushButton" name="preCustomStepAdd_pushButton">
+                <property name="text">
+                 <string>Add</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QPushButton" name="preCustomStepNew_pushButton">
+                <property name="text">
+                 <string>New</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QPushButton" name="preCustomStepDuplicate_pushButton">
+                <property name="text">
+                 <string>Duplicate</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QPushButton" name="preCustomStepRemove_pushButton">
+                <property name="text">
+                 <string>Remove</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QPushButton" name="preCustomStepRun_pushButton">
+                <property name="text">
+                 <string>Run Sel.</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QPushButton" name="preCustomStepEdit_pushButton">
+                <property name="text">
+                 <string>Edit</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QPushButton" name="preCustomStepExport_pushButton">
+                <property name="text">
+                 <string>Export</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QPushButton" name="preCustomStepImport_pushButton">
+                <property name="text">
+                 <string>Import</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <spacer name="preCustomStep_verticalSpacer">
+                <property name="orientation">
+                 <enum>Qt::Vertical</enum>
+                </property>
+                <property name="sizeHint" stdset="0">
+                 <size>
+                  <width>20</width>
+                  <height>40</height>
+                 </size>
+                </property>
+               </spacer>
+              </item>
+             </layout>
+            </item>
+           </layout>
+          </item>
+         </layout>
+        </item>
+        <item>
+         <widget class="Line" name="line">
+          <property name="lineWidth">
+           <number>3</number>
+          </property>
+          <property name="midLineWidth">
+           <number>0</number>
+          </property>
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <layout class="QVBoxLayout" name="verticalLayout_2">
+          <item>
+           <widget class="QCheckBox" name="postCustomStep_checkBox">
+            <property name="text">
+             <string>Post  Custom Step</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QLineEdit" name="postSearch_lineEdit">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <layout class="QHBoxLayout" name="preCustomStep_horizontalLayout_2">
+            <item>
+             <layout class="QVBoxLayout" name="preCustomStep_verticalLayout_3">
+              <item>
+               <widget class="QListWidget" name="postCustomStep_listWidget">
+                <property name="dragDropOverwriteMode">
+                 <bool>true</bool>
+                </property>
+                <property name="dragDropMode">
+                 <enum>QAbstractItemView::InternalMove</enum>
+                </property>
+                <property name="defaultDropAction">
+                 <enum>Qt::MoveAction</enum>
+                </property>
+                <property name="alternatingRowColors">
+                 <bool>true</bool>
+                </property>
+                <property name="selectionMode">
+                 <enum>QAbstractItemView::ExtendedSelection</enum>
+                </property>
+                <property name="viewMode">
+                 <enum>QListView::ListMode</enum>
+                </property>
+                <property name="wordWrap">
+                 <bool>false</bool>
+                </property>
+                <property name="selectionRectVisible">
+                 <bool>false</bool>
+                </property>
+               </widget>
+              </item>
+             </layout>
+            </item>
+            <item>
+             <layout class="QVBoxLayout" name="preCustomStep_verticalLayout_4">
+              <item>
+               <widget class="QPushButton" name="postCustomStepAdd_pushButton">
+                <property name="text">
+                 <string>Add</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QPushButton" name="postCustomStepNew_pushButton">
+                <property name="text">
+                 <string>New</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QPushButton" name="postCustomStepDuplicate_pushButton">
+                <property name="text">
+                 <string>Duplicate</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QPushButton" name="postCustomStepRemove_pushButton">
+                <property name="text">
+                 <string>Remove</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QPushButton" name="postCustomStepRun_pushButton">
+                <property name="text">
+                 <string>Run Sel.</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QPushButton" name="postCustomStepEdit_pushButton">
+                <property name="text">
+                 <string>Edit</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QPushButton" name="postCustomStepExport_pushButton">
+                <property name="text">
+                 <string>Export</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QPushButton" name="postCustomStepImport_pushButton">
+                <property name="text">
+                 <string>Import</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <spacer name="preCustomStep_verticalSpacer_2">
+                <property name="orientation">
+                 <enum>Qt::Vertical</enum>
+                </property>
+                <property name="sizeHint" stdset="0">
+                 <size>
+                  <width>20</width>
+                  <height>40</height>
+                 </size>
+                </property>
+               </spacer>
+              </item>
+             </layout>
+            </item>
+           </layout>
+          </item>
+         </layout>
+        </item>
+       </layout>
+      </item>
+     </layout>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>

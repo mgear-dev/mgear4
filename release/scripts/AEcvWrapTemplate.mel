@@ -1,0 +1,18 @@
+global proc AEcvWrapTemplate(string $nodeName) {
+    editorTemplate -beginScrollLayout;
+        editorTemplate -beginLayout "cvWrap Attributes" -collapse false;
+            editorTemplate -beginNoOptimize;
+            editorTemplate -addControl "scale";
+            editorTemplate -endNoOptimize;				
+
+            editorTemplate -suppress "driver";
+            editorTemplate -suppress "bindMesh";
+            editorTemplate -suppress "bindData";
+            editorTemplate -suppress "numTasks";
+        editorTemplate -endLayout;
+
+    AEweightGeometryFilterTemplate $nodeName;
+
+    editorTemplate -addExtraControls;
+    editorTemplate -endScrollLayout;
+}

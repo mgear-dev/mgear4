@@ -1,0 +1,356 @@
+{
+    "help": "Before aligning the guides to the rig, make sure the namespace is set to 'mixamorig' without a number at the end (the namespace in Mixamo characters is a bit inconsistent).\n\nNote that only some Mixamo characters have eye joints. If these are found, they will be used, otherwise they're ignored.",
+    "root": "mixamorig:Hips",
+    "guides": [
+	{"body_C0_root": "mixamorig:Hips"},
+	{"spine_C0_root": "mixamorig:Hips"},
+	{"spine_C0_eff": "mixamorig:Spine2"},
+	{"neck_C0_root": "mixamorig:Neck"},
+	{"neck_C0_neck": "mixamorig:Head"},
+	{"neck_C0_head": "mixamorig:Head"},
+	{"eye_L0_root": "mixamorig:LeftEye"},
+	{"eye_R0_root": "mixamorig:RightEye"},
+	{"shoulder_L0_root": "mixamorig:LeftShoulder"},
+	{"shoulder_L0_tip": "mixamorig:LeftArm"},
+	{"arm_L0_root": "mixamorig:LeftArm"},
+	{"arm_L0_elbow": "mixamorig:LeftForeArm"},
+	{"arm_L0_wrist": "mixamorig:LeftHand"},
+	{"arm_L0_eff": "mixamorig:LeftHandMiddle1"},
+	{"meta_L0_root": [
+	    "mixamorig:LeftHand",
+	    "mixamorig:LeftHandIndex1"
+	]},
+	{"finger_L0_root": "mixamorig:LeftHandIndex1"},
+	{"finger_L0_0_loc": "mixamorig:LeftHandIndex2"},
+	{"finger_L0_1_loc": "mixamorig:LeftHandIndex3"},
+	{"finger_L0_2_loc": "mixamorig:LeftHandIndex4"},
+	{"meta_L0_0_loc": [
+	    "mixamorig:LeftHand",
+	    "mixamorig:LeftHandMiddle1"
+	]},
+	{"finger_L1_root": "mixamorig:LeftHandMiddle1"},
+	{"finger_L1_0_loc": "mixamorig:LeftHandMiddle2"},
+	{"finger_L1_1_loc": "mixamorig:LeftHandMiddle3"},
+	{"finger_L1_2_loc": "mixamorig:LeftHandMiddle4"},
+	{"meta_L0_1_loc": [
+	    "mixamorig:LeftHand",
+	    "mixamorig:LeftHandRing1"
+	]},
+	{"finger_L2_root": "mixamorig:LeftHandRing1"},
+	{"finger_L2_0_loc": "mixamorig:LeftHandRing2"},
+	{"finger_L2_1_loc": "mixamorig:LeftHandRing3"},
+	{"finger_L2_2_loc": "mixamorig:LeftHandRing4"},
+	{"meta_L0_2_loc": [
+	    "mixamorig:LeftHand",
+	    "mixamorig:LeftHandPinky1"
+	]},
+	{"finger_L3_root": "mixamorig:LeftHandPinky1"},
+	{"finger_L3_0_loc": "mixamorig:LeftHandPinky2"},
+	{"finger_L3_1_loc": "mixamorig:LeftHandPinky3"},
+	{"finger_L3_2_loc": "mixamorig:LeftHandPinky4"},
+	{"thumbRoll_L0_root": "mixamorig:LeftHandThumb1"},
+	{"thumb_L0_0_loc": "mixamorig:LeftHandThumb2"},
+	{"thumb_L0_1_loc": "mixamorig:LeftHandThumb3"},
+	{"thumb_L0_2_loc": "mixamorig:LeftHandThumb4"},
+	{"shoulder_R0_root": "mixamorig:RightShoulder"},
+	{"shoulder_R0_tip": "mixamorig:RightArm"},
+	{"arm_R0_root": "mixamorig:RightArm"},
+	{"arm_R0_elbow": "mixamorig:RightForeArm"},
+	{"arm_R0_wrist": "mixamorig:RightHand"},
+	{"arm_R0_eff": "mixamorig:RightHandMiddle1"},
+	{"meta_R0_root": [
+	    "mixamorig:RightHand",
+	    "mixamorig:RightHandIndex1"
+	]},
+	{"finger_R0_root": "mixamorig:RightHandIndex1"},
+	{"finger_R0_0_loc": "mixamorig:RightHandIndex2"},
+	{"finger_R0_1_loc": "mixamorig:RightHandIndex3"},
+	{"finger_R0_2_loc": "mixamorig:RightHandIndex4"},
+	{"meta_R0_0_loc": [
+	    "mixamorig:RightHand",
+	    "mixamorig:RightHandMiddle1"
+	]},
+	{"finger_R1_root": "mixamorig:RightHandMiddle1"},
+	{"finger_R1_0_loc": "mixamorig:RightHandMiddle2"},
+	{"finger_R1_1_loc": "mixamorig:RightHandMiddle3"},
+	{"finger_R1_2_loc": "mixamorig:RightHandMiddle4"},
+	{"meta_R0_1_loc": [
+	    "mixamorig:RightHand",
+	    "mixamorig:RightHandRing1"
+	]},
+	{"finger_R2_root": "mixamorig:RightHandRing1"},
+	{"finger_R2_0_loc": "mixamorig:RightHandRing2"},
+	{"finger_R2_1_loc": "mixamorig:RightHandRing3"},
+	{"finger_R2_2_loc": "mixamorig:RightHandRing4"},
+	{"meta_R0_2_loc": [
+	    "mixamorig:RightHand",
+	    "mixamorig:RightHandPinky1"
+	]},
+	{"finger_R3_root": "mixamorig:RightHandPinky1"},
+	{"finger_R3_0_loc": "mixamorig:RightHandPinky2"},
+	{"finger_R3_1_loc": "mixamorig:RightHandPinky3"},
+	{"finger_R3_2_loc": "mixamorig:RightHandPinky4"},
+	{"thumbRoll_R0_root": "mixamorig:RightHandThumb1"},
+	{"thumb_R0_0_loc": "mixamorig:RightHandThumb2"},
+	{"thumb_R0_1_loc": "mixamorig:RightHandThumb3"},
+	{"thumb_R0_2_loc": "mixamorig:RightHandThumb4"},
+	{"leg_L0_root": "mixamorig:LeftUpLeg"},
+	{"leg_L0_knee": "mixamorig:LeftLeg"},
+	{"leg_L0_ankle": "mixamorig:LeftFoot"},
+	{"foot_L0_0_loc": "mixamorig:LeftToeBase"},
+	{"foot_L0_1_loc": [
+	    "mixamorig:LeftToeBase",
+	    "mixamorig:LeftToe_End"
+	]},
+	{"foot_L0_2_loc": "mixamorig:LeftToe_End"},
+	{"leg_R0_root": "mixamorig:RightUpLeg"},
+	{"leg_R0_knee": "mixamorig:RightLeg"},
+	{"leg_R0_ankle": "mixamorig:RightFoot"},
+	{"foot_R0_0_loc": "mixamorig:RightToeBase"},
+	{"foot_R0_1_loc": [
+	    "mixamorig:RightToeBase",
+	    "mixamorig:RightToe_End"
+	]},
+	{"foot_R0_2_loc": "mixamorig:RightToe_End"}
+    ],
+    "settings": [
+	{"arm_L0_root": [
+	    { "div0": 0 },
+	    { "div1": 0 },
+	    { "supportJoints": 0}
+	]},
+	{"arm_R0_root": [
+	    { "div0": 0 },
+	    { "div1": 0 },
+	    { "supportJoints": 0}
+	]},
+	{"leg_L0_root": [
+	    { "div0": 0 },
+	    { "div1": 0 },
+	    { "supportJoints": 0}
+	]},
+	{"leg_R0_root": [
+	    { "div0": 0 },
+	    { "div1": 0 },
+	    { "supportJoints": 0}
+	]}
+    ],
+    "joints": [
+	{"spine_C0_0_jnt": {
+            "joint": "mixamorig:Hips",
+            "constrain": "111"}
+	},
+	{"spine_C0_1_jnt": {
+            "joint": "mixamorig:Spine",
+            "constrain": "110"}
+	},
+	{"spine_C0_2_jnt": {
+            "joint": "mixamorig:Spine1",
+            "constrain": "110"}
+	},
+	{"spine_C0_4_jnt": {
+            "joint": "mixamorig:Spine2",
+            "constrain": "110"}
+	},
+	{"shoulder_L0_shoulder_jnt": {
+            "joint": "mixamorig:LeftShoulder",
+            "constrain": "110"}
+	},
+	{"arm_L0_0_jnt": {
+            "joint": "mixamorig:LeftArm",
+            "constrain": "110"}
+	},
+	{"arm_L0_1_jnt": {
+            "joint": "mixamorig:LeftForeArm",
+            "constrain": "110"}
+	},
+	{"arm_L0_end_jnt": {
+            "joint": "mixamorig:LeftHand",
+            "constrain": "110"}
+	},
+	{"finger_L3_0_jnt": {
+            "joint": "mixamorig:LeftHandPinky1",
+            "constrain": "110"}
+	},
+	{"finger_L3_1_jnt": {
+            "joint": "mixamorig:LeftHandPinky2",
+            "constrain": "110"}
+	},
+	{"finger_L3_2_jnt": {
+            "joint": "mixamorig:LeftHandPinky3",
+            "constrain": "110"}
+	},
+	{"finger_L2_0_jnt": {
+            "joint": "mixamorig:LeftHandRing1",
+            "constrain": "110"}
+	},
+	{"finger_L2_1_jnt": {
+            "joint": "mixamorig:LeftHandRing2",
+            "constrain": "110"}
+	},
+	{"finger_L2_2_jnt": {
+            "joint": "mixamorig:LeftHandRing3",
+            "constrain": "110"}
+	},
+	{"finger_L1_0_jnt": {
+            "joint": "mixamorig:LeftHandMiddle1",
+            "constrain": "110"}
+	},
+	{"finger_L1_1_jnt": {
+            "joint": "mixamorig:LeftHandMiddle2",
+            "constrain": "110"}
+	},
+	{"finger_L1_2_jnt": {
+            "joint": "mixamorig:LeftHandMiddle3",
+            "constrain": "110"}
+	},
+	{"finger_L0_0_jnt": {
+            "joint": "mixamorig:LeftHandIndex1",
+            "constrain": "110"}
+	},
+	{"finger_L0_1_jnt": {
+            "joint": "mixamorig:LeftHandIndex2",
+            "constrain": "110"}
+	},
+	{"finger_L0_2_jnt": {
+            "joint": "mixamorig:LeftHandIndex3",
+            "constrain": "110"}
+	},
+	{"thumb_L0_0_jnt": {
+            "joint": "mixamorig:LeftHandThumb1",
+            "constrain": "110"}
+	},
+	{"thumb_L0_1_jnt": {
+            "joint": "mixamorig:LeftHandThumb2",
+            "constrain": "110"}
+	},
+	{"thumb_L0_2_jnt": {
+            "joint": "mixamorig:LeftHandThumb3",
+            "constrain": "110"}
+	},
+	{"shoulder_R0_shoulder_jnt": {
+            "joint": "mixamorig:RightShoulder",
+            "constrain": "110"}
+	},
+	{"arm_R0_0_jnt": {
+            "joint": "mixamorig:RightArm",
+            "constrain": "110"}
+	},
+	{"arm_R0_1_jnt": {
+            "joint": "mixamorig:RightForeArm",
+            "constrain": "110"}
+	},
+	{"arm_R0_end_jnt": {
+            "joint": "mixamorig:RightHand",
+            "constrain": "110"}
+	},
+	{"finger_R3_0_jnt": {
+            "joint": "mixamorig:RightHandPinky1",
+            "constrain": "110"}
+	},
+	{"finger_R3_1_jnt": {
+            "joint": "mixamorig:RightHandPinky2",
+            "constrain": "110"}
+	},
+	{"finger_R3_2_jnt": {
+            "joint": "mixamorig:RightHandPinky3",
+            "constrain": "110"}
+	},
+	{"finger_R2_0_jnt": {
+            "joint": "mixamorig:RightHandRing1",
+            "constrain": "110"}
+	},
+	{"finger_R2_1_jnt": {
+            "joint": "mixamorig:RightHandRing2",
+            "constrain": "110"}
+	},
+	{"finger_R2_2_jnt": {
+            "joint": "mixamorig:RightHandRing3",
+            "constrain": "110"}
+	},
+	{"finger_R1_0_jnt": {
+            "joint": "mixamorig:RightHandMiddle1",
+            "constrain": "110"}
+	},
+	{"finger_R1_1_jnt": {
+            "joint": "mixamorig:RightHandMiddle2",
+            "constrain": "110"}
+	},
+	{"finger_R1_2_jnt": {
+            "joint": "mixamorig:RightHandMiddle3",
+            "constrain": "110"}
+	},
+	{"finger_R0_0_jnt": {
+            "joint": "mixamorig:RightHandIndex1",
+            "constrain": "110"}
+	},
+	{"finger_R0_1_jnt": {
+            "joint": "mixamorig:RightHandIndex2",
+            "constrain": "110"}
+	},
+	{"finger_R0_2_jnt": {
+            "joint": "mixamorig:RightHandIndex3",
+            "constrain": "110"}
+	},
+	{"thumb_R0_0_jnt": {
+            "joint": "mixamorig:RightHandThumb1",
+            "constrain": "110"}
+	},
+	{"thumb_R0_1_jnt": {
+            "joint": "mixamorig:RightHandThumb2",
+            "constrain": "110"}
+	},
+	{"thumb_R0_2_jnt": {
+            "joint": "mixamorig:RightHandThumb3",
+            "constrain": "110"}
+	},
+	{"neck_C0_0_jnt": {
+            "joint": "mixamorig:Neck",
+            "constrain": "110"}
+	},
+	{"neck_C0_head_jnt": {
+            "joint": "mixamorig:Head",
+            "constrain": "110"}
+	},
+	{"eye_L0_eye_jnt": {
+            "joint": "mixamorig:LeftEye",
+            "constrain": "110"}
+	},
+	{"eye_R0_eye_jnt": {
+            "joint": "mixamorig:RightEye",
+            "constrain": "110"}
+	},
+	{"leg_L0_0_jnt": {
+            "joint": "mixamorig:LeftUpLeg",
+            "constrain": "110"}
+	},
+	{"leg_L0_1_jnt": {
+            "joint": "mixamorig:LeftLeg",
+            "constrain": "110"}
+	},
+	{"leg_L0_end_jnt": {
+            "joint": "mixamorig:LeftFoot",
+            "constrain": "110"}
+	},
+	{"foot_L0_0_jnt": {
+            "joint": "mixamorig:LeftToeBase",
+            "constrain": "110"}
+	},
+	{"leg_R0_0_jnt": {
+            "joint": "mixamorig:RightUpLeg",
+            "constrain": "110"}
+	},
+	{"leg_R0_1_jnt": {
+            "joint": "mixamorig:RightLeg",
+            "constrain": "110"}
+	},
+	{"leg_R0_end_jnt": {
+            "joint": "mixamorig:RightFoot",
+            "constrain": "110"}
+	},
+	{"foot_R0_0_jnt": {
+            "joint": "mixamorig:RightToeBase",
+            "constrain": "110"}
+	}
+    ]
+}

@@ -1,0 +1,610 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>MainWindow</class>
+ <widget class="QMainWindow" name="MainWindow">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>359</width>
+    <height>526</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>MainWindow</string>
+  </property>
+  <widget class="QWidget" name="centralwidget">
+   <layout class="QGridLayout" name="gridLayout_7">
+    <item row="0" column="0">
+     <widget class="QTabWidget" name="tabWidget">
+      <property name="currentIndex">
+       <number>0</number>
+      </property>
+      <widget class="QWidget" name="rig_tab">
+       <attribute name="title">
+        <string>Rig</string>
+       </attribute>
+       <layout class="QGridLayout" name="gridLayout_6">
+        <item row="0" column="0">
+         <widget class="QPushButton" name="createRoot_pushButton">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="text">
+           <string>Create Root</string>
+          </property>
+         </widget>
+        </item>
+        <item row="1" column="0">
+         <widget class="QGroupBox" name="groupBox_3">
+          <property name="title">
+           <string>Create Control</string>
+          </property>
+          <layout class="QGridLayout" name="gridLayout_2">
+           <item row="1" column="0">
+            <widget class="QLineEdit" name="createCtl_lineEdit">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
+             <property name="minimumSize">
+              <size>
+               <width>150</width>
+               <height>0</height>
+              </size>
+             </property>
+            </widget>
+           </item>
+           <item row="3" column="0">
+            <widget class="QPushButton" name="createCtl_pushButton">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
+             <property name="minimumSize">
+              <size>
+               <width>0</width>
+               <height>30</height>
+              </size>
+             </property>
+             <property name="text">
+              <string>Create CTL</string>
+             </property>
+            </widget>
+           </item>
+           <item row="2" column="0">
+            <layout class="QFormLayout" name="formLayout_2">
+             <item row="0" column="0">
+              <widget class="QLabel" name="label">
+               <property name="text">
+                <string>Side Label</string>
+               </property>
+              </widget>
+             </item>
+             <item row="0" column="1">
+              <widget class="QComboBox" name="side_comboBox">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
+               <item>
+                <property name="text">
+                 <string>Center</string>
+                </property>
+               </item>
+               <item>
+                <property name="text">
+                 <string>Left</string>
+                </property>
+               </item>
+               <item>
+                <property name="text">
+                 <string>Right</string>
+                </property>
+               </item>
+              </widget>
+             </item>
+             <item row="1" column="0">
+              <widget class="QLabel" name="label_3">
+               <property name="text">
+                <string>Position</string>
+               </property>
+              </widget>
+             </item>
+             <item row="1" column="1">
+              <widget class="QComboBox" name="position_comboBox">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
+               <item>
+                <property name="text">
+                 <string>Center of Geometry</string>
+                </property>
+               </item>
+               <item>
+                <property name="text">
+                 <string>Base of Geometry (Lowest Y axis point )</string>
+                </property>
+               </item>
+               <item>
+                <property name="text">
+                 <string>World Center</string>
+                </property>
+               </item>
+              </widget>
+             </item>
+             <item row="2" column="0">
+              <widget class="QLabel" name="label_2">
+               <property name="text">
+                <string>Ctl Shape</string>
+               </property>
+              </widget>
+             </item>
+             <item row="2" column="1">
+              <widget class="QComboBox" name="shape_comboBox">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
+               <item>
+                <property name="text">
+                 <string>Circle</string>
+                </property>
+               </item>
+               <item>
+                <property name="text">
+                 <string>Cube</string>
+                </property>
+               </item>
+              </widget>
+             </item>
+            </layout>
+           </item>
+          </layout>
+         </widget>
+        </item>
+        <item row="2" column="0">
+         <widget class="QGroupBox" name="groupBox_2">
+          <property name="title">
+           <string>Edit</string>
+          </property>
+          <layout class="QGridLayout" name="gridLayout">
+           <item row="1" column="1">
+            <widget class="QGroupBox" name="groupBox_4">
+             <property name="title">
+              <string>Elements</string>
+             </property>
+             <layout class="QGridLayout" name="gridLayout_4">
+              <item row="0" column="1">
+               <layout class="QVBoxLayout" name="verticalLayout_2">
+                <item>
+                 <layout class="QHBoxLayout" name="horizontalLayout">
+                  <item>
+                   <widget class="QPushButton" name="remove_pushButton">
+                    <property name="minimumSize">
+                     <size>
+                      <width>45</width>
+                      <height>50</height>
+                     </size>
+                    </property>
+                    <property name="text">
+                     <string>-</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
+                   <widget class="QPushButton" name="add_pushButton">
+                    <property name="minimumSize">
+                     <size>
+                      <width>45</width>
+                      <height>50</height>
+                     </size>
+                    </property>
+                    <property name="text">
+                     <string>+</string>
+                    </property>
+                   </widget>
+                  </item>
+                 </layout>
+                </item>
+                <item>
+                 <widget class="QPushButton" name="selectAffected_pushButton">
+                  <property name="text">
+                   <string>Select Affected</string>
+                  </property>
+                 </widget>
+                </item>
+               </layout>
+              </item>
+             </layout>
+            </widget>
+           </item>
+           <item row="1" column="0">
+            <widget class="QGroupBox" name="groupBox">
+             <property name="title">
+              <string>Pivot</string>
+             </property>
+             <layout class="QGridLayout" name="gridLayout_3">
+              <item row="0" column="0">
+               <layout class="QVBoxLayout" name="verticalLayout">
+                <item>
+                 <widget class="QPushButton" name="editPivot_pushButton">
+                  <property name="text">
+                   <string>Edit Pivot</string>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QPushButton" name="setPivot_pushButton">
+                  <property name="text">
+                   <string>Set Pivot</string>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QPushButton" name="reParentPivot_pushButton">
+                  <property name="text">
+                   <string>Re-Parent Pivot</string>
+                  </property>
+                 </widget>
+                </item>
+               </layout>
+              </item>
+             </layout>
+            </widget>
+           </item>
+          </layout>
+         </widget>
+        </item>
+        <item row="3" column="0">
+         <widget class="QGroupBox" name="groupBox_5">
+          <property name="title">
+           <string>Auto Rig</string>
+          </property>
+          <layout class="QGridLayout" name="gridLayout_5">
+           <item row="0" column="0">
+            <layout class="QFormLayout" name="formLayout">
+             <item row="0" column="0">
+              <widget class="QLabel" name="suffix_label">
+               <property name="text">
+                <string>Suffix Rule</string>
+               </property>
+              </widget>
+             </item>
+             <item row="0" column="1">
+              <widget class="QLineEdit" name="autoBuild_lineEdit">
+               <property name="text">
+                <string>geoRoot</string>
+               </property>
+              </widget>
+             </item>
+            </layout>
+           </item>
+           <item row="1" column="0">
+            <widget class="QPushButton" name="autoRig_pushButton">
+             <property name="text">
+              <string>Auto Build</string>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </widget>
+        </item>
+        <item row="4" column="0">
+         <spacer name="verticalSpacer">
+          <property name="orientation">
+           <enum>Qt::Vertical</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>17</width>
+            <height>31</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+       </layout>
+       <zorder>verticalSpacer</zorder>
+       <zorder>groupBox_3</zorder>
+       <zorder>createRoot_pushButton</zorder>
+       <zorder>groupBox_5</zorder>
+       <zorder>groupBox_2</zorder>
+      </widget>
+      <widget class="QWidget" name="extraConfig_tab">
+       <attribute name="title">
+        <string>Extra Config</string>
+       </attribute>
+       <layout class="QGridLayout" name="gridLayout_9">
+        <item row="0" column="0">
+         <widget class="QGroupBox" name="groupBox_6">
+          <property name="title">
+           <string>Root</string>
+          </property>
+          <layout class="QFormLayout" name="formLayout_3">
+           <item row="0" column="0">
+            <widget class="QLabel" name="rootName_label">
+             <property name="text">
+              <string>Root Name</string>
+             </property>
+            </widget>
+           </item>
+           <item row="0" column="1">
+            <widget class="QLineEdit" name="rootName_lineEdit">
+             <property name="text">
+              <string>root</string>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </widget>
+        </item>
+        <item row="1" column="0">
+         <widget class="QGroupBox" name="groupBox_8">
+          <property name="title">
+           <string>Main Controls  (World, Local, Global)</string>
+          </property>
+          <layout class="QGridLayout" name="gridLayout_8">
+           <item row="1" column="0">
+            <widget class="QCheckBox" name="fixSize_checkBox">
+             <property name="text">
+              <string>Use fix size</string>
+             </property>
+            </widget>
+           </item>
+           <item row="0" column="0">
+            <widget class="QCheckBox" name="worldCenter_checkBox">
+             <property name="text">
+              <string>Main controls in World Center</string>
+             </property>
+             <property name="checked">
+              <bool>true</bool>
+             </property>
+             <property name="tristate">
+              <bool>false</bool>
+             </property>
+            </widget>
+           </item>
+           <item row="3" column="0">
+            <layout class="QHBoxLayout" name="horizontalLayout_2">
+             <item>
+              <widget class="QLabel" name="label_5">
+               <property name="text">
+                <string>Local/Global Ctl Shape</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QComboBox" name="mainCtlShape_comboBox">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
+               <item>
+                <property name="text">
+                 <string>Square</string>
+                </property>
+               </item>
+               <item>
+                <property name="text">
+                 <string>Circle</string>
+                </property>
+               </item>
+              </widget>
+             </item>
+            </layout>
+           </item>
+           <item row="2" column="0">
+            <layout class="QHBoxLayout" name="horizontalLayout_3">
+             <item>
+              <widget class="QLabel" name="label_4">
+               <property name="text">
+                <string>Fix Size</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QDoubleSpinBox" name="fixSize_doubleSpinBox">
+               <property name="maximum">
+                <double>9999.989999999999782</double>
+               </property>
+               <property name="singleStep">
+                <double>10.000000000000000</double>
+               </property>
+               <property name="value">
+                <double>100.000000000000000</double>
+               </property>
+              </widget>
+             </item>
+            </layout>
+           </item>
+           <item row="6" column="0">
+            <layout class="QHBoxLayout" name="horizontalLayout_4">
+             <item>
+              <widget class="QLabel" name="label_6">
+               <property name="text">
+                <string>World Ctl Shape</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QComboBox" name="worldCtlShape_comboBox">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
+               <item>
+                <property name="text">
+                 <string>Circle</string>
+                </property>
+               </item>
+               <item>
+                <property name="text">
+                 <string>Sphere</string>
+                </property>
+               </item>
+              </widget>
+             </item>
+            </layout>
+           </item>
+           <item row="5" column="0">
+            <widget class="QCheckBox" name="worldCtl_checkBox">
+             <property name="text">
+              <string>Create World Ctl</string>
+             </property>
+             <property name="checked">
+              <bool>true</bool>
+             </property>
+            </widget>
+           </item>
+           <item row="4" column="0">
+            <widget class="Line" name="line">
+             <property name="orientation">
+              <enum>Qt::Horizontal</enum>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </widget>
+        </item>
+        <item row="2" column="0">
+         <widget class="QGroupBox" name="groupBox_7">
+          <property name="title">
+           <string>Custom Sets</string>
+          </property>
+          <layout class="QFormLayout" name="formLayout_4">
+           <item row="0" column="0">
+            <widget class="QLabel" name="extraSets_label">
+             <property name="text">
+              <string>Extra CTL Sets</string>
+             </property>
+            </widget>
+           </item>
+           <item row="0" column="1">
+            <widget class="QLineEdit" name="extraSets_lineEdit">
+             <property name="text">
+              <string>animSets.basic</string>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </widget>
+        </item>
+        <item row="3" column="0">
+         <spacer name="verticalSpacer_2">
+          <property name="orientation">
+           <enum>Qt::Vertical</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>20</width>
+            <height>40</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+       </layout>
+      </widget>
+     </widget>
+    </item>
+   </layout>
+  </widget>
+  <widget class="QMenuBar" name="menubar">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>359</width>
+     <height>21</height>
+    </rect>
+   </property>
+   <widget class="QMenu" name="menuIO">
+    <property name="title">
+     <string>File</string>
+    </property>
+    <addaction name="export_action"/>
+    <addaction name="import_action"/>
+    <addaction name="separator"/>
+   </widget>
+   <widget class="QMenu" name="menuConvert">
+    <property name="title">
+     <string>Convert</string>
+    </property>
+    <addaction name="convertToShifterRig_action"/>
+    <addaction name="createShifterGuide_action"/>
+   </widget>
+   <widget class="QMenu" name="menuDelete">
+    <property name="title">
+     <string>Delete</string>
+    </property>
+    <addaction name="deletePivot_action"/>
+    <addaction name="separator"/>
+    <addaction name="deleteRig_action"/>
+   </widget>
+   <widget class="QMenu" name="menuAuto">
+    <property name="title">
+     <string>Auto</string>
+    </property>
+    <addaction name="autoBuild_action"/>
+   </widget>
+   <addaction name="menuIO"/>
+   <addaction name="menuConvert"/>
+   <addaction name="menuDelete"/>
+   <addaction name="menuAuto"/>
+  </widget>
+  <action name="export_action">
+   <property name="text">
+    <string>Export Config</string>
+   </property>
+  </action>
+  <action name="import_action">
+   <property name="text">
+    <string>Import Config</string>
+   </property>
+  </action>
+  <action name="convertToShifterRig_action">
+   <property name="text">
+    <string>Convert to Shifter Rig</string>
+   </property>
+  </action>
+  <action name="createShifterGuide_action">
+   <property name="text">
+    <string>Create Shifter Guide</string>
+   </property>
+  </action>
+  <action name="deleteRig_action">
+   <property name="text">
+    <string>Delete Rig</string>
+   </property>
+  </action>
+  <action name="deletePivot_action">
+   <property name="text">
+    <string>Delete Pivot</string>
+   </property>
+  </action>
+  <action name="autoBuild_action">
+   <property name="text">
+    <string>Auto Build</string>
+   </property>
+  </action>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>

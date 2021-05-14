@@ -1,0 +1,350 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>Form</class>
+ <widget class="QWidget" name="Form">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>832</width>
+    <height>537</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Form</string>
+  </property>
+  <layout class="QGridLayout" name="gridLayout">
+   <item row="0" column="0">
+    <layout class="QHBoxLayout" name="horizontalLayout_4">
+     <item>
+      <layout class="QVBoxLayout" name="verticalLayout">
+       <item>
+        <widget class="TableWidgetDragRowsChannelWrangler" name="channelMapping_tableWidget">
+         <property name="dragDropMode">
+          <enum>QAbstractItemView::InternalMove</enum>
+         </property>
+         <property name="defaultDropAction">
+          <enum>Qt::MoveAction</enum>
+         </property>
+         <property name="alternatingRowColors">
+          <bool>true</bool>
+         </property>
+         <property name="selectionBehavior">
+          <enum>QAbstractItemView::SelectRows</enum>
+         </property>
+         <property name="sortingEnabled">
+          <bool>false</bool>
+         </property>
+         <property name="cornerButtonEnabled">
+          <bool>false</bool>
+         </property>
+         <column>
+          <property name="text">
+           <string>Idx</string>
+          </property>
+         </column>
+         <column>
+          <property name="text">
+           <string>Channel</string>
+          </property>
+         </column>
+         <column>
+          <property name="text">
+           <string>Source</string>
+          </property>
+         </column>
+         <column>
+          <property name="text">
+           <string>Target</string>
+          </property>
+         </column>
+         <column>
+          <property name="text">
+           <string>operation</string>
+          </property>
+          <property name="toolTip">
+           <string>Move or proxy</string>
+          </property>
+         </column>
+        </widget>
+       </item>
+       <item>
+        <layout class="QHBoxLayout" name="horizontalLayout">
+         <item>
+          <widget class="QPushButton" name="export_pushButton">
+           <property name="text">
+            <string>Export</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="import_pushButton">
+           <property name="text">
+            <string>Import</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+       <item>
+        <widget class="QPushButton" name="apply_pushButton">
+         <property name="text">
+          <string>Apply</string>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </item>
+     <item>
+      <layout class="QVBoxLayout" name="verticalLayout_2">
+       <item>
+        <widget class="QGroupBox" name="groupBox">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="title">
+          <string>Channel</string>
+         </property>
+         <layout class="QHBoxLayout" name="horizontalLayout_2">
+          <item>
+           <widget class="QLineEdit" name="channel_lineEdit">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="channel_pushButton">
+            <property name="text">
+             <string>&lt;&lt;&lt;</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item>
+        <widget class="QGroupBox" name="groupBox_2">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="title">
+          <string>Target</string>
+         </property>
+         <layout class="QHBoxLayout" name="horizontalLayout_3">
+          <item>
+           <widget class="QLineEdit" name="target_lineEdit">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="target_pushButton">
+            <property name="text">
+             <string>&lt;&lt;&lt;</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="setRow_pushButton">
+         <property name="text">
+          <string>Set Row</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="Line" name="line">
+         <property name="frameShadow">
+          <enum>QFrame::Plain</enum>
+         </property>
+         <property name="lineWidth">
+          <number>2</number>
+         </property>
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="setMultiChannel_pushButton">
+         <property name="text">
+          <string>Set Multi Channel</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="setMultiTarget_pushButton">
+         <property name="text">
+          <string>Set Multi Target</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="Line" name="line_2">
+         <property name="frameShadow">
+          <enum>QFrame::Plain</enum>
+         </property>
+         <property name="lineWidth">
+          <number>2</number>
+         </property>
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="clearSelectedRows_pushButton">
+         <property name="text">
+          <string>Clear Selected Rows</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="clearAll_pushButton">
+         <property name="text">
+          <string>Clear All</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="Line" name="line_4">
+         <property name="frameShadow">
+          <enum>QFrame::Plain</enum>
+         </property>
+         <property name="lineWidth">
+          <number>2</number>
+         </property>
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="setMoveOp_pushButton">
+         <property name="text">
+          <string>Set Move Operation</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="setProxyOp_pushButton">
+         <property name="text">
+          <string>Set Proxy Operation</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="Line" name="line_5">
+         <property name="frameShadow">
+          <enum>QFrame::Plain</enum>
+         </property>
+         <property name="lineWidth">
+          <number>2</number>
+         </property>
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QGroupBox" name="groupBox_3">
+         <property name="title">
+          <string>Move Duplicated Channel Policy</string>
+         </property>
+         <layout class="QGridLayout" name="gridLayout_2">
+          <item row="0" column="0">
+           <widget class="QComboBox" name="movePolicy_comboBox">
+            <property name="toolTip">
+             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Set the duplicate channel policy when we use proxy channel operation.&lt;/p&gt;&lt;p&gt;-&lt;span style=&quot; font-weight:600;&quot;&gt;Merge&lt;/span&gt;: If the channel is already in the target object the new channel creationg will be skipped and the output channels will be reconnected to the previous existing channel&lt;/p&gt;&lt;p&gt;-&lt;span style=&quot; font-weight:600;&quot;&gt;Index&lt;/span&gt;: If the channel is already in the target object, the new proxy channel will add an index number to avoid the name clashing.&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; text-decoration: underline;&quot;&gt;example:&lt;/span&gt;&lt;/p&gt;&lt;p align=&quot;center&quot;&gt;&lt;span style=&quot; font-style:italic;&quot;&gt;&amp;quot;ik_fk_blend&amp;quot; will be renamed &amp;quot;ik_fk_blend0&amp;quot;, &amp;quot;ik_fk_blend1&amp;quot;,&amp;quot;ik_fk_blend2&amp;quot;, etc...&lt;/span&gt;&lt;/p&gt;&lt;p&gt;-&lt;span style=&quot; font-weight:600;&quot;&gt;Full Name&lt;/span&gt;: If the channel is already in the target object, the new channel will be renamed using the source node name as a prefix&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+            </property>
+            <item>
+             <property name="text">
+              <string>Merge</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>Index</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>Full Name</string>
+             </property>
+            </item>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item>
+        <widget class="QGroupBox" name="groupBox_4">
+         <property name="title">
+          <string>Proxy Duplicated Channel Policy</string>
+         </property>
+         <layout class="QGridLayout" name="gridLayout_3">
+          <item row="0" column="0">
+           <widget class="QComboBox" name="proxyPolicy_comboBox">
+            <property name="toolTip">
+             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Set the duplicate channel policy when we use proxy channel operation.&lt;/p&gt;&lt;p&gt;-&lt;span style=&quot; font-weight:600;&quot;&gt;Index&lt;/span&gt;: If the channel is already in the target object, the new proxy channel will add an index number to avoid the name clashing.&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; text-decoration: underline;&quot;&gt;example:&lt;/span&gt;&lt;/p&gt;&lt;p align=&quot;center&quot;&gt;&lt;span style=&quot; font-style:italic;&quot;&gt;&amp;quot;ik_fk_blend&amp;quot; will be renamed &amp;quot;ik_fk_blend0&amp;quot;, &amp;quot;ik_fk_blend1&amp;quot;,&amp;quot;ik_fk_blend2&amp;quot;, etc...&lt;/span&gt;&lt;/p&gt;&lt;p&gt;-&lt;span style=&quot; font-weight:600;&quot;&gt;Full Name&lt;/span&gt;: If the channel is already in the target object, the new channel will be renamed using the source node name as a prefix&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+            </property>
+            <item>
+             <property name="text">
+              <string>Index</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>Full Name</string>
+             </property>
+            </item>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item>
+        <spacer name="verticalSpacer">
+         <property name="orientation">
+          <enum>Qt::Vertical</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>20</width>
+           <height>40</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+      </layout>
+     </item>
+    </layout>
+   </item>
+  </layout>
+ </widget>
+ <customwidgets>
+  <customwidget>
+   <class>TableWidgetDragRowsChannelWrangler</class>
+   <extends>QTableWidget</extends>
+   <header>mgear.core.rigbits.widgets</header>
+  </customwidget>
+ </customwidgets>
+ <resources/>
+ <connections/>
+</ui>

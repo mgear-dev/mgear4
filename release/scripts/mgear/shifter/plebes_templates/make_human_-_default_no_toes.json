@@ -1,0 +1,447 @@
+{
+    "help": "MakeHuman uses letters not supported by Maya which get replaced with unsightly FBXASCxxx on import. Run 'Fix FBX Naming' to replace these with '_' before aligning the guides",
+    "root": "Default_simplified",
+    "guides": [
+	{"guide": "Default_simplified"},
+	{"body_C0_root": "root"},
+	{"spine_C0_root": "spine05"},
+	{"spine_C0_eff": "spine01"},
+	{"neck_C0_root": "neck01"},
+	{"neck_C0_tan0": "neck02"},
+	{"neck_C0_tan1": "neck03"},
+	{"neck_C0_neck": "head"},
+	{"neck_C0_head": "head"},
+	{"mouth_C0_jaw": "jaw"},
+	{"tongue_C0_root": "tongue00"},
+	{"tongue_C0_0_loc": "tongue01"},
+	{"tongue_C0_1_loc": "tongue02"},
+	{"tongue_C0_2_loc": "tongue03"},
+	{"tongue_C0_3_loc": "tongue04"},
+	{"eye_L0_root": "eye_L"},
+	{"eye_R0_root": "eye_R"},
+	{"shoulder_L0_root": "clavicle_L"},
+	{"shoulder_L0_tip": "upperarm01_L"},
+	{"arm_L0_root": "upperarm01_L"},
+	{"arm_L0_elbow": "lowerarm01_L"},
+	{"arm_L0_wrist": "wrist_L"},
+	{"arm_L0_eff": "PARENT_OFFSET"},
+	{"meta_L0_root": "finger1_1_L"},
+	{"finger_L0_root": "finger2_1_L"},
+	{"finger_L0_0_loc": "finger2_2_L"},
+	{"finger_L0_1_loc": "finger2_3_L"},
+	{"finger_L0_2_loc": "PARENT_OFFSET"},
+	{"meta_L0_0_loc": "metacarpal2_L"},
+	{"finger_L1_root": "finger3_1_L"},
+	{"finger_L1_0_loc": "finger3_2_L"},
+	{"finger_L1_1_loc": "finger3_3_L"},
+	{"finger_L1_2_loc": "PARENT_OFFSET"},
+	{"meta_L0_1_loc": "metacarpal3_L"},
+	{"finger_L2_root": "finger4_1_L"},
+	{"finger_L2_0_loc": "finger4_2_L"},
+	{"finger_L2_1_loc": "finger4_3_L"},
+	{"finger_L2_2_loc": "PARENT_OFFSET"},
+	{"meta_L0_2_loc": "metacarpal4_L"},
+	{"finger_L3_root": "finger5_1_L"},
+	{"finger_L3_0_loc": "finger5_2_L"},
+	{"finger_L3_1_loc": "finger5_3_L"},
+	{"finger_L3_2_loc": "PARENT_OFFSET"},
+	{"thumbRoll_L0_root": "finger1_1_L"},
+	{"thumb_L0_0_loc": "finger1_2_L"},
+	{"thumb_L0_1_loc": "finger1_3_L"},
+	{"thumb_L0_2_loc": "PARENT_OFFSET"},
+	{"shoulder_R0_root": "clavicle_R"},
+	{"shoulder_R0_tip": "upperarm01_R"},
+	{"arm_R0_root": "upperarm01_R"},
+	{"arm_R0_elbow": "lowerarm01_R"},
+	{"arm_R0_wrist": "wrist_R"},
+	{"arm_R0_eff": "PARENT_OFFSET"},
+	{"meta_R0_root": "metacarpal1_R"},
+	{"finger_R0_root": "finger2_1_R"},
+	{"finger_R0_0_loc": "finger2_2_R"},
+	{"finger_R0_1_loc": "finger2_3_R"},
+	{"finger_R0_2_loc": "PARENT_OFFSET"},
+	{"meta_R0_0_loc": "metacarpal2_R"},
+	{"finger_R1_root": "finger3_1_R"},
+	{"finger_R1_0_loc": "finger3_2_R"},
+	{"finger_R1_1_loc": "finger3_3_R"},
+	{"finger_R1_2_loc": "PARENT_OFFSET"},
+	{"meta_R0_1_loc": "metacarpal3_R"},
+	{"finger_R2_root": "finger4_1_R"},
+	{"finger_R2_0_loc": "finger4_2_R"},
+	{"finger_R2_1_loc": "finger4_3_R"},
+	{"finger_R2_2_loc": "PARENT_OFFSET"},
+	{"meta_R0_2_loc": "metacarpal4_R"},
+	{"finger_R3_root": "finger5_1_R"},
+	{"finger_R3_0_loc": "finger5_2_R"},
+	{"finger_R3_1_loc": "finger5_3_R"},
+	{"finger_R3_2_loc": "PARENT_OFFSET"},
+	{"thumbRoll_R0_root": "finger1_1_R"},
+	{"thumb_R0_0_loc": "finger1_2_R"},
+	{"thumb_R0_1_loc": "finger1_3_R"},
+	{"thumb_R0_2_loc": "PARENT_OFFSET"},
+	{"leg_L0_root": "upperleg01_L"},
+	{"leg_L0_knee": "lowerleg01_L"},
+	{"leg_L0_ankle": "foot_L"},
+	{"foot_L0_0_loc": "toe1_1_L"},
+	{"leg_R0_root": "upperleg01_R"},
+	{"leg_R0_knee": "lowerleg01_R"},
+	{"leg_R0_ankle": "foot_R"},
+	{"foot_R0_0_loc": "toe1_1_R"}
+    ],
+    "settings": [
+	{"arm_L0_root": [
+	    { "div0": 1 },
+	    { "div1": 1 },
+	    { "supportJoints": 0}
+	]},
+	{"arm_R0_root": [
+	    { "div0": 1 },
+	    { "div1": 1 },
+	    { "supportJoints": 0}
+	]},
+	{"leg_L0_root": [
+	    { "div0": 1 },
+	    { "div1": 1 },
+	    { "supportJoints": 0}
+	]},
+	{"leg_R0_root": [
+	    { "div0": 1 },
+	    { "div1": 1 },
+	    { "supportJoints": 0}
+	]}
+    ],
+    "joints": [
+	{"local_C0_ctl": {
+            "joint": "Default_simplified",
+            "constrain": "111"}
+	},
+	{"spine_C0_0_jnt": {
+            "joint": "root",
+            "constrain": "110"}
+	},
+	{"spine_C0_1_jnt": {
+            "joint": "spine04",
+            "constrain": "110"}
+	},
+	{"spine_C0_2_jnt": {
+            "joint": "spine03",
+            "constrain": "110"}
+	},
+	{"spine_C0_3_jnt": {
+            "joint": "spine02",
+            "constrain": "110"}
+	},
+	{"spine_C0_4_jnt": {
+            "joint": "spine01",
+            "constrain": "110"}
+	},
+	{"shoulder_L0_shoulder_jnt": {
+            "joint": "clavicle_L",
+            "constrain": "110"}
+	},
+	{"arm_L0_0_jnt": {
+            "joint": "upperarm01_L",
+            "constrain": "110"}
+	},
+	{"arm_L0_1_jnt": {
+            "joint": "upperarm02_L",
+            "constrain": "110"}
+	},
+	{"arm_L0_2_jnt": {
+            "joint": "lowerarm01_L",
+            "constrain": "110"}
+	},
+	{"arm_L0_3_jnt": {
+            "joint": "lowerarm02_L",
+            "constrain": "110"}
+	},
+	{"arm_L0_end_jnt": {
+            "joint": "wrist_L",
+            "constrain": "110"}
+	},
+	{"meta_L0_3_jnt": {
+            "joint": "metacarpal4_L",
+            "constrain": "010"}
+	},
+	{"finger_L3_0_jnt": {
+            "joint": "finger5_1_L",
+            "constrain": "010"}
+	},
+	{"finger_L3_1_jnt": {
+            "joint": "finger5_2_L",
+            "constrain": "010"}
+	},
+	{"finger_L3_2_jnt": {
+            "joint": "finger5_3_L",
+            "constrain": "010"}
+	},
+	{"meta_L0_2_jnt": {
+            "joint": "metacarpal3_L",
+            "constrain": "010"}
+	},
+	{"finger_L2_0_jnt": {
+            "joint": "finger4_1_L",
+            "constrain": "010"}
+	},
+	{"finger_L2_1_jnt": {
+            "joint": "finger4_2_L",
+            "constrain": "010"}
+	},
+	{"finger_L2_2_jnt": {
+            "joint": "finger4_3_L",
+            "constrain": "010"}
+	},
+	{"meta_L0_1_jnt": {
+            "joint": "metacarpal2_L",
+            "constrain": "010"}
+	},
+	{"finger_L1_0_jnt": {
+            "joint": "finger3_1_L",
+            "constrain": "010"}
+	},
+	{"finger_L1_1_jnt": {
+            "joint": "finger3_2_L",
+            "constrain": "010"}
+	},
+	{"finger_L1_2_jnt": {
+            "joint": "finger3_3_L",
+            "constrain": "010"}
+	},
+	{"meta_L0_0_jnt": {
+            "joint": "metacarpal1_L",
+            "constrain": "010"}
+	},
+	{"finger_L0_0_jnt": {
+            "joint": "finger2_1_L",
+            "constrain": "010"}
+	},
+	{"finger_L0_1_jnt": {
+            "joint": "finger2_2_L",
+            "constrain": "010"}
+	},
+	{"finger_L0_2_jnt": {
+            "joint": "finger2_3_L",
+            "constrain": "010"}
+	},
+	{"thumb_L0_0_jnt": {
+            "joint": "finger1_1_L",
+            "constrain": "010"}
+	},
+	{"thumb_L0_1_jnt": {
+            "joint": "finger1_2_L",
+            "constrain": "010"}
+	},
+	{"thumb_L0_2_jnt": {
+            "joint": "finger1_3_L",
+            "constrain": "010"}
+	},
+	{"shoulder_R0_shoulder_jnt": {
+            "joint": "clavicle_R",
+            "constrain": "110"}
+	},
+	{"arm_R0_0_jnt": {
+            "joint": "upperarm01_R",
+            "constrain": "110"}
+	},
+	{"arm_R0_1_jnt": {
+            "joint": "upperarm02_R",
+            "constrain": "110"}
+	},
+	{"arm_R0_2_jnt": {
+            "joint": "lowerarm01_R",
+            "constrain": "110"}
+	},
+	{"arm_R0_3_jnt": {
+            "joint": "lowerarm02_R",
+            "constrain": "110"}
+	},
+	{"arm_R0_end_jnt": {
+            "joint": "wrist_R",
+            "constrain": "110"}
+	},
+	{"meta_R0_3_jnt": {
+            "joint": "metacarpal4_R",
+            "constrain": "010"}
+	},
+	{"finger_R3_0_jnt": {
+            "joint": "finger5_1_R",
+            "constrain": "010"}
+	},
+	{"finger_R3_1_jnt": {
+            "joint": "finger5_2_R",
+            "constrain": "010"}
+	},
+	{"finger_R3_2_jnt": {
+            "joint": "finger5_3_R",
+            "constrain": "010"}
+	},
+	{"meta_R0_2_jnt": {
+            "joint": "metacarpal3_R",
+            "constrain": "010"}
+	},
+	{"finger_R2_0_jnt": {
+            "joint": "finger4_1_R",
+            "constrain": "010"}
+	},
+	{"finger_R2_1_jnt": {
+            "joint": "finger4_2_R",
+            "constrain": "010"}
+	},
+	{"finger_R2_2_jnt": {
+            "joint": "finger4_3_R",
+            "constrain": "010"}
+	},
+	{"meta_R0_1_jnt": {
+            "joint": "metacarpal2_R",
+            "constrain": "010"}
+	},
+	{"finger_R1_0_jnt": {
+            "joint": "finger3_1_R",
+            "constrain": "010"}
+	},
+	{"finger_R1_1_jnt": {
+            "joint": "finger3_2_R",
+            "constrain": "010"}
+	},
+	{"finger_R1_2_jnt": {
+            "joint": "finger3_3_R",
+            "constrain": "010"}
+	},
+	{"meta_R0_0_jnt": {
+            "joint": "metacarpal1_R",
+            "constrain": "010"}
+	},
+	{"finger_R0_0_jnt": {
+            "joint": "finger2_1_R",
+            "constrain": "010"}
+	},
+	{"finger_R0_1_jnt": {
+            "joint": "finger2_2_R",
+            "constrain": "010"}
+	},
+	{"finger_R0_2_jnt": {
+            "joint": "finger2_3_R",
+            "constrain": "010"}
+	},
+	{"thumb_R0_0_jnt": {
+            "joint": "finger1_1_R",
+            "constrain": "010"}
+	},
+	{"thumb_R0_1_jnt": {
+            "joint": "finger1_2_R",
+            "constrain": "010"}
+	},
+	{"thumb_R0_2_jnt": {
+            "joint": "finger1_3_R",
+            "constrain": "010"}
+	},
+	{"neck_C0_0_jnt": {
+            "joint": "neck01",
+            "constrain": "110"}
+	},
+	{"neck_C0_1_jnt": {
+            "joint": "neck02",
+            "constrain": "110"}
+	},
+	{"neck_C0_2_jnt": {
+            "joint": "neck03",
+            "constrain": "110"}
+	},
+	{"neck_C0_head_jnt": {
+            "joint": "head",
+            "constrain": "110"}
+	},
+	{"mouth_C0_jaw_jnt": {
+            "joint": "jaw",
+            "constrain": "110"}
+	},
+	{"mouth_C0_liplow_jnt": {
+            "joint": "special04",
+            "constrain": "110"}
+	},
+	{"mouth_C0_lipup_jnt": {
+            "joint": "special01",
+            "constrain": "110"}
+	},
+	{"tongue_C0_0_jnt": {
+            "joint": "tongue01",
+            "constrain": "110"}
+	},
+	{"tongue_C0_1_jnt": {
+            "joint": "tongue02",
+            "constrain": "110"}
+	},
+	{"tongue_C0_2_jnt": {
+            "joint": "tongue03",
+            "constrain": "110"}
+	},
+	{"tongue_C0_3_jnt": {
+            "joint": "tongue04",
+            "constrain": "110"}
+	},
+	{"eye_L0_eye_jnt": {
+            "joint": "eye_L",
+            "constrain": "110"}
+	},
+	{"eye_R0_eye_jnt": {
+            "joint": "eye_R",
+            "constrain": "110"}
+	},
+	{"eye_L0_eyeOver_jnt": {
+            "joint": "orbicularis03_L",
+            "constrain": "110"}
+	},
+	{"eye_R0_eyeOver_jnt": {
+            "joint": "orbicularis03_R",
+            "constrain": "110"}
+	},
+	{"leg_L0_0_jnt": {
+             "joint": "upperleg01_L",
+             "constrain": "110"}
+       },
+	{"leg_L0_1_jnt": {
+             "joint": "upperleg02_L",
+             "constrain": "110"}
+       },
+	{"leg_L0_2_jnt": {
+             "joint": "lowerleg01_L",
+             "constrain": "110"}
+       },
+	{"leg_L0_3_jnt": {
+             "joint": "lowerleg02_L",
+             "constrain": "110"}
+       },
+	{"leg_L0_end_jnt": {
+             "joint": "foot_L",
+             "constrain": "110"}
+       },
+	{"foot_L0_0_jnt": {
+             "joint": "toe1_1_L",
+             "constrain": "010"}
+       },
+	{"leg_R0_0_jnt": {
+             "joint": "upperleg01_R",
+             "constrain": "110"}
+       },
+	{"leg_R0_1_jnt": {
+             "joint": "upperleg02_R",
+             "constrain": "110"}
+       },
+	{"leg_R0_2_jnt": {
+             "joint": "lowerleg01_R",
+             "constrain": "110"}
+       },
+	{"leg_R0_3_jnt": {
+             "joint": "lowerleg02_R",
+             "constrain": "110"}
+       },
+	{"leg_R0_end_jnt": {
+             "joint": "foot_R",
+             "constrain": "110"}
+       },
+	{"foot_R0_0_jnt": {
+             "joint": "toe1_1_R",
+             "constrain": "010"}
+       }
+    ]
+}
