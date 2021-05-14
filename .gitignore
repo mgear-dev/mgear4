@@ -6,7 +6,7 @@
 .pydevproject
 
 # File extension
-*.pyc
+*.py[cod]
 
 # Unit tests & coverage reports
 .pytest_cache
@@ -14,3 +14,29 @@
 .tox
 nosetests.xml
 tests/logs/*
+
+# Packages
+*.egg
+*.egg-info
+dist
+build
+eggs
+parts
+bin
+var
+sdist
+develop-eggs
+.installed.cfg
+lib
+lib64
+
+# Installer logs
+pip-log.txt
+
+# Mr Developer
+.mr.developer.cfg
+
+*.dblite
+excons.cache
+/.build/
+/debug/
