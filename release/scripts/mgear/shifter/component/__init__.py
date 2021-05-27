@@ -64,8 +64,20 @@ class Main(object):
         # Shortcut to useful settings
         self.size = self.guide.size
 
-        self.color_fk = self.options[self.side + "_color_fk"]
-        self.color_ik = self.options[self.side + "_color_ik"]
+        if self.settings["Override_Color"]:
+            if self.settings["Use_RGB_Color"]:
+                self.color_fk = self.settings["RGB_fk"]
+                self.color_ik = self.settings["RGB_ik"]
+            else:
+                self.color_fk = self.options["color_fk"]
+                self.color_ik = self.options["color_ik"]
+        else:
+            if self.options["Use_RGB_Color"]:
+                self.color_fk = self.options[self.side + "_RGB_fk"]
+                self.color_ik = self.options[self.side + "_RGB_ik"]
+            else:
+                self.color_fk = self.options[self.side + "_color_fk"]
+                self.color_ik = self.options[self.side + "_color_ik"]
 
         self.negate = self.side == "R"
         if self.negate:

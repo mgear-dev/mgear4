@@ -21,6 +21,7 @@ import mgear
 from mgear.core import attribute, dag, vector, pyqt, skin, string, fcurve
 from mgear.core import utils, curve
 from mgear.vendor.Qt import QtCore, QtWidgets, QtGui
+from mgear.anim_picker.gui import MAYA_OVERRIDE_COLOR
 
 from . import guide_ui as guui
 from . import custom_step_ui as csui
@@ -327,12 +328,14 @@ class Rig(Main):
         self.pCColorIndexik = self.addParam("C_color_ik", "long", 17, 0, 31)
 
         # RGB colors for Maya 2015 and up
-        # self.pLColorfk = self.addColorParam("L_RGB_fk", [0, 1, 0])
-        # self.pLColorik = self.addColorParam("L_RGB_ik", [0, .5, 0])
-        # self.pRColorfk = self.addColorParam("R_RGB_fk", [0, 0, 1])
-        # self.pRColorik = self.addColorParam("R_RGB_ik", [0, 0, .6])
-        # self.pCColorfk = self.addColorParam("C_RGB_fk", [1, 0, 0])
-        # self.pCColorik = self.addColorParam("C_RGB_ik", [.6, 0, 0])
+        self.pUseRGBColor = self.addParam("Use_RGB_Color", "bool", False)
+
+        self.pLColorfk = self.addColorParam("L_RGB_fk", [0, 0, 1])
+        self.pLColorik = self.addColorParam("L_RGB_ik", [0, 0.25, 1])
+        self.pRColorfk = self.addColorParam("R_RGB_fk", [1, 0, 0])
+        self.pRColorik = self.addColorParam("R_RGB_ik", [1, 0.1, 0.25])
+        self.pCColorfk = self.addColorParam("C_RGB_fk", [1, 1, 0])
+        self.pCColorik = self.addColorParam("C_RGB_ik", [0, 0.6, 0])
 
         # --------------------------------------------------
         # Settings
@@ -1133,6 +1136,46 @@ class HelperSlots(object):
         curIndx = sourceWidget.currentIndex()
         self.root.attr(targetAttr).set(ctlList[curIndx])
 
+    def updateIndexColorWidgets(self, sourceWidget, targetAttr, colorWidget, *args):
+        self.updateSpinBox(sourceWidget, targetAttr)
+        self.updateWidgetStyleSheet(colorWidget, (i / 255.0 for i in MAYA_OVERRIDE_COLOR[sourceWidget.value()]))
+
+    def updateRgbColorWidgets(self, buttonWidget, rgb, sliderWidget):
+        self.updateWidgetStyleSheet(buttonWidget, rgb)
+        sliderWidget.blockSignals(True)
+        sliderWidget.setValue(sorted(rgb)[2]*255)
+        sliderWidget.blockSignals(False)
+
+    def updateWidgetStyleSheet(self, sourceWidget, rgb):
+        color = ', '.join(str(i*255) for i in pm.colorManagementConvert(toDisplaySpace=rgb))
+        sourceWidget.setStyleSheet(
+            "* {background-color: rgb(" + color + ")}")
+
+    def rgbSliderValueChanged(self, buttonWidget, targetAttr, value):
+        rgb = self.root.attr(targetAttr).get()
+        hsv_value = sorted(rgb)[2]
+        if hsv_value:
+            new_rgb = tuple(i / (hsv_value / 1.0) * (value / 255.0) for i in rgb)
+        else:
+            new_rgb = tuple((1.0 * (value / 255.0), 1.0 * (value / 255.0), 1.0 * (value / 255.0)))
+        self.updateWidgetStyleSheet(buttonWidget, new_rgb)
+        self.root.attr(targetAttr).set(new_rgb)
+
+    def rgbColorEditor(self, sourceWidget, targetAttr, sliderWidget, *args):
+        pm.colorEditor(rgb=self.root.attr(targetAttr).get())
+        if pm.colorEditor(query=True, result=True):
+            rgb = pm.colorEditor(query=True, rgb=True)
+            self.root.attr(targetAttr).set(rgb)
+            self.updateRgbColorWidgets(sourceWidget, rgb, sliderWidget)
+
+    def toggleRgbIndexWidgets(self, checkBox, idx_widgets, rgb_widgets, targetAttr, checked):
+        show_widgets, hide_widgets = (rgb_widgets, idx_widgets) if checked else (idx_widgets, rgb_widgets)
+        for widget in show_widgets:
+            widget.show()
+        for widget in hide_widgets:
+            widget.hide()
+        self.updateCheck(checkBox, targetAttr)
+
     def setProfile(self):
         pm.select(self.root, r=True)
         pm.runtime.GraphEditor()
@@ -1435,18 +1478,40 @@ class GuideSettings(MayaQWidgetDockableMixin, QtWidgets.QDialog, HelperSlots):
         for item in self.root.attr("synoptic").get().split(","):
             self.guideSettingsTab.rigTabs_listWidget.addItem(item)
 
-        self.guideSettingsTab.L_color_fk_spinBox.setValue(
-            self.root.attr("L_color_fk").get())
-        self.guideSettingsTab.L_color_ik_spinBox.setValue(
-            self.root.attr("L_color_ik").get())
-        self.guideSettingsTab.C_color_fk_spinBox.setValue(
-            self.root.attr("C_color_fk").get())
-        self.guideSettingsTab.C_color_ik_spinBox.setValue(
-            self.root.attr("C_color_ik").get())
-        self.guideSettingsTab.R_color_fk_spinBox.setValue(
-            self.root.attr("R_color_fk").get())
-        self.guideSettingsTab.R_color_ik_spinBox.setValue(
-            self.root.attr("R_color_ik").get())
+        tap = self.guideSettingsTab
+        
+        index_widgets = ((tap.L_color_fk_spinBox, tap.L_color_fk_label, "L_color_fk"),
+                         (tap.L_color_ik_spinBox, tap.L_color_ik_label, "L_color_ik"),
+                         (tap.C_color_fk_spinBox, tap.C_color_fk_label, "C_color_fk"),
+                         (tap.C_color_ik_spinBox, tap.C_color_ik_label, "C_color_ik"),
+                         (tap.R_color_fk_spinBox, tap.R_color_fk_label, "R_color_fk"),
+                         (tap.R_color_ik_spinBox, tap.R_color_ik_label, "R_color_ik"))
+
+        rgb_widgets = ((tap.L_RGB_fk_pushButton, tap.L_RGB_fk_slider, "L_RGB_fk"),
+                       (tap.L_RGB_ik_pushButton, tap.L_RGB_ik_slider, "L_RGB_ik"),
+                       (tap.C_RGB_fk_pushButton, tap.C_RGB_fk_slider, "C_RGB_fk"),
+                       (tap.C_RGB_ik_pushButton, tap.C_RGB_ik_slider, "C_RGB_ik"),
+                       (tap.R_RGB_fk_pushButton, tap.R_RGB_fk_slider, "R_RGB_fk"),
+                       (tap.R_RGB_ik_pushButton, tap.R_RGB_ik_slider, "R_RGB_ik"))
+
+        for spinBox, label, source_attr in index_widgets:
+            color_index = self.root.attr(source_attr).get()
+            spinBox.setValue(color_index)
+            self.updateWidgetStyleSheet(label, [i / 255.0 for i in MAYA_OVERRIDE_COLOR[color_index]])
+
+        for button, slider, source_attr in rgb_widgets:
+            self.updateRgbColorWidgets(button, self.root.attr(source_attr).get(), slider)
+
+        # forceing the size of the color buttons/label to keep ui clean
+        for widget in tuple(i[0] for i in rgb_widgets) + tuple(i[1] for i in index_widgets):
+            widget.setFixedSize(pyqt.dpi_scale(30), pyqt.dpi_scale(20))
+
+        self.populateCheck(tap.useRGB_checkBox, "Use_RGB_Color")
+        self.toggleRgbIndexWidgets(tap.useRGB_checkBox,
+                                   (w for i in index_widgets for w in i[:2]),
+                                   (w for i in rgb_widgets for w in i[:2]),
+                                   "Use_RGB_Color",
+                                   tap.useRGB_checkBox.checkState())
 
         # pupulate custom steps sttings
         self.populateCheck(
@@ -1569,30 +1634,34 @@ class GuideSettings(MayaQWidgetDockableMixin, QtWidgets.QDialog, HelperSlots):
             self.skinLoad)
         tap.rigTabs_listWidget.installEventFilter(self)
 
-        tap.L_color_fk_spinBox.valueChanged.connect(
-            partial(self.updateSpinBox,
-                    tap.L_color_fk_spinBox,
-                    "L_color_fk"))
-        tap.L_color_ik_spinBox.valueChanged.connect(
-            partial(self.updateSpinBox,
-                    tap.L_color_ik_spinBox,
-                    "L_color_ik"))
-        tap.C_color_fk_spinBox.valueChanged.connect(
-            partial(self.updateSpinBox,
-                    tap.C_color_fk_spinBox,
-                    "C_color_fk"))
-        tap.C_color_ik_spinBox.valueChanged.connect(
-            partial(self.updateSpinBox,
-                    tap.C_color_ik_spinBox,
-                    "C_color_ik"))
-        tap.R_color_fk_spinBox.valueChanged.connect(
-            partial(self.updateSpinBox,
-                    tap.R_color_fk_spinBox,
-                    "R_color_fk"))
-        tap.R_color_ik_spinBox.valueChanged.connect(
-            partial(self.updateSpinBox,
-                    tap.R_color_ik_spinBox,
-                    "R_color_ik"))
+        # colors connections
+        index_widgets = ((tap.L_color_fk_spinBox, tap.L_color_fk_label, "L_color_fk"),
+                         (tap.L_color_ik_spinBox, tap.L_color_ik_label, "L_color_ik"),
+                         (tap.C_color_fk_spinBox, tap.C_color_fk_label, "C_color_fk"),
+                         (tap.C_color_ik_spinBox, tap.C_color_ik_label, "C_color_ik"),
+                         (tap.R_color_fk_spinBox, tap.R_color_fk_label, "R_color_fk"),
+                         (tap.R_color_ik_spinBox, tap.R_color_ik_label, "R_color_ik"))
+
+        rgb_widgets = ((tap.L_RGB_fk_pushButton, tap.L_RGB_fk_slider, "L_RGB_fk"),
+                       (tap.L_RGB_ik_pushButton, tap.L_RGB_ik_slider, "L_RGB_ik"),
+                       (tap.C_RGB_fk_pushButton, tap.C_RGB_fk_slider, "C_RGB_fk"),
+                       (tap.C_RGB_ik_pushButton, tap.C_RGB_ik_slider, "C_RGB_ik"),
+                       (tap.R_RGB_fk_pushButton, tap.R_RGB_fk_slider, "R_RGB_fk"),
+                       (tap.R_RGB_ik_pushButton, tap.R_RGB_ik_slider, "R_RGB_ik"))
+
+        for spinBox, label, source_attr in index_widgets:
+            spinBox.valueChanged.connect(partial(self.updateIndexColorWidgets, spinBox, source_attr, label))
+
+        for button, slider, source_attr in rgb_widgets:
+            button.clicked.connect(partial(self.rgbColorEditor, button, source_attr, slider))
+            slider.valueChanged.connect(partial(self.rgbSliderValueChanged, button, source_attr))
+
+        tap.useRGB_checkBox.stateChanged.connect(
+            partial(self.toggleRgbIndexWidgets,
+                    tap.useRGB_checkBox,
+                    tuple(w for i in index_widgets for w in i[:2]),
+                    tuple(w for i in rgb_widgets for w in i[:2]),
+                    "Use_RGB_Color"))
 
         # custom Step Tab
         csTap = self.customStepTab
