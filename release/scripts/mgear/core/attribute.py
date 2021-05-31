@@ -791,6 +791,7 @@ class colorParamDef(ParamDef):
 
         self.scriptName = scriptName
         self.value = value
+        self.valueType = None
         self.param_dict = {}
 
     def create(self, node):
