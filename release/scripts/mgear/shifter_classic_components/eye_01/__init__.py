@@ -32,7 +32,8 @@ class Component(component.Main):
                                        self.color_fk,
                                        "sphere",
                                        w=1 * self.size,
-                                       tp=self.parentCtlTag)
+                                       tp=self.parentCtlTag,
+                                       guide_loc_ref="root")
         self.eye_npo = primitive.addTransform(self.eyeOver_ctl,
                                               self.getName("eye_npo"),
                                               t)
@@ -59,7 +60,8 @@ class Component(component.Main):
                                      "circle",
                                      w=.5 * self.size,
                                      tp=self.eyeFK_ctl,
-                                     ro=datatypes.Vector([1.5708, 0, 0]))
+                                     ro=datatypes.Vector([1.5708, 0, 0]),
+                                     guide_loc_ref="look")
         attribute.setKeyableAttributes(self.eyeIK_ctl, self.t_params)
 
         self.jnt_pos.append([self.eyeFK_ctl, "eye", "parent_relative_jnt"])

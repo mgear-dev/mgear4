@@ -40,7 +40,8 @@ class Component(component.Main):
                                w=self.settings["ctlSize"] * self.size,
                                h=self.settings["ctlSize"] * self.size,
                                d=self.settings["ctlSize"] * self.size,
-                               tp=self.parentCtlTag)
+                               tp=self.parentCtlTag,
+                               guide_loc_ref="root")
 
         # we need to set the rotation order before lock any rotation axis
         if self.settings["k_ro"]:

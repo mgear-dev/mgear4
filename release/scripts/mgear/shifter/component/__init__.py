@@ -614,6 +614,7 @@ class Main(object):
                tp=None,
                lp=True,
                mirrorConf=[0, 0, 0, 0, 0, 0, 0, 0, 0],
+               guide_loc_ref=None,
                ** kwargs):
         """
         Create the control and apply the shape, if this is alrealdy stored
@@ -687,6 +688,16 @@ class Main(object):
         # since is only one control the role is not needed
         attribute.addAttribute(
             ctl, "ctl_role", "string", keyable=False, value=name)
+
+        # locator reference for quick guide matching
+        # TODO: this is a temporal implementation. We should store the full
+        # guide data in future iterations
+        if guide_loc_ref:
+            attribute.addAttribute(ctl,
+                                   "guide_loc_ref",
+                                   "string",
+                                   keyable=False,
+                                   value=guide_loc_ref)
 
         # mgear name. This keep track of the default shifter name. This naming
         # system ensure that each control has a unique id. Tools like mirror or
