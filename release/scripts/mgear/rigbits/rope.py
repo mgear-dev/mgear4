@@ -28,15 +28,15 @@ def rope(DEF_nb=10,
             oCrvUpV = pm.PyNode(oCrvUpV)
     else:
         if len(pm.selected()) != 2:
-            print "You need to select 2 nurbsCurve"
+            print("You need to select 2 nurbsCurve")
             return
         oCrv = pm.selected()[0]
         oCrvUpV = pm.selected()[1]
     if (oCrv.getShape().type() != "nurbsCurve"
             or oCrvUpV.getShape().type() != "nurbsCurve"):
-        print "One of the selected objects is not of type: 'nurbsCurve'"
-        print oCrv.getShape().type()
-        print oCrvUpV.getShape().type()
+        print("One of the selected objects is not of type: 'nurbsCurve'")
+        print(oCrv.getShape().type())
+        print(oCrvUpV.getShape().type())
         return
     if keepRatio:
         arclen_node = pm.arclen(oCrv, ch=True)

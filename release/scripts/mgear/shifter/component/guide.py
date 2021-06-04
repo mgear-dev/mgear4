@@ -20,8 +20,8 @@ from mgear.core import dag, vector, transform, applyop, attribute, icon, pyqt
 from mgear.shifter import guide, guide_manager
 from . import chain_guide_initializer
 
-import main_settings_ui as msui
-import joint_names_ui as jnui
+from . import main_settings_ui as msui
+from . import joint_names_ui as jnui
 
 from mgear.vendor.Qt import QtWidgets, QtCore
 from mgear.anim_picker.gui import MAYA_OVERRIDE_COLOR
@@ -168,11 +168,15 @@ class ComponentGuide(guide.Main):
         self.pJointRotOffZ = self.addParam(
             "joint_rot_offset_z", "double", 0.0, -360.0, 360.0)
 
-        self.pOverrideComponentColor = self.addParam("Override_Color", "bool", False)
-        self.pOverrideUseRGBColor = self.addParam("Use_RGB_Color", "bool", False)
+        self.pOverrideComponentColor = self.addParam(
+            "Override_Color", "bool", False)
+        self.pOverrideUseRGBColor = self.addParam(
+            "Use_RGB_Color", "bool", False)
 
-        self.pOverrideColorIndexfk = self.addParam("color_fk", "long", 6, 0, 31)
-        self.pOverrideColorIndexik = self.addParam("color_ik", "long", 18, 0, 31)
+        self.pOverrideColorIndexfk = self.addParam(
+            "color_fk", "long", 6, 0, 31)
+        self.pOverrideColorIndexik = self.addParam(
+            "color_ik", "long", 18, 0, 31)
 
         self.pLColorfk = self.addColorParam("RGB_fk", [0, 0, 1])
         self.pLColorik = self.addColorParam("RGB_ik", [0, 0.25, 1])
@@ -1017,31 +1021,38 @@ class componentMainSettings(QtWidgets.QDialog, guide.helperSlots):
 
         # testing adding custom color per component
         self.mainSettingsTab.overrideColors_checkBox.setCheckState(
-            QtCore.Qt.Checked if self.root.Override_Color.get() else QtCore.Qt.Unchecked)
+            QtCore.Qt.Checked if self.root.Override_Color.get()
+            else QtCore.Qt.Unchecked)
 
         self.mainSettingsTab.useRGB_checkBox.setCheckState(
-            QtCore.Qt.Checked if self.root.Use_RGB_Color.get() else QtCore.Qt.Unchecked)
-
+            QtCore.Qt.Checked if self.root.Use_RGB_Color.get()
+            else QtCore.Qt.Unchecked)
 
         tab = self.mainSettingsTab
 
-        index_widgets = ((tab.color_fk_spinBox, tab.color_fk_label, "color_fk"),
-                         (tab.color_ik_spinBox, tab.color_ik_label, "color_ik"))
+        index_widgets = ((tab.color_fk_spinBox,
+                          tab.color_fk_label,
+                          "color_fk"),
+                         (tab.color_ik_spinBox,
+                          tab.color_ik_label,
+                          "color_ik"))
 
         rgb_widgets = ((tab.RGB_fk_pushButton, tab.RGB_fk_slider, "RGB_fk"),
                        (tab.RGB_ik_pushButton, tab.RGB_ik_slider, "RGB_ik"))
 
-
         for spinBox, label, source_attr in index_widgets:
             color_index = self.root.attr(source_attr).get()
             spinBox.setValue(color_index)
-            self.updateWidgetStyleSheet(label, [i / 255.0 for i in MAYA_OVERRIDE_COLOR[color_index]])
+            self.updateWidgetStyleSheet(
+                label, [i / 255.0 for i in MAYA_OVERRIDE_COLOR[color_index]])
 
         for button, slider, source_attr in rgb_widgets:
-            self.updateRgbColorWidgets(button, self.root.attr(source_attr).get(), slider)
+            self.updateRgbColorWidgets(
+                button, self.root.attr(source_attr).get(), slider)
 
         # forceing the size of the color buttons/label to keep ui clean
-        for widget in tuple(i[0] for i in rgb_widgets) + tuple(i[1] for i in index_widgets):
+        for widget in tuple(i[0] for i in rgb_widgets) + tuple(
+                i[1] for i in index_widgets):
             widget.setFixedSize(pyqt.dpi_scale(30), pyqt.dpi_scale(20))
 
         self.toggleRgbIndexWidgets(tab.useRGB_checkBox,
@@ -1113,22 +1124,30 @@ class componentMainSettings(QtWidgets.QDialog, guide.helperSlots):
                     self.mainSettingsTab.joint_offset_z_doubleSpinBox,
                     "joint_rot_offset_z"))
 
-
-
         tab = self.mainSettingsTab
 
-        index_widgets = ((tab.color_fk_spinBox, tab.color_fk_label, "color_fk"),
-                         (tab.color_ik_spinBox, tab.color_ik_label, "color_ik"))
+        index_widgets = ((tab.color_fk_spinBox,
+                          tab.color_fk_label,
+                          "color_fk"),
+                         (tab.color_ik_spinBox,
+                          tab.color_ik_label,
+                          "color_ik"))
 
         rgb_widgets = ((tab.RGB_fk_pushButton, tab.RGB_fk_slider, "RGB_fk"),
                        (tab.RGB_ik_pushButton, tab.RGB_ik_slider, "RGB_ik"))
 
         for spinBox, label, source_attr in index_widgets:
-            spinBox.valueChanged.connect(partial(self.updateIndexColorWidgets, spinBox, source_attr, label))
+            spinBox.valueChanged.connect(
+                partial(self.updateIndexColorWidgets,
+                        spinBox,
+                        source_attr,
+                        label))
 
         for button, slider, source_attr in rgb_widgets:
-            button.clicked.connect(partial(self.rgbColorEditor, button, source_attr, slider))
-            slider.valueChanged.connect(partial(self.rgbSliderValueChanged, button, source_attr))
+            button.clicked.connect(
+                partial(self.rgbColorEditor, button, source_attr, slider))
+            slider.valueChanged.connect(
+                partial(self.rgbSliderValueChanged, button, source_attr))
 
         tab.useRGB_checkBox.stateChanged.connect(
             partial(self.toggleRgbIndexWidgets,
@@ -1141,8 +1160,6 @@ class componentMainSettings(QtWidgets.QDialog, guide.helperSlots):
             partial(self.updateCheck,
                     tab.overrideColors_checkBox,
                     "Override_Color"))
-
-
 
     def joint_names_dialog(self):
         dialog = JointNames(self.root, self)

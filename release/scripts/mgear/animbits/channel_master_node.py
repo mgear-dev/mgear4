@@ -7,6 +7,12 @@ from mgear.core import attribute
 from mgear.core import string
 
 from . import channel_master_utils as cmu
+import sys
+
+if sys.version_info[0] == 2:
+    string_types = (basestring,)
+else:
+    string_types = (str,)
 
 
 __TAG__ = "_isChannelMasterNode"
@@ -117,7 +123,7 @@ def export_data(node, tab=None, filePath=None):
             fileFilter='Channel Master Configuration .cmc (*%s)' % ".cmc")
     if not filePath:
         return
-    if not isinstance(filePath, basestring):
+    if not isinstance(filePath, string_types):
         filePath = filePath[0]
     f = open(filePath, 'w')
     f.write(data_string)
@@ -144,7 +150,7 @@ def import_data(filePath=None, node=None, add_data=False):
 
     if not filePath:
         return
-    if not isinstance(filePath, basestring):
+    if not isinstance(filePath, string_types):
         filePath = filePath[0]
     data = json.load(open(filePath))
     config = data["config"]

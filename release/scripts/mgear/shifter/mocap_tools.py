@@ -252,7 +252,7 @@ def characterizeBiped(*args):
     for a, b in zip(skelIK, gearIK):
         oA = pm.PyNode(a)
         oB = pm.PyNode(b)
-        print b
+        print(b)
         pb_node = pm.createNode("pairBlend")
         try:
             if b in (u"leg_L0_upv_ctl", u"leg_R0_upv_ctl"):

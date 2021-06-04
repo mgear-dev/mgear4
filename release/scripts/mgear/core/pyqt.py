@@ -13,6 +13,7 @@ from mgear.vendor.Qt import QtWidgets
 from mgear.vendor.Qt import QtCompat
 from mgear.vendor.Qt import QtGui
 from mgear.vendor.Qt import QtSvg
+from .six import PY2
 
 UI_EXT = "ui"
 
@@ -131,7 +132,9 @@ def maya_main_window():
     """
 
     main_window_ptr = omui.MQtUtil.mainWindow()
-    return QtCompat.wrapInstance(long(main_window_ptr), QtWidgets.QWidget)
+    if PY2:
+        return QtCompat.wrapInstance(long(main_window_ptr), QtWidgets.QWidget)
+    return QtCompat.wrapInstance(int(main_window_ptr), QtWidgets.QWidget)
 
 
 def showDialog(dialog, dInst=True, dockable=False, *args):
@@ -197,7 +200,7 @@ def deleteInstances(dialog, checkinstance):
     for obj in mayaMainWindow.children():
         if isinstance(obj, checkinstance):
             if obj.widget().objectName() == dialog.toolName:
-                print('Deleting instance {0}'.format(obj))
+                print(('Deleting instance {0}'.format(obj)))
                 mayaMainWindow.removeDockWidget(obj)
                 obj.setParent(None)
                 obj.deleteLater()

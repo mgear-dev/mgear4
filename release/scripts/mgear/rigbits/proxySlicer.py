@@ -13,11 +13,11 @@ def slice(parent=False, oSel=False, *args):
     """Create a proxy geometry from a skinned object"""
 
     startTime = datetime.datetime.now()
-    print oSel
+    print(oSel)
     if not oSel:
         oSel = pm.selected()[0]
-        print "----"
-        print oSel
+        print("----")
+        print(oSel)
 
     oColl = pm.skinCluster(oSel, query=True, influence=True)
     oFaces = oSel.faces
@@ -27,7 +27,7 @@ def slice(parent=False, oSel=False, *args):
     for x in oColl:
         faceGroups.append([])
     sCluster = pm.listConnections(oSel.getShape(), type="skinCluster")
-    print sCluster
+    print(sCluster)
     sCName = sCluster[0].name()
     for iFace in range(nFaces):
         faceVtx = oFaces[iFace].getVertices()
@@ -39,10 +39,10 @@ def slice(parent=False, oSel=False, *args):
             else:
                 oSum = values
 
-        print "adding face: " \
+        print("adding face: " \
               + str(iFace) \
               + " to group in: " \
-              + str(oColl[oSum.index(max(oSum))])
+              + str(oColl[oSum.index(max(oSum))]))
 
         faceGroups[oSum.index(max(oSum))].append(iFace)
 
@@ -120,8 +120,8 @@ def slice(parent=False, oSel=False, *args):
                 pm.connectAttr(dm_node + ".outputScale",
                                newObj[0].name() + ".s")
 
-            print "Creating proxy for: {}".format(
-                str(oColl[faceGroups.index(boneList)]))
+            print("Creating proxy for: {}".format(
+                str(oColl[faceGroups.index(boneList)])))
 
             pm.sets(proxySet, add=newObj)
 

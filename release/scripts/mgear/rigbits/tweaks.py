@@ -235,7 +235,7 @@ def createRivetTweak(mesh,
 
         # invert negative scaling in Joints. We only inver Z axis, so is
         # the only axis that we are checking
-        print dm_node.attr("outputScaleZ").get()
+        print(dm_node.attr("outputScaleZ").get())
         if dm_node.attr("outputScaleZ").get() < 0:
             mul_nod_invert = node.createMulNode(
                 dm_node.attr("outputScaleZ"),
@@ -623,7 +623,7 @@ def edgePairList(log=True):
         b = edge[i + 1].index()
         edgePairList.append([a, b])
     if log:
-        print edgePairList
+        print(edgePairList)
     return edgePairList
 
 

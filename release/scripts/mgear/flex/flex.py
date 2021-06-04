@@ -28,6 +28,12 @@ from mgear.flex.query import is_maya_batch
 from mgear.flex.query import is_valid_group
 from mgear.flex.update import update_rig
 
+try:
+    long
+except NameError:
+    # Python 3 compatibility
+    long = int
+
 
 class Flex(object):
     """ Flex is the mGear rig update tool

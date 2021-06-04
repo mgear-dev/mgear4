@@ -35,6 +35,7 @@ import pprint
 import pymel.core as pm
 
 import mgear.core.utils as mUtils
+from .six import string_types
 
 SDK_UTILITY_TYPE = ("blendWeighted",)
 SDK_ANIMCURVES_TYPE = ("animCurveUA", "animCurveUL", "animCurveUU")
@@ -58,7 +59,7 @@ def _importData(filePath):
             data = json.load(f)
             return data
     except Exception as e:
-        print e
+        print(e)
 
 
 def _exportData(data, filePath):
@@ -72,7 +73,7 @@ def _exportData(data, filePath):
         with open(filePath, "w") as f:
             json.dump(data, f, sort_keys=False, indent=4)
     except Exception as e:
-        print e
+        print(e)
 
 
 # ==============================================================================
@@ -91,7 +92,7 @@ def getPynodes(nodes):
     """
     pynodes = []
     for node in nodes:
-        if isinstance(node, basestring):
+        if isinstance(node, string_types):
             node = pm.PyNode(node)
         pynodes.append(node)
     return pynodes
@@ -547,14 +548,14 @@ def importSDKs(filePath):
     allSDKInfo_dict = _importData(filePath)
     createdNodes = []
     failedNodes = []
-    for sdkName, sdkInfo_dict in allSDKInfo_dict.iteritems():
+    for sdkName, sdkInfo_dict in allSDKInfo_dict.items():
         try:
             createdNodes.append(createSDKFromDict(sdkInfo_dict))
         except Exception as e:
             failedNodes.append(sdkName)
-            print "{0}:{1}".format(sdkName, e)
-    print "Nodes created ---------------------------------"
+            print("{0}:{1}".format(sdkName, e))
+    print("Nodes created ---------------------------------")
     pprint.pprint(createdNodes)
 
-    print "Nodes failed  ---------------------------------"
+    print("Nodes failed  ---------------------------------")
     pprint.pprint(failedNodes)

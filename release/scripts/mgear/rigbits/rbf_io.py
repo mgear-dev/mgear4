@@ -16,7 +16,7 @@ import json
 import maya.cmds as mc
 
 # RBF setups
-import weightNode_io
+from . import weightNode_io
 
 # debug
 # reload(weightNode_io)
@@ -66,7 +66,7 @@ def __importData(filePath):
             data = json.load(f)
             return data
     except Exception as e:
-        print e
+        print(e)
         return None
 
 
@@ -81,7 +81,7 @@ def __exportData(data, filePath):
         with open(filePath, "w") as f:
             json.dump(data, f, sort_keys=False, indent=4)
     except Exception as e:
-        print e
+        print(e)
 
 
 def importRBFs(filePath):
@@ -96,7 +96,7 @@ def importRBFs(filePath):
     data = __importData(filePath)
     if data is None:
         return
-    for k, v in data.iteritems():
+    for k, v in data.items():
         rbfModule = RBF_MODULES[v["rbfType"]]
         rbfModule.createRBFFromInfo({k: v})
 
@@ -113,4 +113,4 @@ def exportRBFs(nodes, filePath):
         rbfType = mc.nodeType(n)
         rbfNode_Info[n] = RBF_MODULES[rbfType].getNodeInfo(n)
     __exportData(rbfNode_Info, filePath)
-    print "RBF Data exported: {}".format(filePath)
+    print("RBF Data exported: {}".format(filePath))

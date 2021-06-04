@@ -357,7 +357,7 @@ class ChannelTable(QtWidgets.QTableWidget):
                                  args[0])
 
                     # refresh button color while value update
-                    for i in xrange(self.rowCount()):
+                    for i in range(self.rowCount()):
                         item = self.item(i, 0)
                         attr = item.data(QtCore.Qt.UserRole)
                         if (self.namespace_sync(attr["fullName"])
@@ -475,7 +475,7 @@ class ChannelTable(QtWidgets.QTableWidget):
         """update table usin from the stored channel configuration
         """
         self.clear()
-        for i in xrange(self.rowCount()):
+        for i in range(self.rowCount()):
             self.removeRow(0)
 
         for x in self.track_widgets:
@@ -499,7 +499,7 @@ class ChannelTable(QtWidgets.QTableWidget):
         """refresh the channel values of the table
         """
         self.trigger_value_update = False
-        for i in xrange(self.rowCount()):
+        for i in range(self.rowCount()):
             ch_item = self.cellWidget(i, 2)
             item = self.item(i, 0)
             attr = item.data(QtCore.Qt.UserRole)
@@ -538,7 +538,7 @@ class ChannelTable(QtWidgets.QTableWidget):
 
     def get_table_config(self):
         config_data = cmu.init_table_config_data()
-        for i in xrange(self.rowCount()):
+        for i in range(self.rowCount()):
             chan_data = self.get_channel_config(i)
             # fullname = self.namespace_sync(chan_data["fullName"])
             # we don't want to store with namespace

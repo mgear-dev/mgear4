@@ -432,8 +432,8 @@ class Main(object):
         customName = self.getCustomJointName(len(self.jointList))
 
         if self.options["joint_rig"]:
-            print newActiveJnt
-            print self.active_jnt
+            print(newActiveJnt)
+            print(self.active_jnt)
             if newActiveJnt:
                 self.active_jnt = newActiveJnt
 
@@ -453,8 +453,8 @@ class Main(object):
                     pm.ungroup(jnt.getParent())
             # All new jnts are the active by default
             self.active_jnt = jnt
-            print "----"
-            print self.active_jnt
+            print("----")
+            print(self.active_jnt)
 
             if gearMulMatrix:
                 mulmat_node = applyop.gear_mulmatrix_op(

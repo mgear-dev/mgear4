@@ -12,6 +12,7 @@ http://bindpose.com/help-animators-fix-intersections-softmod-deformer/
 # or subgroup
 
 import json
+import sys
 
 import mgear.animbits.softTweakWindowUI as stUI
 import pymel.core as pm
@@ -22,6 +23,10 @@ from pymel.core import datatypes
 
 from mgear.core import string
 
+if sys.version_info[0] == 2:
+    string_types = (basestring, )
+else:
+    string_types = (str, )
 
 #########################################
 # Soft Tweak
@@ -211,7 +216,7 @@ def createSoftTweak(name,
                     is_asset=False):
 
     with pm.UndoChunk():
-        if isinstance(targets, basestring):
+        if isinstance(targets, string_types):
             targets = pm.PyNode(targets)
         if not isinstance(targets, list):
             targets = [targets]
@@ -282,7 +287,7 @@ def _getAffectedObjects(softMods):
     if not isinstance(softMods, list):
         softMods = [softMods]
     for softMod in softMods:
-        if isinstance(softMod, basestring):
+        if isinstance(softMod, string_types):
             softMod = pm.PyNode(softMod)
         objs = [pm.PyNode(x).getParent().name() for x in softMod.getGeometry()]
         affectedList = affectedList + objs
@@ -296,7 +301,7 @@ def _getPluggetObj(softMods, plug):
     if not isinstance(softMods, list):
         softMods = [softMods]
     for softMod in softMods:
-        if isinstance(softMod, basestring):
+        if isinstance(softMod, string_types):
             softMod = pm.PyNode(softMod)
         ctlRoots.append(softMod.attr(plug).listConnections(p=True)[0].node())
     return ctlRoots
@@ -309,20 +314,20 @@ def _neutra_geomMatrix(softmod):
     at = softmod.geomMatrix
     m = datatypes.Matrix()
     targets = _getAffectedObjects(softmod)
-    for i in xrange(len(targets)):
+    for i in range(len(targets)):
         at.attr("geomMatrix[{}]".format(str(i))).set(m)
 
 
 # add or remove obj from softmod
 def _addRemoveSoftMode(softMods, targets=[], add=True):
-    if isinstance(softMods, basestring):
+    if isinstance(softMods, string_types):
         softMods = pm.PyNode(softMods)
     if not isinstance(softMods, list):
         softMods = [softMods]
     for softMod in softMods:
         softSet = pm.listConnections(softMod, type='objectSet')
         if softSet:
-            if isinstance(targets, basestring):
+            if isinstance(targets, string_types):
                 targets = pm.PyNode(targets)
             if not isinstance(targets, list):
                 targets = [targets]
@@ -431,7 +436,7 @@ def exportConfiguration(softMods, filePath=None):
             fileFilter='SoftMod Tweaks configuration .smt (*%s)' % ".smt")
     if not filePath:
         return
-    if not isinstance(filePath, basestring):
+    if not isinstance(filePath, string_types):
         filePath = filePath[0]
     f = open(filePath, 'w')
     f.write(data_string)
@@ -491,7 +496,7 @@ def importConfigurationFromFile(filePath=None):
 
     if not filePath:
         return
-    if not isinstance(filePath, basestring):
+    if not isinstance(filePath, string_types):
         filePath = filePath[0]
     configDict = json.load(open(filePath))
     _importConfiguration(configDict)

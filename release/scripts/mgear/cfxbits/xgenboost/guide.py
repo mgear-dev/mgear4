@@ -45,7 +45,7 @@ def create_guide_rig(name,
         sd = length / (sections - 1)
         points = []
         x = 0.0
-        for s in xrange(sections):
+        for s in range(sections):
             p = [x, 0, 0]
             points.append(p)
             x += sd
@@ -426,7 +426,7 @@ def smooth_deform(ui, crvs=None):
         if crv in crv_guides:
             def_curv.append(crv)
     factor = 1.0 - (1.0 / ui.smooth_def_perc_spinBox.value())
-    print factor
+    print(factor)
     curve.smooth_curve(def_curv, factor)
 
     # context creators -------------------------------------

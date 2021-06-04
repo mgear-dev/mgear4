@@ -2,7 +2,7 @@
 # imports
 from maya import cmds
 from pymel import mayautils
-from cvwrap.menu import create_menuitems
+# from cvwrap.menu import create_menuitems
 
 print("""
  ____________________________________
@@ -84,4 +84,4 @@ def mGear_menu_loader():
 
 if not cmds.about(batch=True):
     mayautils.executeDeferred(mGear_menu_loader)
-    mayautils.executeDeferred(create_menuitems)
+    # mayautils.executeDeferred(create_menuitems)

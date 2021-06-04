@@ -1,10 +1,10 @@
 # Weigth maps IO
 
-import os
 import json
 
 import pymel.core as pm
 import maya.OpenMaya as OpenMaya
+from .six import string_types
 
 FILE_EXT = ".wmap"
 
@@ -20,7 +20,7 @@ def get_weights(deformer):
     Returns:
         dict: The weights dictionary
     """
-    if isinstance(deformer, str) or isinstance(deformer, unicode):
+    if isinstance(deformer, string_types):
         deformer = pm.PyNode(deformer)
 
     fnSet = OpenMaya.MFnSet(deformer.__apimfn__().deformerSet())
@@ -31,7 +31,7 @@ def get_weights(deformer):
     members.getDagPath(0, dagPath, components)
 
     dataDic = {}
-    for m in xrange(members.length()):
+    for m in range(members.length()):
         dagPath = OpenMaya.MDagPath()
         members.getDagPath(m, dagPath, components)
         weights = OpenMaya.MFloatArray()
@@ -51,7 +51,7 @@ def set_weights(deformer, dataWeights):
         deformer (PyNode or str): Name or pynode of a deformer with weight map
     """
 
-    if isinstance(deformer, str) or isinstance(deformer, unicode):
+    if isinstance(deformer, string_types):
         deformer = pm.PyNode(deformer)
 
     fnSet = OpenMaya.MFnSet(deformer.__apimfn__().deformerSet())
@@ -61,12 +61,12 @@ def set_weights(deformer, dataWeights):
     components = OpenMaya.MObject()
     members.getDagPath(0, dagPath, components)
 
-    for m in xrange(members.length()):
+    for m in range(members.length()):
         dagPath = OpenMaya.MDagPath()
         members.getDagPath(m, dagPath, components)
         dw = dataWeights[dagPath.fullPathName()]
         weights = OpenMaya.MFloatArray(len(dw))
-        for x in xrange(len(dw)):
+        for x in range(len(dw)):
             weights.set(dw[x], int(x))
 
         deformer.__apimfn__().setWeight(dagPath, components, weights)

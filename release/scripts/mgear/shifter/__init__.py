@@ -18,7 +18,9 @@ from mgear.core import primitive, attribute, skin, dag, icon, node
 from mgear import shifter_classic_components
 from mgear import shifter_epic_components
 from mgear.shifter import naming
+import importlib
 
+PY2 = sys.version_info[0] == 2
 
 # check if we have loaded the necessary plugins
 if not pm.pluginInfo("mgear_solvers", q=True, loaded=True):
@@ -102,9 +104,13 @@ def reloadComponents(*args):
     for x in compDir:
         for com in compDir[x]:
             try:
-                reload(importComponent(com))
-                reload(importComponentGuide(com))
-                print "reload : {}.{}".format(os.path.basename(x), com)
+                if PY2:
+                    reload(importComponent(com))
+                    reload(importComponentGuide(com))
+                else:
+                    importlib.reload(importComponent(com))
+                    importlib.reload(importComponentGuide(com))
+                print("reload : {}.{}".format(os.path.basename(x), com))
             except ImportError:
                 pass
 
@@ -473,7 +479,7 @@ class Rig(object):
         pm.select(ctl_master_grp, replace=True)
         dag_node = pm.dagPose(save=True, selection=True)
         pm.connectAttr(dag_node.message, self.model.rigPoses[0])
-        print dag_node
+        print(dag_node)
 
         # Bind skin re-apply
         if self.options["importSkin"]:

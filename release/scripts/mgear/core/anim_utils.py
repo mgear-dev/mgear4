@@ -414,9 +414,9 @@ def listAttrForMirror(node):
     # TODO: should "ro" be here?
     res = ["tx", "ty", "tz", "rx", "ry", "rz", "sx", "sy", "sz", "ro"]
     res.extend(pm.listAttr(node, userDefined=True, shortNames=True))
-    res = list(filter(lambda x: not x.startswith("inv"), res))
-    res = list(filter(lambda x: node.attr(x).type()
-                      not in ["message", "string"], res))
+    res = list([x for x in res if not x.startswith("inv")])
+    res = list([x for x in res if node.attr(x).type()
+                not in ["message", "string"]])
     return res
 
 
@@ -823,7 +823,7 @@ def getComboKeys_with_namespace(namespace, object_name, combo_attr):
         node = getNode(object_name)
 
     oAttr = node.attr(combo_attr)
-    keys = oAttr.getEnums().keys()
+    keys = list(oAttr.getEnums().keys())
     keys.append("++ Space Transfer ++")
     return keys
 
@@ -1119,7 +1119,7 @@ def mirrorPose(flip=False, nodes=None):
             "the correct object to mirror for {}".format(oSel.name()))
         import traceback
         traceback.print_exc()
-        print e
+        print(e)
 
     finally:
         pm.undoInfo(cck=1)
@@ -1931,7 +1931,7 @@ class IkFkTransfer(AbstractAnimationTransfer):
         ui.setCtrls(fks, ik, upv, ikRot)
         ui.setComboBoxItemsFormList(["IK", "FK"])
         ui.getValue = lambda: 0.0 if "fk" in switchTo.lower() else 1.0
-        ui.transfer(startFrame, endFrame, onlyKeyframes, ikRot, switchTo)
+        ui.transfer(startFrame, endFrame, onlyKeyframes, ikRot, switchTo="fk")
 
     @staticmethod
     def toIK(model, ikfk_attr, uihost, fks, ik, upv, ikRot, **kwargs):
@@ -2160,7 +2160,7 @@ class SpineIkFkTransfer(AbstractAnimationTransfer):
         # when getAttr over time, it warns of a cycle
         if versions.current() <= 20180200:
             pm.cycleCheck(e=False)
-            print "Maya version older than: 2018.02"
+            print("Maya version older than: 2018.02")
 
         # create a dict of every frame, and every node involved on that frame
         matchMatrix_dict = {}
@@ -2189,4 +2189,4 @@ class SpineIkFkTransfer(AbstractAnimationTransfer):
         # re enable cycle check
         if versions.current() <= 20180200:
             pm.cycleCheck(e=True)
-            print "CycleCheck turned back ON"
+            print("CycleCheck turned back ON")

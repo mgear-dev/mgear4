@@ -12,10 +12,11 @@ This module is derivated from Chad Vernon's Skin IO.
 #############################################
 import os
 import json
-import cPickle as pickle
+import pickle as pickle
 
 import pymel.core as pm
 import maya.OpenMaya as OpenMaya
+from .six import string_types
 
 FILE_EXT = ".gSkin"
 FILE_JSON_EXT = ".jSkin"
@@ -38,7 +39,7 @@ def getSkinCluster(obj):
     """
     skinCluster = None
 
-    if isinstance(obj, basestring):
+    if isinstance(obj, string_types):
         obj = pm.PyNode(obj)
     try:
         if (pm.nodeType(obj.getShape())
@@ -384,7 +385,7 @@ def _getObjsFromSkinFile(filePath=None, *args):
                                   fileFilter=fileFilters)
     if not filePath:
         return
-    if not isinstance(filePath, basestring):
+    if not isinstance(filePath, string_types):
         filePath = filePath[0]
 
     # Read in the file
@@ -418,7 +419,7 @@ def importSkin(filePath=None, *args):
                                   fileFilter=fileFilters)
     if not filePath:
         return
-    if not isinstance(filePath, basestring):
+    if not isinstance(filePath, string_types):
         filePath = filePath[0]
 
     # Read in the file
@@ -433,7 +434,7 @@ def importSkin(filePath=None, *args):
         # use a skinDataFormat key to check for backwards compatibility.
         # If it doesn't exist, just continue with the old method.
         compressed = False
-        if data.has_key('skinDataFormat'):
+        if 'skinDataFormat' in data:
             if data['skinDataFormat'] == 'compressed':
                 compressed = True
 
@@ -477,7 +478,7 @@ def importSkin(filePath=None, *args):
                 skinCluster = getSkinCluster(objNode)
             else:
                 try:
-                    joints = data['weights'].keys()
+                    joints = list(data['weights'].keys())
                     # strip | from longName, or skinCluster command may fail.
                     skinName = data['skinClsName'].replace('|', '')
                     skinCluster = pm.skinCluster(
@@ -510,7 +511,7 @@ def importSkinPack(filePath=None, *args):
                                   fileFilter='mGear skinPack (*%s)' % PACK_EXT)
     if not filePath:
         return
-    if not isinstance(filePath, basestring):
+    if not isinstance(filePath, string_types):
         filePath = filePath[0]
 
     with open(filePath) as fp:
@@ -538,11 +539,11 @@ def skinCopy(sourceMesh=None, targetMesh=None, *args):
 
         # we check this here, because if not need to check when we work
         # base on selection.
-        if isinstance(sourceMesh, basestring):
+        if isinstance(sourceMesh, string_types):
             sourceMesh = pm.PyNode(sourceMesh)
 
     for targetMesh in targetMeshes:
-        if isinstance(targetMesh, basestring):
+        if isinstance(targetMesh, string_types):
             sourceMesh = pm.PyNode(targetMesh)
 
         ss = getSkinCluster(sourceMesh)

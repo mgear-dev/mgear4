@@ -9,6 +9,7 @@ from functools import wraps
 from maya import cmds
 import pymel.core as pm
 from maya import mel
+from .six import string_types, PY2
 
 import mgear
 
@@ -28,7 +29,7 @@ def as_pynode(obj):
     Returns:
         PyNode: the pynode object
     """
-    if isinstance(obj, str) or isinstance(obj, unicode):
+    if isinstance(obj, str) or isinstance(obj, string_types):
         obj = pm.PyNode(obj)
 
     if not isinstance(obj, pm.PyNode):
@@ -111,7 +112,11 @@ def gatherCustomModuleDirectories(envvarkey,
 def getModuleBasePath(directories, moduleName):
     """search component path"""
 
-    for basepath, modules in directories.iteritems():
+    if PY2:
+        dic_items = directories.iteritems
+    else:
+        dic_items = directories.items
+    for basepath, modules in dic_items():
         if moduleName in modules:
             # moduleBasePath = os.path.basename(basepath)
             moduleBasePath = basepath
@@ -145,16 +150,18 @@ def importFromStandardOrCustomDirectories(directories,
 
     """
     # Import module and get class
+    level = -1 if sys.version_info < (3, 3) else 0
     try:
         module_name = defaultFormatter.format(moduleName)
-        module = __import__(module_name, globals(), locals(), ["*"], -1)
+        print(module_name)
+        module = __import__(module_name, globals(), locals(), ["*"], level)
 
     except ImportError:
         moduleBasePath = getModuleBasePath(directories, moduleName)
         module_name = customFormatter.format(moduleName)
         if pm.dirmap(cd=moduleBasePath) not in sys.path:
             sys.path.append(pm.dirmap(cd=moduleBasePath))
-        module = __import__(module_name, globals(), locals(), ["*"], -1)
+        module = __import__(module_name, globals(), locals(), ["*"], level)
 
     return module
 
@@ -228,8 +235,8 @@ def timeFunc(func):
         finally:
             end = timeit.default_timer()
             timeConsumed = end - start
-            print "{} time elapsed running {}".format(timeConsumed,
-                                                      func.func_name)
+            print(("{} time elapsed running {}".format(timeConsumed,
+                                                       func.__name__)))
 
     return wrap
 

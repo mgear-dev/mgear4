@@ -6,7 +6,7 @@ import weightNode_io
 weightDrivers = pm.ls(type="weightDriver")
 
 # any filePath
-testPath = r"C:\Users\rafael\Documents\core\scripts\testWeightNodes.json"
+testPath = r"C:\\Users\rafael\Documents\core\scripts\testWeightNodes.json"
 
 # Export listed weightDrivers
 weightNode_io.exportNodes(testPath, weightDrivers)
@@ -37,8 +37,8 @@ import maya.cmds as mc
 import pymel.core as pm
 
 # rbfSetup
-import rbf_io
-import rbf_node
+from . import rbf_io
+from . import rbf_node
 
 # ==============================================================================
 # Constants
@@ -223,7 +223,7 @@ def getIndexValue(nodePlug, indices):
     """
     allValues = []
     if indices:
-        indices = range(indices[-1] + 1)
+        indices = list(range(indices[-1] + 1))
     for index in indices:
         attrPlugIdex = "{}[{}]".format(nodePlug, index)
         val = mc.getAttr(attrPlugIdex)
@@ -465,8 +465,8 @@ def copyPoses(nodeA, nodeB, emptyPoseValues=True):
         return
     nodeA_poseInfo = getPoseInfo(nodeA)
     drivenAttrs = getDrivenNodeAttributes(nodeB)
-    nodeBdrivenIndex = range(len(drivenAttrs))
-    for attr, value in nodeA_poseInfo.iteritems():
+    nodeBdrivenIndex = list(range(len(drivenAttrs)))
+    for attr, value in nodeA_poseInfo.items():
         if value == ():
             continue
         numberOfPoses = len(value)
@@ -571,7 +571,7 @@ def setTransformNode(transformNode, transformInfo):
     parent = transformInfo.pop("parent", None)
     if parent is not None:
         pm.parent(transformNode, parent)
-    for attr, value in transformInfo.iteritems():
+    for attr, value in transformInfo.items():
         # transformNode.setAttr(attr, value)
         pm.setAttr("{}.{}".format(transformNode, attr), value)
 
@@ -587,7 +587,7 @@ def deletePose(node, indexToPop):
     posesInfo = getPoseInfo(node)
     poseInput = posesInfo["poseInput"]
     poseValue = posesInfo["poseValue"]
-    currentLength = range(len(poseInput))
+    currentLength = list(range(len(poseInput)))
     poseInput.pop(indexToPop)
     poseValue.pop(indexToPop)
     setPosesFromInfo(node, posesInfo)
@@ -624,7 +624,7 @@ def setPosesFromInfo(node, posesInfo):
         node (str): weightDriver
         posesInfo (dict): of poseInput/PoseValue:values
     """
-    for attr, value in posesInfo.iteritems():
+    for attr, value in posesInfo.items():
         if value == ():
             continue
         numberOfPoses = len(value)
@@ -644,13 +644,13 @@ def setDriverListFromInfo(node, driverListInfo):
         node (pynode): name of driver node
         driverListInfo (dict): attr/value
     """
-    for attr, posesInfo in driverListInfo.iteritems():
+    for attr, posesInfo in driverListInfo.items():
         # attrDriver = "{}.pose".format(attr)
         numberOfPoses = len(posesInfo.keys())
         for pIndex in range(numberOfPoses):
             poseIndex = "pose[{}]".format(pIndex)
             poseAttrIndex = "{}.{}".format(attr, poseIndex)
-            for driverAttr, attrType in WNODE_DRIVERPOSE_ATTRS.iteritems():
+            for driverAttr, attrType in WNODE_DRIVERPOSE_ATTRS.items():
                 fullPathToAttr = "{}.{}".format(poseAttrIndex, driverAttr)
                 attrValue = posesInfo[poseIndex][driverAttr]
                 if attrType == "enum":
@@ -671,7 +671,7 @@ def setWeightNodeAttributes(node, weightNodeAttrInfo):
         weightNodeAttrInfo (dict): of attr:value
     """
     failedAttrSets = []
-    for attr, value in weightNodeAttrInfo.iteritems():
+    for attr, value in weightNodeAttrInfo.items():
         try:
             pm.setAttr("{}.{}".format(node, attr), value)
         except Exception as e:
@@ -714,7 +714,7 @@ def recreateConnections(connectionsInfo):
         except Exception as e:
             failedConnections.append([attrPair, e])
     if failedConnections:
-        print "The Following Connections failed..."
+        print("The Following Connections failed...")
         pprint.pprint(failedConnections)
 
 
@@ -731,7 +731,7 @@ def createRBFFromInfo(weightNodeInfo_dict):
     createdNodes = []
     skipped_nodes = []
     weightNodeInfo_dict = copy.deepcopy(weightNodeInfo_dict)
-    for weightNodeName, weightInfo in weightNodeInfo_dict.iteritems():
+    for weightNodeName, weightInfo in weightNodeInfo_dict.items():
         rbfType = weightInfo.pop("rbfType", RBF_TYPE)
         connectionsInfo = weightInfo.pop("connections", {})
         posesInfo = weightInfo.pop("poses", {})
@@ -811,7 +811,7 @@ def exportNodes(filePath, weightDriverNodes):
     """
     weightNodeInfo_dict = getNodesInfo(weightDriverNodes)
     rbf_io._exportData(weightNodeInfo_dict, filePath)
-    print "Weight Driver Nodes successfully exported: {}".format(filePath)
+    print("Weight Driver Nodes successfully exported: {}".format(filePath))
 
 
 def importNodes(filePath):

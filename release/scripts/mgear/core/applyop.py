@@ -16,6 +16,7 @@ import pymel.core as pm
 from pymel.core import datatypes
 
 import maya.api.OpenMaya as om
+from .six import string_types
 
 #############################################
 # BUILT IN NODES
@@ -323,8 +324,7 @@ def gear_matrix_cns(in_obj,
     node.scaleMultZ.set(scl_mult[2])
 
     if out_obj:
-        parent = out_obj.getParent()
-        pm.connectAttr(parent + ".worldInverseMatrix[0]",
+        pm.connectAttr(out_obj + ".parentInverseMatrix[0]",
                        node + ".drivenParentInverseMatrix", force=True)
 
         # calculate rest pose
@@ -448,8 +448,7 @@ def gear_intmatrix_op(mA, mB, blend=0):
     pm.connectAttr(mA, node + ".matrixA")
     pm.connectAttr(mB, node + ".matrixB")
 
-    if (isinstance(blend, str)
-        or isinstance(blend, unicode)
+    if (isinstance(blend, string_types)
             or isinstance(blend, pm.Attribute)):
         pm.connectAttr(blend, node + ".blend")
     else:

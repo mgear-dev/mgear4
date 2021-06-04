@@ -1,4 +1,5 @@
 import os
+import sys
 import traceback
 from functools import partial
 
@@ -12,7 +13,9 @@ from mgear.vendor.Qt import QtCore, QtWidgets, QtGui
 from mgear import shifter
 from mgear.shifter import guide_manager
 from mgear.shifter import guide_manager_component_ui as gmcUI
+import importlib
 
+PY2 = sys.version_info[0] == 2
 
 class GuideManagerComponentUI(QtWidgets.QDialog, gmcUI.Ui_Form):
 
@@ -80,7 +83,7 @@ class GuideManagerComponent(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         comp_list = []
         compDir = shifter.getComponentDirectories()
         trackLoadComponent = []
-        for path, comps in compDir.iteritems():
+        for path, comps in compDir.items():
             pm.progressWindow(title='Loading Components',
                               progress=0,
                               max=len(comps))
@@ -104,9 +107,12 @@ class GuideManagerComponent(MayaQWidgetDockableMixin, QtWidgets.QDialog):
                     continue
                 try:
                     module = shifter.importComponentGuide(comp_name)
-                    reload(module)
+                    if PY2:
+                        reload(module)
+                    else:
+                        importlib.reload(module)
                     comp_list.append(module.TYPE)
-                except StandardError as e:
+                except Exception as e:
                     pm.displayWarning(
                         "{} can't be load. Error at import".format(comp_name))
                     pm.displayError(e)
@@ -219,15 +225,18 @@ class GuideManagerComponent(MayaQWidgetDockableMixin, QtWidgets.QDialog):
             item = self.gmcUIInst.component_listView.selectedIndexes()[0]
             comp_name = item.data()
             module = shifter.importComponentGuide(comp_name)
-            reload(module)
+            if PY2:
+                reload(module)
+            else:
+                importlib.reload(module)
             info_text = (
-                "{}\n".format(module.DESCRIPTION) +
-                "\n-------------------------------\n\n" +
-                "Author: {}\n".format(module.AUTHOR) +
-                "Url: {}\n".format(module.URL) +
-                "Version: {}\n".format(str(module.VERSION)) +
-                "Type: {}\n".format(module.TYPE) +
-                "Name: {}\n".format(module.NAME)
+                "{}\n".format(module.DESCRIPTION)
+                + "\n-------------------------------\n\n"
+                + "Author: {}\n".format(module.AUTHOR)
+                + "Url: {}\n".format(module.URL)
+                + "Version: {}\n".format(str(module.VERSION))
+                + "Type: {}\n".format(module.TYPE)
+                + "Name: {}\n".format(module.NAME)
             )
         except IndexError:
             info_text = ""

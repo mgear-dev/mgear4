@@ -12,6 +12,7 @@ from pymel.core import datatypes
 from mgear import rigbits
 from mgear.core import meshNavigation, curve, applyop, primitive, icon
 from mgear.core import transform, attribute, skin, vector
+from .six import string_types
 
 ##########################################################
 # Lips rig constructor
@@ -528,7 +529,7 @@ def lipsRig(eLoop,
                        cns.attr("worldUpMatrix"))
 
         # getting joint parent
-        if headJnt and isinstance(headJnt, (str, unicode)):
+        if headJnt and isinstance(headJnt, string_types):
             try:
                 j_parent = pm.PyNode(headJnt)
             except pm.MayaNodeError:
@@ -587,7 +588,7 @@ def lipsRig(eLoop,
                        cns.attr("worldUpMatrix"))
 
         # getting joint parent
-        if jawJnt and isinstance(jawJnt, (str, unicode)):
+        if jawJnt and isinstance(jawJnt, string_types):
             try:
                 j_parent = pm.PyNode(jawJnt)
             except pm.MayaNodeError:
@@ -606,7 +607,7 @@ def lipsRig(eLoop,
     ###########################################
     if parent:
         try:
-            if isinstance(parent, basestring):
+            if isinstance(parent, string_types):
                 parent = pm.PyNode(parent)
             parent.addChild(lips_root)
         except pm.MayaNodeError:
@@ -614,14 +615,14 @@ def lipsRig(eLoop,
                               "this object doesn't exist." % parent)
     if headJnt and jawJnt:
         try:
-            if isinstance(headJnt, basestring):
+            if isinstance(headJnt, string_types):
                 headJnt = pm.PyNode(headJnt)
         except pm.MayaNodeError:
             pm.displayWarning("Head Joint or Upper Lip Joint %s. Can not be "
                               "fount in the scene" % headJnt)
             return
         try:
-            if isinstance(jawJnt, basestring):
+            if isinstance(jawJnt, string_types):
                 jawJnt = pm.PyNode(jawJnt)
         except pm.MayaNodeError:
             pm.displayWarning("Jaw Joint or Lower Lip Joint %s. Can not be "
@@ -1031,7 +1032,7 @@ class lipRigUI(MayaQWidgetDockableMixin, QtWidgets.QDialog):
             fileFilter='Lips Rigger Configuration .lips (*%s)' % ".lips")
         if not filePath:
             return
-        if not isinstance(filePath, basestring):
+        if not isinstance(filePath, string_types):
             filePath = filePath[0]
         f = open(filePath, 'w')
         f.write(data_string)

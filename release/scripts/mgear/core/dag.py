@@ -106,7 +106,8 @@ def __findChildren(node, name, firstOnly=False, partialName=False):
 
 
 def __findChild(node, name):
-    """This find children function will stop search after firs child found.child
+    """This find children function will stop search after first
+     child found.child
 
     This is a faster version of __findchildren
 

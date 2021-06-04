@@ -13,6 +13,7 @@ from mgear.vendor.Qt import QtCore, QtWidgets
 from pymel.core import datatypes
 
 from mgear import rigbits
+from .six import string_types
 
 
 ##########################################################
@@ -714,7 +715,7 @@ def eyeRig(eyeMesh,
     ###########################################
     if parent:
         try:
-            if isinstance(parent, basestring):
+            if isinstance(parent, string_types):
                 parent = pm.PyNode(parent)
             parent.addChild(eye_root)
         except pm.MayaNodeError:
@@ -1181,7 +1182,7 @@ class eyeRigUI(MayaQWidgetDockableMixin, QtWidgets.QDialog):
             fileFilter='Eyes Rigger Configuration .eyes (*%s)' % ".eyes")
         if not filePath:
             return
-        if not isinstance(filePath, basestring):
+        if not isinstance(filePath, string_types):
             filePath = filePath[0]
         f = open(filePath, 'w')
         f.write(data_string)

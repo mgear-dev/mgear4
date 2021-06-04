@@ -38,6 +38,11 @@ TYPE = "mgear_guide_root"
 
 MGEAR_SHIFTER_CUSTOMSTEP_KEY = "MGEAR_SHIFTER_CUSTOMSTEP_PATH"
 
+if sys.version_info[0] == 2:
+    string_types = (basestring, )
+else:
+    string_types = (str,)
+
 
 class Main(object):
     """The main guide class
@@ -965,7 +970,7 @@ class Rig(Main):
             return
         self.setFromHierarchy(root, False)
         name = "_".join(root.name().split("|")[-1].split("_")[:-1])
-        print name
+        print(name)
         comp_guide = self.components[name]
         comp_guide.rename(root, newName, newSide, newIndex)
 
@@ -1095,9 +1100,9 @@ class HelperSlots(object):
         newName = self.mainSettingsTab.name_lineEdit.text()
         # remove invalid characters in the name and update
         # newName = string.removeInvalidCharacter(newName)
-        print newName
+        print(newName)
         newName = string.normalize2(newName)
-        print newName
+        print(newName)
         self.mainSettingsTab.name_lineEdit.setText(newName)
         sideSet = ["C", "L", "R"]
         sideIndex = self.mainSettingsTab.side_comboBox.currentIndex()
@@ -1136,18 +1141,23 @@ class HelperSlots(object):
         curIndx = sourceWidget.currentIndex()
         self.root.attr(targetAttr).set(ctlList[curIndx])
 
-    def updateIndexColorWidgets(self, sourceWidget, targetAttr, colorWidget, *args):
+    def updateIndexColorWidgets(
+            self, sourceWidget, targetAttr, colorWidget, *args):
         self.updateSpinBox(sourceWidget, targetAttr)
-        self.updateWidgetStyleSheet(colorWidget, (i / 255.0 for i in MAYA_OVERRIDE_COLOR[sourceWidget.value()]))
+        self.updateWidgetStyleSheet(
+            colorWidget,
+            (i / 255.0 for i in MAYA_OVERRIDE_COLOR[sourceWidget.value()]))
 
     def updateRgbColorWidgets(self, buttonWidget, rgb, sliderWidget):
         self.updateWidgetStyleSheet(buttonWidget, rgb)
         sliderWidget.blockSignals(True)
-        sliderWidget.setValue(sorted(rgb)[2]*255)
+        sliderWidget.setValue(sorted(rgb)[2] * 255)
         sliderWidget.blockSignals(False)
 
     def updateWidgetStyleSheet(self, sourceWidget, rgb):
-        color = ', '.join(str(i*255) for i in pm.colorManagementConvert(toDisplaySpace=rgb))
+        color = ', '.join(str(i * 255)
+                          for i in pm.colorManagementConvert(
+            toDisplaySpace=rgb))
         sourceWidget.setStyleSheet(
             "* {background-color: rgb(" + color + ")}")
 
@@ -1155,9 +1165,11 @@ class HelperSlots(object):
         rgb = self.root.attr(targetAttr).get()
         hsv_value = sorted(rgb)[2]
         if hsv_value:
-            new_rgb = tuple(i / (hsv_value / 1.0) * (value / 255.0) for i in rgb)
+            new_rgb = tuple(i / (hsv_value / 1.0) * (value / 255.0)
+                            for i in rgb)
         else:
-            new_rgb = tuple((1.0 * (value / 255.0), 1.0 * (value / 255.0), 1.0 * (value / 255.0)))
+            new_rgb = tuple((1.0 * (value / 255.0), 1.0
+                             * (value / 255.0), 1.0 * (value / 255.0)))
         self.updateWidgetStyleSheet(buttonWidget, new_rgb)
         self.root.attr(targetAttr).set(new_rgb)
 
@@ -1168,8 +1180,11 @@ class HelperSlots(object):
             self.root.attr(targetAttr).set(rgb)
             self.updateRgbColorWidgets(sourceWidget, rgb, sliderWidget)
 
-    def toggleRgbIndexWidgets(self, checkBox, idx_widgets, rgb_widgets, targetAttr, checked):
-        show_widgets, hide_widgets = (rgb_widgets, idx_widgets) if checked else (idx_widgets, rgb_widgets)
+    def toggleRgbIndexWidgets(
+            self, checkBox, idx_widgets, rgb_widgets, targetAttr, checked):
+        show_widgets, hide_widgets = (
+            rgb_widgets, idx_widgets) if checked else (
+            idx_widgets, rgb_widgets)
         for widget in show_widgets:
             widget.show()
         for widget in hide_widgets:
@@ -1286,7 +1301,8 @@ class HelperSlots(object):
 
                 customStep = imp.load_source(fileName, runPath)
                 if hasattr(customStep, "CustomShifterStep"):
-                    argspec = inspect.getargspec(customStep.CustomShifterStep.__init__)
+                    argspec = inspect.getargspec(
+                        customStep.CustomShifterStep.__init__)
                     if "stored_dict" in argspec.args:
                         cs = customStep.CustomShifterStep(customStepDic)
                         cs.setup()
@@ -1312,11 +1328,11 @@ class HelperSlots(object):
             cont = pm.confirmBox(
                 "FAIL: Custom Step Fail",
                 "The step:%s has failed. Continue with next step?"
-                % stepPath +
-                "\n\n" +
-                message +
-                "\n\n" +
-                traceback.format_exc(),
+                % stepPath
+                + "\n\n"
+                + message
+                + "\n\n"
+                + traceback.format_exc(),
                 "Continue", "Stop Build", "Try Again!")
             if cont == "Stop Build":
                 # stop Build
@@ -1479,31 +1495,58 @@ class GuideSettings(MayaQWidgetDockableMixin, QtWidgets.QDialog, HelperSlots):
             self.guideSettingsTab.rigTabs_listWidget.addItem(item)
 
         tap = self.guideSettingsTab
-        
-        index_widgets = ((tap.L_color_fk_spinBox, tap.L_color_fk_label, "L_color_fk"),
-                         (tap.L_color_ik_spinBox, tap.L_color_ik_label, "L_color_ik"),
-                         (tap.C_color_fk_spinBox, tap.C_color_fk_label, "C_color_fk"),
-                         (tap.C_color_ik_spinBox, tap.C_color_ik_label, "C_color_ik"),
-                         (tap.R_color_fk_spinBox, tap.R_color_fk_label, "R_color_fk"),
-                         (tap.R_color_ik_spinBox, tap.R_color_ik_label, "R_color_ik"))
 
-        rgb_widgets = ((tap.L_RGB_fk_pushButton, tap.L_RGB_fk_slider, "L_RGB_fk"),
-                       (tap.L_RGB_ik_pushButton, tap.L_RGB_ik_slider, "L_RGB_ik"),
-                       (tap.C_RGB_fk_pushButton, tap.C_RGB_fk_slider, "C_RGB_fk"),
-                       (tap.C_RGB_ik_pushButton, tap.C_RGB_ik_slider, "C_RGB_ik"),
-                       (tap.R_RGB_fk_pushButton, tap.R_RGB_fk_slider, "R_RGB_fk"),
-                       (tap.R_RGB_ik_pushButton, tap.R_RGB_ik_slider, "R_RGB_ik"))
+        index_widgets = ((tap.L_color_fk_spinBox,
+                          tap.L_color_fk_label,
+                          "L_color_fk"),
+                         (tap.L_color_ik_spinBox,
+                          tap.L_color_ik_label,
+                          "L_color_ik"),
+                         (tap.C_color_fk_spinBox,
+                          tap.C_color_fk_label,
+                          "C_color_fk"),
+                         (tap.C_color_ik_spinBox,
+                          tap.C_color_ik_label,
+                          "C_color_ik"),
+                         (tap.R_color_fk_spinBox,
+                          tap.R_color_fk_label,
+                          "R_color_fk"),
+                         (tap.R_color_ik_spinBox,
+                          tap.R_color_ik_label,
+                          "R_color_ik"))
+
+        rgb_widgets = ((tap.L_RGB_fk_pushButton,
+                        tap.L_RGB_fk_slider,
+                        "L_RGB_fk"),
+                       (tap.L_RGB_ik_pushButton,
+                        tap.L_RGB_ik_slider,
+                        "L_RGB_ik"),
+                       (tap.C_RGB_fk_pushButton,
+                        tap.C_RGB_fk_slider,
+                        "C_RGB_fk"),
+                       (tap.C_RGB_ik_pushButton,
+                        tap.C_RGB_ik_slider,
+                        "C_RGB_ik"),
+                       (tap.R_RGB_fk_pushButton,
+                        tap.R_RGB_fk_slider,
+                        "R_RGB_fk"),
+                       (tap.R_RGB_ik_pushButton,
+                        tap.R_RGB_ik_slider,
+                        "R_RGB_ik"))
 
         for spinBox, label, source_attr in index_widgets:
             color_index = self.root.attr(source_attr).get()
             spinBox.setValue(color_index)
-            self.updateWidgetStyleSheet(label, [i / 255.0 for i in MAYA_OVERRIDE_COLOR[color_index]])
+            self.updateWidgetStyleSheet(
+                label, [i / 255.0 for i in MAYA_OVERRIDE_COLOR[color_index]])
 
         for button, slider, source_attr in rgb_widgets:
-            self.updateRgbColorWidgets(button, self.root.attr(source_attr).get(), slider)
+            self.updateRgbColorWidgets(
+                button, self.root.attr(source_attr).get(), slider)
 
         # forceing the size of the color buttons/label to keep ui clean
-        for widget in tuple(i[0] for i in rgb_widgets) + tuple(i[1] for i in index_widgets):
+        for widget in tuple(i[0] for i in rgb_widgets) + tuple(
+                i[1] for i in index_widgets):
             widget.setFixedSize(pyqt.dpi_scale(30), pyqt.dpi_scale(20))
 
         self.populateCheck(tap.useRGB_checkBox, "Use_RGB_Color")
@@ -1635,26 +1678,44 @@ class GuideSettings(MayaQWidgetDockableMixin, QtWidgets.QDialog, HelperSlots):
         tap.rigTabs_listWidget.installEventFilter(self)
 
         # colors connections
-        index_widgets = ((tap.L_color_fk_spinBox, tap.L_color_fk_label, "L_color_fk"),
-                         (tap.L_color_ik_spinBox, tap.L_color_ik_label, "L_color_ik"),
-                         (tap.C_color_fk_spinBox, tap.C_color_fk_label, "C_color_fk"),
-                         (tap.C_color_ik_spinBox, tap.C_color_ik_label, "C_color_ik"),
-                         (tap.R_color_fk_spinBox, tap.R_color_fk_label, "R_color_fk"),
-                         (tap.R_color_ik_spinBox, tap.R_color_ik_label, "R_color_ik"))
+        index_widgets = ((tap.L_color_fk_spinBox,
+                          tap.L_color_fk_label, "L_color_fk"),
+                         (tap.L_color_ik_spinBox,
+                          tap.L_color_ik_label, "L_color_ik"),
+                         (tap.C_color_fk_spinBox,
+                          tap.C_color_fk_label, "C_color_fk"),
+                         (tap.C_color_ik_spinBox,
+                          tap.C_color_ik_label, "C_color_ik"),
+                         (tap.R_color_fk_spinBox,
+                          tap.R_color_fk_label, "R_color_fk"),
+                         (tap.R_color_ik_spinBox,
+                          tap.R_color_ik_label, "R_color_ik"))
 
-        rgb_widgets = ((tap.L_RGB_fk_pushButton, tap.L_RGB_fk_slider, "L_RGB_fk"),
-                       (tap.L_RGB_ik_pushButton, tap.L_RGB_ik_slider, "L_RGB_ik"),
-                       (tap.C_RGB_fk_pushButton, tap.C_RGB_fk_slider, "C_RGB_fk"),
-                       (tap.C_RGB_ik_pushButton, tap.C_RGB_ik_slider, "C_RGB_ik"),
-                       (tap.R_RGB_fk_pushButton, tap.R_RGB_fk_slider, "R_RGB_fk"),
-                       (tap.R_RGB_ik_pushButton, tap.R_RGB_ik_slider, "R_RGB_ik"))
+        rgb_widgets = ((tap.L_RGB_fk_pushButton,
+                        tap.L_RGB_fk_slider, "L_RGB_fk"),
+                       (tap.L_RGB_ik_pushButton,
+                        tap.L_RGB_ik_slider, "L_RGB_ik"),
+                       (tap.C_RGB_fk_pushButton,
+                        tap.C_RGB_fk_slider, "C_RGB_fk"),
+                       (tap.C_RGB_ik_pushButton,
+                        tap.C_RGB_ik_slider, "C_RGB_ik"),
+                       (tap.R_RGB_fk_pushButton,
+                        tap.R_RGB_fk_slider, "R_RGB_fk"),
+                       (tap.R_RGB_ik_pushButton,
+                        tap.R_RGB_ik_slider, "R_RGB_ik"))
 
         for spinBox, label, source_attr in index_widgets:
-            spinBox.valueChanged.connect(partial(self.updateIndexColorWidgets, spinBox, source_attr, label))
+            spinBox.valueChanged.connect(
+                partial(self.updateIndexColorWidgets,
+                        spinBox,
+                        source_attr,
+                        label))
 
         for button, slider, source_attr in rgb_widgets:
-            button.clicked.connect(partial(self.rgbColorEditor, button, source_attr, slider))
-            slider.valueChanged.connect(partial(self.rgbSliderValueChanged, button, source_attr))
+            button.clicked.connect(
+                partial(self.rgbColorEditor, button, source_attr, slider))
+            slider.valueChanged.connect(
+                partial(self.rgbSliderValueChanged, button, source_attr))
 
         tap.useRGB_checkBox.stateChanged.connect(
             partial(self.toggleRgbIndexWidgets,
@@ -1853,7 +1914,7 @@ class GuideSettings(MayaQWidgetDockableMixin, QtWidgets.QDialog, HelperSlots):
                 fileFilter='Naming Configuration .naming (*%s)' % ".naming")
         if not file_path:
             return
-        if not isinstance(file_path, basestring):
+        if not isinstance(file_path, string_types):
             file_path = file_path[0]
         f = open(file_path, 'w')
         f.write(data_string)
@@ -1871,7 +1932,7 @@ class GuideSettings(MayaQWidgetDockableMixin, QtWidgets.QDialog, HelperSlots):
                 fileFilter='Naming Configuration .naming (*%s)' % ".naming")
         if not file_path:
             return
-        if not isinstance(file_path, basestring):
+        if not isinstance(file_path, string_types):
             file_path = file_path[0]
         config = json.load(open(file_path))
         for key in config.keys():
@@ -1932,7 +1993,7 @@ class GuideSettings(MayaQWidgetDockableMixin, QtWidgets.QDialog, HelperSlots):
             fileFilter='mGear skin (*%s)' % skin.FILE_EXT)
         if not filePath:
             return
-        if not isinstance(filePath, basestring):
+        if not isinstance(filePath, string_types):
             filePath = filePath[0]
 
         self.root.attr("skin").set(filePath)
@@ -1969,7 +2030,7 @@ class GuideSettings(MayaQWidgetDockableMixin, QtWidgets.QDialog, HelperSlots):
             fileFilter='Custom Step .py (*.py)')
         if not filePath:
             return
-        if not isinstance(filePath, basestring):
+        if not isinstance(filePath, string_types):
             filePath = filePath[0]
 
         # Quick clean the first empty item
@@ -2020,7 +2081,7 @@ class GuideSettings(MayaQWidgetDockableMixin, QtWidgets.QDialog, HelperSlots):
             fileFilter='Custom Step .py (*.py)')
         if not filePath:
             return
-        if not isinstance(filePath, basestring):
+        if not isinstance(filePath, string_types):
             filePath = filePath[0]
 
         n, e = os.path.splitext(filePath)
@@ -2116,7 +2177,7 @@ class CustomShifterStep(cstp.customShifterMainStep):
             fileFilter='Custom Step .py (*.py)')
         if not filePath:
             return
-        if not isinstance(filePath, basestring):
+        if not isinstance(filePath, string_types):
             filePath = filePath[0]
 
         if os.environ.get(MGEAR_SHIFTER_CUSTOMSTEP_KEY, ""):
@@ -2188,7 +2249,7 @@ class CustomShifterStep(cstp.customShifterMainStep):
             fileFilter='Shifter Custom Steps .scs (*%s)' % ".scs")
         if not filePath:
             return
-        if not isinstance(filePath, basestring):
+        if not isinstance(filePath, string_types):
             filePath = filePath[0]
         f = open(filePath, 'w')
         f.write(data_string)
@@ -2235,7 +2296,7 @@ class CustomShifterStep(cstp.customShifterMainStep):
                 fileFilter='Shifter Custom Steps .scs (*%s)' % ".scs")
             if not filePath:
                 return
-            if not isinstance(filePath, basestring):
+            if not isinstance(filePath, string_types):
                 filePath = filePath[0]
             stepDict = json.load(open(filePath))
             stepsList = []
@@ -2250,7 +2311,7 @@ class CustomShifterStep(cstp.customShifterMainStep):
                 startingDirectory=startDir)
             if not filePath:
                 return
-            if not isinstance(unPackDir, basestring):
+            if not isinstance(unPackDir, string_types):
                 unPackDir = unPackDir[0]
 
             for item in stepDict["itemsList"]:

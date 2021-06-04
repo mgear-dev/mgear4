@@ -337,7 +337,7 @@ class draggers(QtWidgets.QWidget):
         steps = copy(draggerSteps)
         if not isFloat:
             # if int, cut steps less than 1.0
-            steps = list(filter(lambda x: abs(x) >= 1.0, steps))
+            steps = list([x for x in steps if abs(x) >= 1.0])
         for i in steps:
             drag = inputDragger(self, i)
             self.drags.append(drag)

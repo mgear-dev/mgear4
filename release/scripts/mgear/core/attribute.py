@@ -8,11 +8,12 @@ import mgear
 import pymel.core as pm
 import maya.cmds as cmds
 import pymel.core.datatypes as datatypes
-
+from .six import string_types
 
 #############################################
 # NODE
 #############################################
+
 
 def addAttribute(node,
                  longName,
@@ -276,9 +277,9 @@ def moveChannel(attr, sourceNode, targetNode, duplicatedPolicy=None):
         targetNode (PyNoe or str): The target node for the channel
         duplicatedPolicy (None, str): Set the duplicated channel policy
     """
-    if isinstance(sourceNode, str) or isinstance(sourceNode, unicode):
+    if isinstance(sourceNode, str) or isinstance(sourceNode, string_types):
         sourceNode = pm.PyNode(sourceNode)
-    if isinstance(targetNode, str) or isinstance(targetNode, unicode):
+    if isinstance(targetNode, str) or isinstance(targetNode, string_types):
         targetNode = pm.PyNode(targetNode)
 
     try:
@@ -791,7 +792,6 @@ class colorParamDef(ParamDef):
 
         self.scriptName = scriptName
         self.value = value
-        self.valueType = None
         self.param_dict = {}
 
     def create(self, node):

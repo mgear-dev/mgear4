@@ -8,7 +8,7 @@ from mgear.vendor.Qt import QtWidgets, QtCore
 
 import mgear.rigbits.channelWranglerUI as channelWranglerUI
 from mgear.core import attribute, pyqt
-
+from .six import string_types
 
 ######################################################################
 # Functions
@@ -350,7 +350,7 @@ class channelWrangler(MayaQWidgetDockableMixin, QtWidgets.QDialog):
             fileFilter='Channel Wrangler Configuration .cwc (*%s)' % ".cwc")
         if not filePath:
             return
-        if not isinstance(filePath, basestring):
+        if not isinstance(filePath, string_types):
             filePath = filePath[0]
         f = open(filePath, 'w')
         f.write(data_string)
@@ -368,7 +368,7 @@ class channelWrangler(MayaQWidgetDockableMixin, QtWidgets.QDialog):
             fileFilter='Channel Wrangler Configuration .cwc (*%s)' % ".cwc")
         if not filePath:
             return
-        if not isinstance(filePath, basestring):
+        if not isinstance(filePath, string_types):
             filePath = filePath[0]
         configDict = json.load(open(filePath))
         # also ask for proxy and move policy if is not the same when we add to

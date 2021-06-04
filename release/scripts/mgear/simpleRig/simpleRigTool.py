@@ -1,6 +1,7 @@
 import datetime
 import getpass
 import json
+import sys
 
 import mgear
 import mgear.core.icon as ico
@@ -18,6 +19,10 @@ from mgear.simpleRig import simpleRigUI as srUI
 CTL_TAG_ATTR = "is_simple_rig_ctl"
 RIG_ROOT = "rig"
 
+if sys.version_info[0] == 2:
+    string_types = (basestring, )
+else:
+    string_types = (str, )
 
 # driven attr ===========================================
 
@@ -704,7 +709,7 @@ def _build_rig_from_model(dagNode,
                     parent = parent_dict[d.getParent().name()]
                 else:
                     parent = local_ctl
-                print d
+                print(d)
                 ctl = _create_custom_pivot(name,
                                            "C",
                                            "circle",
@@ -766,7 +771,7 @@ def export_configuration(filePath=None):
             fileFilter='Simple Rig Configuration .src (*%s)' % ".src")
     if not filePath:
         return
-    if not isinstance(filePath, basestring):
+    if not isinstance(filePath, string_types):
         filePath = filePath[0]
     f = open(filePath, 'w')
     f.write(data_string)
@@ -789,7 +794,7 @@ def import_configuration(filePath=None):
             fileFilter='Simple Rig Configuration .src (*%s)' % ".src")
     if not filePath:
         return
-    if not isinstance(filePath, basestring):
+    if not isinstance(filePath, string_types):
         filePath = filePath[0]
     configDict = json.load(open(filePath))
     _build_rig_from_configuration(configDict)

@@ -7,7 +7,6 @@ click dag menu.
 # Stdlib imports
 from __future__ import absolute_import
 
-import os
 from functools import partial
 
 # Maya imports
@@ -29,6 +28,8 @@ from mgear.core.anim_utils import IkFkTransfer
 from mgear.core.anim_utils import changeSpace
 from mgear.core.anim_utils import getNamespace
 from mgear.core.anim_utils import stripNamespace
+
+from .six import string_types
 
 
 def __change_rotate_order_callback(*args):
@@ -255,7 +256,7 @@ def __switch_parent_callback(*args):
     switch_attr = args[1]
     switch_idx = args[2]
     search_token = switch_attr.split("_")[-1].split("ref")[0].split("Ref")[0]
-    print search_token
+    print(search_token)
     target_control = None
 
     # control_01 attr don't standard name ane need to be check
@@ -649,7 +650,7 @@ def mgear_dagmenu_toggle(state):
         menu_cmd = cmds.menu(maya_menu, query=True, postMenuCommand=True) or []
 
         # If state is set top True then override Maya's dag menu
-        if state and type(menu_cmd) == unicode:
+        if state and isinstance(menu_cmd, string_types):
             if "buildObjectMenuItemsNow" in menu_cmd:
                 # Maya's dag menu post command has the parent menu in it
                 parent_menu = menu_cmd.split(" ")[-1]

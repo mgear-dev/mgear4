@@ -77,8 +77,9 @@ from mgear.vendor.Qt import QtWidgets, QtCore, QtCompat
 from maya.app.general.mayaMixin import MayaQWidgetDockableMixin
 
 # rbf
-import rbf_io
-import rbf_node
+from . import rbf_io
+from . import rbf_node
+from .six import PY2
 
 # debug
 # reload(rbf_io)
@@ -112,7 +113,7 @@ def testFunctions(*args):
     Args:
         *args: Description
     """
-    print '!!', args
+    print('!!', args)
 
 
 def getPlugAttrs(nodes, attrType="all"):
@@ -196,7 +197,7 @@ def getEnvironModules():
     if additionalFuncDict is None:
         mc.warning("'{}' not found in {}".format(EXTRA_MODULE_DICT,
                                                  extraModulePath))
-        print "No additional menu items added to {}".format(TOOL_NAME)
+        print("No additional menu items added to {}".format(TOOL_NAME))
     return additionalFuncDict
 
 
@@ -209,7 +210,7 @@ def selectNode(name):
     if mc.objExists(name):
         mc.select(name)
     else:
-        print name, "No longer exists for selection!"
+        print(name, "No longer exists for selection!")
 
 
 # =============================================================================
@@ -231,7 +232,10 @@ def getControlAttrWidget(nodeAttr, label=""):
                                    label=label,
                                    po=True)
     ptr = mui.MQtUtil.findControl(mAttrFeild)
-    controlWidget = QtCompat.wrapInstance(long(ptr), base=QtWidgets.QWidget)
+    if PY2:
+        controlWidget = QtCompat.wrapInstance(long(ptr), base=QtWidgets.QWidget)
+    else:
+        controlWidget = QtCompat.wrapInstance(int(ptr), base=QtWidgets.QWidget)
     controlWidget.setContentsMargins(0, 0, 0, 0)
     controlWidget.setMinimumWidth(0)
     attrEdit = [wdgt for wdgt in controlWidget.children()
@@ -507,8 +511,8 @@ class RBFManagerUI(MayaQWidgetDockableMixin, QtWidgets.QMainWindow):
         try:
             om.MSceneMessage.removeCallback(self.callBackID)
         except Exception as e:
-            print "CallBack removal failure:"
-            print e
+            print("CallBack removal failure:")
+            print(e)
 
     def newSceneCallBack(self):
         """create a new scene callback to refresh the UI when scene changes.
@@ -519,7 +523,7 @@ class RBFManagerUI(MayaQWidgetDockableMixin, QtWidgets.QMainWindow):
             obj = om.MSceneMessage.addCallback(callBackType, func)
             self.callBackID = obj
         except Exception as e:
-            print e
+            print(e)
             self.callBackID = None
 
     # general functions -------------------------------------------------------
@@ -705,8 +709,8 @@ class RBFManagerUI(MayaQWidgetDockableMixin, QtWidgets.QMainWindow):
         # Check if there any preexisting nodes in setup, if so copy pose index
         if self.currentRBFSetupNodes:
             currentRbfs = self.currentRBFSetupNodes[0]
-            print "Syncing poses indices from  {} >> {}".format(currentRbfs,
-                                                                rbfNode)
+            print("Syncing poses indices from  {} >> {}".format(currentRbfs,
+                                                                rbfNode))
             rbfNode.syncPoseIndices(self.currentRBFSetupNodes[0])
         else:
             if self.zeroedDefaults:
@@ -822,7 +826,7 @@ class RBFManagerUI(MayaQWidgetDockableMixin, QtWidgets.QMainWindow):
         """
         self.allSetupsInfo = {}
         tmp_dict = rbf_node.getRbfSceneSetupsInfo(includeEmpty=includeEmpty)
-        for setupName, nodes in tmp_dict.iteritems():
+        for setupName, nodes in tmp_dict.items():
             self.allSetupsInfo[setupName] = [sortRBF(n) for n in nodes]
 
     def setNodeToField(self, lineEdit, multi=False):
@@ -1197,7 +1201,7 @@ class RBFManagerUI(MayaQWidgetDockableMixin, QtWidgets.QMainWindow):
         try:
             self.recreateDrivenTabs(self.allSetupsInfo[rbfSelection])
         except AttributeError:
-            print "Forcing refresh on UI due to error."
+            print("Forcing refresh on UI due to error.")
             self.refresh(rbfSelection=True,
                          driverSelection=True,
                          drivenSelection=True,
@@ -1408,7 +1412,7 @@ class RBFManagerUI(MayaQWidgetDockableMixin, QtWidgets.QMainWindow):
         rbf_io.importRBFs(filePath)
         mc.select(cl=True)
         self.refresh()
-        print "RBF setups imported: {}".format(filePath)
+        print("RBF setups imported: {}".format(filePath))
 
     def exportNodes(self, allSetups=True):
         """export all nodes or nodes from current setup
@@ -1423,7 +1427,7 @@ class RBFManagerUI(MayaQWidgetDockableMixin, QtWidgets.QMainWindow):
         nodesToExport = []
         if allSetups:
             [nodesToExport.extend(v) for k, v,
-             in self.allSetupsInfo.iteritems()]
+             in self.allSetupsInfo.items()]
         else:
             nodesToExport = self.currentRBFSetupNodes
 
@@ -1529,7 +1533,7 @@ class RBFManagerUI(MayaQWidgetDockableMixin, QtWidgets.QMainWindow):
         rbfModule.createRBFFromInfo(mirrorWeightInfo)
         setupTargetInfo_dict = self.getMirroredSetupTargetsInfo()
         nameSpace = anim_utils.getNamespace(aRbfNode.name)
-        mrRbfNodes = [v[1] for k, v in setupTargetInfo_dict.iteritems()]
+        mrRbfNodes = [v[1] for k, v in setupTargetInfo_dict.items()]
         [v.setToggleRBFAttr(0) for v in mrRbfNodes]
         mrDriverNode = mrRbfNodes[0].getDriverNode()[0]
         mrDriverAttrs = mrRbfNodes[0].getDriverNodeAttributes()
@@ -1539,7 +1543,7 @@ class RBFManagerUI(MayaQWidgetDockableMixin, QtWidgets.QMainWindow):
             aRbfNode.recallDriverPose(index)
             anim_utils.mirrorPose(flip=False, nodes=[driverControl])
             mrData = []
-            for srcNode, dstValues in setupTargetInfo_dict.iteritems():
+            for srcNode, dstValues in setupTargetInfo_dict.items():
                 mrData.extend(anim_utils.calculateMirrorData(srcNode,
                                                              dstValues[0]))
             for entry in mrData:
@@ -1596,9 +1600,9 @@ class RBFManagerUI(MayaQWidgetDockableMixin, QtWidgets.QMainWindow):
     def reevalluateAllNodes(self):
         """for evaluation on all nodes in any setup. In case of manual editing
         """
-        for name, rbfNodes in self.allSetupsInfo.iteritems():
+        for name, rbfNodes in self.allSetupsInfo.items():
             [rbfNode.forceEvaluation() for rbfNode in rbfNodes]
-        print "All Nodes have been Re-evaluated"
+        print("All Nodes have been Re-evaluated")
 
     def toggleGetPoseType(self, toggleState):
         """records whether the user wants poses recorded in worldSpace or check
@@ -1608,7 +1612,7 @@ class RBFManagerUI(MayaQWidgetDockableMixin, QtWidgets.QMainWindow):
             toggleState (bool): default True
         """
         self.absWorld = toggleState
-        print "Recording poses in world space set to: {}".format(toggleState)
+        print("Recording poses in world space set to: {}".format(toggleState))
 
     def toggleDefaultType(self, toggleState):
         """records whether the user wants default poses to be zeroed
@@ -1617,7 +1621,7 @@ class RBFManagerUI(MayaQWidgetDockableMixin, QtWidgets.QMainWindow):
             toggleState (bool): default True
         """
         self.zeroedDefaults = toggleState
-        print "Default poses are zeroed: {}".format(toggleState)
+        print("Default poses are zeroed: {}".format(toggleState))
 
     # signal management -------------------------------------------------------
     def connectSignals(self):
@@ -1909,7 +1913,7 @@ class RBFManagerUI(MayaQWidgetDockableMixin, QtWidgets.QMainWindow):
         additionalFuncDict = getEnvironModules()
         if additionalFuncDict:
             showOverridesMenu = mainMenuBar.addMenu("Local Overrides")
-            for k, v in additionalFuncDict.iteritems():
+            for k, v in additionalFuncDict.items():
                 showOverridesMenu.addAction(k, v)
 
         if hideMenuBar:

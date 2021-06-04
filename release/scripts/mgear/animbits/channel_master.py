@@ -15,6 +15,7 @@ from maya.app.general.mayaMixin import MayaQWidgetDockableMixin
 from . import channel_master_utils as cmu
 from . import channel_master_widgets as cmw
 from . import channel_master_node as cmn
+import importlib
 
 
 class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
@@ -388,7 +389,7 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
             TYPE: Description
         """
         tables = []
-        for i in xrange(self.tab_widget.count()):
+        for i in range(self.tab_widget.count()):
             tables.append(self.tab_widget.widget(i))
 
         return tables
@@ -518,7 +519,7 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         """
         search_name = self.search_lineEdit.text()
         table = self.get_current_table()
-        for i in xrange(table.rowCount()):
+        for i in range(table.rowCount()):
             item = table.item(i, 0)
             if search_name.lower() in item.text().lower() or not search_name:
                 table.setRowHidden(i, False)
@@ -570,14 +571,14 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         """Toggle channel name  from nice name to full name
         """
         table = self.get_current_table()
-        for i in xrange(table.rowCount()):
+        for i in range(table.rowCount()):
             table.set_channel_fullname(
                 i, self.display_fullname_action.isChecked())
 
     def action_sync_graph_editor(self):
         table = self.get_current_table()
         attr_configs = []
-        for i in xrange(table.rowCount()):
+        for i in range(table.rowCount()):
             item = table.item(i, 0)
             ac = item.data(QtCore.Qt.UserRole)
             attr_configs.append(ac)
@@ -595,7 +596,7 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         """order  the channels alphabetically
         """
         # table = self.get_current_table()
-        for i in xrange(self.tab_widget.count()):
+        for i in range(self.tab_widget.count()):
             table = self.tab_widget.widget(i)
             table.sortItems(0, order=QtCore.Qt.AscendingOrder)
 
@@ -627,7 +628,7 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         """
         not_keyed = []
         keyed = []
-        for i in xrange(table.rowCount()):
+        for i in range(table.rowCount()):
             item = table.item(i, 0)
             attr = table.namespace_sync(
                 item.data(QtCore.Qt.UserRole)["fullName"])
@@ -687,7 +688,7 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         items = []
 
         if self.copypaste_all_channels_action.isChecked():
-            for i in xrange(table.rowCount()):
+            for i in range(table.rowCount()):
                 items.append(table.item(i, 0))
         else:
             items = table.selectedItems()
@@ -712,7 +713,7 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         items = []
         table = self.get_current_table()
         if self.copypaste_all_channels_action.isChecked():
-            for i in xrange(table.rowCount()):
+            for i in range(table.rowCount()):
                 items.append(table.item(i, 0))
 
         else:
@@ -772,7 +773,7 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         Args:
             name (str): name of the node
         """
-        for i in xrange(self.node_list_combobox.count()):
+        for i in range(self.node_list_combobox.count()):
             if self.node_list_combobox.itemText(i) == name:
                 self.node_list_combobox.setCurrentIndex(i)
                 break
@@ -864,7 +865,7 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         """
         init_name = name
         names = []
-        for i in xrange(self.tab_widget.count()):
+        for i in range(self.tab_widget.count()):
             names.append(self.tab_widget.tabText(i))
         i = 1
         while name in names:
@@ -1031,11 +1032,18 @@ class channelOrderDialog(QtWidgets.QDialog):
 if __name__ == "__main__":
 
     from mgear.animbits import channel_master_utils
-    reload(channel_master_utils)
     from mgear.animbits import channel_master_widgets
-    reload(channel_master_widgets)
     from mgear.animbits import channel_master
-    reload(channel_master)
+
+    import sys
+    if sys.version_info[0] == 2:
+        reload(channel_master_utils)
+        reload(channel_master_widgets)
+        reload(channel_master)
+    else:
+        importlib.reload(channel_master_utils)
+        importlib.reload(channel_master_widgets)
+        importlib.reload(channel_master)
 
     start = timeit.default_timer()
 
@@ -1047,4 +1055,4 @@ if __name__ == "__main__":
 
     end = timeit.default_timer()
     timeConsumed = end - start
-    print "{} time elapsed running".format(timeConsumed)
+    print("{} time elapsed running".format(timeConsumed))

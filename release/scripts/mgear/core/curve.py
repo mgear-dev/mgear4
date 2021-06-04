@@ -17,6 +17,8 @@ from mgear.core import applyop
 from mgear.core import utils
 from mgear.core import transform
 
+from .six import string_types
+
 #############################################
 # CURVE
 #############################################
@@ -196,7 +198,7 @@ def createCurveFromCurve(srcCrv, name, nbPoints, parent=None):
     Returns:
         dagNode: The newly created curve.
     """
-    if isinstance(srcCrv, str) or isinstance(srcCrv, unicode):
+    if isinstance(srcCrv, str) or isinstance(srcCrv, string_types):
         srcCrv = pm.PyNode(srcCrv)
     length = srcCrv.length()
     parL = srcCrv.findParamFromLength(length)
@@ -512,7 +514,7 @@ def create_curve_from_data_by_name(crv,
         if "knots" in shp_dict[sh]:
             knots = shp_dict[sh]["knots"]
         else:
-            knots = range(len(points) + degree - 1)
+            knots = list(range(len(points) + degree - 1))
         if form != "open":
             close = True
         else:
@@ -611,7 +613,7 @@ def update_curve_from_data(data, rplStr=["", ""]):
             points = shp_dict[sh]["points"]
             form = shp_dict[sh]["form"]
             degree = shp_dict[sh]["degree"]
-            knots = range(len(points) + degree - 1)
+            knots = list(range(len(points) + degree - 1))
             if form != "open":
                 close = True
             else:
@@ -657,7 +659,7 @@ def export_curve(filePath=None, objs=None, rplStr=["", ""]):
         if not filePath:
             pm.displayWarning("Invalid file path")
             return
-        if not isinstance(filePath, basestring):
+        if not isinstance(filePath, string_types):
             filePath = filePath[0]
 
     data = collect_selected_curve_data(objs, rplStr=rplStr)
@@ -679,7 +681,7 @@ def _curve_from_file(filePath=None):
     if not filePath:
         pm.displayWarning("Invalid file path")
         return
-    if not isinstance(filePath, basestring):
+    if not isinstance(filePath, string_types):
         filePath = filePath[0]
     configDict = json.load(open(filePath))
 
@@ -801,10 +803,10 @@ def average_curve(crv,
         blends = []
         # calculate the average value based on distance
         total_val = 0.0
-        for x in xrange(average):
+        for x in range(average):
             total_val += shapes_by_distance[x][1][1]
         # setup the blendshape
-        for x in xrange(average):
+        for x in range(average):
             blend = 1 - (shapes_by_distance[x][1][1] / total_val)
             bst.append(shapes_by_distance[x][1][0])
             weights.append((x, blend))

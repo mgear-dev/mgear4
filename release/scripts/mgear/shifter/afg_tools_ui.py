@@ -704,7 +704,7 @@ class AutoFitBipedWidget(QtWidgets.QWidget):
         """
         tmp = {}
         non_existant = []
-        for guide, values in guide_association_info.iteritems():
+        for guide, values in guide_association_info.items():
             existing_nodes = []
             for v in values:
                 if cmds.objExists(v):
@@ -789,7 +789,7 @@ class AutoFitBipedWidget(QtWidgets.QWidget):
     def visualizeAssociationEntry(self):
         """set the ui to show an association has been made for the listed node
         """
-        for index in xrange(self.association_list_widget.count()):
+        for index in range(self.association_list_widget.count()):
             item = self.association_list_widget.item(index)
             embed_name = item.text()
             font = item.font()
@@ -1058,7 +1058,7 @@ class RelativeGuidePlacementWidget(QtWidgets.QWidget):
         """
         removed_items = []
         if nodes:
-            for i in xrange(self.skip_crawl_list.count()):
+            for i in range(self.skip_crawl_list.count()):
                 item = self.skip_crawl_list.item(i)
                 if item.text() in nodes:
                     removed_items.append(item.text())
@@ -1091,7 +1091,7 @@ class RelativeGuidePlacementWidget(QtWidgets.QWidget):
             list: of nodes to skip
         """
         items = []
-        for i in xrange(self.skip_crawl_list.count()):
+        for i in range(self.skip_crawl_list.count()):
             items.append(self.skip_crawl_list.item(i).text())
         return items
 
@@ -1124,7 +1124,7 @@ class RelativeGuidePlacementWidget(QtWidgets.QWidget):
             ordered_hierarchy,
             relativeGuide_dict)
         for result in gen:
-            msg = "{}% completed... {}".format(int(starting_val), dance.next())
+            msg = "{}% completed... {}".format(int(starting_val), next(dance))
             self.window().statusBar().showMessage(msg)
             starting_val = starting_val + increment_value
 
@@ -1155,7 +1155,7 @@ class RelativeGuidePlacementWidget(QtWidgets.QWidget):
                 self.ordered_hierarchy,
                 self.relativeGuide_dict,
                 reset_scale=reset_scale):
-            msg = "{}% completed... {}".format(int(starting_val), dance.next())
+            msg = "{}% completed... {}".format(int(starting_val), next(dance))
             self.window().statusBar().showMessage(msg)
             starting_val = starting_val + increment_value
 

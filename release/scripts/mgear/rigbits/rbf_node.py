@@ -35,6 +35,7 @@ import maya.OpenMaya as OpenMaya
 # mgear
 from mgear.core import transform, attribute
 from mgear.core import anim_utils
+from .six import PY2
 
 # =============================================================================
 # constants
@@ -307,7 +308,7 @@ def __getResultingMatrix(drivenNode, parentNode, absoluteWorld=True):
 
     if defaultMat.isEquivalent(drivenMat_local) and not absoluteWorld:
         totalMatrix = defaultMat
-        print "Pose recorded in local."
+        print("Pose recorded in local.")
     else:
         totalMatrix = drivenMat * nodeInverParMat
     return totalMatrix
@@ -475,7 +476,7 @@ def updateDriverControlPoseAttr(node, driverControl, poseIndex):
     # TODO future recording of all attrs goes here
     poseInfo = getDriverControlPoseAttr(node)
     attrsToUpdate = TRANSLATE_ATTRS + ROTATE_ATTRS + SCALE_ATTRS
-    attrsToUpdate = list(set(attrsToUpdate + poseInfo.keys()))
+    attrsToUpdate = list(set(attrsToUpdate + list(poseInfo.keys())))
     for attr in attrsToUpdate:
         attrPoseIndices = poseInfo.get(attr, [])
         lengthOfList = len(attrPoseIndices) - 1
@@ -499,7 +500,7 @@ def recallDriverControlPose(driverControl, poseInfo, index):
         index (int): poseInfo[attrName]:[index]
     """
     failed_attrs = []
-    for attr, values in poseInfo.iteritems():
+    for attr, values in poseInfo.items():
         try:
             # not to be bothered with locked, hidden, connected attrs
             mc.setAttr("{}.{}".format(driverControl, attr), values[index])
@@ -664,7 +665,9 @@ class RBFNode(object):
         Returns:
             str: name of rbfNode node correctly formated
         """
-        return unicode(self.name).encode('utf-8')
+        if PY2:
+            return unicode(self.name).encode('utf-8')
+        return str(self.name).encode('utf-8')
 
     def __str__(self):
         """overwritten so that the RBFNode instance can be treated as a pymal

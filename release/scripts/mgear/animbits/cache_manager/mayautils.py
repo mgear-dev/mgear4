@@ -15,6 +15,11 @@ from mgear.animbits.cache_manager.query import (
     get_cache_destination_path,
     get_time_stamp)
 
+try:
+    long
+except NameError:
+    # Python 3 compatibility
+    long = int
 
 def __create_preference_file():
     """ Creates the json file to store preferences for the cache manager

@@ -440,7 +440,7 @@ def updateGuidePlacement(guideOrder, guideDictionary, reset_scale=False):
             continue
         guideNode = pm.PyNode(guide)
         scl = guideNode.getScale()
-        repoMatrix = updateGen.next()
+        repoMatrix = next(updateGen)
         guideNode.setMatrix(repoMatrix, worldSpace=True, preserve=True)
         if reset_scale:
             guideNode.setScale([1, 1, 1])
@@ -458,7 +458,7 @@ def _importData(filepath):
             data = json.load(f)
             return data
     except Exception as e:
-        print e
+        print(e)
 
 
 def _exportData(data, filepath):
@@ -466,7 +466,7 @@ def _exportData(data, filepath):
         with open(filepath, 'w') as f:
             json.dump(data, f, sort_keys=False, indent=4)
     except Exception as e:
-        print e
+        print(e)
 
 
 def exportGuidePlacement(filepath=None,
@@ -502,7 +502,7 @@ def exportGuidePlacement(filepath=None,
     data["relativeGuide_dict"] = relativeGuide_dict
     data["ordered_hierarchy"] = ordered_hierarchy
     _exportData(data, filepath)
-    print "Guide position exported: {}".format(filepath)
+    print("Guide position exported: {}".format(filepath))
     return relativeGuide_dict, ordered_hierarchy, filepath
 
 

@@ -1,9 +1,15 @@
 # Shifter guides IO utility functions
 import os
 import json
+import sys
 import pymel.core as pm
 from mgear import shifter
 from mgear.core import curve
+
+if sys.version_info[0] == 2:
+    string_types = (basestring, )
+else:
+    string_types = (str,)
 
 
 def get_guide_template_dict(guide_node, meta=None):
@@ -64,7 +70,7 @@ def _get_file(write=False):
 
     if not filePath:
         return
-    if not isinstance(filePath, basestring):
+    if not isinstance(filePath, string_types):
         filePath = filePath[0]
 
     return filePath

@@ -6,6 +6,7 @@ from pymel import versions
 import pymel.core.datatypes as datatypes
 from mgear.core import attribute
 
+from .six import PY2, string_types
 #############################################
 # CREATE SIMPLE NODES
 #############################################
@@ -142,7 +143,9 @@ def createConditionNode(firstTerm=False,
                                              plusTotalLength_node+".output1D")
 
     """
-    check_list = (pm.Attribute, unicode, str)
+    check_list = [pm.Attribute, str]
+    if PY2:
+        check_list.append(unicode)
     node = pm.createNode("condition")
     pm.setAttr(node + ".operation", operator)
     if firstTerm:
@@ -188,23 +191,20 @@ def createBlendNode(inputA, inputB, blender=.5):
         inputB = [inputB]
 
     for item, s in zip(inputA, "RGB"):
-        if (isinstance(item, str)
-                or isinstance(item, unicode)
+        if (isinstance(item, string_types)
                 or isinstance(item, pm.Attribute)):
             pm.connectAttr(item, node + ".color1" + s)
         else:
             pm.setAttr(node + ".color1" + s, item)
 
     for item, s in zip(inputB, "RGB"):
-        if (isinstance(item, str)
-                or isinstance(item, unicode)
+        if (isinstance(item, string_types)
                 or isinstance(item, pm.Attribute)):
             pm.connectAttr(item, node + ".color2" + s)
         else:
             pm.setAttr(node + ".color2" + s, item)
 
-    if (isinstance(blender, str)
-            or isinstance(blender, unicode)
+    if (isinstance(blender, string_types)
             or isinstance(blender, pm.Attribute)):
         pm.connectAttr(blender, node + ".blender")
     else:
@@ -263,8 +263,7 @@ def createPairBlend(inputA=None,
         if rot:
             pm.connectAttr(inputB + ".rotate", node + ".inRotate2")
 
-    if (isinstance(blender, str)
-            or isinstance(blender, unicode)
+    if (isinstance(blender, string_types)
             or isinstance(blender, pm.Attribute)):
         pm.connectAttr(blender, node + ".weight")
     else:
@@ -294,36 +293,31 @@ def createSetRangeNode(input,
         input = [input]
 
     for item, s in zip(input, "XYZ"):
-        if (isinstance(item, str)
-                or isinstance(item, unicode)
+        if (isinstance(item, string_types)
                 or isinstance(item, pm.Attribute)):
             pm.connectAttr(item, node + ".value" + s)
         else:
             pm.setAttr(node + ".value" + s, item)
 
-        if (isinstance(oldMin, str)
-                or isinstance(oldMin, unicode)
+        if (isinstance(oldMin, string_types)
                 or isinstance(oldMin, pm.Attribute)):
             pm.connectAttr(oldMin, node + ".oldMin" + s)
         else:
             pm.setAttr(node + ".oldMin" + s, oldMin)
 
-        if (isinstance(oldMax, str)
-                or isinstance(oldMax, unicode)
+        if (isinstance(oldMax, string_types)
                 or isinstance(oldMax, pm.Attribute)):
             pm.connectAttr(oldMax, node + ".oldMax" + s)
         else:
             pm.setAttr(node + ".oldMax" + s, oldMax)
 
-        if (isinstance(newMin, str)
-                or isinstance(newMin, unicode)
+        if (isinstance(newMin, string_types)
                 or isinstance(newMin, pm.Attribute)):
             pm.connectAttr(newMin, node + ".min" + s)
         else:
             pm.setAttr(node + ".min" + s, newMin)
 
-        if (isinstance(newMax, str)
-                or isinstance(newMax, unicode)
+        if (isinstance(newMax, string_types)
                 or isinstance(newMax, pm.Attribute)):
             pm.connectAttr(newMax, node + ".max" + s)
         else:
@@ -358,8 +352,7 @@ def createReverseNode(input, output=None):
         input = [input]
 
     for item, s in zip(input, "XYZ"):
-        if (isinstance(item, str)
-                or isinstance(item, unicode)
+        if (isinstance(item, string_types)
                 or isinstance(item, pm.Attribute)):
             pm.connectAttr(item, node + ".input" + s)
         else:
@@ -411,15 +404,13 @@ def createAddNode(inputA, inputB):
     """
     node = pm.createNode("addDoubleLinear")
 
-    if (isinstance(inputA, str)
-            or isinstance(inputA, unicode)
+    if (isinstance(inputA, string_types)
             or isinstance(inputA, pm.Attribute)):
         pm.connectAttr(inputA, node + ".input1")
     else:
         pm.setAttr(node + ".input1", inputA)
 
-    if (isinstance(inputB, str)
-            or isinstance(inputB, unicode)
+    if (isinstance(inputB, string_types)
             or isinstance(inputB, pm.Attribute)):
         pm.connectAttr(inputB, node + ".input2")
     else:
@@ -444,15 +435,13 @@ def createSubNode(inputA, inputB):
     """
     node = pm.createNode("addDoubleLinear")
 
-    if (isinstance(inputA, str)
-            or isinstance(inputA, unicode)
+    if (isinstance(inputA, string_types)
             or isinstance(inputA, pm.Attribute)):
         pm.connectAttr(inputA, node + ".input1")
     else:
         pm.setAttr(node + ".input1", inputA)
 
-    if (isinstance(inputB, str)
-            or isinstance(inputB, unicode)
+    if (isinstance(inputB, string_types)
             or isinstance(inputB, pm.Attribute)):
         neg_node = pm.createNode("multiplyDivide")
         pm.connectAttr(inputB, neg_node + ".input1X")
@@ -549,8 +538,7 @@ def createMulDivNode(inputA, inputB, operation=1, output=None):
         inputB = [inputB]
 
     for item, s in zip(inputA, "XYZ"):
-        if (isinstance(item, str)
-                or isinstance(item, unicode)
+        if (isinstance(item, string_types)
                 or isinstance(item, pm.Attribute)):
             try:
                 pm.connectAttr(item, node + ".input1" + s, f=True)
@@ -564,8 +552,7 @@ def createMulDivNode(inputA, inputB, operation=1, output=None):
             pm.setAttr(node + ".input1" + s, item)
 
     for item, s in zip(inputB, "XYZ"):
-        if (isinstance(item, str)
-                or isinstance(item, unicode)
+        if (isinstance(item, string_types)
                 or isinstance(item, pm.Attribute)):
             try:
                 pm.connectAttr(item, node + ".input2" + s, f=True)
@@ -615,22 +602,19 @@ def createClampNode(input, in_min, in_max):
 
     for in_item, min_item, max_item, s in zip(input, in_min, in_max, "RGB"):
 
-        if (isinstance(in_item, str)
-                or isinstance(in_item, unicode)
+        if (isinstance(in_item, string_types)
                 or isinstance(in_item, pm.Attribute)):
             pm.connectAttr(in_item, node + ".input" + s)
         else:
             pm.setAttr(node + ".input" + s, in_item)
 
-        if (isinstance(min_item, str)
-                or isinstance(min_item, unicode)
+        if (isinstance(min_item, string_types)
                 or isinstance(min_item, pm.Attribute)):
             pm.connectAttr(min_item, node + ".min" + s)
         else:
             pm.setAttr(node + ".min" + s, min_item)
 
-        if (isinstance(max_item, str)
-                or isinstance(max_item, unicode)
+        if (isinstance(max_item, string_types)
                 or isinstance(max_item, pm.Attribute)):
             pm.connectAttr(max_item, node + ".max" + s)
         else:
@@ -736,15 +720,13 @@ def createAddNodeMulti(inputs=[]):
     for i, input in enumerate(inputs[1:]):
         node_name = pm.createNode("addDoubleLinear")
 
-        if (isinstance(outputs[-1], str)
-                or isinstance(outputs[-1], unicode)
+        if (isinstance(outputs[-1], string_types)
                 or isinstance(outputs[-1], pm.Attribute)):
             pm.connectAttr(outputs[-1], node_name + ".input1", f=True)
         else:
             pm.setAttr(node_name + ".input1", outputs[-1])
 
-        if (isinstance(input, str)
-                or isinstance(input, unicode)
+        if (isinstance(input, string_types)
                 or isinstance(input, pm.Attribute)):
             pm.connectAttr(input, node_name + ".input2", f=True)
         else:
@@ -773,15 +755,13 @@ def createMulNodeMulti(name, inputs=[]):
         node_name = pm.createNode("multiplyDivide", n=real_name)
         pm.setAttr(node_name + ".operation", 1)
 
-        if (isinstance(outputs[-1], str)
-                or isinstance(outputs[-1], unicode)
+        if (isinstance(outputs[-1], string_types)
                 or isinstance(outputs[-1], pm.Attribute)):
             pm.connectAttr(outputs[-1], node_name + ".input1X", f=True)
         else:
             pm.setAttr(node_name + ".input1X", outputs[-1])
 
-        if (isinstance(input, str)
-                or isinstance(input, unicode)
+        if (isinstance(input, string_types)
                 or isinstance(input, pm.Attribute)):
             pm.connectAttr(input, node_name + ".input2X", f=True)
         else:
@@ -809,15 +789,13 @@ def createDivNodeMulti(name, inputs1=[], inputs2=[]):
         node_name = pm.createNode("multiplyDivide", n=real_name)
         pm.setAttr(node_name + ".operation", 2)
 
-        if (isinstance(pm.outputs[-1], str)
-                or isinstance(pm.outputs[-1], unicode)
+        if (isinstance(pm.outputs[-1], string_types)
                 or isinstance(pm.outputs[-1], pm.Attribute)):
             pm.connectAttr(pm.outputs[-1], node_name + ".input1X", f=True)
         else:
             pm.setAttr(node_name + ".input1X", pm.outputs[-1])
 
-        if (isinstance(input, str)
-                or isinstance(input, unicode)
+        if (isinstance(input, string_types)
                 or isinstance(input, pm.Attribute)):
             pm.connectAttr(input, node_name + ".input2X", f=True)
         else:
@@ -853,15 +831,13 @@ def createClampNodeMulti(name, inputs=[], in_min=[], in_max=[]):
 
         pm.connectAttr(input, node_name + ".input" + s[count], f=True)
 
-        if (isinstance(min, str)
-                or isinstance(min, unicode)
+        if (isinstance(min, string_types)
                 or isinstance(min, pm.Attribute)):
             pm.connectAttr(min, node_name + ".min" + s[count], f=True)
         else:
             pm.setAttr(node_name + ".min" + s[count], min)
 
-        if (isinstance(max, str)
-                or isinstance(max, unicode)
+        if (isinstance(max, string_types)
                 or isinstance(max, pm.Attribute)):
             pm.connectAttr(max, node_name + ".max" + s[count], f=True)
         else:

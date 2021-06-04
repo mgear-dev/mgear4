@@ -6,6 +6,7 @@ import pymel.core as pm
 
 from mgear.core import node, primitive
 from mgear import rigbits
+from .six import string_types
 
 
 def createGhostCtl(ctl, parent=None, connect=True):
@@ -23,10 +24,10 @@ def createGhostCtl(ctl, parent=None, connect=True):
        pyNode: The new created control
 
     """
-    if isinstance(ctl, basestring):
+    if isinstance(ctl, string_types):
         ctl = pm.PyNode(ctl)
     if parent:
-        if isinstance(parent, basestring):
+        if isinstance(parent, string_types):
             parent = pm.PyNode(parent)
     grps = ctl.listConnections(t="objectSet")
     for grp in grps:
@@ -72,10 +73,10 @@ def createDoritoGhostCtl(ctl, parent=None):
         parent (dagNode): Parent for the new created control
 
     """
-    if isinstance(ctl, basestring):
+    if isinstance(ctl, string_types):
         ctl = pm.PyNode(ctl)
     if parent:
-        if isinstance(parent, basestring):
+        if isinstance(parent, string_types):
             parent = pm.PyNode(parent)
     doritoCtl = createGhostCtl(ctl, parent)
     doritoParent = doritoCtl.getParent()

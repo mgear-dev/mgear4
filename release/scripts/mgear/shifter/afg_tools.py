@@ -341,7 +341,7 @@ def createNodeFromEmbedInfo(embed_info, node_type=None):
     if not node_type:
         node_type = "joint"
     created_nodes = []
-    for name, position in embed_info["joints"].iteritems():
+    for name, position in embed_info["joints"].items():
         if not cmds.objExists(name):
             name = cmds.createNode(node_type, name=name)
         cmds.xform(name, worldSpace=True, translation=position)
@@ -507,7 +507,7 @@ def makeAssoicationInfoSymmetrical(association_info, favor_side="left"):
     """
     replace = SIDE_MIRROR_INFO[favor_side]
     mirrored_association_info = copy.deepcopy(association_info)
-    for embed, guides in association_info.iteritems():
+    for embed, guides in association_info.items():
         if embed.startswith(favor_side):
             mirror_embed = embed.replace(favor_side, replace)
             mirrored_guides = []

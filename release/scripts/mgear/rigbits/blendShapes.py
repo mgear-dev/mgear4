@@ -1,6 +1,7 @@
 """Rigbits blendshapes utilities and tools"""
 
 import pymel.core as pm
+from .six import string_types
 
 
 def getBlendShape(obj):
@@ -12,7 +13,7 @@ def getBlendShape(obj):
     Returns:
         PyNode: The blendshape node
     """
-    if isinstance(obj, basestring):
+    if isinstance(obj, string_types):
         obj = pm.PyNode(obj)
 
     try:
@@ -36,9 +37,9 @@ def connectWithBlendshape(mesh, bst, wgt=1.0):
     Returns:
         PyNode: The blenshape node
     """
-    if isinstance(mesh, basestring):
+    if isinstance(mesh, string_types):
         mesh = pm.PyNode(mesh)
-    if isinstance(bst, basestring):
+    if isinstance(bst, string_types):
         bst = pm.PyNode(bst)
     bsnode = getBlendShape(mesh)
     if bsnode:

@@ -1,6 +1,7 @@
 import pymel.core as pm
 import maya.cmds as cmds
 import json
+import sys
 from functools import partial
 import traceback
 import os.path
@@ -13,6 +14,11 @@ import mgear.shifter.game_tools_ui as gtUI
 from maya.app.general.mayaMixin import MayaQWidgetDockableMixin
 from mgear.core import pyqt
 from mgear.vendor.Qt import QtCore, QtWidgets
+
+if sys.version_info[0] == 2:
+    string_types = (basestring, )
+else:
+    string_types = (str,)
 
 SRT_CHANNELS = ["translate",
                 "translate.translateX",
@@ -168,7 +174,7 @@ def exportConnections(source=None, filePath=None, disc=False):
                                   '  .jmm (*%s)' % ".jmm")
         if not filePath:
             return
-        if not isinstance(filePath, basestring):
+        if not isinstance(filePath, string_types):
             filePath = filePath[0]
 
     if connections["joints"]:
@@ -202,7 +208,7 @@ def importConnections(filePath=None, nsRig=None, nsSkin=None, useMtx=True):
                                   ' .jmm (*%s)' % ".jmm")
     if not filePath:
         return
-    if not isinstance(filePath, basestring):
+    if not isinstance(filePath, string_types):
         filePath = filePath[0]
     with open(filePath) as fp:
         configDict = json.load(fp)
@@ -242,7 +248,7 @@ def runScript(path=None):
         path (str, optional): Path to the python file
     """
     if path:
-        execfile(path)
+        exec(compile(open(path, "rb").read(), path, 'exec'))
 
 
 @mutils.one_undo
@@ -323,7 +329,7 @@ def exportAssetAssembly(name, rigTopNode, meshTopNode, path, postScript=None):
     # post script
     if postScript:
         try:
-            execfile(postScript)
+            exec(compile(open(postScript, "rb").read(), postScript, 'exec'))
         except Exception as ex:
             template = "An exception of type {0} occured. Arguments:\n{1!r}"
             message = template.format(type(ex).__name__, ex.args)
@@ -372,7 +378,7 @@ def createAssetAssembly(filePath=None, reference=False):
 
     if not filePath:
         return
-    if not isinstance(filePath, basestring):
+    if not isinstance(filePath, string_types):
         filePath = filePath[0]
 
     asset_name = os.path.basename(filePath).split(".")[0]
@@ -512,7 +518,7 @@ class gameTools(MayaQWidgetDockableMixin, QtWidgets.QDialog):
                                   fileFilter=' Shifter Game Assembly folder')
         if not filePath:
             return
-        if not isinstance(filePath, basestring):
+        if not isinstance(filePath, string_types):
             filePath = filePath[0]
         self.gtUIInst.path_lineEdit.setText(filePath)
 
@@ -527,7 +533,7 @@ class gameTools(MayaQWidgetDockableMixin, QtWidgets.QDialog):
                                   fileFilter=' Post Script  .py (*%s)' % ".py")
         if not filePath:
             return
-        if not isinstance(filePath, basestring):
+        if not isinstance(filePath, string_types):
             filePath = filePath[0]
         self.gtUIInst.script_lineEdit.setText(filePath)
 
