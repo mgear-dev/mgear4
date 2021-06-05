@@ -114,7 +114,8 @@ class Main(object):
 
         # --------------------------------------------------
         # Step
-        self.stepMethods = [eval("self.step_0%s" % i)
+        self.stepMethods = [eval("self.step_0{}".format(str(i)),
+                                 {"self": self})
                             for i in range(len(self.steps))]
 
     # =====================================================

@@ -153,7 +153,6 @@ def importFromStandardOrCustomDirectories(directories,
     level = -1 if sys.version_info < (3, 3) else 0
     try:
         module_name = defaultFormatter.format(moduleName)
-        print(module_name)
         module = __import__(module_name, globals(), locals(), ["*"], level)
 
     except ImportError:
