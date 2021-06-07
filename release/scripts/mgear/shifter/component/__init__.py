@@ -330,58 +330,85 @@ class Main(object):
                     + " a valid Maya name. Component name prefix"
                     + " will be added")
                 rule_name = self.name + rule_name
-            jnt = primitive.addJoint(self.active_jnt,
-                                     customName or rule_name,
-                                     transform.getTransform(obj))
 
-            # Disconnect inversScale for better preformance
-            if isinstance(self.active_jnt, pm.nodetypes.Joint):
-                try:
-                    pm.disconnectAttr(self.active_jnt.scale, jnt.inverseScale)
+            # use exiting joint
+            if pm.ls(customName):
+                jnt = pm.ls(customName)[0]
+                keep_off = True
 
-                except RuntimeError:
-                    # This handle the situation where we have in between joints
-                    # transformation due a negative scaling
-                    pm.ungroup(jnt.getParent())
-            # All new jnts are the active by default
-            self.active_jnt = jnt
+            elif pm.ls(rule_name):
+                jnt = pm.ls(rule_name)[0]
+                keep_off = True
+            else:
+                jnt = primitive.addJoint(self.active_jnt,
+                                         customName or rule_name,
+                                         transform.getTransform(obj))
+                keep_off = False
 
-            cns_m = applyop.gear_matrix_cns(obj, jnt, rot_off=rot_off)
+            # check if already have connections
+            # for example Mehahuman twist joint already have connections
+            if not jnt.translate.listConnections(d=False):
+                # Disconnect inversScale for better preformance
+                if isinstance(self.active_jnt, pm.nodetypes.Joint):
+                    try:
+                        pm.disconnectAttr(
+                            self.active_jnt.scale, jnt.inverseScale)
 
-            # invert negative scaling in Joints. We only inver Z axis, so is
-            # the only axis that we are checking
-            if jnt.scaleZ.get() < 0:
-                cns_m.scaleMultZ.set(-1.0)
-                cns_m.rotationMultX.set(-1.0)
-                cns_m.rotationMultY.set(-1.0)
+                    except RuntimeError:
+                        # This handle the situation where we have in between
+                        # joints transformation due a negative scaling
+                        if not isinstance(jnt, pm.nodetypes.Joint):
+                            pm.ungroup(jnt.getParent())
+                # All new jnts are the active by default
+                self.active_jnt = jnt
 
-            # if unifor scale is False by default. It can be forced using
-            # uniScale arg or set from the ui
-            if self.options["force_uniScale"]:
-                UniScale = True
-            if UniScale:
-                jnt.disconnectAttr("scale")
-                pm.connectAttr(cns_m.scaleZ, jnt.sx)
-                pm.connectAttr(cns_m.scaleZ, jnt.sy)
-                pm.connectAttr(cns_m.scaleZ, jnt.sz)
+                if keep_off:
+                    driver = primitive.addTransform(
+                        obj,
+                        name=obj.name() + "_cnx_off")
+                    transform.matchWorldTransform(jnt, driver)
+                    rot_off = [0, 0, 0]
 
-            # Segment scale compensate Off to avoid issues with the global
-            # scale
-            jnt.setAttr("segmentScaleCompensate", segComp)
+                else:
+                    driver = obj
+                    rot_off = rot_off
+                cns_m = applyop.gear_matrix_cns(
+                    driver, jnt, rot_off=rot_off)
 
-            jnt.setAttr("jointOrient", 0, 0, 0)
+                # invert negative scaling in Joints. We only inver Z axis, so
+                # is the only axis that we are checking
+                if jnt.scaleZ.get() < 0:
+                    cns_m.scaleMultZ.set(-1.0)
+                    cns_m.rotationMultX.set(-1.0)
+                    cns_m.rotationMultY.set(-1.0)
 
-            # setting the joint orient compensation in order to have clean
-            # rotation channels
-            m = cns_m.drivenRestMatrix.get()
-            tm = datatypes.TransformationMatrix(m)
-            r = datatypes.degrees(tm.getRotation())
-            jnt.attr("jointOrientX").set(r[0])
-            jnt.attr("jointOrientY").set(r[1])
-            jnt.attr("jointOrientZ").set(r[2])
+                # if unifor scale is False by default. It can be forced using
+                # uniScale arg or set from the ui
+                if self.options["force_uniScale"]:
+                    UniScale = True
+                if UniScale:
+                    jnt.disconnectAttr("scale")
+                    pm.connectAttr(cns_m.scaleZ, jnt.sx)
+                    pm.connectAttr(cns_m.scaleZ, jnt.sy)
+                    pm.connectAttr(cns_m.scaleZ, jnt.sz)
 
-            # set not keyable
-            attribute.setNotKeyableAttributes(jnt)
+                # Segment scale compensate Off to avoid issues with the global
+                # scale
+                jnt.setAttr("segmentScaleCompensate", segComp)
+
+                if not keep_off:
+                    # setting the joint orient compensation in order to have
+                    # clean rotation channels
+                    jnt.setAttr("jointOrient", 0, 0, 0)
+                    m = cns_m.drivenRestMatrix.get()
+                    tm = datatypes.TransformationMatrix(m)
+                    r = datatypes.degrees(tm.getRotation())
+                    jnt.attr("jointOrientX").set(r[0])
+                    jnt.attr("jointOrientY").set(r[1])
+                    jnt.attr("jointOrientZ").set(r[2])
+
+                # set not keyable
+                attribute.setNotKeyableAttributes(jnt)
 
         else:
             jnt = primitive.addJoint(obj,
