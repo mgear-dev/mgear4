@@ -1,4 +1,6 @@
 
+import sys
+
 from mgear.core import pyqt
 
 
@@ -99,7 +101,8 @@ def inspect_settings(tabIdx=0, *args):
 
     elif guide_root:
         module_name = "mgear.shifter.guide"
-        guide = __import__(module_name, globals(), locals(), ["*"], -1)
+        level = -1 if sys.version_info < (3, 3) else 0
+        guide = __import__(module_name, globals(), locals(), ["*"], level)
         wind = pyqt.showDialog(guide.guideSettings, dockable=True)
         wind.tabs.setCurrentIndex(tabIdx)
 
@@ -128,8 +131,8 @@ def extract_controls(*args):
             mgear.sev_error)
     for x in oSel:
         try:
-            old = pm.PyNode(cGrp.name() + "|" +
-                            x.name().split("|")[-1] + "_controlBuffer")
+            old = pm.PyNode(cGrp.name() + "|"
+                            + x.name().split("|")[-1] + "_controlBuffer")
             pm.delete(old)
         except TypeError:
             pass
