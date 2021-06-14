@@ -31,14 +31,19 @@ __email__ = "rav@ravrigs.com"
 # python
 import copy
 import pprint
+from .six import PY2
 
 # core
 import maya.cmds as mc
 import pymel.core as pm
 
 # rbfSetup
-from . import rbf_io
-from . import rbf_node
+if PY2:
+    import rbf_io
+    import rbf_node
+else:
+    from . import rbf_io
+    from . import rbf_node
 
 # ==============================================================================
 # Constants

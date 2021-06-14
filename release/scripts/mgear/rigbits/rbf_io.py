@@ -11,12 +11,16 @@ __email__ = "rav@ravrigs.com"
 """
 # python
 import json
+from .six import PY2
 
 # core
 import maya.cmds as mc
 
 # RBF setups
-from . import weightNode_io
+if PY2:
+    import weightNode_io
+else:
+    from . import weightNode_io
 
 # debug
 # reload(weightNode_io)
