@@ -965,7 +965,7 @@ class Component(component.Main):
         self.jointRelatives["wrist"] = -1
         self.jointRelatives["eff"] = -1
         # as an alternative option ingest all joint by index
-        for x in xrange(len(self.jnt_pos)):
+        for x in range(len(self.jnt_pos)):
             self.jointRelatives[str(x)] = x
 
         self.controlRelatives["root"] = self.fk0_ctl
