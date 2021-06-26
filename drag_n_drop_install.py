@@ -35,9 +35,15 @@ def onMayaDroppedPythonFile(*args, **kwargs):
 
 
 def maya_main_window():
-    """Return the Maya main window widget as a Python object."""
+    """
+    Return the Maya main window widget as a Python object.
+    """
     main_window_ptr = OpenMayaUI.MQtUtil.mainWindow()
-    return wrapInstance(long(main_window_ptr), QtWidgets.QWidget)
+
+    if sys.version_info.major <= 3:
+        return wrapInstance(int(main_window_ptr), QtWidgets.QWidget)
+    else:
+        return wrapInstance(long(main_window_ptr), QtWidgets.QWidget)
 
 
 class InstallUI(QtWidgets.QDialog):
