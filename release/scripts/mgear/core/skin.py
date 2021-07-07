@@ -15,6 +15,7 @@ import json
 import pickle as pickle
 
 import pymel.core as pm
+from maya import cmds
 import maya.OpenMaya as OpenMaya
 from .six import string_types
 
@@ -61,6 +62,47 @@ def getSkinCluster(obj):
     return skinCluster
 
 
+def get_mesh_components_from_tag_expression(skinCls, tag="*"):
+    """Get the mesh components from the  component tag expression
+
+    Thanks to Roy Nieterau a.k.a BigRoyNL from colorBleed for the snippet
+
+    Args:
+        skinCls (PyNode): Skin cluster node
+        tag (str, optional): Component tag expression
+
+    Returns:
+        dagPath, MObject: The dagpath tho the shpe and the MObject components
+    """
+    geo_types = ["mesh", "nurbsSurface", "nurbsCurve"]
+    for t in geo_types:
+        obj = skinCls.listConnections(et=True, t=t)
+        if obj:
+            geo = obj[0].getShape().name()
+
+    # Get the geo out attribute for the shape
+    out_attr = cmds.deformableShape(geo, localShapeOutAttr=True)[0]
+
+    # Get the output geometry data as MObject
+    sel = OpenMaya.MSelectionList()
+    sel.add(geo)
+    dep = OpenMaya.MObject()
+    sel.getDependNode(0, dep)
+    fn_dep = OpenMaya.MFnDependencyNode(dep)
+    plug = fn_dep.findPlug(out_attr, True)
+    obj = plug.asMObject()
+
+    # Use the MFnGeometryData class to query the components for a tag
+    # expression
+    fn_geodata = OpenMaya.MFnGeometryData(obj)
+
+    # Components MObject
+    components = fn_geodata.resolveComponentTagExpression(tag)
+
+    dagPath = OpenMaya.MDagPath.getAPathTo(dep)
+    return dagPath, components
+
+
 def getGeometryComponents(skinCls):
     """Get the geometry components from skincluster
 
@@ -71,13 +113,18 @@ def getGeometryComponents(skinCls):
         dagPath: The dagpath for the components
         componets: The skincluster componets
     """
-    fnSet = OpenMaya.MFnSet(skinCls.__apimfn__().deformerSet())
-    members = OpenMaya.MSelectionList()
-    fnSet.getMembers(members, False)
-    dagPath = OpenMaya.MDagPath()
-    components = OpenMaya.MObject()
-    members.getDagPath(0, dagPath, components)
-    return dagPath, components
+    # Brute force to try the old method using deformerSet. If fail will try
+    # to use Maya 2022 compoent tag expression
+    try:
+        fnSet = OpenMaya.MFnSet(skinCls.__apimfn__().deformerSet())
+        members = OpenMaya.MSelectionList()
+        fnSet.getMembers(members, False)
+        dagPath = OpenMaya.MDagPath()
+        components = OpenMaya.MObject()
+        members.getDagPath(0, dagPath, components)
+        return dagPath, components
+    except:
+        return get_mesh_components_from_tag_expression(skinCls)
 
 
 def getCurrentWeights(skinCls, dagPath, components):
@@ -109,7 +156,7 @@ def collectInfluenceWeights(skinCls, dagPath, components, dataDic):
 
     influencePaths = OpenMaya.MDagPathArray()
     numInfluences = skinCls.__apimfn__().influenceObjects(influencePaths)
-    numComponentsPerInfluence = weights.length() / numInfluences
+    numComponentsPerInfluence = int(weights.length() / numInfluences)
     for ii in range(influencePaths.length()):
         influenceName = influencePaths[ii].partialPathName()
         influenceWithoutNamespace = pm.PyNode(influenceName).stripNamespace()
@@ -197,7 +244,7 @@ def exportSkin(filePath=None, objs=None, *args):
                 obj.name() + ": Skipped because don't have Skin Cluster")
             pass
         else:
-            # start by pruning by a tiny amount. Enough to not make a noticeable
+            # start by pruning by a tiny amount. Enough to not make  noticeable
             # change to the skin, but it will remove infinitely small weights.
             # Otherwise, compressing will do almost nothing!
             if isinstance(obj.getShape(), pm.nodetypes.Mesh):
@@ -228,10 +275,11 @@ def exportSkin(filePath=None, objs=None, *args):
                                  obj.name()))
 
     if packDic["objs"]:
-        with open(filePath, 'w') as fp:
-            if filePath.endswith(FILE_EXT):
+        if filePath.endswith(FILE_EXT):
+            with open(filePath, 'wb') as fp:
                 pickle.dump(packDic, fp, pickle.HIGHEST_PROTOCOL)
-            else:
+        else:
+            with open(filePath, 'w') as fp:
                 json.dump(packDic, fp, indent=4, sort_keys=True)
 
         return True
@@ -305,7 +353,7 @@ def setInfluenceWeights(skinCls, dagPath, components, dataDic, compressed):
     weights = getCurrentWeights(skinCls, dagPath, components)
     influencePaths = OpenMaya.MDagPathArray()
     numInfluences = skinCls.__apimfn__().influenceObjects(influencePaths)
-    numComponentsPerInfluence = weights.length() / numInfluences
+    numComponentsPerInfluence = int(weights.length() / numInfluences)
 
     for importedInfluence, wtValues in dataDic['weights'].items():
         for ii in range(influencePaths.length()):
@@ -423,10 +471,11 @@ def importSkin(filePath=None, *args):
         filePath = filePath[0]
 
     # Read in the file
-    with open(filePath, 'r') as fp:
-        if filePath.endswith(FILE_EXT):
+    if filePath.endswith(FILE_EXT):
+        with open(filePath, 'rb') as fp:
             dataPack = pickle.load(fp)
-        else:
+    else:
+        with open(filePath, 'r') as fp:
             dataPack = json.load(fp)
 
     for data in dataPack["objDDic"]:
