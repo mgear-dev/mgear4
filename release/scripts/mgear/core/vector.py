@@ -173,6 +173,51 @@ def rotateAlongAxis(v, axis, a):
     return out
 
 
+def calculatePoleVector(p1, p2, p3, poleDistance=1, time=1):
+    """
+    This function takes 3 PyMEL PyNodes as inputs.
+    Creates a pole vector position at a "nice" distance away from a triangle
+    of positions.
+    Normalizes the bone lengths relative to the knee to calculate straight
+    ahead without shifting up and down if the bone lengths are different.
+    Returns a pymel.core.datatypes.Vector
+
+    Arguments:
+        p1 (dagNode): Object A
+        p2 (dagNode): Object B
+        p3 (dagNode): Object C
+        poleDistance (float): distance of the pole vector from the mid point
+
+    Returns:
+        vector: The transposed vector.
+    """
+
+    vec1 = p1.worldMatrix.get(time=time).translate
+    vec2 = p2.worldMatrix.get(time=time).translate
+    vec3 = p3.worldMatrix.get(time=time).translate
+
+    # 1. Calculate a "nice distance" based on average of the two bone lengths.
+    leg_length = (vec2 - vec1).length()
+    knee_length = (vec3 - vec2).length()
+    distance = (leg_length + knee_length) * 0.5 * poleDistance
+
+    # 2. Normalize the length of leg and ankle, relative to the knee.
+    # This will ensure that the pole vector goes STRAIGHT ahead of the knee
+    # Avoids up-down offset if there is a length difference between the two
+    # bones.
+    vec1norm = ((vec1 - vec2).normal() * distance) + vec2
+    vec3norm = ((vec3 - vec2).normal() * distance) + vec2
+
+    # 3. given 3 points, calculate a pole vector position
+    mid = vec1norm + (vec2 - vec1norm).projectionOnto(vec3norm - vec1norm)
+
+    # 4. Move the pole vector in front of the knee by the "nice distance".
+    mid_pointer = vec2 - mid
+    pole_vector = (mid_pointer.normal() * distance) + vec2
+
+    return pole_vector
+
+
 ##########################################################
 # CLASS
 ##########################################################

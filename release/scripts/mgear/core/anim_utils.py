@@ -1496,19 +1496,41 @@ class AbstractAnimationTransfer(QtWidgets.QDialog):
         # type: () -> str
         return ":".join([self.nameSpace, self.uihost])
 
-    def getWorldMatrices(self, start, end, val_src_nodes):
+    def getWorldMatrices(self,
+                         start,
+                         end,
+                         val_src_nodes,
+                         pole_vector_matrices=None):
         # type: (int, int, List[pm.nodetypes.Transform]) ->
         # List[List[pm.datatypes.Matrix]]
         """ returns matrice List[frame][controller number]."""
-
+        if pole_vector_matrices is None:
+            pole_vector_matrices = []
         res = []
-        for x in range(start, end + 1):
+        for idx, x in enumerate(range(start, end + 1)):
             tmp = []
             for n in val_src_nodes:
                 tmp.append(pm.getAttr(n + '.worldMatrix', time=x))
-
+            try:
+                tmp[-1] = pole_vector_matrices[idx]
+            except IndexError:
+                pass
             res.append(tmp)
+        return res
 
+    def getIKPoleVectorMatrices(self, start, end, fkc):
+        # type: (int, int, List[pm.nodetypes.Transform]) ->
+        # List[List[pm.datatypes.Matrix]]
+        """ returns matrice List[frame][controller number]."""
+        from . import vector, transform
+        res = []
+        for x in range(start, end + 1):
+            a, b, c, dist = fkc + [1.0]
+            v = vector.calculatePoleVector(a, b, c, dist, time=x)
+            # this needs to be a matrix for the get set method used in the
+            # transfer main loop
+            m = transform.setMatrixPosition(pm.dt.Matrix(), v)
+            res.append(m)
         return res
 
     def transfer(self, startFrame, endFrame, onlyKeyframes, *args, **kwargs):
@@ -1546,7 +1568,9 @@ class AbstractAnimationTransfer(QtWidgets.QDialog):
                       key_dst_nodes,
                       startFrame,
                       endFrame,
-                      onlyKeyframes=True):
+                      onlyKeyframes=True,
+                      definition=""):
+
         # type: (str, List[pm.nodetypes.Transform],
         # List[pm.nodetypes.Transform],
         # List[pm.nodetypes.Transform], int, int, bool) -> None
@@ -1560,9 +1584,23 @@ class AbstractAnimationTransfer(QtWidgets.QDialog):
                           "CycleCheck temporal turn OFF")
 
         channels = ["tx", "ty", "tz", "rx", "ry", "rz", "sx", "sy", "sz"]
+
+        # right here we need to generate the matrix positions by calculating
+        # them if we have 3 fk controls.  Once we've grabbed the solved
+        # pole vector positions, we'll insert them into the list by passing
+        # them into the getWorldMatrix function.
+        # Doing it thisway should be safe as we've touched the least amount
+        # of code.
+        poleVectorMatrices = []
+        if definition.upper() == "IK":
+            if len(key_src_nodes) == 3:
+                poleVectorMatrices = self.getIKPoleVectorMatrices(
+                    startFrame, endFrame, key_src_nodes)
+
         worldMatrixList = self.getWorldMatrices(startFrame,
                                                 endFrame,
-                                                val_src_nodes)
+                                                val_src_nodes,
+                                                poleVectorMatrices)
 
         keyframeList = sorted(set(pm.keyframe(key_src_nodes,
                                               at=["t", "r", "s"],
@@ -1783,60 +1821,56 @@ class IkFkTransfer(AbstractAnimationTransfer):
                  **kargs):
         # type: (int, int, bool, str, *str, **str) -> None
 
+        def fk_definition():
+            src_nodes = self.fkTargets[:]
+            key_nodes = self.ikCtrl[:] + self.upvCtrl[:]
+            dst_nodes = self.fkCtrls[:]
+            if ikRot:
+                if isinstance(self.ikRotCtl, list):
+                    key_nodes.extend(self.ikRotCtl)
+                else:
+                    key_nodes.append(self.ikRotCtl)
+            return src_nodes, key_nodes, dst_nodes, "FK"
+
+        def ik_definition():
+            src_nodes = self.ikTarget + self.upvTarget
+            key_nodes = self.fkCtrls
+            dst_nodes = self.ikCtrl + self.upvCtrl
+            if ikRot:
+                if isinstance(self.ikRotTarget, list):
+                    src_nodes.extend(self.ikRotTarget)
+                else:
+                    src_nodes.append(self.ikRotTarget)
+                if isinstance(self.ikRotCtl, list):
+                    key_nodes.extend(self.ikRotCtl)
+                else:
+                    key_nodes.append(self.ikRotCtl)
+
+            roll_att = self.getChangeRollAttrName()
+            pm.cutKey(roll_att, time=(startFrame, endFrame), cl=True)
+            pm.setAttr(roll_att, 0)
+
+            return src_nodes, key_nodes, dst_nodes, "IK"
+
         if switchTo is not None:
             if "fk" in switchTo.lower():
-
-                val_src_nodes = self.fkTargets
-                key_src_nodes = self.ikCtrl + self.upvCtrl
-                key_dst_nodes = self.fkCtrls
-                if ikRot:
-                    key_src_nodes.append(self.ikRotCtl)
-
+                val_src_n, key_src_n, key_dst_n, definition = fk_definition()
             else:
-
-                val_src_nodes = self.ikTarget + self.upvTarget
-                key_src_nodes = self.fkCtrls
-                key_dst_nodes = self.ikCtrl + self.upvCtrl
-                if ikRot:
-                    val_src_nodes.append(self.ikRotTarget)
-                    key_dst_nodes.append(self.ikRotCtl)
-
-                # reset roll channel:
-                roll_att = self.getChangeRollAttrName()
-                pm.cutKey(roll_att, time=(startFrame, endFrame), cl=True)
-                pm.setAttr(roll_att, 0)
-
+                val_src_n, key_src_n, key_dst_n, definition = ik_definition()
         else:
             if self.comboBoxSpaces.currentIndex() != 0:  # to FK
-
-                val_src_nodes = self.fkTargets
-                key_src_nodes = self.ikCtrl + self.upvCtrl
-                key_dst_nodes = self.fkCtrls
-                if ikRot:
-                    key_src_nodes.append(self.ikRotCtl)
-
+                val_src_n, key_src_n, key_dst_n, definition = fk_definition()
             else:  # to IK
+                val_src_n, key_src_n, key_dst_n, definition = ik_definition()
 
-                val_src_nodes = self.ikTarget + self.upvTarget
-                key_src_nodes = self.fkCtrls
-                key_dst_nodes = self.ikCtrl + self.upvCtrl
-                if ikRot:
-                    # val_src_nodes.append(self.ikRotTarget)
-                    # key_dst_nodes.append(self.ikRotCtl)
-                    val_src_nodes = val_src_nodes + self.ikRotTarget
-                    key_dst_nodes = key_dst_nodes + self.ikRotCtl
-
-                # reset roll channel:
-                roll_att = self.getChangeRollAttrName()
-                pm.cutKey(roll_att, time=(startFrame, endFrame))
-                pm.setAttr(roll_att, 0)
         self.bakeAnimation(self.getChangeAttrName(),
-                           val_src_nodes,
-                           key_src_nodes,
-                           key_dst_nodes,
+                           val_src_n,
+                           key_src_n,
+                           key_dst_n,
                            startFrame,
                            endFrame,
-                           onlyKeyframes)
+                           onlyKeyframes,
+                           definition)
 
     # ----------------------------------------------------------------
     # re implement doItbyUI to have access to self.hasIKrot option
