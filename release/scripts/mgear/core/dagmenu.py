@@ -109,6 +109,45 @@ def _get_controls(switch_control, blend_attr, comp_ctl_list=None):
     return ik_controls, fk_controls
 
 
+def _is_valid_rig_root(node):
+    """
+    Simple exclusion of the buffer nodes and org nodes
+    Args:
+        node: str
+    Returns: bool
+
+    """
+    short_name = node.split("|")[-1]
+    long_name = cmds.ls(node, l=True)[0]
+    return not (any(["controllers_org" in long_name,
+                     "controlBuffer" in short_name]))
+
+
+def _list_rig_roots():
+    """
+    Return all the rig roots in the scene
+    Returns: [str,]
+    """
+    return [n.split(".")[0] for n in cmds.ls("*.is_rig", r=True, l=True)
+            if _is_valid_rig_root(n.split(".")[0])]
+
+
+def _find_rig_root(node):
+    """
+    Matches this node to the rig roots in the scene via a simple longName match
+    Args:
+        node: str
+    Returns: str
+    """
+    long_name = cmds.ls(node, l=True)[0]
+    roots = _list_rig_roots()
+    for r in roots:
+        if long_name.startswith(r):
+            # this has to be a shortname otherwise IkFkTransfer will fail
+            return r.split("|")[-1]
+    return ""
+
+
 def __range_switch_callback(*args):
     """ Wrapper function to call mGears range fk/ik switch function
 
@@ -122,8 +161,15 @@ def __range_switch_callback(*args):
     switch_control = args[0].split("|")[-1]
     blend_attr = args[1]
 
-    # gets root node for the given control
-    root = cmds.ls(args[0], long=True)[0].split("|")[1]
+    # the gets root node for the given control
+    # this assumes the rig is root is a root node.
+    # But it's common practice to reference rigs into the scene
+    # and use the reference group function to group incoming scene data.
+    # Instead swap to _find_rig_root that will
+    # do the same thing but account for potential parent groups.
+    # root = cmds.ls(args[0], long=True)[0].split("|")[1]
+
+    root = _find_rig_root(args[0])
 
     # ik_controls, fk_controls = _get_controls(switch_control, blend_attr)
     # search criteria to find all the components sharing the blend
