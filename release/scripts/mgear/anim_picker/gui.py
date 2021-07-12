@@ -99,6 +99,15 @@ GROUPBOX_BG_CSS = """QGroupBox {{
 _mgear_version = mgear.getVersion()
 
 PICKER_EXTRACTION_NAME = "pickerData_extraction"
+ANIM_PICKER_RELATIVE_IMAGES = "ANIM_PICKER_RELATIVE_IMAGES"
+
+"""
+/animpickers/characterA/publish/pkr/charact.pkr
+/animpickers/characterA/publish/pkr/../images
+examples "../images", "../../images", ""
+"""
+# default image location is assumed same as .pkr file
+DEFAULT_RELATIVE_IMAGES_PATH = ""
 
 
 # =============================================================================
@@ -937,13 +946,37 @@ class GraphicViewWidget(QtWidgets.QGraphicsView):
         self.main_window.reset_default_size()
         self.main_window.refresh()
 
+    def apply_background_fallback_logic(self, path):
+        # test if the original path exists
+        if os.path.exists(path):
+            return path
+        # check the data node for the "source_file_path" that is added when
+        # pkr is loaded from file
+        data = self.window().get_current_data_node().read_data_from_node()
+        pkr_path = data.get("source_file_path", None)
+        if not pkr_path or pkr_path is None:
+            return path
+        # looking in the neighboring directories for images dir
+        pkr_dir = os.path.dirname(pkr_path)
+        rel_path_token = os.environ.get(ANIM_PICKER_RELATIVE_IMAGES,
+                                        DEFAULT_RELATIVE_IMAGES_PATH)
+        base_name = os.path.basename(path)
+        relative_image_path = os.path.realpath(os.path.join(pkr_dir,
+                                                            rel_path_token,
+                                                            base_name))
+        # only return if path exists
+        if os.path.exists(relative_image_path):
+            return relative_image_path
+        else:
+            return path
+
     def set_background(self, path=None):
         '''Set tab index widget background image
         '''
         if not path:
             return
-        path = str(path)
-
+        path = os.path.abspath(r"{}".format(path))
+        path = self.apply_background_fallback_logic(path)
         # Check that path exists
         if not (path and os.path.exists(path)):
             print("# background image not found: '{}'".format(path))
@@ -1130,7 +1163,8 @@ class GraphicViewWidget(QtWidgets.QGraphicsView):
 
         # Add background to data
         if self.background_image_path:
-            data["background"] = self.background_image_path
+            bg_fp = r"{}".format(self.background_image_path)
+            data["background"] = json.dumps(bg_fp).replace('"', '')
             data["background_size"] = self.get_background_size().toTuple()
 
         # Add items to data

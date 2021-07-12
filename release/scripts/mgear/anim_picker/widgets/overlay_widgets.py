@@ -341,6 +341,7 @@ class LoadOverlayWidget(OverlayWidget):
             basic.promptAcceptance(self, msgA, "")
             return
         pkr_data = file_handlers.read_data_file(file_path)
+        pkr_data["source_file_path"] = file_path
         namespace = self.namespace_cbox.currentText()
         self.new_picker_node(data=pkr_data, namespace=namespace)
 
