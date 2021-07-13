@@ -47,9 +47,7 @@ def install():
         ("Proxy Slicer Parenting", str_proxySlicer_parent),
         ("-----", None),
         ("Bake Spring nodes", str_bakeSprings),
-        ("Clear Baked Spring nodes", str_clearSprings),
-        ("-----", None),
-        (None, legacy_submenu),
+        ("Clear Baked Spring nodes", str_clearSprings)
     )
 
     mgear.menu.install(menuID, commands)
@@ -70,20 +68,6 @@ def connect_submenu(parent_menu_id):
     )
 
     mgear.menu.install("Connect Local SRT", commands, parent_menu_id)
-
-
-def legacy_submenu(parent_menu_id):
-    """Create the legacy submenu
-
-    Args:
-        parent_menu_id (str): Parent menu. i.e: "MayaWindow|mGear|menuItem355"
-    """
-    commands = (
-        ("FACIAL: Eye Rigger", str_eye_rigger),
-        ("FACIAL: Lips Rigger", str_lips_rigger)
-    )
-
-    mgear.menu.install("Legacy", commands, parent_menu_id)
 
 
 def gimmick_submenu(parent_menu_id):
@@ -123,7 +107,7 @@ def _ctl_submenu(parent_menu_id, name, cCtl=False):
     for c in ctls:
         cm = string.removeInvalidCharacter(c).lower()
         commands.append([c, "from mgear import rigbits\nrigbits.createCTL('{0}', {1})".format(cm,
-                                                                   str(cCtl))])
+                                                                                              str(cCtl))])
     mgear.menu.install(name, commands, parent_menu_id)
 
 
