@@ -1677,8 +1677,10 @@ class Main(object):
             # get extension
             if ext == "jnt":
                 ext = self.options["joint_name_ext"]
+                padding = self.options["joint_index_padding"]
             elif ext == "ctl":
                 ext = self.options["ctl_name_ext"]
+                padding = self.options["ctl_index_padding"]
 
             # description letter case
             name = naming.letter_case_solve(name, letter_case)
@@ -1687,6 +1689,7 @@ class Main(object):
                 "component": self.name,
                 "side": side,
                 "index": str(self.index),
+                "padding": padding,
                 "description": name,
                 "extension": ext
             }

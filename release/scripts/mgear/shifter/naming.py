@@ -79,6 +79,8 @@ def name_solve(rule, values, validate=True):
     Returns:
         str: The solved name
     """
+    # index padding
+    values["index"] = str.zfill(values["index"], values["padding"])
     included_val = dict()
     if validate and not name_rule_validator(rule, NAMING_RULE_TOKENS):
         return

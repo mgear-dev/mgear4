@@ -419,6 +419,11 @@ class Rig(Main):
             ["Default", "Upper Case", "Lower Case", "Capitalization"],
             0)
 
+        self.p_ctl_padding = self.addParam(
+            "ctl_index_padding", "long", 0, 0, 99)
+        self.p_joint_padding = self.addParam(
+            "joint_index_padding", "long", 0, 0, 99)
+
     def setFromSelection(self):
         """Set the guide hierarchy from selection."""
         selection = pm.ls(selection=True)
@@ -1623,6 +1628,11 @@ class GuideSettings(MayaQWidgetDockableMixin, QtWidgets.QDialog, HelperSlots):
         self.namingRulesTab.joint_des_letter_case_comboBox.setCurrentIndex(
             self.root.attr("joint_description_letter_case").get())
 
+        self.namingRulesTab.ctl_padding_spinBox.setValue(
+            self.root.attr("ctl_index_padding").get())
+        self.namingRulesTab.joint_padding_spinBox.setValue(
+            self.root.attr("joint_index_padding").get())
+
     def create_layout(self):
         """
         Create the layout for the component base settings
@@ -1898,6 +1908,16 @@ class GuideSettings(MayaQWidgetDockableMixin, QtWidgets.QDialog, HelperSlots):
         tap.reset_name_ext_pushButton.clicked.connect(
             self.reset_naming_extension)
 
+        # index padding
+        tap.ctl_padding_spinBox.valueChanged.connect(
+            partial(self.updateSpinBox,
+                    tap.ctl_padding_spinBox,
+                    "ctl_index_padding"))
+        tap.joint_padding_spinBox.valueChanged.connect(
+            partial(self.updateSpinBox,
+                    tap.joint_padding_spinBox,
+                    "joint_index_padding"))
+
         # import name configuration
         tap.load_naming_configuration_pushButton.clicked.connect(
             self.import_name_config)
@@ -1946,6 +1966,9 @@ class GuideSettings(MayaQWidgetDockableMixin, QtWidgets.QDialog, HelperSlots):
             "ctl_description_letter_case").get()
         config["joint_description_letter_case"] = self.root.attr(
             "joint_description_letter_case").get()
+        config["ctl_index_padding"] = self.root.attr("ctl_index_padding").get()
+        config["joint_index_padding"] = self.root.attr(
+            "joint_index_padding").get()
 
         if os.environ.get(MGEAR_SHIFTER_CUSTOMSTEP_KEY, ""):
             startDir = os.environ.get(MGEAR_SHIFTER_CUSTOMSTEP_KEY, "")
