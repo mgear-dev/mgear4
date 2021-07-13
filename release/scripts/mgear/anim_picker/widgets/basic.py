@@ -28,7 +28,7 @@ from mgear.anim_picker.handlers import __EDIT_MODE__
 # Some platforms have issue with OpenGl and PySide2-2.0.0.alpha
 platform_name = platform.system()
 if platform_name == "Windows":
-    if versions.current() >= versions.v2022:
+    if versions.current() >= 20220000:
         __USE_OPENGL__ = False
     else:
         __USE_OPENGL__ = True
