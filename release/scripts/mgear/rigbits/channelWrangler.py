@@ -361,10 +361,8 @@ class channelWrangler(MayaQWidgetDockableMixin, QtWidgets.QDialog):
 
         # TODO: if import dict ask to add to the current
         # configuration or replace.
-        startDir = pm.workspace(q=True, rootDirectory=True)
         filePath = pm.fileDialog2(
             fileMode=1,
-            startingDirectory=startDir,
             fileFilter='Channel Wrangler Configuration .cwc (*%s)' % ".cwc")
         if not filePath:
             return

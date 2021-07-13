@@ -219,9 +219,7 @@ def exportSkin(filePath=None, objs=None, *args):
             FILE_JSON_EXT, FILE_EXT)
         f3 = ";;All Files (*.*)"
         fileFilters = f2 + f3
-        startDir = pm.workspace(q=True, rootDirectory=True)
         filePath = pm.fileDialog2(fileMode=0,
-                                  startingDirectory=startDir,
                                   fileFilter=fileFilters)
         if filePath:
             filePath = filePath[0]
@@ -304,9 +302,7 @@ def exportSkinPack(packPath=None, objs=None, use_json=False, *args):
     }
 
     if packPath is None:
-        startDir = pm.workspace(q=True, rootDirectory=True)
         packPath = pm.fileDialog2(fileMode=0,
-                                  startingDirectory=startDir,
                                   fileFilter='mGear skinPack (*%s)' % PACK_EXT)
         if not packPath:
             return
@@ -427,9 +423,7 @@ def _getObjsFromSkinFile(filePath=None, *args):
             FILE_EXT, FILE_JSON_EXT)
         f3 = ";;All Files (*.*)"
         fileFilters = f1 + f2 + f3
-        startDir = pm.workspace(q=True, rootDirectory=True)
         filePath = pm.fileDialog2(fileMode=1,
-                                  startingDirectory=startDir,
                                   fileFilter=fileFilters)
     if not filePath:
         return
@@ -461,9 +455,7 @@ def importSkin(filePath=None, *args):
             FILE_EXT, FILE_JSON_EXT)
         f3 = ";;All Files (*.*)"
         fileFilters = f1 + f2 + f3
-        startDir = pm.workspace(q=True, rootDirectory=True)
         filePath = pm.fileDialog2(fileMode=1,
-                                  startingDirectory=startDir,
                                   fileFilter=fileFilters)
     if not filePath:
         return
@@ -554,9 +546,7 @@ def importSkin(filePath=None, *args):
 
 def importSkinPack(filePath=None, *args):
     if not filePath:
-        startDir = pm.workspace(q=True, rootDirectory=True)
         filePath = pm.fileDialog2(fileMode=1,
-                                  startingDirectory=startDir,
                                   fileFilter='mGear skinPack (*%s)' % PACK_EXT)
     if not filePath:
         return

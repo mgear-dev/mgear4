@@ -116,10 +116,8 @@ def export_data(node, tab=None, filePath=None):
 
     data_string = json.dumps(data, indent=4, sort_keys=True)
     if not filePath:
-        startDir = pm.workspace(q=True, rootDirectory=True)
         filePath = pm.fileDialog2(
             fileMode=0,
-            startingDirectory=startDir,
             fileFilter='Channel Master Configuration .cmc (*%s)' % ".cmc")
     if not filePath:
         return
@@ -142,10 +140,8 @@ def import_data(filePath=None, node=None, add_data=False):
         TYPE: Description
     """
     if not filePath:
-        startDir = pm.workspace(q=True, rootDirectory=True)
         filePath = pm.fileDialog2(
             fileMode=1,
-            startingDirectory=startDir,
             fileFilter='Channel Master Configuration .cmc (*%s)' % ".cmc")
 
     if not filePath:
