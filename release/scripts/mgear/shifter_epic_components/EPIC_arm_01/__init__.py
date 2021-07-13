@@ -868,8 +868,8 @@ class Component(component.Main):
         attribute.setRotOrder(self.tws2_rot, "XYZ")
         pm.connectAttr(dm_node + ".outputRotate", self.tws2_rot + ".rotate")
 
-        self.tws0_rot.setAttr("sx", .0)
-        self.tws2_rot.setAttr("sx", .0)
+        self.tws0_rot.setAttr("sx", .001)
+        self.tws2_rot.setAttr("sx", .001)
 
         add_node = node.createAddNode(self.roundness_att, .0)
         pm.connectAttr(add_node + ".output", self.tws1_rot.attr("sx"))
