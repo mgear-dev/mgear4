@@ -715,17 +715,23 @@ class ComponentGuide(guide.Main):
         else:
             offset = True
 
-        dist = .6 * self.root.attr("scaleX").get()
         blade = icon.guideBladeIcon(parent=parentPos, name=self.getName(
-            name), lenX=dist, color=13, m=self.blades[name].transform)
+            name), lenX=.5, color=[0, 0, 1], m=self.blades[name].transform)
         aim_cns = applyop.aimCns(blade, parentDir, axis="xy", wupType=2,
                                  wupVector=[0, 1, 0], wupObject=self.root,
                                  maintainOffset=offset)
-        pm.pointConstraint(parentPos, blade)
+        pnt_cns = pm.pointConstraint(parentPos, blade)
+
+        aim_cns.isHistoricallyInteresting.set(False)
+        pnt_cns.isHistoricallyInteresting.set(False)
 
         offsetAttr = attribute.addAttribute(
             blade, "bladeRollOffset", "float", aim_cns.attr("offsetX").get())
         pm.connectAttr(offsetAttr, aim_cns.attr("offsetX"))
+        scaleAttr = attribute.addAttribute(
+            blade, "bladeScale", "float", 1, minValue=0.1, maxValue=100)
+        for axis in "xyz":
+            pm.connectAttr(scaleAttr, blade.attr("s{}".format(axis)))
         attribute.lockAttribute(blade, attributes=["tx", "ty", "tz",
                                                    "rx", "ry", "rz",
                                                    "sx", "sy", "sz",

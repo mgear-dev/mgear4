@@ -1214,11 +1214,13 @@ def guideBladeIcon(parent=None,
 
     """
     v0 = datatypes.Vector(0, 0, 0)
-    v1 = datatypes.Vector(lenX, 0, 0)
-    v2 = datatypes.Vector(0, lenX / 3, 0)
+    v1 = datatypes.Vector(lenX / 2, 0, 0)
+    v2 = datatypes.Vector(lenX, lenX / 4, 0)
+    v3 = datatypes.Vector(lenX / 2, lenX / 2, 0)
+    v4 = datatypes.Vector(0, lenX / 2, 0)
 
     points = getPointArrayWithOffset(
-        [v0, v1, v2], pos_offset, rot_offset)
+        [v0, v1, v2, v3, v4], pos_offset, rot_offset)
 
     bladeIco = curve.addCurve(parent, name, points, True, 1, m)
 
