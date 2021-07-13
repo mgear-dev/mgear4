@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>523</width>
-    <height>487</height>
+    <width>499</width>
+    <height>446</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -194,6 +194,104 @@
    </item>
    <item>
     <layout class="QGridLayout" name="gridLayout">
+     <item row="0" column="2">
+      <widget class="QGroupBox" name="groupBox_11">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Minimum" vsizetype="Minimum">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="title">
+        <string>Extensions Naming</string>
+       </property>
+       <layout class="QFormLayout" name="formLayout_3">
+        <item row="0" column="0">
+         <widget class="QLabel" name="label_7">
+          <property name="text">
+           <string>Controls</string>
+          </property>
+         </widget>
+        </item>
+        <item row="0" column="1">
+         <widget class="QLineEdit" name="ctl_name_ext_lineEdit">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="MinimumExpanding" vsizetype="Fixed">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="minimumSize">
+           <size>
+            <width>50</width>
+            <height>0</height>
+           </size>
+          </property>
+          <property name="toolTip">
+           <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Set the extension name for controls&lt;/p&gt;&lt;p&gt;&lt;br/&gt;&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;For example:&lt;/span&gt;&lt;/p&gt;&lt;p&gt;ctl&lt;/p&gt;&lt;p&gt;control&lt;/p&gt;&lt;p&gt;mover&lt;/p&gt;&lt;p&gt;ct&lt;/p&gt;&lt;p&gt;etc..&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+          </property>
+          <property name="text">
+           <string>ctl</string>
+          </property>
+          <property name="alignment">
+           <set>Qt::AlignCenter</set>
+          </property>
+         </widget>
+        </item>
+        <item row="1" column="0">
+         <widget class="QLabel" name="label_8">
+          <property name="text">
+           <string>Joints</string>
+          </property>
+         </widget>
+        </item>
+        <item row="1" column="1">
+         <widget class="QLineEdit" name="joint_name_ext_lineEdit">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="MinimumExpanding" vsizetype="Fixed">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="minimumSize">
+           <size>
+            <width>50</width>
+            <height>0</height>
+           </size>
+          </property>
+          <property name="toolTip">
+           <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Set the extension name for joints&lt;/p&gt;&lt;p&gt;&lt;br/&gt;&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;For example:&lt;/span&gt;&lt;/p&gt;&lt;p&gt;jnt&lt;/p&gt;&lt;p&gt;joint&lt;/p&gt;&lt;p&gt;bone&lt;/p&gt;&lt;p&gt;j&lt;/p&gt;&lt;p&gt;etc..&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+          </property>
+          <property name="text">
+           <string>jnt</string>
+          </property>
+          <property name="alignment">
+           <set>Qt::AlignCenter</set>
+          </property>
+         </widget>
+        </item>
+        <item row="2" column="1">
+         <widget class="QPushButton" name="reset_name_ext_pushButton">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="MinimumExpanding" vsizetype="Fixed">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="maximumSize">
+           <size>
+            <width>16777215</width>
+            <height>16777215</height>
+           </size>
+          </property>
+          <property name="text">
+           <string>Reset</string>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </widget>
+     </item>
      <item row="0" column="0">
       <widget class="QGroupBox" name="groupBox_10">
        <property name="sizePolicy">
@@ -203,7 +301,7 @@
         </sizepolicy>
        </property>
        <property name="title">
-        <string>Sides Naming</string>
+        <string>Controls Sides Naming</string>
        </property>
        <layout class="QFormLayout" name="formLayout_2">
         <item row="0" column="0">
@@ -325,26 +423,26 @@
       </widget>
      </item>
      <item row="0" column="1">
-      <widget class="QGroupBox" name="groupBox_11">
+      <widget class="QGroupBox" name="groupBox_12">
        <property name="sizePolicy">
-        <sizepolicy hsizetype="Minimum" vsizetype="Minimum">
+        <sizepolicy hsizetype="Preferred" vsizetype="Minimum">
          <horstretch>0</horstretch>
          <verstretch>0</verstretch>
         </sizepolicy>
        </property>
        <property name="title">
-        <string>Extensions Naming</string>
+        <string>Joints Sides Naming</string>
        </property>
-       <layout class="QFormLayout" name="formLayout_3">
+       <layout class="QFormLayout" name="formLayout_4">
         <item row="0" column="0">
-         <widget class="QLabel" name="label_7">
+         <widget class="QLabel" name="label_9">
           <property name="text">
-           <string>Controls</string>
+           <string>Left</string>
           </property>
          </widget>
         </item>
         <item row="0" column="1">
-         <widget class="QLineEdit" name="ctl_name_ext_lineEdit">
+         <widget class="QLineEdit" name="side_joint_left_name_lineEdit">
           <property name="sizePolicy">
            <sizepolicy hsizetype="MinimumExpanding" vsizetype="Fixed">
             <horstretch>0</horstretch>
@@ -358,10 +456,10 @@
            </size>
           </property>
           <property name="toolTip">
-           <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Set the extension name for controls&lt;/p&gt;&lt;p&gt;&lt;br/&gt;&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;For example:&lt;/span&gt;&lt;/p&gt;&lt;p&gt;ctl&lt;/p&gt;&lt;p&gt;control&lt;/p&gt;&lt;p&gt;mover&lt;/p&gt;&lt;p&gt;ct&lt;/p&gt;&lt;p&gt;etc..&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+           <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;set the text that will be used for the side:&lt;/p&gt;&lt;p&gt;&lt;br/&gt;&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;for example:&lt;/span&gt;&lt;/p&gt;&lt;p&gt;L&lt;/p&gt;&lt;p&gt;left&lt;/p&gt;&lt;p&gt;Left&lt;/p&gt;&lt;p&gt;l&lt;/p&gt;&lt;p&gt;&lt;br/&gt;&lt;/p&gt;&lt;p&gt;r&lt;/p&gt;&lt;p&gt;right&lt;/p&gt;&lt;p&gt;Right&lt;/p&gt;&lt;p&gt;Derecha&lt;/p&gt;&lt;p&gt;R&lt;/p&gt;&lt;p&gt;&lt;br/&gt;&lt;/p&gt;&lt;p&gt;&lt;br/&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
           </property>
           <property name="text">
-           <string>ctl</string>
+           <string>L</string>
           </property>
           <property name="alignment">
            <set>Qt::AlignCenter</set>
@@ -369,14 +467,14 @@
          </widget>
         </item>
         <item row="1" column="0">
-         <widget class="QLabel" name="label_8">
+         <widget class="QLabel" name="label_10">
           <property name="text">
-           <string>Joints</string>
+           <string>Right</string>
           </property>
          </widget>
         </item>
         <item row="1" column="1">
-         <widget class="QLineEdit" name="joint_name_ext_lineEdit">
+         <widget class="QLineEdit" name="side_joint_right_name_lineEdit">
           <property name="sizePolicy">
            <sizepolicy hsizetype="MinimumExpanding" vsizetype="Fixed">
             <horstretch>0</horstretch>
@@ -390,18 +488,50 @@
            </size>
           </property>
           <property name="toolTip">
-           <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Set the extension name for joints&lt;/p&gt;&lt;p&gt;&lt;br/&gt;&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;For example:&lt;/span&gt;&lt;/p&gt;&lt;p&gt;jnt&lt;/p&gt;&lt;p&gt;joint&lt;/p&gt;&lt;p&gt;bone&lt;/p&gt;&lt;p&gt;j&lt;/p&gt;&lt;p&gt;etc..&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+           <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;set the text that will be used for the side:&lt;/p&gt;&lt;p&gt;&lt;br/&gt;&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;for example:&lt;/span&gt;&lt;/p&gt;&lt;p&gt;L&lt;/p&gt;&lt;p&gt;left&lt;/p&gt;&lt;p&gt;Left&lt;/p&gt;&lt;p&gt;l&lt;/p&gt;&lt;p&gt;&lt;br/&gt;&lt;/p&gt;&lt;p&gt;r&lt;/p&gt;&lt;p&gt;right&lt;/p&gt;&lt;p&gt;Right&lt;/p&gt;&lt;p&gt;Derecha&lt;/p&gt;&lt;p&gt;R&lt;/p&gt;&lt;p&gt;&lt;br/&gt;&lt;/p&gt;&lt;p&gt;&lt;br/&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
           </property>
           <property name="text">
-           <string>jnt</string>
+           <string>R</string>
           </property>
           <property name="alignment">
            <set>Qt::AlignCenter</set>
           </property>
          </widget>
         </item>
+        <item row="2" column="0">
+         <widget class="QLabel" name="label_11">
+          <property name="text">
+           <string>Center</string>
+          </property>
+         </widget>
+        </item>
         <item row="2" column="1">
-         <widget class="QPushButton" name="reset_name_ext_pushButton">
+         <widget class="QLineEdit" name="side_joint_center_name_lineEdit">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="MinimumExpanding" vsizetype="Fixed">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="minimumSize">
+           <size>
+            <width>50</width>
+            <height>0</height>
+           </size>
+          </property>
+          <property name="toolTip">
+           <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;set the text that will be used for the side:&lt;/p&gt;&lt;p&gt;&lt;br/&gt;&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;for example:&lt;/span&gt;&lt;/p&gt;&lt;p&gt;L&lt;/p&gt;&lt;p&gt;left&lt;/p&gt;&lt;p&gt;Left&lt;/p&gt;&lt;p&gt;l&lt;/p&gt;&lt;p&gt;&lt;br/&gt;&lt;/p&gt;&lt;p&gt;r&lt;/p&gt;&lt;p&gt;right&lt;/p&gt;&lt;p&gt;Right&lt;/p&gt;&lt;p&gt;Derecha&lt;/p&gt;&lt;p&gt;R&lt;/p&gt;&lt;p&gt;&lt;br/&gt;&lt;/p&gt;&lt;p&gt;&lt;br/&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+          </property>
+          <property name="text">
+           <string>C</string>
+          </property>
+          <property name="alignment">
+           <set>Qt::AlignCenter</set>
+          </property>
+         </widget>
+        </item>
+        <item row="3" column="1">
+         <widget class="QPushButton" name="reset_joint_side_name_pushButton">
           <property name="sizePolicy">
            <sizepolicy hsizetype="MinimumExpanding" vsizetype="Fixed">
             <horstretch>0</horstretch>

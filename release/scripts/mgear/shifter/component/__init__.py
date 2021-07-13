@@ -1659,12 +1659,20 @@ class Main(object):
         if rule and ext:
 
             # get side
-            if side == "L":
-                side = self.options["side_left_name"]
-            elif side == "R":
-                side = self.options["side_right_name"]
-            elif side == "C":
-                side = self.options["side_center_name"]
+            if ext == "jnt":
+                if side == "L":
+                    side = self.options["side_joint_left_name"]
+                elif side == "R":
+                    side = self.options["side_joint_right_name"]
+                elif side == "C":
+                    side = self.options["side_joint_center_name"]
+            elif ext == "ctl":
+                if side == "L":
+                    side = self.options["side_left_name"]
+                elif side == "R":
+                    side = self.options["side_right_name"]
+                elif side == "C":
+                    side = self.options["side_center_name"]
 
             # get extension
             if ext == "jnt":

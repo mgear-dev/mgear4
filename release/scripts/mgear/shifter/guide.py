@@ -387,6 +387,22 @@ class Rig(Main):
         self.p_side_center_name = self.addParam("side_center_name",
                                                 "string",
                                                 naming.DEFAULT_SIDE_C_NAME)
+
+        self.p_side_joint_left_name = self.addParam(
+            "side_joint_left_name",
+            "string",
+            naming.DEFAULT_JOINT_SIDE_L_NAME)
+
+        self.p_side_joint_right_name = self.addParam(
+            "side_joint_right_name",
+            "string",
+            naming.DEFAULT_JOINT_SIDE_R_NAME)
+
+        self.p_side_joint_center_name = self.addParam(
+            "side_joint_center_name",
+            "string",
+            naming.DEFAULT_JOINT_SIDE_C_NAME)
+
         self.p_ctl_name_ext = self.addParam("ctl_name_ext",
                                             "string",
                                             naming.DEFAULT_CTL_EXT_NAME)
@@ -1589,6 +1605,13 @@ class GuideSettings(MayaQWidgetDockableMixin, QtWidgets.QDialog, HelperSlots):
         self.namingRulesTab.side_center_name_lineEdit.setText(
             self.root.attr("side_center_name").get())
 
+        self.namingRulesTab.side_joint_left_name_lineEdit.setText(
+            self.root.attr("side_joint_left_name").get())
+        self.namingRulesTab.side_joint_right_name_lineEdit.setText(
+            self.root.attr("side_joint_right_name").get())
+        self.namingRulesTab.side_joint_center_name_lineEdit.setText(
+            self.root.attr("side_joint_center_name").get())
+
         self.namingRulesTab.ctl_name_ext_lineEdit.setText(
             self.root.attr("ctl_name_ext").get())
         self.namingRulesTab.joint_name_ext_lineEdit.setText(
@@ -1821,6 +1844,19 @@ class GuideSettings(MayaQWidgetDockableMixin, QtWidgets.QDialog, HelperSlots):
                     tap.side_center_name_lineEdit,
                     "side_center_name"))
 
+        tap.side_joint_left_name_lineEdit.editingFinished.connect(
+            partial(self.updateLineEdit2,
+                    tap.side_joint_left_name_lineEdit,
+                    "side_joint_left_name"))
+        tap.side_joint_right_name_lineEdit.editingFinished.connect(
+            partial(self.updateLineEdit2,
+                    tap.side_joint_right_name_lineEdit,
+                    "side_joint_right_name"))
+        tap.side_joint_center_name_lineEdit.editingFinished.connect(
+            partial(self.updateLineEdit2,
+                    tap.side_joint_center_name_lineEdit,
+                    "side_joint_center_name"))
+
         # names extensions
         tap.ctl_name_ext_lineEdit.editingFinished.connect(
             partial(self.updateLineEdit2,
@@ -1854,6 +1890,9 @@ class GuideSettings(MayaQWidgetDockableMixin, QtWidgets.QDialog, HelperSlots):
         # reset naming sides
         tap.reset_side_name_pushButton.clicked.connect(
             self.reset_naming_sides)
+
+        tap.reset_joint_side_name_pushButton.clicked.connect(
+            self.reset_joint_naming_sides)
 
         # reset naming extension
         tap.reset_name_ext_pushButton.clicked.connect(
@@ -1895,6 +1934,12 @@ class GuideSettings(MayaQWidgetDockableMixin, QtWidgets.QDialog, HelperSlots):
         config["side_left_name"] = self.root.attr("side_left_name").get()
         config["side_right_name"] = self.root.attr("side_right_name").get()
         config["side_center_name"] = self.root.attr("side_center_name").get()
+        config["side_joint_left_name"] = self.root.attr(
+            "side_joint_left_name").get()
+        config["side_joint_right_name"] = self.root.attr(
+            "side_joint_right_name").get()
+        config["side_joint_center_name"] = self.root.attr(
+            "side_joint_center_name").get()
         config["ctl_name_ext"] = self.root.attr("ctl_name_ext").get()
         config["joint_name_ext"] = self.root.attr("joint_name_ext").get()
         config["ctl_description_letter_case"] = self.root.attr(
@@ -1953,6 +1998,20 @@ class GuideSettings(MayaQWidgetDockableMixin, QtWidgets.QDialog, HelperSlots):
         self.root.attr("side_left_name").set(naming.DEFAULT_SIDE_L_NAME)
         self.root.attr("side_right_name").set(naming.DEFAULT_SIDE_R_NAME)
         self.root.attr("side_center_name").set(naming.DEFAULT_SIDE_C_NAME)
+
+    def reset_joint_naming_sides(self):
+        self.namingRulesTab.side_joint_left_name_lineEdit.setText(
+            naming.DEFAULT_JOINT_SIDE_L_NAME)
+        self.namingRulesTab.side_joint_right_name_lineEdit.setText(
+            naming.DEFAULT_JOINT_SIDE_R_NAME)
+        self.namingRulesTab.side_joint_center_name_lineEdit.setText(
+            naming.DEFAULT_JOINT_SIDE_C_NAME)
+        self.root.attr("side_joint_left_name").set(
+            naming.DEFAULT_JOINT_SIDE_L_NAME)
+        self.root.attr("side_joint_right_name").set(
+            naming.DEFAULT_JOINT_SIDE_R_NAME)
+        self.root.attr("side_joint_center_name").set(
+            naming.DEFAULT_JOINT_SIDE_C_NAME)
 
     def reset_naming_extension(self):
         self.namingRulesTab.ctl_name_ext_lineEdit.setText(
