@@ -39,7 +39,7 @@ Changes:
 
 import json
 
-from Qt import QtWidgets, QtCore, __binding__
+from .Qt import QtWidgets, QtCore, __binding__
 
 
 class QJsonTreeItem(object):
