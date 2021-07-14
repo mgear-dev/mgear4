@@ -59,7 +59,7 @@ class Guide(guide.ComponentGuide):
     def addParameters(self):
         """Add the configurations settings"""
 
-        self.pNeutralPose = self.addParam("neutralpose", "bool", False)
+        self.pNeutralPose = self.addParam("neutralpose", "bool", True)
         self.pOverrideNegate = self.addParam("overrideNegate", "bool", False)
         self.pfkNb = self.addParam("fkNb", "long", 5, 1)
 
