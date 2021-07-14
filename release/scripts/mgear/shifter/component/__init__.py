@@ -332,11 +332,11 @@ class Main(object):
                 rule_name = self.name + rule_name
 
             # use exiting joint
-            if pm.ls(customName):
+            if pm.ls(customName) and self.options["connect_joints"]:
                 jnt = pm.ls(customName)[0]
                 keep_off = True
 
-            elif pm.ls(rule_name):
+            elif pm.ls(rule_name) and self.options["connect_joints"]:
                 jnt = pm.ls(rule_name)[0]
                 keep_off = True
             else:

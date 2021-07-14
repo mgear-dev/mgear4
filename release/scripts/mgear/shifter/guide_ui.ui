@@ -40,6 +40,16 @@
         </property>
        </widget>
       </item>
+      <item row="2" column="0">
+       <widget class="QCheckBox" name="connect_joints_checkBox">
+        <property name="toolTip">
+         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;When this option is active, mGear Shifter will try to connect to existing joints in the scene&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;WARNING&lt;/span&gt;: The joints need to have the rotation values freeze to 0, 0, 0. &lt;/p&gt;&lt;p&gt;Use Maya's Modify &amp;gt;&amp;gt; Freeze Transformation command to Freeze rotation. Open the command options and ensure only Rotation is freeze, before execute the command&lt;/p&gt;&lt;p&gt;Freeze joint rotations steps:&lt;/p&gt;&lt;p&gt;1. Select all joints to freeze&lt;/p&gt;&lt;p&gt;2. Open Maya's Modify &amp;gt;&amp;gt; Freeze Transformation options and ensure only rotation is checked&lt;/p&gt;&lt;p&gt;3. Apply Modify &amp;gt;&amp;gt; Freeze Transformation&lt;/p&gt;&lt;p&gt;&lt;br/&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+        </property>
+        <property name="text">
+         <string>Connect to existing joints. NOTE: Joints need to have freezed rotations values.</string>
+        </property>
+       </widget>
+      </item>
      </layout>
     </widget>
    </item>
