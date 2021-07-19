@@ -332,6 +332,9 @@ class Rig(object):
                 self.model, "ctl_vis_on_playback", "bool", True)
         self.jntVis_att = attribute.addAttribute(
             self.model, "jnt_vis", "bool", True)
+        # adding the always draw shapes on top to global attribute
+        if versions.current() >= 20220000:
+            self.ctlXRay_att = attribute.addAttribute(self.model, "ctl_x_ray", "bool", False)
 
         self.qsA_att = attribute.addAttribute(
             self.model, "quickselA", "string", "")
@@ -527,6 +530,9 @@ class Rig(object):
         # Set the control shapes isHistoricallyInteresting
         for oShape in ctl.getShapes():
             oShape.isHistoricallyInteresting.set(False)
+            # connecting the always draw shapes on top to global attribute
+            if versions.current() >= 20220000:
+                pm.connectAttr(self.ctlXRay_att, oShape.attr("alwaysDrawOnTop"))
 
         # set controller tag
         if versions.current() >= 201650:
