@@ -3,6 +3,7 @@ import datetime
 import getpass
 import os.path
 import sys
+import json
 
 # Maya
 import pymel.core as pm
@@ -139,6 +140,8 @@ class Rig(object):
 
         self.customStepDic = {}
 
+        self.build_data = {}
+
     def buildFromDict(self, conf_dict):
         log_window()
         startTime = datetime.datetime.now()
@@ -160,6 +163,8 @@ class Rig(object):
         self.from_dict_custom_step(conf_dict, pre=True)
         self.build()
         self.from_dict_custom_step(conf_dict, pre=False)
+        # Collect post-build data
+        build_data = self.collect_build_data()
 
         endTime = datetime.datetime.now()
         finalTime = endTime - startTime
@@ -173,6 +178,8 @@ class Rig(object):
             finalTime,
             "=" * 7
         ))
+
+        return build_data
 
     def buildFromSelection(self):
         """Build the rig from selected guides."""
@@ -207,6 +214,9 @@ class Rig(object):
             if ismodel:
                 self.postCustomStep()
 
+            # Collect post-build data
+            build_data = self.collect_build_data()
+
             endTime = datetime.datetime.now()
             finalTime = endTime - startTime
             pm.flushUndo()
@@ -219,6 +229,8 @@ class Rig(object):
                 finalTime,
                 "=" * 7
             ))
+
+        return build_data
 
     def build(self):
         """Build the rig."""
@@ -491,6 +503,32 @@ class Rig(object):
                 pm.displayWarning(
                     "Skin doesn't exist or is not correct. "
                     + self.options["skin"] + " Skipped!")
+
+    def collect_build_data(self):
+        """ Collect post build data """
+        self.build_data["components"] = []
+        for c, comp in self.customStepDic["mgearRun"].components.items():
+            self.build_data["components"].append(c)
+            self.build_data[c] = comp.build_data
+
+        # self.build_data["base_settings"] = {"test": "test settings"}
+        # print(self.build_data)
+        # self.file_output()
+
+        return self.build_data
+
+    def file_output(self, file_path=None):
+
+        json_output = self.build_data
+
+        ext_filter = "*.mgear_descriptor"
+        if not file_path:
+            file_path = pm.fileDialog2(fileFilter=ext_filter, dialogStyle=2)[0]
+
+        f = open(file_path, "w")
+        f.write(json.dumps(json_output, indent=4))
+        f.close()
+        file_path = None
 
     def addCtl(self, parent, name, m, color, iconShape, **kwargs):
         """Create the control and apply the shape, if this is alrealdy stored

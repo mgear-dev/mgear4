@@ -112,6 +112,9 @@ class Main(object):
 
         self.transform2Lock = []
 
+        # Data collector
+        self.build_data = {}
+
         # --------------------------------------------------
         # Step
         self.stepMethods = [eval("self.step_0{}".format(str(i)),
@@ -177,6 +180,7 @@ class Main(object):
         """
         self.finalize()
         self.postScript()
+        self.collect_build_data()
         return
 
     # =========================================
@@ -1624,6 +1628,61 @@ class Main(object):
         """
 
         return
+
+    def collect_build_data(self):
+
+        self.build_data["full_name"] = self.fullName
+        self.build_data["name"] = self.name
+        self.build_data['type'] = self.guide.type
+        self.build_data['side'] = self.side
+        self.build_data['index'] = self.index
+        self.build_data['data_contracts'] = []
+        self.build_data['joints'] = [j.name() for j in self.jointList]
+        self.build_data['joints_transform'] = self.gather_transform_info(
+            self.jointList)
+        self.build_data['control'] = [j.name() for j in self.controlers]
+        self.build_data['control_transform'] = self.gather_transform_info(
+            self.controlers)
+        self.build_data['control_role'] = self.gather_ctl_role()
+        # print(self.build_data)
+
+    def gather_ctl_role(self):
+        ctl_role = {}
+        for c in self.controlers:
+            role = c.ctl_role.get()
+            ctl_role[c.name()] = role
+        return ctl_role
+
+    def gather_transform_info(self, obj_list):
+        """Gather the world transfromation information for Rotation and
+        Translation
+
+        Args:
+            obj_list (PyNode Dag list): List of transforms to gather the info
+
+        Returns:
+            dict: Rotation and translation dict
+        """
+        trans_info = {}
+        for j in obj_list:
+            trans_buffer = {}
+
+            world_position = j.getTranslation(space='world')
+            temp_dict_position = {}
+            temp_dict_position['x'] = world_position.x
+            temp_dict_position['y'] = world_position.y
+            temp_dict_position['z'] = world_position.z
+            trans_buffer['WorldPosition'] = temp_dict_position
+
+            temp_dict_rotation = {}
+            world_rotation = j.getRotation(space='world')
+            temp_dict_rotation['x'] = world_rotation.x
+            temp_dict_rotation['y'] = world_rotation.y
+            temp_dict_rotation['z'] = world_rotation.z
+            trans_buffer['WorldRotation'] = temp_dict_rotation
+
+            trans_info[j.name()] = trans_buffer
+        return trans_info
 
     # =====================================================
     # MISC
