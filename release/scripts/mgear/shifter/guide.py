@@ -1410,17 +1410,11 @@ class NamingRulesTab(QtWidgets.QDialog, naui.Ui_Form):
 
 
 class GuideSettings(MayaQWidgetDockableMixin, QtWidgets.QDialog, HelperSlots):
-    # valueChanged = QtCore.Signal(int)
-    greenBrush = QtGui.QBrush()
-    greenBrush.setColor('#179e83')
-    redBrush = QtGui.QBrush()
-    redBrush.setColor('#9b2d22')
-    whiteBrush = QtGui.QBrush()
-    whiteBrush.setColor('#ffffff')
-    whiteDownBrush = QtGui.QBrush()
-    whiteDownBrush.setColor('#E2E2E2')
-    orangeBrush = QtGui.QBrush()
-    orangeBrush.setColor('#e67e22')
+    greenBrush = QtGui.QColor(0, 160, 0)
+    redBrush = QtGui.QColor(180, 0, 0)
+    whiteBrush = QtGui.QColor(255, 255, 255)
+    whiteDownBrush = QtGui.QColor(160, 160, 160)
+    orangeBrush = QtGui.QColor(240, 160, 0)
 
     def __init__(self, parent=None):
         self.toolName = TYPE
