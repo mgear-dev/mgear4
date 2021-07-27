@@ -65,7 +65,7 @@ class Guide(guide.ComponentGuide):
         self.dispcrv = self.addDispCurve(
             "crv",
             [self.root, self.elbow, self.wrist, self.eff])
-        centers = [self.knee, self.base]
+        centers = [self.elbow, self.base]
         self.dispcrv = self.addDispCurve("crv1", centers)
 
         self.blade = self.addBlade("blade", self.wrist, self.eff)

@@ -380,19 +380,27 @@ class Component(component.Main):
             attribute.setInvertMirror(self.mid_ctl, ["tx", "ty", "tz"])
 
         # Roll join ref
-        self.rollRef = primitive.add2DChain(self.root, self.getName(
-            "rollChain"), self.guide.apos[:2], self.normal, self.negate)
+        self.rollRef = primitive.add2DChain(self.root,
+                                            self.getName("rollChain"),
+                                            self.guide.apos[:2],
+                                            self.normal,
+                                            self.negate)
+        t = transform.getTransformLookingAt(self.guide.pos["base"],
+                                            self.guide.apos[1],
+                                            self.normal,
+                                            "xz",
+                                            self.negate)
         for x in self.rollRef:
             x.setAttr("visibility", False)
 
         self.tws0_loc = primitive.addTransform(
-            self.rollRef[0],
+            self.root,
             self.getName("tws0_loc"),
-            transform.getTransform(self.fk_ctl[0]))
+            t)
         self.tws0_rot = primitive.addTransform(
             self.tws0_loc,
             self.getName("tws0_rot"),
-            transform.getTransform(self.fk_ctl[0]))
+            t)
 
         self.tws1_npo = primitive.addTransform(
             self.ctrn_loc,
@@ -868,6 +876,8 @@ class Component(component.Main):
         attribute.setRotOrder(self.tws2_rot, "XYZ")
         pm.connectAttr(dm_node + ".outputRotate", self.tws2_rot + ".rotate")
 
+        applyop.oriCns(self.rollRef[0], self.tws0_loc, maintainOffset=True)
+
         self.tws0_rot.setAttr("sx", .001)
         self.tws2_rot.setAttr("sx", .001)
 
@@ -1016,3 +1026,12 @@ class Component(component.Main):
         pm.parent(self.rollRef[0],
                   self.ikHandleUpvRef,
                   self.parent_comp.ctl)
+
+    def collect_build_data(self):
+        component.Main.collect_build_data(self)
+        self.build_data['data_contracts'] = ["ik"]
+        self.build_data['ik'] = [
+            self.jointList[0].name(),
+            self.jointList[self.settings["div0"] + 1].name(),
+            self.jointList[-1].name()
+        ]

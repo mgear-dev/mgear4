@@ -773,3 +773,11 @@ class Component(component.Main):
                              self.pin_att,
                              [self.ctrn_loc],
                              False)
+
+    def collect_build_data(self):
+        component.Main.collect_build_data(self)
+        self.build_data['data_contracts'] = ["ik"]
+        self.build_data['ik'] = [
+            self.jointList[0].name(),
+            self.jointList[self.settings["div0"] + 1].name(),
+            self.jointList[-1].name()]
