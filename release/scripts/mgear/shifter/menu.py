@@ -5,18 +5,22 @@ def install():
     """Install Shifter submenu
     """
     commands = (
-        ("Guide Manager", str_show_guide_manager),
+        ("Guide Manager", str_show_guide_manager, "mgear_list.svg"),
         ("-----", None),
-        ("Settings", str_inspect_settings),
-        ("Duplicate", str_duplicate),
-        ("Duplicate Sym", str_duplicateSym),
-        ("Extract Controls", str_extract_controls),
+        ("Settings", str_inspect_settings, "mgear_sliders.svg"),
+        ("Duplicate", str_duplicate, "mgear_copy.svg"),
+        ("Duplicate Sym", str_duplicateSym, "mgear_duplicate_sym.svg"),
+        ("Extract Controls", str_extract_controls, "mgear_move.svg"),
         ("-----", None),
         ("Build from Selection", str_build_from_selection),
         ("Build From Guide Template File", str_build_from_file),
         ("-----", None),
-        ("Import Guide Template", str_import_guide_template),
-        ("Export Guide Template", str_export_guide_template),
+        ("Import Guide Template",
+         str_import_guide_template,
+         "mgear_log-in.svg"),
+        ("Export Guide Template",
+         str_export_guide_template,
+         "mgear_log-out.svg"),
         ("-----", None),
         (None, guide_template_samples_submenu),
         ("-----", None),
@@ -27,12 +31,12 @@ def install():
         (None, mocap_submenu),
         ("Game Tools", str_openGameTools),
         ("-----", None),
-        ("Update Guide", str_updateGuide),
+        ("Update Guide", str_updateGuide, "mgear_loader.svg"),
         ("-----", None),
-        ("Reload Components", str_reloadComponents)
+        ("Reload Components", str_reloadComponents, "mgear_refresh-cw.svg")
     )
 
-    mgear.menu.install("Shifter", commands)
+    mgear.menu.install("Shifter", commands, image="mgear_shifter.svg")
 
 
 def mocap_submenu(parent_menu_id):

@@ -50,7 +50,7 @@ def install():
         ("Clear Baked Spring nodes", str_clearSprings)
     )
 
-    mgear.menu.install(menuID, commands)
+    mgear.menu.install(menuID, commands, image="mgear_rigbits.svg")
 
 
 def connect_submenu(parent_menu_id):

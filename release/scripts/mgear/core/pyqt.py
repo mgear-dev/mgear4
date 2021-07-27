@@ -300,6 +300,8 @@ def get_icon_path(icon_name=None):
 
     if "\\" in file_dir:
         file_dir = file_dir.replace("\\", "/")
+    file_dir = "/".join(file_dir.split("/")[:-3])
+    print(file_dir)
     if icon_name:
         return "{0}/icons/{1}".format(file_dir, icon_name)
     else:

@@ -84,20 +84,20 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
     def create_actions(self):
         # file actions
         self.file_new_node_action = QtWidgets.QAction("New Node", self)
-        self.file_new_node_action.setIcon(pyqt.get_icon("plus-square"))
+        self.file_new_node_action.setIcon(pyqt.get_icon("mgear_plus-square"))
         self.file_save_node_action = QtWidgets.QAction("Save Current Node",
                                                        self)
-        self.file_save_node_action.setIcon(pyqt.get_icon("save"))
+        self.file_save_node_action.setIcon(pyqt.get_icon("mgear_save"))
         self.file_export_all_action = QtWidgets.QAction("Export All Tabs",
                                                         self)
-        self.file_export_all_action.setIcon(pyqt.get_icon("log-out"))
+        self.file_export_all_action.setIcon(pyqt.get_icon("mgear_log-out"))
         self.file_export_current_action = QtWidgets.QAction(
             "Export Current Tab", self)
-        self.file_export_current_action.setIcon(pyqt.get_icon("log-out"))
+        self.file_export_current_action.setIcon(pyqt.get_icon("mgear_log-out"))
         self.file_import_action = QtWidgets.QAction("Import", self)
-        self.file_import_action.setIcon(pyqt.get_icon("log-in"))
+        self.file_import_action.setIcon(pyqt.get_icon("mgear_log-in"))
         self.file_import_add_action = QtWidgets.QAction("Import Add", self)
-        self.file_import_add_action.setIcon(pyqt.get_icon("log-in"))
+        self.file_import_add_action.setIcon(pyqt.get_icon("mgear_log-in"))
 
         # Display actions
         self.display_fullname_action = QtWidgets.QAction(
@@ -115,7 +115,7 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
 
         self.display_sync_graph_action = QtWidgets.QAction(
             "Sync with Graph Editor", self)
-        self.display_sync_graph_action.setIcon(pyqt.get_icon("activity"))
+        self.display_sync_graph_action.setIcon(pyqt.get_icon("mgear_activity"))
         self.display_auto_sync_graph_action = QtWidgets.QAction(
             "Auto Sync with Graph Editor", self)
         self.display_auto_sync_graph_action.setCheckable(True)
@@ -127,13 +127,13 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
 
         # Key actions
         self.key_all_action = QtWidgets.QAction("Keyframe", self)
-        self.key_all_action.setIcon(pyqt.get_icon("key"))
+        self.key_all_action.setIcon(pyqt.get_icon("mgear_key"))
         self.key_all_action.setShortcut(QtGui.QKeySequence("S"))
         self.key_copy_action = QtWidgets.QAction("Copy Key", self)
-        self.key_copy_action.setIcon(pyqt.get_icon("copy"))
+        self.key_copy_action.setIcon(pyqt.get_icon("mgear_copy"))
         self.key_copy_action.setShortcut(QtGui.QKeySequence("Ctrl+C"))
         self.key_paste_action = QtWidgets.QAction("Paste Key", self)
-        self.key_paste_action.setIcon(pyqt.get_icon("clipboard"))
+        self.key_paste_action.setIcon(pyqt.get_icon("mgear_clipboard"))
         self.key_paste_action.setShortcut(QtGui.QKeySequence("Ctrl+V"))
         self.key_all_tabs_action = QtWidgets.QAction(
             "Keyframe All Tabs", self)
@@ -144,18 +144,18 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
 
         self.key_del_frame_action = QtWidgets.QAction(
             "Delete Current Frame Keyframe", self)
-        self.key_del_frame_action.setIcon(pyqt.get_icon("trash-2"))
+        self.key_del_frame_action.setIcon(pyqt.get_icon("mgear_trash-2"))
         self.key_del_frame_action.setShortcut(QtGui.QKeySequence("Shift+S"))
 
         # Tabs Actions
         self.tab_new_action = QtWidgets.QAction("New Tab", self)
-        self.tab_new_action.setIcon(pyqt.get_icon("menu"))
+        self.tab_new_action.setIcon(pyqt.get_icon("mgear_menu"))
         self.tab_del_action = QtWidgets.QAction("Delete Current Tab", self)
-        self.tab_del_action.setIcon(pyqt.get_icon("trash-2"))
+        self.tab_del_action.setIcon(pyqt.get_icon("mgear_trash-2"))
         self.tab_dup_action = QtWidgets.QAction("Duplicate Tab", self)
-        self.tab_dup_action.setIcon(pyqt.get_icon("copy"))
+        self.tab_dup_action.setIcon(pyqt.get_icon("mgear_copy"))
         self.tab_rename_action = QtWidgets.QAction("Rename Tab", self)
-        # self.tab_rename_action.setIcon(pyqt.get_icon("copy"))
+        # self.tab_rename_action.setIcon(pyqt.get_icon("mgear_copy"))
 
     def create_widgets(self):
         # Menu bar
@@ -203,45 +203,45 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
 
         # Keyframe widgets
         self.key_all_button = cmw.create_button(
-            size=34, icon="key", toolTip="Keyframe")
+            size=34, icon="mgear_key", toolTip="Keyframe")
         self.key_copy_button = cmw.create_button(
-            size=34, icon="copy", toolTip="Copy Keyframe")
+            size=34, icon="mgear_copy", toolTip="Copy Keyframe")
         self.key_paste_button = cmw.create_button(
-            size=34, icon="clipboard", toolTip="Paste Keyframe")
+            size=34, icon="mgear_clipboard", toolTip="Paste Keyframe")
 
         # channel listing widgets
         self.lock_button = cmw.create_button(
             size=34,
-            icon="unlock",
-            toggle_icon="lock",
+            icon="mgear_unlock",
+            toggle_icon="mgear_lock",
             toolTip="Lock Channel Auto Refresh")
         self.refresh_button = cmw.create_button(
-            size=17, icon="refresh-cw", toolTip="Refresh Channel List")
+            size=17, icon="mgear_refresh-cw", toolTip="Refresh Channel List")
         self.add_channel_button = cmw.create_button(
-            size=34, icon="plus", toolTip="Add Selected Channels")
+            size=34, icon="mgear_plus", toolTip="Add Selected Channels")
         self.remove_channel_button = cmw.create_button(
-            size=34, icon="minus", toolTip="Remove Selected Channels")
+            size=34, icon="mgear_minus", toolTip="Remove Selected Channels")
 
         # node list widgets
         self.node_list_combobox = QtWidgets.QComboBox()
         self.node_list_combobox.setMaximumHeight(17)
         self.refresh_node_list_button = cmw.create_button(
-            size=17, icon="refresh-cw", toolTip="Refresh Node List")
+            size=17, icon="mgear_refresh-cw", toolTip="Refresh Node List")
         self.new_node_button = cmw.create_button(
             size=17,
-            icon="plus",
+            icon="mgear_plus",
             toolTip="Create New Channel Master Node")
 
         # search widgets
         self.search_label = QtWidgets.QLabel("Filter Channel: ")
         self.search_lineEdit = QtWidgets.QLineEdit()
         self.search_clear_button = cmw.create_button(
-            size=17, icon="delete", toolTip="Clear Search Field")
+            size=17, icon="mgear_delete", toolTip="Clear Search Field")
 
         # tabs widget
         self.tab_widget = QtWidgets.QTabWidget()
         self.add_tab_button = cmw.create_button(
-            size=17, icon="plus", toolTip="Add New Tab")
+            size=17, icon="mgear_plus", toolTip="Add New Tab")
         self.add_tab_button.setFlat(True)
         self.add_tab_button.setMaximumWidth(34)
 

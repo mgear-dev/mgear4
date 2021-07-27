@@ -145,48 +145,48 @@ class ChannelTable(QtWidgets.QTableWidget):
         self.menu = QtWidgets.QMenu(self)
 
         reset_value_action = QtWidgets.QAction('Reset Value to Default', self)
-        reset_value_action.setIcon(pyqt.get_icon("rewind"))
+        reset_value_action.setIcon(pyqt.get_icon("mgear_rewind"))
         reset_value_action.triggered.connect(self.reset_value_slot)
         self.menu.addAction(reset_value_action)
         self.menu.addSeparator()
 
         sync_graph_editor_action = QtWidgets.QAction(
             'Sync Selected with Graph Editor', self)
-        sync_graph_editor_action.setIcon(pyqt.get_icon("activity"))
+        sync_graph_editor_action.setIcon(pyqt.get_icon("mgear_activity"))
         sync_graph_editor_action.triggered.connect(self.sync_graph_editor)
         self.menu.addAction(sync_graph_editor_action)
         self.menu.addSeparator()
 
         select_attr_host_action = QtWidgets.QAction('Select Host', self)
-        select_attr_host_action.setIcon(pyqt.get_icon("arrow-up"))
+        select_attr_host_action.setIcon(pyqt.get_icon("mgear_arrow-up"))
         select_attr_host_action.triggered.connect(self.select_host)
         self.menu.addAction(select_attr_host_action)
         self.menu.addSeparator()
 
         set_range_action = QtWidgets.QAction('Set Range', self)
-        set_range_action.setIcon(pyqt.get_icon("sliders"))
+        set_range_action.setIcon(pyqt.get_icon("mgear_sliders"))
         set_range_action.triggered.connect(self.set_range_slot)
         self.menu.addAction(set_range_action)
         self.menu.addSeparator()
 
         self.menu.addSeparator()
         set_color_action = QtWidgets.QAction('Set Color', self)
-        set_color_action.setIcon(pyqt.get_icon("edit-2"))
+        set_color_action.setIcon(pyqt.get_icon("mgear_edit-2"))
         set_color_action.triggered.connect(self.set_color_slot)
         self.menu.addAction(set_color_action)
 
         auto_color_host_action = QtWidgets.QAction('Auto Color by Host', self)
-        auto_color_host_action.setIcon(pyqt.get_icon("edit-3"))
+        auto_color_host_action.setIcon(pyqt.get_icon("mgear_edit-3"))
         auto_color_host_action.triggered.connect(self.auto_color_host_slot)
         self.menu.addAction(auto_color_host_action)
 
         auto_color_axis_action = QtWidgets.QAction('Auto Color by Axis', self)
-        auto_color_axis_action.setIcon(pyqt.get_icon("edit-3"))
+        auto_color_axis_action.setIcon(pyqt.get_icon("mgear_edit-3"))
         auto_color_axis_action.triggered.connect(self.auto_color_axis_slot)
         self.menu.addAction(auto_color_axis_action)
 
         clear_color_action = QtWidgets.QAction('Clear Color', self)
-        clear_color_action.setIcon(pyqt.get_icon("x-octagon"))
+        clear_color_action.setIcon(pyqt.get_icon("mgear_x-octagon"))
         clear_color_action.triggered.connect(self.clear_color_slot)
         self.menu.addAction(clear_color_action)
 
@@ -590,12 +590,12 @@ class ChannelTable(QtWidgets.QTableWidget):
         pop_menu = QtWidgets.QMenu(button)
 
         next_key_action = QtWidgets.QAction('Next Keyframe', button)
-        next_key_action.setIcon(pyqt.get_icon("arrow-right"))
+        next_key_action.setIcon(pyqt.get_icon("mgear_arrow-right"))
         next_key_action.triggered.connect(partial(cmu.next_keyframe, attr))
         pop_menu.addAction(next_key_action)
 
         previous_key_action = QtWidgets.QAction('previous Keyframe', button)
-        previous_key_action.setIcon(pyqt.get_icon("arrow-left"))
+        previous_key_action.setIcon(pyqt.get_icon("mgear_arrow-left"))
         previous_key_action.triggered.connect(
             partial(cmu.previous_keyframe, attr))
         pop_menu.addAction(previous_key_action)
@@ -603,7 +603,7 @@ class ChannelTable(QtWidgets.QTableWidget):
         pop_menu.addSeparator()
 
         remove_animation_action = QtWidgets.QAction('Remove Animation', button)
-        remove_animation_action.setIcon(pyqt.get_icon("trash"))
+        remove_animation_action.setIcon(pyqt.get_icon("mgear_trash"))
         remove_animation_action.triggered.connect(
             partial(cmu.remove_animation, attr))
         pop_menu.addAction(remove_animation_action)

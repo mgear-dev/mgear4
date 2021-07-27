@@ -13,7 +13,7 @@ def install():
         ("Smart Reset Attribute/SRT", str_smart_reset)
     )
 
-    mgear.menu.install("Animbits", commands)
+    mgear.menu.install("Animbits", commands, image="mgear_animbits.svg")
 
 
 str_openChannelMaster = """

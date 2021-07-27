@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg width="100%" height="100%" viewBox="0 0 24 24" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linecap:round;stroke-miterlimit:10;">
+    <g transform="matrix(-0.735095,-0.648943,0.887213,-1.005,12.4649,19.9806)">
+        <g transform="matrix(-0.764536,0.493673,-0.674933,-0.559212,23.0155,5.01981)">
+            <path d="M19.979,1.098L21.449,2.396" style="fill:none;fill-rule:nonzero;stroke:white;stroke-width:1.96px;"/>
+            <path d="M10.716,13.072C10.716,13.072 18.403,4.364 20.714,1.747" style="fill:none;fill-rule:nonzero;stroke:white;stroke-width:1.96px;stroke-linejoin:bevel;stroke-miterlimit:4;"/>
+        </g>
+    </g>
+    <g transform="matrix(2.90297,-0.860191,0.860191,2.90297,-46.4845,11.6061)">
+        <circle cx="18" cy="6" r="3" style="fill:none;stroke:white;stroke-width:0.96px;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:1.92,1.92,0,0;"/>
+    </g>
+</svg>

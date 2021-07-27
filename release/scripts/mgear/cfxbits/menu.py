@@ -12,7 +12,7 @@ def install():
         ("-----", None)
     )
 
-    mgear.menu.install("CFXbits", commands)
+    mgear.menu.install("CFXbits", commands, image="mgear_cfxbits.svg")
 
 
 str_openXgenBoost = """

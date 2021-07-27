@@ -75,7 +75,8 @@ def install():
     cmds.menuItem("mgear_ap_menuitem",
                   label="Anim Picker",
                   subMenu=True,
-                  tearOff=True)
+                  tearOff=True,
+                  image="mgear_mouse-pointer.svg")
     cmds.menuItem(label="Anim Picker", command=str_open_picker_mode)
     pm.menuItem(divider=True)
     cmds.menuItem(label="Edit Anim Picker", command=str_open_edit_mode)

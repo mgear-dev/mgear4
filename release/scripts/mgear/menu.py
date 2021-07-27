@@ -36,7 +36,11 @@ def install_help_menu(menuId=menuId):
     # Help
     pm.setParent(menuId, menu=True)
     pm.menuItem(divider=True)
-    pm.menuItem(parent=menuId, subMenu=True, tearOff=True, label="Help")
+    pm.menuItem(parent=menuId,
+                subMenu=True,
+                tearOff=True,
+                label="Help",
+                image="help-circle.svg")
     pm.menuItem(label="Web", command=str_web)
     pm.menuItem(label="Forum", command=str_forum)
     pm.menuItem(divider=True)
@@ -50,13 +54,13 @@ def install_utils_menu():
     """
     pm.setParent(mgear.menu_id, menu=True)
     pm.menuItem(divider=True)
-    commands = [("Reload", str_reload)]
+    commands = [("Reload", str_reload, "mgear_refresh-cw.svg")]
 
-    m = install("Utilities", commands)
+    m = install("Utilities", commands, image="mgear_tool.svg")
     return m
 
 
-def install(label, commands, parent=menuId):
+def install(label, commands, parent=menuId, image=""):
     """Installer Function for sub menus
 
     Args:
@@ -68,8 +72,14 @@ def install(label, commands, parent=menuId):
         m = pm.menuItem(parent=parent,
                         subMenu=True,
                         tearOff=True,
-                        label=label)
-        for label, command in commands:
+                        label=label,
+                        image=image)
+        for conf in commands:
+            if len(conf) == 3:
+                label, command, img = conf
+            else:
+                label, command = conf
+                img = ""
             if not command:
                 pm.menuItem(divider=True)
                 continue
@@ -78,7 +88,7 @@ def install(label, commands, parent=menuId):
                 pm.setParent(m, menu=True)
                 continue
 
-            pm.menuItem(label=label, command=command)
+            pm.menuItem(label=label, command=command, image=img)
 
         return m
 
