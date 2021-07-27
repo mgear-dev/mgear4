@@ -514,19 +514,21 @@ class Rig(object):
         # self.build_data["base_settings"] = {"test": "test settings"}
         # print(self.build_data)
         # self.file_output()
+        if self.options["data_collector"]:
+            self.data_collector_output(self.options["data_collector_path"])
 
         return self.build_data
 
-    def file_output(self, file_path=None):
+    def data_collector_output(self, file_path=None):
 
-        json_output = self.build_data
-
-        ext_filter = "*.mgear_descriptor"
         if not file_path:
-            file_path = pm.fileDialog2(fileFilter=ext_filter, dialogStyle=2)[0]
+            ext_filter = 'Shifter Collected data (*{})'.format(
+                guide.DATA_COLLECTOR_EXT)
+            file_path = pm.fileDialog2(fileMode=0,
+                                       fileFilter=ext_filter)[0]
 
         f = open(file_path, "w")
-        f.write(json.dumps(json_output, indent=4))
+        f.write(json.dumps(self.build_data, indent=4))
         f.close()
         file_path = None
 

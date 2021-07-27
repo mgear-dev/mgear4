@@ -27,6 +27,7 @@ from . import guide_ui as guui
 from . import custom_step_ui as csui
 from . import naming_rules_ui as naui
 from . import naming
+
 # pyside
 from maya.app.general.mayaMixin import MayaQDockWidget
 from maya.app.general.mayaMixin import MayaQWidgetDockableMixin
@@ -35,6 +36,7 @@ GUIDE_UI_WINDOW_NAME = "guide_UI_window"
 GUIDE_DOCK_NAME = "Guide_Components"
 
 TYPE = "mgear_guide_root"
+DATA_COLLECTOR_EXT = ".scd"
 
 MGEAR_SHIFTER_CUSTOMSTEP_KEY = "MGEAR_SHIFTER_CUSTOMSTEP_PATH"
 
@@ -320,6 +322,12 @@ class Rig(Main):
         # skin
         self.pSkin = self.addParam("importSkin", "bool", False)
         self.pSkinPackPath = self.addParam("skin", "string", "")
+
+        # --------------------------------------------------
+        # data Collector
+        self.pDataCollector = self.addParam("data_collector", "bool", False)
+        self.pDataCollectorPath = self.addParam(
+            "data_collector_path", "string", "")
 
         # --------------------------------------------------
         # Colors
@@ -1030,6 +1038,9 @@ class HelperSlots(object):
         lEdit.setText(name)
         self.root.attr(targetAttr).set(name)
 
+    def updateLineEditPath(self, lEdit, targetAttr):
+        self.root.attr(targetAttr).set(lEdit.text())
+
     def updateNameRuleLineEdit(self, lEdit, targetAttr):
         # nomralize the text to be Maya naming compatible
         # replace invalid characters with "_"
@@ -1508,6 +1519,10 @@ class GuideSettings(MayaQWidgetDockableMixin, QtWidgets.QDialog, HelperSlots):
         self.guideSettingsTab.skin_lineEdit.setText(
             self.root.attr("skin").get())
         self.populateCheck(
+            self.guideSettingsTab.dataCollector_checkBox, "data_collector")
+        self.guideSettingsTab.dataCollectorPath_lineEdit.setText(
+            self.root.attr("data_collector_path").get())
+        self.populateCheck(
             self.guideSettingsTab.jointRig_checkBox, "joint_rig")
         self.populateCheck(
             self.guideSettingsTab.force_uniScale_checkBox, "force_uniScale")
@@ -1685,10 +1700,14 @@ class GuideSettings(MayaQWidgetDockableMixin, QtWidgets.QDialog, HelperSlots):
             partial(self.updateCheck,
                     tap.attrPrefix_checkBox,
                     "attrPrefixName"))
-        tap.importSkin_checkBox.stateChanged.connect(
+        tap.dataCollector_checkBox.stateChanged.connect(
             partial(self.updateCheck,
-                    tap.importSkin_checkBox,
-                    "importSkin"))
+                    tap.dataCollector_checkBox,
+                    "data_collector"))
+        tap.dataCollectorPath_lineEdit.editingFinished.connect(
+            partial(self.updateLineEditPath,
+                    tap.dataCollectorPath_lineEdit,
+                    "data_collector_path"))
         tap.jointRig_checkBox.stateChanged.connect(
             partial(self.updateCheck,
                     tap.jointRig_checkBox,
@@ -1715,6 +1734,8 @@ class GuideSettings(MayaQWidgetDockableMixin, QtWidgets.QDialog, HelperSlots):
                     "synoptic"))
         tap.loadSkinPath_pushButton.clicked.connect(
             self.skinLoad)
+        tap.dataCollectorPath_pushButton.clicked.connect(
+            self.data_collector_path)
         tap.rigTabs_listWidget.installEventFilter(self)
 
         # colors connections
@@ -2087,6 +2108,25 @@ class GuideSettings(MayaQWidgetDockableMixin, QtWidgets.QDialog, HelperSlots):
 
         self.root.attr("skin").set(filePath)
         self.guideSettingsTab.skin_lineEdit.setText(filePath)
+
+    def _data_collector_path(self, *args):
+        ext_filter = 'Shifter Collected data (*{})'.format(DATA_COLLECTOR_EXT)
+        filePath = pm.fileDialog2(
+            fileMode=0,
+            fileFilter=ext_filter)
+        if not filePath:
+            return
+        if not isinstance(filePath, string_types):
+            filePath = filePath[0]
+
+        return filePath
+
+    def data_collector_path(self, *args):
+        filePath = self._data_collector_path()
+
+        if filePath:
+            self.root.attr("data_collector_path").set(filePath)
+            self.guideSettingsTab.dataCollectorPath_lineEdit.setText(filePath)
 
     def addCustomStep(self, pre=True, *args):
         """Add a new custom step
