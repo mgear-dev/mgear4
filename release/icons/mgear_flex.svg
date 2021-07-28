@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg width="100%" height="100%" viewBox="0 0 24 24" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linecap:round;stroke-linejoin:round;">
+    <g transform="matrix(0.66041,0,0,0.66041,0.744312,8.44674)">
+        <path d="M16,21L16,19C16,16.806 14.194,15 12,15L5,15C2.806,15 1,16.806 1,19L1,21" style="fill:none;fill-rule:nonzero;stroke:white;stroke-width:2px;"/>
+    </g>
+    <g transform="matrix(0.66041,0,0,0.66041,12.2789,-1.06422)">
+        <path d="M16,21L16,19C16,16.806 14.194,15 12,15L5,15C2.806,15 1,16.806 1,19L1,21" style="fill:none;fill-rule:nonzero;stroke:white;stroke-width:2px;"/>
+    </g>
+    <g transform="matrix(0.66041,0,0,0.66041,0.744312,8.44674)">
+        <circle cx="8.5" cy="7" r="4" style="fill:none;stroke:white;stroke-width:2px;"/>
+    </g>
+    <g transform="matrix(0.66041,0,0,0.66041,12.2789,-1.06422)">
+        <circle cx="8.5" cy="7" r="4" style="fill:none;stroke:white;stroke-width:2px;"/>
+    </g>
+    <g transform="matrix(0.705457,0.708752,-1.0374,1.03258,14.7639,-7.95572)">
+        <g transform="matrix(0.705457,-0.484219,0.708752,0.481968,-4.77666,10.9834)">
+            <path d="M19.617,19.435L19.626,15.423L15.614,15.414" style="fill:none;fill-rule:nonzero;stroke:white;stroke-width:1.89px;stroke-linejoin:miter;stroke-miterlimit:10;"/>
+            <path d="M19.626,15.423C17.884,17.157 14.349,20.675 14.349,20.675" style="fill:none;fill-rule:nonzero;stroke:white;stroke-width:1.89px;"/>
+        </g>
+    </g>
+    <g transform="matrix(0.705457,0.708752,-1.0374,1.03258,4.84822,-21.0485)">
+        <g transform="matrix(0.705457,-0.484219,0.708752,0.481968,11.4979,12.4923)">
+            <path d="M9.701,6.342L9.71,2.331L5.699,2.321" style="fill:none;fill-rule:nonzero;stroke:white;stroke-width:1.89px;stroke-linejoin:miter;stroke-miterlimit:10;"/>
+            <path d="M9.71,2.331C7.968,4.065 4.434,7.583 4.434,7.583" style="fill:none;fill-rule:nonzero;stroke:white;stroke-width:1.89px;"/>
+        </g>
+    </g>
+</svg>
