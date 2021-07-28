@@ -12,8 +12,10 @@ def install():
         ("Duplicate Sym", str_duplicateSym, "mgear_duplicate_sym.svg"),
         ("Extract Controls", str_extract_controls, "mgear_move.svg"),
         ("-----", None),
-        ("Build from Selection", str_build_from_selection),
-        ("Build From Guide Template File", str_build_from_file),
+        ("Build from Selection", str_build_from_selection, "mgear_play.svg"),
+        ("Build From Guide Template File",
+         str_build_from_file,
+         "mgear_play-circle.svg"),
         ("-----", None),
         ("Import Guide Template",
          str_import_guide_template,
@@ -68,7 +70,10 @@ def guide_template_samples_submenu(parent_menu_id):
         ("EPIC Mannequin Template, Z-up", str_epic_mannequin_z_template)
     )
 
-    mgear.menu.install("Guide Template Samples", commands, parent_menu_id)
+    mgear.menu.install("Guide Template Samples",
+                       commands,
+                       parent_menu_id,
+                       image="mgear_users.svg")
 
 
 str_show_guide_manager = """

@@ -40,13 +40,17 @@ def install_help_menu(menuId=menuId):
                 subMenu=True,
                 tearOff=True,
                 label="Help",
-                image="help-circle.svg")
-    pm.menuItem(label="Web", command=str_web)
-    pm.menuItem(label="Forum", command=str_forum)
+                image="mgear_help-circle.svg")
+    pm.menuItem(label="Web", command=str_web, image="mgear_globe.svg")
+    pm.menuItem(label="Forum",
+                command=str_forum,
+                image="mgear_message-circle.svg")
     pm.menuItem(divider=True)
-    pm.menuItem(label="Documentation", command=str_docs)
+    pm.menuItem(label="Documentation",
+                command=str_docs,
+                image="mgear_book.svg")
     pm.menuItem(divider=True)
-    pm.menuItem(label="About", command=str_about)
+    pm.menuItem(label="About", command=str_about, image="mgear_smile.svg")
 
 
 def install_utils_menu():

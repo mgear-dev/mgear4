@@ -18,7 +18,7 @@ def install():
 
     cmds.setParent(mgear.menu_id, menu=True)
     cmds.menuItem(divider=True)
-    cmds.menuItem(label="Flex", command=str_flex)
+    cmds.menuItem(label="Flex", command=str_flex, image="mgear_flex.svg")
 
 
 str_flex = """

@@ -12,8 +12,10 @@ def install_skinning_menu():
     """Install Skinning submenu
     """
     commands = (
-        ("Copy Skin", partial(skin.skinCopy, None, None)),
-        ("Select Skin Deformers", skin.selectDeformers, "mgear_copy.svg"),
+        ("Copy Skin", partial(skin.skinCopy, None, None), "mgear_copy.svg"),
+        ("Select Skin Deformers",
+         skin.selectDeformers,
+         "mgear_mouse-pointer.svg"),
         ("-----", None),
         ("Import Skin",
          partial(skin.importSkin, None),
@@ -41,7 +43,7 @@ def install_skinning_menu():
          "mgear_log-out.svg"),
     )
 
-    mgear.menu.install("Skin and Weights", commands)
+    mgear.menu.install("Skin and Weights", commands, image="mgear_skin.svg")
 
 
 def install_utils_menu(m):

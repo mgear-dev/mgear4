@@ -7,9 +7,8 @@ def install():
     """
     pm.setParent(mgear.menu_id, menu=True)
     pm.menuItem(divider=True)
-    pm.menuItem(label="Synoptic",
-                command=str_open_synoptic,
-                image="mgear_mouse-pointer.svg")
+    pm.menuItem(label="Synoptic (Legacy Picker)",
+                command=str_open_synoptic)
 
 
 str_open_synoptic = """
