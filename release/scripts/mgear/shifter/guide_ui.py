@@ -515,7 +515,7 @@ class Ui_Form(object):
         self.label.setText(gqt.fakeTranslate("Form", "Left", None, -1))
         self.fk_label.setText(gqt.fakeTranslate("Form", "FK", None, -1))
         self.ik_label.setText(gqt.fakeTranslate("Form", "IK", None, -1))
-        self.groupBox_8.setTitle(gqt.fakeTranslate("Form", "Post Build Data Collector", None, -1))
+        self.groupBox_8.setTitle(gqt.fakeTranslate("Form", "Post Build Data Collector (BETA)", None, -1))
         self.dataCollector_checkBox.setText(gqt.fakeTranslate("Form", "Collect Data", None, -1))
         self.dataCollector_label.setText(gqt.fakeTranslate("Form", "Data Path", None, -1))
         self.dataCollectorPath_pushButton.setText(gqt.fakeTranslate("Form", "...", None, -1))

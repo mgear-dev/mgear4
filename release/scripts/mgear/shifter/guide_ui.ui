@@ -896,7 +896,7 @@
    <item row="5" column="0">
     <widget class="QGroupBox" name="groupBox_8">
      <property name="title">
-      <string>Post Build Data Collector</string>
+      <string>Post Build Data Collector (BETA)</string>
      </property>
      <layout class="QGridLayout" name="gridLayout_12">
       <item row="0" column="0">
