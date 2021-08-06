@@ -776,7 +776,8 @@ class Main(object):
             oShape.isHistoricallyInteresting.set(False)
             # connecting the always draw shapes on top to global attribute
             if versions.current() >= 20220000:
-                pm.connectAttr(self.rig.ctlXRay_att, oShape.attr("alwaysDrawOnTop"))
+                pm.connectAttr(self.rig.ctlXRay_att,
+                               oShape.attr("alwaysDrawOnTop"))
 
         # set controller tag
         if versions.current() >= 201650:
@@ -1634,29 +1635,30 @@ class Main(object):
 
     def collect_build_data(self):
 
-        self.build_data["full_name"] = self.fullName
-        self.build_data["name"] = self.name
-        self.build_data['type'] = self.guide.type
-        self.build_data['side'] = self.side
-        self.build_data['index'] = self.index
-        self.build_data['data_contracts'] = []
-        self.build_data['joints'] = [j.name() for j in self.jointList]
-        self.build_data['joints_transform'] = self.gather_transform_info(
-            self.jointList)
-        self.build_data['control'] = [j.name() for j in self.controlers]
-        self.build_data['control_transform'] = self.gather_transform_info(
-            self.controlers)
-        self.build_data['control_role'] = self.gather_ctl_role()
-        # print(self.build_data)
+        self.build_data["FullName"] = self.fullName
+        self.build_data["Name"] = self.name
+        self.build_data['Type'] = self.guide.type
+        self.build_data['Side'] = self.side
+        self.build_data['Index'] = self.index
+        self.build_data['DataContracts'] = []
+        self.build_data['Joints'] = []
+        self.build_data['Controls'] = []
 
-    def gather_ctl_role(self):
-        ctl_role = {}
+        # joints
+        for j in self.jointList:
+            jnt_dict = {}
+            jnt_dict["Name"] = j.name()
+            jnt_dict.update(self.gather_transform_info(j))
+            self.build_data['Joints'].append(jnt_dict)
+        # controls
         for c in self.controlers:
-            role = c.ctl_role.get()
-            ctl_role[c.name()] = role
-        return ctl_role
+            ctl_dict = {}
+            ctl_dict["Name"] = c.name()
+            ctl_dict["Role"] = c.ctl_role.get()
+            ctl_dict.update(self.gather_transform_info(c))
+            self.build_data['Controls'].append(ctl_dict)
 
-    def gather_transform_info(self, obj_list):
+    def gather_transform_info(self, obj):
         """Gather the world transfromation information for Rotation and
         Translation
 
@@ -1667,24 +1669,21 @@ class Main(object):
             dict: Rotation and translation dict
         """
         trans_info = {}
-        for j in obj_list:
-            trans_buffer = {}
 
-            world_position = j.getTranslation(space='world')
-            temp_dict_position = {}
-            temp_dict_position['x'] = world_position.x
-            temp_dict_position['y'] = world_position.y
-            temp_dict_position['z'] = world_position.z
-            trans_buffer['WorldPosition'] = temp_dict_position
+        world_position = obj.getTranslation(space='world')
+        temp_dict_position = {}
+        temp_dict_position['x'] = world_position.x
+        temp_dict_position['y'] = world_position.y
+        temp_dict_position['z'] = world_position.z
+        trans_info['WorldPosition'] = temp_dict_position
 
-            temp_dict_rotation = {}
-            world_rotation = j.getRotation(space='world')
-            temp_dict_rotation['x'] = world_rotation.x
-            temp_dict_rotation['y'] = world_rotation.y
-            temp_dict_rotation['z'] = world_rotation.z
-            trans_buffer['WorldRotation'] = temp_dict_rotation
+        temp_dict_rotation = {}
+        world_rotation = obj.getRotation(space='world')
+        temp_dict_rotation['x'] = world_rotation.x
+        temp_dict_rotation['y'] = world_rotation.y
+        temp_dict_rotation['z'] = world_rotation.z
+        trans_info['WorldRotation'] = temp_dict_rotation
 
-            trans_info[j.name()] = trans_buffer
         return trans_info
 
     # =====================================================

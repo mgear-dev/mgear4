@@ -509,14 +509,10 @@ class Rig(object):
 
     def collect_build_data(self):
         """ Collect post build data """
-        self.build_data["components"] = []
+        self.build_data["Components"] = []
         for c, comp in self.customStepDic["mgearRun"].components.items():
-            self.build_data["components"].append(c)
-            self.build_data[c] = comp.build_data
+            self.build_data["Components"].append(comp.build_data)
 
-        # self.build_data["base_settings"] = {"test": "test settings"}
-        # print(self.build_data)
-        # self.file_output()
         if self.options["data_collector"]:
             self.data_collector_output(self.options["data_collector_path"])
 
