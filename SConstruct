@@ -8,7 +8,7 @@ import excons.tools.gl as gl
 maya.SetupMscver()
 env = excons.MakeBaseEnv()
 
-version = (4, 0, 0)
+version = (4, 0, 1)
 versionstr = "%d.%d.%d" % version
 platname = {"win32": "windows", "darwin": "osx"}.get(sys.platform, "linux")
 outprefix = "platforms/%s/%s/%s/plug-ins" % (maya.Version(nice=True),
