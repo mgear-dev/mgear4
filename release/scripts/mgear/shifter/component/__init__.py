@@ -1643,8 +1643,8 @@ class Main(object):
         self.build_data['DataContracts'] = []
         self.build_data['Joints'] = []
         self.build_data['Controls'] = []
-        self.build_data['ik'] = []
-        self.build_data['twist'] = []
+        self.build_data['Ik'] = []
+        self.build_data['Twist'] = []
 
         # joints
         for j in self.jointList:
