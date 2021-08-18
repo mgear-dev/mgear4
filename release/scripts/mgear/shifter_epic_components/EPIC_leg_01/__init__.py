@@ -769,8 +769,8 @@ class Component(component.Main):
 
     def collect_build_data(self):
         component.Main.collect_build_data(self)
-        self.build_data['DataContracts'] = ["ik"]
-        self.build_data['ik'] = [
+        self.build_data['DataContracts'] = ["Ik"]
+        self.build_data['Ik'] = [
             self.jointList[0].name(),
             self.jointList[self.settings["div0"] + 1].name(),
             self.jointList[-1].name()]
