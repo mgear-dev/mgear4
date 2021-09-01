@@ -1,6 +1,6 @@
 
 import mgear.core.pyqt as gqt
-from toggleGeoVisibilityWidget import ToggleGeoVisibility
+from .toggleGeoVisibilityWidget import ToggleGeoVisibility
 
 QtGui, QtCore, QtWidgets, wrapInstance = gqt.qt_import()
 
