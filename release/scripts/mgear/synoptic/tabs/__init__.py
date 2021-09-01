@@ -222,11 +222,11 @@ class MainSynopticTab(QtWidgets.QDialog):
 
     def resetAll_clicked(self):
         # type: () -> None
-        print "resetAll"
+        print("resetAll")
 
     def resetSel_clicked(self):
         # type: () -> None
-        print "resetSel"
+        print("resetSel")
 
     def keyAll_clicked(self):
         # type: () -> None

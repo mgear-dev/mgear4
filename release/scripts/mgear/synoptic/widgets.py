@@ -39,7 +39,7 @@ class toggleCombo(QtWidgets.QComboBox):
     def handleChanged(self):
         if self.firstUpdate:
             if self.currentIndex() == self.count() - 1:
-                print "Space Transfer"
+                print("Space Transfer")
                 self.setCurrentIndex(utils.getComboIndex(
                     self.model, self.uihost_name, self.combo_attr))
                 utils.ParentSpaceTransfer.showUI(self,
