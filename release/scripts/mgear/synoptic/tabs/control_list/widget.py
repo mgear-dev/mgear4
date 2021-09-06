@@ -1,5 +1,5 @@
 import mgear.core.pyqt as gqt
-from searchControlsWidget import ControlListerUI
+from .searchControlsWidget import ControlListerUI
 
 QtGui, QtCore, QtWidgets, wrapInstance = gqt.qt_import()
 
