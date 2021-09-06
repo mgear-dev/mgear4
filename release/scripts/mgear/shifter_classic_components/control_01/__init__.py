@@ -3,7 +3,7 @@
 from mgear.shifter import component
 
 from mgear.core import attribute, transform, primitive
-
+from pymel.core import datatypes
 
 #############################################
 # COMPONENT
@@ -53,9 +53,13 @@ class Component(component.Main):
                   ["tx", "ty", "tz", "ro", "rx", "ry", "rz", "sx", "sy", "sz"]
                   if self.settings["k_" + s]]
         attribute.setKeyableAttributes(self.ctl, params)
-
         if self.settings["joint"]:
-            self.jnt_pos.append([self.ctl, 0, None, self.settings["uniScale"]])
+            # TODO WIP: add new attr for seeting leaf joint + not build objcts
+            if False:
+                self.jnt_pos.append([t, 0, None, self.settings["uniScale"]])
+            else:
+                self.jnt_pos.append(
+                    [self.ctl, 0, None, self.settings["uniScale"]])
 
     def addAttributes(self):
         # Ref

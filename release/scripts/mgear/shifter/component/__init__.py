@@ -344,9 +344,13 @@ class Main(object):
                 jnt = pm.ls(rule_name)[0]
                 keep_off = True
             else:
+                if isinstance(obj, datatypes.Matrix):
+                    t = obj
+                else:
+                    t = transform.getTransform(obj)
                 jnt = primitive.addJoint(self.active_jnt,
                                          customName or rule_name,
-                                         transform.getTransform(obj))
+                                         t)
                 keep_off = False
 
             # check if already have connections
@@ -374,42 +378,49 @@ class Main(object):
                     rot_off = [0, 0, 0]
 
                 else:
-                    driver = obj
-                    rot_off = rot_off
-                cns_m = applyop.gear_matrix_cns(
-                    driver, jnt, rot_off=rot_off)
+                    if isinstance(obj, datatypes.Matrix):
+                        driver = None
+                        jnt.setMatrix(obj, worldSpace=True)
 
-                # invert negative scaling in Joints. We only inver Z axis, so
-                # is the only axis that we are checking
-                if jnt.scaleZ.get() < 0:
-                    cns_m.scaleMultZ.set(-1.0)
-                    cns_m.rotationMultX.set(-1.0)
-                    cns_m.rotationMultY.set(-1.0)
+                    else:
+                        driver = obj
+                        rot_off = rot_off
 
-                # if unifor scale is False by default. It can be forced using
-                # uniScale arg or set from the ui
-                if self.options["force_uniScale"]:
-                    UniScale = True
-                if UniScale:
-                    jnt.disconnectAttr("scale")
-                    pm.connectAttr(cns_m.scaleZ, jnt.sx)
-                    pm.connectAttr(cns_m.scaleZ, jnt.sy)
-                    pm.connectAttr(cns_m.scaleZ, jnt.sz)
+                if driver:
+                    cns_m = applyop.gear_matrix_cns(
+                        driver, jnt, rot_off=rot_off)
 
-                # Segment scale compensate Off to avoid issues with the global
-                # scale
-                jnt.setAttr("segmentScaleCompensate", segComp)
+                    # invert negative scaling in Joints. We only inver Z axis,
+                    # so is the only axis that we are checking
+                    if jnt.scaleZ.get() < 0:
+                        cns_m.scaleMultZ.set(-1.0)
+                        cns_m.rotationMultX.set(-1.0)
+                        cns_m.rotationMultY.set(-1.0)
 
-                if not keep_off:
-                    # setting the joint orient compensation in order to have
-                    # clean rotation channels
-                    jnt.setAttr("jointOrient", 0, 0, 0)
-                    m = cns_m.drivenRestMatrix.get()
-                    tm = datatypes.TransformationMatrix(m)
-                    r = datatypes.degrees(tm.getRotation())
-                    jnt.attr("jointOrientX").set(r[0])
-                    jnt.attr("jointOrientY").set(r[1])
-                    jnt.attr("jointOrientZ").set(r[2])
+                    # if unifor scale is False by default. It can be forced
+                    # using uniScale arg or set from the ui
+                    if self.options["force_uniScale"]:
+                        UniScale = True
+                    if UniScale:
+                        jnt.disconnectAttr("scale")
+                        pm.connectAttr(cns_m.scaleZ, jnt.sx)
+                        pm.connectAttr(cns_m.scaleZ, jnt.sy)
+                        pm.connectAttr(cns_m.scaleZ, jnt.sz)
+
+                    # Segment scale compensate Off to avoid issues with the
+                    # global scale
+                    jnt.setAttr("segmentScaleCompensate", segComp)
+
+                    if not keep_off:
+                        # setting the joint orient compensation in order to
+                        # have clean rotation channels
+                        jnt.setAttr("jointOrient", 0, 0, 0)
+                        m = cns_m.drivenRestMatrix.get()
+                        tm = datatypes.TransformationMatrix(m)
+                        r = datatypes.degrees(tm.getRotation())
+                        jnt.attr("jointOrientX").set(r[0])
+                        jnt.attr("jointOrientY").set(r[1])
+                        jnt.attr("jointOrientZ").set(r[2])
 
                 # set not keyable
                 attribute.setNotKeyableAttributes(jnt)
