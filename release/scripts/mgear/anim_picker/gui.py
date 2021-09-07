@@ -72,7 +72,7 @@ MAYA_OVERRIDE_COLOR = {
     13: [255, 0, 0],
     14: [0, 255, 0],
     15: [0, 13, 81],
-    16: [1, 1, 1],
+    16: [255, 255, 255],
     17: [255, 255, 0],
     18: [32, 183, 255],
     19: [14, 255, 93],
@@ -128,7 +128,8 @@ class APPassthroughEventFilter(QtCore.QObject):
         if QtCompat.isValid(self.APUI):
             modifiers = QtWidgets.QApplication.queryKeyboardModifiers()
             auto_state = self.APUI.auto_opacity_btn.isChecked()
-            flag_state = self.APUI.testAttribute(QtCore.Qt.WA_TransparentForMouseEvents)
+            flag_state = self.APUI.testAttribute(
+                QtCore.Qt.WA_TransparentForMouseEvents)
             if auto_state and modifiers == QtCore.Qt.ShiftModifier:
                 # if the window is passthrough enabled
                 if flag_state:
@@ -146,7 +147,8 @@ class APPassthroughEventFilter(QtCore.QObject):
                 self.deleteLater()
             except RuntimeError:
                 pass
-        return super(APPassthroughEventFilter, self).eventFilter(QObject, event)
+        return super(APPassthroughEventFilter, self).eventFilter(QObject,
+                                                                 event)
 
 
 class OrderedGraphicsScene(QtWidgets.QGraphicsScene):
@@ -407,9 +409,8 @@ class GraphicViewWidget(QtWidgets.QGraphicsView):
                     if picker_at not in pickers:
                         pickers.append(picker_at)
                     for picker in pickers:
-                        self.tmp_picker_pos_info[picker.uuid] = [picker.x(),
-                                                                 picker.y(),
-                                                                 picker.rotation()]
+                        pt = [picker.x(), picker.y(), picker.rotation()]
+                        self.tmp_picker_pos_info[picker.uuid] = pt
                     # undo ---------------------------------------------------
                     if event.modifiers():
                         # this allows for shift selecting in edit
@@ -434,12 +435,14 @@ class GraphicViewWidget(QtWidgets.QGraphicsView):
             self.zoom_active = True
             self.setDragMode(self.ScrollHandDrag)
             self.scene_mouse_origin = self.mapToGlobal(event.pos())
-            cursor_pos = QtGui.QVector2D(self.mapToGlobal(self.scene_mouse_origin))
+            cursor_pos = QtGui.QVector2D(
+                self.mapToGlobal(self.scene_mouse_origin))
             screen = QtWidgets.QApplication.instance().primaryScreen()
             rect = screen.availableGeometry()
             self.top_left_pos = QtGui.QVector2D(rect.topLeft())
             self.zoom_delta = self.top_left_pos.distanceToPoint(cursor_pos)
-            self.setTransformationAnchor(QtWidgets.QGraphicsView.AnchorViewCenter)
+            self.setTransformationAnchor(
+                QtWidgets.QGraphicsView.AnchorViewCenter)
 
     def mouseMoveEvent(self, event):
         result = QtWidgets.QGraphicsView.mouseMoveEvent(self, event)
@@ -458,8 +461,8 @@ class GraphicViewWidget(QtWidgets.QGraphicsView):
             current_center = self.get_center_pos()
             scene_paning = self.mapToScene(event.pos())
 
-            new_center = current_center - (scene_paning -
-                                           self.scene_mouse_origin)
+            new_center = current_center - (scene_paning
+                                           - self.scene_mouse_origin)
             self.centerOn(new_center)
 
         if self.zoom_active:
@@ -480,8 +483,8 @@ class GraphicViewWidget(QtWidgets.QGraphicsView):
         '''Overload to clear selection on empty area
         '''
         result = QtWidgets.QGraphicsView.mouseReleaseEvent(self, event)
-        if (not self.drag_active and
-            event.button() == QtCore.Qt.LeftButton and not
+        if (not self.drag_active
+            and event.button() == QtCore.Qt.LeftButton and not
                 self.modified_select):
             self.modified_select = False
             scene_pos = self.mapToScene(event.pos())
@@ -507,14 +510,16 @@ class GraphicViewWidget(QtWidgets.QGraphicsView):
                 picker = self.scene().get_picker_by_uuid(picker_uuid)
                 if picker is None:
                     continue
-                self.tmp_picker_pos_info[picker_uuid].extend([picker.x(),
-                                                              picker.y(),
-                                                              picker.rotation()])
+                pt = [picker.x(), picker.y(), picker.rotation()]
+                self.tmp_picker_pos_info[picker_uuid].extend(pt)
             if self.undo_move_order_index in [-1]:
-                self.undo_move_order.append(copy.deepcopy(self.tmp_picker_pos_info))
+                self.undo_move_order.append(
+                    copy.deepcopy(self.tmp_picker_pos_info))
             else:
-                self.undo_move_order = self.undo_move_order[:self.undo_move_order_index]
-                self.undo_move_order.append(copy.deepcopy(self.tmp_picker_pos_info))
+                self.undo_move_order = self.undo_move_order[
+                    :self.undo_move_order_index]
+                self.undo_move_order.append(
+                    copy.deepcopy(self.tmp_picker_pos_info))
             self.undo_move_order_index = -1
         self.__move_prompt = None
         self.tmp_picker_pos_info = {}
@@ -552,8 +557,8 @@ class GraphicViewWidget(QtWidgets.QGraphicsView):
             current_center = self.get_center_pos()
             scene_drag_end = self.mapToScene(event.pos())
 
-            new_center = current_center - (scene_drag_end -
-                                           self.scene_mouse_origin)
+            new_center = current_center - (scene_drag_end
+                                           - self.scene_mouse_origin)
             self.centerOn(new_center)
             self.pan_active = False
             self.setDragMode(self.RubberBandDrag)
@@ -599,7 +604,8 @@ class GraphicViewWidget(QtWidgets.QGraphicsView):
             return
         if self.undo_move_order_index > 0:
             self.undo_move_order_index = self.undo_move_order_index - 1
-        for picker_uuid, undo_pos in self.undo_move_order[self.undo_move_order_index].items():
+        undo_items = self.undo_move_order[self.undo_move_order_index].items()
+        for picker_uuid, undo_pos in undo_items:
             picker = self.scene().get_picker_by_uuid(picker_uuid)
             if not picker:
                 continue
@@ -616,7 +622,8 @@ class GraphicViewWidget(QtWidgets.QGraphicsView):
         if self.undo_move_order_index == -1:
             return
         if self.undo_move_order_index < undo_len:
-            for picker_uuid, undo_pos in self.undo_move_order[self.undo_move_order_index].items():
+            undo_index = self.undo_move_order[self.undo_move_order_index]
+            for picker_uuid, undo_pos in undo_index.items():
                 picker = self.scene().get_picker_by_uuid(picker_uuid)
                 if not picker:
                     continue
@@ -634,12 +641,12 @@ class GraphicViewWidget(QtWidgets.QGraphicsView):
         """
         if __EDIT_MODE__.get():
             modifiers = event.modifiers()
-            if (modifiers == QtCore.Qt.ControlModifier and
-                    event.key() == QtCore.Qt.Key_Z):
+            if (modifiers == QtCore.Qt.ControlModifier
+                    and event.key() == QtCore.Qt.Key_Z):
                 self.undo_move()
                 event.accept()
-            elif (modifiers == QtCore.Qt.ControlModifier and
-                    event.key() == QtCore.Qt.Key_Y):
+            elif (modifiers == QtCore.Qt.ControlModifier
+                    and event.key() == QtCore.Qt.Key_Y):
                 self.redo_move()
                 event.accept()
             else:
@@ -677,13 +684,15 @@ class GraphicViewWidget(QtWidgets.QGraphicsView):
             menu.addAction(add_action)
 
             add_action1 = QtWidgets.QAction("Add with selected", None)
-            add_action1.triggered.connect(partial(self.add_picker_item_selected,
-                                                  mapped_pos))
+            add_action1.triggered.connect(
+                partial(self.add_picker_item_selected,
+                        mapped_pos))
             menu.addAction(add_action1)
 
             add_action2 = QtWidgets.QAction("Add item per selected", None)
-            add_action2.triggered.connect(partial(self.add_picker_item_per_selected,
-                                                  mapped_pos))
+            add_action2.triggered.connect(
+                partial(self.add_picker_item_per_selected,
+                        mapped_pos))
             menu.addAction(add_action2)
 
             toggle_handles_action = QtWidgets.QAction("Toggle all handles",
@@ -754,14 +763,18 @@ class GraphicViewWidget(QtWidgets.QGraphicsView):
         reset_view_action = QtWidgets.QAction("Reset view", None)
         reset_view_action.triggered.connect(self.fit_scene_content)
         menu.addAction(reset_view_action)
-        frame_selection_view_action = QtWidgets.QAction("Frame Selection", None)
-        frame_selection_view_action.triggered.connect(self.fit_selection_content)
+        frame_selection_view_action = QtWidgets.QAction(
+            "Frame Selection", None)
+        frame_selection_view_action.triggered.connect(
+            self.fit_selection_content)
         menu.addAction(frame_selection_view_action)
 
-        auto_frame_selection_view_action = QtWidgets.QAction("Auto Frame view", None)
+        auto_frame_selection_view_action = QtWidgets.QAction(
+            "Auto Frame view", None)
         auto_frame_selection_view_action.setCheckable(True)
         auto_frame_selection_view_action.setChecked(self.auto_frame_active)
-        auto_frame_selection_view_action.triggered.connect(self.set_auto_frame_view)
+        auto_frame_selection_view_action.triggered.connect(
+            self.set_auto_frame_view)
         menu.addAction(auto_frame_selection_view_action)
 
         # Open context menu under mouse
@@ -908,7 +921,8 @@ class GraphicViewWidget(QtWidgets.QGraphicsView):
         Make new pickers selected
         """
         global _CLIPBOARD
-        [x.set_selected_state(False) for x in self.scene().get_selected_items()]
+        [x.set_selected_state(False)
+         for x in self.scene().get_selected_items()]
         for data in _CLIPBOARD:
             ctrl = self.add_picker_item(event=None)
             ctrl.set_data(data)
@@ -1071,7 +1085,8 @@ class GraphicViewWidget(QtWidgets.QGraphicsView):
                 aspect_size = self.background_image.scaledToWidth(width).size()
                 width, height = aspect_size.width(), aspect_size.height()
             elif current_height != height:
-                aspect_size = self.background_image.scaledToHeight(height).size()
+                aspect_size = self.background_image.scaledToHeight(
+                    height).size()
                 width, height = aspect_size.width(), aspect_size.height()
         # TODO find if this is the most efficient way to achieve this
         self.background_image = self.background_image.scaled(width, height)
@@ -1248,15 +1263,9 @@ class GraphicViewWidget(QtWidgets.QGraphicsView):
                                    0, rect.height() + rect.y())
             painter.drawLine(y_line)
 
-    def convert_picker_to_curves(self, factor=0.1, background_fade=0.5, showCVs=True):
+    def convert_picker_to_curves(self):
         """Convert the pickernodes from the view into maya curves for easier
         editing.
-
-        Args:
-            factor (float, optional): scale factor
-            background_fade (float, optional): alpha on the image place
-            showCVs (bool, optional): show the cv pivots
-
 
         Returns:
             n/a: n/a
@@ -1282,77 +1291,112 @@ class GraphicViewWidget(QtWidgets.QGraphicsView):
             grp = pm.PyNode(PICKER_EXTRACTION_NAME)
         else:
             grp = pm.group(em=True, n=PICKER_EXTRACTION_NAME)
+            attribute.lockAttribute(grp)
 
         # deletes existing tab group and recreates it
         if pm.objExists(tab["name"]):
             pm.delete(tab["name"])
         picker_grp = pm.group(em=True, n=tab["name"], p=grp)
+        picker_grp.sy >> picker_grp.sx
+        attribute.lockAttribute(
+            picker_grp, ["tz", "rx", "ry", "rz", "sx", "sz", "v"])
+
         if "background" in tab["data"]:
+            attribute.addAttribute(picker_grp,
+                                   'backgroundAlpha',
+                                   "float",
+                                   0.5,
+                                   minValue=0,
+                                   maxValue=1)
+            attribute.addAttribute(picker_grp, 'backgroundWidth', "long", tab[
+                                   "data"]["background_size"][0], minValue=1)
+            attribute.addAttribute(picker_grp, 'backgroundHeight', "long", tab[
+                                   "data"]["background_size"][1], minValue=1)
             ip = pm.imagePlane(n="{}_background".format(tab["name"]))
             ip[0].tz.set(-1)
             ip[0].overrideEnabled.set(1)
             ip[0].overrideDisplayType.set(2)
-            ip[1].alphaGain.set(background_fade)
             pm.parent(ip[0], picker_grp)
-            q_image = QtGui.QImage(tab["data"]["background"])
+
+            picker_grp.backgroundAlpha >> ip[1].alphaGain
+            picker_grp.backgroundWidth >> ip[1].width
+            picker_grp.backgroundHeight >> ip[1].height
 
             ip[1].imageName.set(tab["data"]["background"])
-            ip[1].width.set(q_image.size().width() * factor)
-            ip[1].height.set(q_image.size().height() * factor)
 
-        for item in tab["data"]["items"]:
-            handles = item["handles"]
-            pos_x, pos_y = item["position"]
+        if "items" in tab["data"]:
+            for item in tab["data"]["items"]:
+                handles = item["handles"]
+                pos_x, pos_y = item["position"]
+                rot_z = item["rotation"]
 
-            item_curve = pm.circle(d=1, s=len(item["handles"]), ch=False)[0]
-            pm.parent(item_curve, picker_grp)
-            pm.closeCurve(item_curve, ch=False, ps=2, rpo=True)
-            item_curve.displayHandle.set(1)
-            if showCVs:
+                if len(handles) > 2:
+                    item_curve = pm.circle(d=1, s=len(
+                        item["handles"]), ch=False)[0]
+
+                    for i, (x, y) in enumerate(handles):
+                        item_curve.getShape().controlPoints[i].set(x, y, 0)
+                    item_curve.getShape().controlPoints[
+                        i + 1].set(handles[0][0], handles[0][1], 0)
+
+                # special case for circles
+                elif len(handles) == 2:
+                    item_curve = pm.curve(p=[[handles[0][0],
+                                              handles[0][1],
+                                              0.0],
+                                             [handles[1][0],
+                                              handles[1][1],
+                                              0.0]],
+                                          d=1)
+                    poci = pm.createNode("pointOnCurveInfo")
+                    item_curve.getShape().worldSpace >> poci.inputCurve
+                    curve_len = pm.arclen(item_curve, ch=True)
+
+                    display_curve = pm.circle(d=3, s=6, ch=False)[0]
+                    pm.parent(display_curve, item_curve)
+                    display_curve.getShape().overrideEnabled.set(1)
+                    display_curve.getShape().overrideDisplayType.set(2)
+                    display_curve.inheritsTransform.set(0)
+
+                    curve_len.arcLength >> display_curve.sx
+                    curve_len.arcLength >> display_curve.sy
+                    curve_len.arcLength >> display_curve.sz
+                    poci.position >> display_curve.t
+
+                pm.parent(item_curve, picker_grp)
+
+                q_color = QtGui.QColor(*item["color"])
+                attribute.addColorAttribute(
+                    item_curve, "color", q_color.getRgbF()[:3])
+                attribute.addAttribute(item_curve, "alpha", "long", item[
+                                       "color"][3], minValue=0, maxValue=255)
+
+                item_curve.t.set(pos_x, pos_y, 0)
+                item_curve.rz.set(rot_z)
+                item_curve.displayHandle.set(1)
                 item_curve.getShape().dispCV.set(1)
+                item_curve.overrideEnabled.set(1)
+                item_curve.overrideRGBColors.set(1)
+                item_curve.color >> item_curve.overrideColorRGB
+                item_curve.scalePivot >> item_curve.selectHandle
+                attribute.lockAttribute(
+                    item_curve, ["tz", "rx", "ry", "sz", "v"])
 
-            q_color = QtGui.QColor(*item["color"])
-            attribute.addColorAttribute(item_curve, "color", q_color.getRgbF()[:3])
-            attribute.addAttribute(item_curve, "alpha", "long", item["color"][3], minValue=0, maxValue=255)
+                # this will save all the data that is not needed for display
+                # purposes to an attr
+                ignore_list = ("position", "rotation", "handles", "color")
+                item_data = {}
 
-            item_curve.overrideEnabled.set(1)
-            item_curve.overrideRGBColors.set(1)
-            item_curve.color >> item_curve.overrideColorRGB
-            item_curve.rotatePivot >> item_curve.selectHandle
+                for key in item.keys():
+                    if key not in ignore_list:
+                        item_data[key] = item[key]
 
-            if "controls" in list(item.keys()):
-                attribute.addAttribute(item_curve,
-                                       "controls",
-                                       "string",
-                                       json.dumps(item["controls"]))
-
-            if "action_mode" in list(item.keys()):
-                attribute.addAttribute(item_curve,
-                                       "action_mode",
-                                       "bool",
-                                       item["action_mode"])
-                attribute.addAttribute(item_curve,
-                                       "action_script",
-                                       "string",
-                                       item["action_script"])
-
-            if "menus" in list(item.keys()):
-                attribute.addAttribute(item_curve,
-                                       "menus",
-                                       "string",
-                                       json.dumps(item["menus"]))
-
-            if "text" in list(item.keys()):
-                attribute.addAttribute(item_curve,
-                                       "text_data",
-                                       "string",
-                                       json.dumps({"text": item["text"],
-                                                   "text_color": item["text_color"],
-                                                   "text_size": item["text_size"]}))
-
-            for i, (x, y) in enumerate(handles):
-                item_curve.getShape().controlPoints[i].set(x * factor, y * factor, 0)
-            item_curve.t.set(pos_x * factor, pos_y * factor, 0)
+                if item_data:
+                    attribute.addAttribute(item_curve,
+                                           "itemData",
+                                           "string",
+                                           json.dumps(item_data))
+                    item_curve.itemData.set(lock=True)
 
     def delete_extraction_grp(self):
         """delete extraction group
@@ -1362,31 +1406,29 @@ class GraphicViewWidget(QtWidgets.QGraphicsView):
         except Exception as e:
             print(e)
 
-    def convert_curves_to_picker(self, factor=0.1, deleteCurves=False):
+    def convert_curves_to_picker(self):
         """get the information from the created picker curves and reset the
         information on the picker data node the anim picker operates on
-
-        Args:
-            factor (float, optional): scale factor
-            deleteCurves (bool, optional): delete curves
-
         """
         grp = pm.PyNode(PICKER_EXTRACTION_NAME)
         new_data = {"tabs": []}
-        upscale = lambda x, y: [x * (1 / factor), y * (1 / factor)]
 
         for tab_grp in grp.listRelatives():
             new_data["tabs"].append({"name": tab_grp.name()})
             new_data["tabs"][-1]["data"] = {"items": []}
             bg_imagePlane = tab_grp.listRelatives(type="imagePlane", ad=True)
-            if bg_imagePlane:
-                new_data["tabs"][-1]["data"]["background"] = bg_imagePlane[0].imageName.get()
 
-            for item_curve in [ic for ic in tab_grp.listRelatives() if ic.getShape().type() != "imagePlane"]:
+            if bg_imagePlane:
+                image_name = bg_imagePlane[0].imageName.get()
+                new_data[
+                    "tabs"][-1]["data"]["background"] = image_name
+                new_data["tabs"][-1]["data"]["background_size"] = [
+                    bg_imagePlane[0].width.get(),
+                    bg_imagePlane[0].height.get()]
+
+            for item_curve in [ic for ic in tab_grp.listRelatives() if
+                               ic.getShape().type() != "imagePlane"]:
                 item_data = {}
-                if item_curve.hasAttr("action_mode"):
-                    item_data["action_mode"] = True
-                    item_data["action_script"] = item_curve.action_script.get()
 
                 # color
                 q_color = QtGui.QColor()
@@ -1394,40 +1436,43 @@ class GraphicViewWidget(QtWidgets.QGraphicsView):
                 q_color.setAlpha(item_curve.alpha.get())
                 item_data["color"] = q_color.getRgb()
 
-                # controls
-                if item_curve.hasAttr("controls"):
-                    item_data["controls"] = json.loads(item_curve.controls.get())
+                # position and rotation
+                item_piv = pm.dt.Point(
+                    item_curve.getPivots(worldSpace=True)[0])
+                piv_offset = item_piv * item_curve.worldInverseMatrix.get()
+                item_pos = item_piv * tab_grp.worldInverseMatrix.get()
 
-                # position
-                item_data["position"] = upscale(*list(item_curve.getPivots(ws=True))[0][:2])
+                item_data["position"] = [item_pos.x, item_pos.y]
+                item_data["rotation"] = item_curve.rz.get()
 
                 # handles
-                item_curve.f.get()
                 handles = []
-                for cv in item_curve.cv[:-1 if item_curve.f.get() == 0 else None]:
-                    x, y = upscale(*cv.getPosition(space="world")[:2])
-                    handles.append([x - item_data["position"][0], y - item_data["position"][1]])
+                item_scale = [item_curve.sx.get(), item_curve.sy.get()]
+                for cv in item_curve.cv:
+                    x, y = cv.getPosition(space="object")[:2]
+                    handles.append(
+                        [(x - piv_offset.x) * item_scale[0],
+                         (y - piv_offset.y) * item_scale[1]])
+
+                # if the first and last points are the same then ignore the
+                # last one.
+                if handles[0] == handles[-1]:
+                    handles = handles[:-1]
                 item_data["handles"] = handles
 
-                # menus
-                if item_curve.hasAttr("menus"):
-                    item_data["menus"] = json.loads(item_curve.menus.get())
-                # text
-                if item_curve.hasAttr("text_data"):
-                    item_data.update(json.loads(item_curve.text_data.get()))
+                if pm.hasAttr(item_curve, 'itemData'):
+                    item_data.update(json.loads(item_curve.itemData.get()))
 
                 new_data["tabs"][-1]["data"]["items"].append(item_data)
-
-        if deleteCurves:
-            self.delete_extraction_grp()
 
         data_node = self.main_window.get_current_data_node()
         if not (data_node and data_node.exists()):
             return True
         data_node = pm.PyNode(data_node)
-        data_node.picker_datas.set(l=False)
-        data_node.picker_datas.set(json.dumps(new_data).replace("true", "True"))
-        data_node.picker_datas.set(l=True)
+        data_node.picker_datas.set(lock=False)
+        data_node.picker_datas.set(json.dumps(
+            new_data).replace("true", "True"))
+        data_node.picker_datas.set(lock=True)
 
         self.main_window.refresh()
 
@@ -1521,12 +1566,13 @@ class ContextMenuTabWidget(QtWidgets.QTabWidget):
         index = self.currentIndex()
 
         # Open confirmation
-        reply = QtWidgets.QMessageBox.question(self,
-                                               "Delete",
-                                               "Delete tab '{}'?".format(
-                                                   self.tabText(index)),
-                                               QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No,
-                                               QtWidgets.QMessageBox.No)
+        reply = QtWidgets.QMessageBox.question(
+            self,
+            "Delete",
+            "Delete tab '{}'?".format(
+                self.tabText(index)),
+            QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No,
+            QtWidgets.QMessageBox.No)
         if reply == QtWidgets.QMessageBox.No:
             return
 
@@ -1572,7 +1618,9 @@ class ContextMenuTabWidget(QtWidgets.QTabWidget):
         for tab in data:
             view = GraphicViewWidget(namespace=self.get_namespace(),
                                      main_window=self.main_window)
-            self.addTab(view, tab.get('name', 'default'))
+            # changed name to default1 as maya wont let you make a group called
+            # 'default' for curve extraction.
+            self.addTab(view, tab.get('name', 'default1'))
 
             tab_content = tab.get('data', None)
             if tab_content:
@@ -1642,7 +1690,8 @@ class MainDockWindow(QtWidgets.QWidget):
             self.auto_opacity_btn = QtWidgets.QPushButton("Auto opacity")
             self.auto_opacity_btn.setCheckable(True)
             self.auto_opacity_btn.toggled.connect(self.change_opacity)
-            self.auto_opacity_btn.toggled.connect(self.toggle_passthrough_eventFilter)
+            self.auto_opacity_btn.toggled.connect(
+                self.toggle_passthrough_eventFilter)
             self.installEventFilter(self)
             opacity_layout.addWidget(self.opacity_slider)
             opacity_layout.addWidget(self.auto_opacity_btn)
@@ -1675,7 +1724,8 @@ class MainDockWindow(QtWidgets.QWidget):
         """
         if state and self.passthrough_eventFilter_installed:
             self.setAttribute(QtCore.Qt.WA_TransparentForMouseEvents, True)
-            self.setWindowFlags(self.original_flags & QtCore.Qt.WA_TransparentForMouseEvents)
+            self.setWindowFlags(self.original_flags
+                                & QtCore.Qt.WA_TransparentForMouseEvents)
             self.show()
         elif state and not self.passthrough_eventFilter_installed:
             self.toggle_passthrough_eventFilter()
@@ -1703,7 +1753,8 @@ class MainDockWindow(QtWidgets.QWidget):
 
         if event.type() == QtCore.QEvent.Type.Enter:
             shift_state = modifiers == QtCore.Qt.ShiftModifier
-            flag_state = self.testAttribute(QtCore.Qt.WA_TransparentForMouseEvents)
+            flag_state = self.testAttribute(
+                QtCore.Qt.WA_TransparentForMouseEvents)
             if self.auto_opacity_btn.isChecked():
                 if flag_state and shift_state:
                     self.setWindowOpacity(100)
@@ -1714,7 +1765,8 @@ class MainDockWindow(QtWidgets.QWidget):
         else:
             if event.type() == QtCore.QEvent.Type.Leave:
                 opacity_state = self.auto_opacity_btn.isChecked()
-                flag_state = self.testAttribute(QtCore.Qt.WA_TransparentForMouseEvents)
+                flag_state = self.testAttribute(
+                    QtCore.Qt.WA_TransparentForMouseEvents)
                 if opacity_state:
                     pos = QtGui.QCursor().pos()
                     widgetRect = self.geometry()
@@ -1834,14 +1886,16 @@ class MainDockWindow(QtWidgets.QWidget):
         self.save_char_btn = None
         if __EDIT_MODE__.get():
             # Add New  button
-            self.new_char_btn = basic.CallbackButton(callback=self.new_character)
+            self.new_char_btn = basic.CallbackButton(
+                callback=self.new_character)
             self.new_char_btn.setText("New")
             self.new_char_btn.setFixedWidth(pyqt.dpi_scale(40))
 
             btns_layout.addWidget(self.new_char_btn)
 
             # Add Save  button
-            self.save_char_btn = basic.CallbackButton(callback=self.save_character)
+            self.save_char_btn = basic.CallbackButton(
+                callback=self.save_character)
             self.save_char_btn.setText("Save")
             self.save_char_btn.setFixedWidth(pyqt.dpi_scale(40))
 
@@ -2122,10 +2176,11 @@ class MainDockWindow(QtWidgets.QWidget):
 
         # Open question window
         msg = "Any changes will be lost, proceed any way ?"
-        answer = QtWidgets.QMessageBox.question(self,
-                                                "Changes detected",
-                                                msg,
-                                                buttons=QtWidgets.QMessageBox.No | QtWidgets.QMessageBox.Yes)
+        answer = QtWidgets.QMessageBox.question(
+            self,
+            "Changes detected",
+            msg,
+            buttons=QtWidgets.QMessageBox.No | QtWidgets.QMessageBox.Yes)
         return answer == QtWidgets.QMessageBox.Yes
 
     def get_current_namespace(self):
@@ -2293,4 +2348,5 @@ def load(edit=False, dockable=False):
     else:
         ANIM_PKR_UI = MainDockWindow(parent=pyqt.get_main_window(), edit=edit)
         ANIM_PKR_UI.show()
+
     return ANIM_PKR_UI

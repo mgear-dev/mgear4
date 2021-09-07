@@ -1894,20 +1894,22 @@ class PickerItem(DefaultPolygon):
         unit_scale = 20
         handles = []
 
-        # Define angle step
-        angle_step = pi * 2 / self.point_count
-
-        # Generate point coordinates
-        for i in range(0, self.point_count):
-            x = sin(i * angle_step + pi / self.point_count) * unit_scale
-            y = cos(i * angle_step + pi / self.point_count) * unit_scale
-            handle = PointHandle(x=x, y=y, parent=self, index=i + 1)
-            handles.append(handle)
-
         # Circle case
-        if len(handles) == 2:
-            handles.reverse()
-            handles[0] = handles[0] + (handles[1] - handles[0]) / 2
+        if self.point_count == 2:
+            handle_a = PointHandle(x=0.0, y=0.0, parent=self, index=1)
+            handle_b = PointHandle(x=1.0 * unit_scale, y=0.0, parent=self, index=2)
+            handles = [handle_a, handle_b]
+
+        else:
+            # Define angle step
+            angle_step = pi * 2 / self.point_count
+
+            # Generate point coordinates
+            for i in range(0, self.point_count):
+                x = sin(i * angle_step + pi / self.point_count) * unit_scale
+                y = cos(i * angle_step + pi / self.point_count) * unit_scale
+                handle = PointHandle(x=x, y=y, parent=self, index=i + 1)
+                handles.append(handle)
 
         return handles
 
@@ -1940,6 +1942,7 @@ class PickerItem(DefaultPolygon):
         new_handles = []
         # start index at 1 since table Widget raw are indexed at 1
         index = 1
+
         for handle in handles:
             if isinstance(handle, (list, tuple)):
                 handle = PointHandle(x=handle[0],
