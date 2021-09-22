@@ -406,21 +406,32 @@ class Main(object):
                         pm.connectAttr(cns_m.scaleZ, jnt.sx)
                         pm.connectAttr(cns_m.scaleZ, jnt.sy)
                         pm.connectAttr(cns_m.scaleZ, jnt.sz)
+                else:
+                    cns_m = None
 
-                    # Segment scale compensate Off to avoid issues with the
-                    # global scale
-                    jnt.setAttr("segmentScaleCompensate", segComp)
+                # Segment scale compensate Off to avoid issues with the
+                # global scale
+                jnt.setAttr("segmentScaleCompensate", segComp)
 
-                    if not keep_off:
-                        # setting the joint orient compensation in order to
-                        # have clean rotation channels
-                        jnt.setAttr("jointOrient", 0, 0, 0)
+                if not keep_off:
+                    # setting the joint orient compensation in order to
+                    # have clean rotation channels
+                    jnt.setAttr("jointOrient", 0, 0, 0)
+                    if cns_m:
                         m = cns_m.drivenRestMatrix.get()
-                        tm = datatypes.TransformationMatrix(m)
-                        r = datatypes.degrees(tm.getRotation())
-                        jnt.attr("jointOrientX").set(r[0])
-                        jnt.attr("jointOrientY").set(r[1])
-                        jnt.attr("jointOrientZ").set(r[2])
+                    else:
+                        driven_m = pm.getAttr(jnt + ".parentInverseMatrix[0]")
+                        m = t * driven_m
+                        jnt.attr("rotateX").set(0)
+                        jnt.attr("rotateY").set(0)
+                        jnt.attr("rotateZ").set(0)
+                        if jnt.scaleZ.get() < 0:
+                            jnt.scaleZ.set(1)
+                    tm = datatypes.TransformationMatrix(m)
+                    r = datatypes.degrees(tm.getRotation())
+                    jnt.attr("jointOrientX").set(r[0])
+                    jnt.attr("jointOrientY").set(r[1])
+                    jnt.attr("jointOrientZ").set(r[2])
 
                 # set not keyable
                 attribute.setNotKeyableAttributes(jnt)

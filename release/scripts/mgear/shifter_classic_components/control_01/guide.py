@@ -72,6 +72,7 @@ class Guide(guide.ComponentGuide):
         self.pIkRefArray = self.addParam("ikrefarray", "string", "")
 
         self.pJoint = self.addParam("joint", "bool", False)
+        self.pLeafJoint = self.addParam("leafJoint", "bool", False)
         self.pJoint = self.addParam("uniScale", "bool", False)
 
         for s in ["tx", "ty", "tz", "ro", "rx", "ry", "rz", "sx", "sy", "sz"]:
@@ -95,6 +96,9 @@ class Guide(guide.ComponentGuide):
                           self.root.neutralRotation,
                           inverted=True,
                           width=.5 / size)
+        self.add_ref_joint(self.root,
+                           [self.root.leafJoint, self.root.joint],
+                           width=.1 / size)
 
 ##########################################################
 # Setting Page

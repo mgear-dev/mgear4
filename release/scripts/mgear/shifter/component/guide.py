@@ -623,6 +623,34 @@ class ComponentGuide(guide.Main):
             loc.addChild(shp, add=True, shape=True)
         pm.delete(axis)
 
+    def add_ref_joint(self, loc, vis_attr=None, width=.5):
+        """Add a visual reference joint to a locator or root of the guide
+
+        Args:
+            loc (dagNode): locator or guide root
+            vis_attr (attr list, optional): attribute to activate or deactivate
+                the visual ref. Should be a list [attr1, attr2]
+            width (float, optional): icon width
+        """
+        add_ref_joint = icon.sphere(loc,
+                                    self.getName("joint"),
+                                    width=width,
+                                    color=[0, 1, 0],
+                                    m=loc.getMatrix(worldSpace=True))
+        pm.parent(add_ref_joint, world=True)
+        pm.makeIdentity(add_ref_joint, apply=True,
+                        t=False, r=False, s=True, n=0)
+
+        for shp in add_ref_joint.getShapes():
+            if vis_attr:
+                node.createMulNode(vis_attr[0],
+                                   vis_attr[1],
+                                   shp.attr("visibility"))
+            shp.isHistoricallyInteresting.set(False)
+
+            loc.addChild(shp, add=True, shape=True)
+        pm.delete(add_ref_joint)
+
     def addLoc(self, name, parent, position=None):
         """Add a loc object to the guide.
 

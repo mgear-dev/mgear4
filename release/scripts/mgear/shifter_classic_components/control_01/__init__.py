@@ -4,6 +4,7 @@ from mgear.shifter import component
 
 from mgear.core import attribute, transform, primitive
 from pymel.core import datatypes
+import pymel.core as pm
 
 #############################################
 # COMPONENT
@@ -28,34 +29,39 @@ class Component(component.Main):
             else:
                 scl = [1, 1, 1]
             t = transform.setMatrixScale(t, scl)
+        if self.settings["joint"] and self.settings["leafJoint"]:
+            pm.displayInfo("Skipping ctl creation, just leaf joint")
+            self.have_ctl = False
+        else:
+            self.have_ctl = True
+            self.ik_cns = primitive.addTransform(
+                self.root, self.getName("ik_cns"), t)
 
-        self.ik_cns = primitive.addTransform(
-            self.root, self.getName("ik_cns"), t)
+            self.ctl = self.addCtl(self.ik_cns,
+                                   "ctl",
+                                   t,
+                                   self.color_ik,
+                                   self.settings["icon"],
+                                   w=self.settings["ctlSize"] * self.size,
+                                   h=self.settings["ctlSize"] * self.size,
+                                   d=self.settings["ctlSize"] * self.size,
+                                   tp=self.parentCtlTag,
+                                   guide_loc_ref="root")
 
-        self.ctl = self.addCtl(self.ik_cns,
-                               "ctl",
-                               t,
-                               self.color_ik,
-                               self.settings["icon"],
-                               w=self.settings["ctlSize"] * self.size,
-                               h=self.settings["ctlSize"] * self.size,
-                               d=self.settings["ctlSize"] * self.size,
-                               tp=self.parentCtlTag,
-                               guide_loc_ref="root")
+            # we need to set the rotation order before lock any rotation axis
+            if self.settings["k_ro"]:
+                rotOderList = ["XYZ", "YZX", "ZXY", "XZY", "YXZ", "ZYX"]
+                attribute.setRotOrder(
+                    self.ctl, rotOderList[self.settings["default_rotorder"]])
 
-        # we need to set the rotation order before lock any rotation axis
-        if self.settings["k_ro"]:
-            rotOderList = ["XYZ", "YZX", "ZXY", "XZY", "YXZ", "ZYX"]
-            attribute.setRotOrder(
-                self.ctl, rotOderList[self.settings["default_rotorder"]])
-
-        params = [s for s in
-                  ["tx", "ty", "tz", "ro", "rx", "ry", "rz", "sx", "sy", "sz"]
-                  if self.settings["k_" + s]]
-        attribute.setKeyableAttributes(self.ctl, params)
+            params = [s for s in
+                      ["tx", "ty", "tz", "ro", "rx",
+                       "ry", "rz", "sx", "sy", "sz"]
+                      if self.settings["k_" + s]]
+            attribute.setKeyableAttributes(self.ctl, params)
         if self.settings["joint"]:
             # TODO WIP: add new attr for seeting leaf joint + not build objcts
-            if False:
+            if self.settings["leafJoint"]:
                 self.jnt_pos.append([t, 0, None, self.settings["uniScale"]])
             else:
                 self.jnt_pos.append(
@@ -63,15 +69,16 @@ class Component(component.Main):
 
     def addAttributes(self):
         # Ref
-        if self.settings["ikrefarray"]:
-            ref_names = self.get_valid_alias_list(
-                self.settings["ikrefarray"].split(","))
-            if len(ref_names) > 1:
-                self.ikref_att = self.addAnimEnumParam(
-                    "ikref",
-                    "Ik Ref",
-                    0,
-                    ref_names)
+        if self.have_ctl:
+            if self.settings["ikrefarray"]:
+                ref_names = self.get_valid_alias_list(
+                    self.settings["ikrefarray"].split(","))
+                if len(ref_names) > 1:
+                    self.ikref_att = self.addAnimEnumParam(
+                        "ikref",
+                        "Ik Ref",
+                        0,
+                        ref_names)
 
     def addOperators(self):
         return
@@ -81,11 +88,16 @@ class Component(component.Main):
     # =====================================================
     def setRelation(self):
         """Set the relation beetween object from guide to rig"""
-        self.relatives["root"] = self.ctl
-        self.controlRelatives["root"] = self.ctl
+        if self.have_ctl:
+            self.relatives["root"] = self.ctl
+            self.controlRelatives["root"] = self.ctl
+
+        else:
+            self.relatives["root"] = self.root
+            self.controlRelatives["root"] = None
+
         if self.settings["joint"]:
             self.jointRelatives["root"] = 0
-
         self.aliasRelatives["root"] = "ctl"
 
     def addConnection(self):
