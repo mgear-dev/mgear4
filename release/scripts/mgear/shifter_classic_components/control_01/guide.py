@@ -168,6 +168,8 @@ class componentSettings(MayaQWidgetDockableMixin, guide.componentMainSettings):
         # populate component settings
 
         self.populateCheck(self.settingsTab.joint_checkBox, "joint")
+        self.enable_leaf_joint()
+        self.populateCheck(self.settingsTab.leafJoint_checkBox, "leafJoint")
         self.populateCheck(self.settingsTab.uniScale_checkBox, "uniScale")
         self.populateCheck(self.settingsTab.neutralRotation_checkBox,
                            "neutralRotation")
@@ -222,9 +224,15 @@ class componentSettings(MayaQWidgetDockableMixin, guide.componentMainSettings):
     def create_componentConnections(self):
 
         self.settingsTab.joint_checkBox.stateChanged.connect(
+            self.enable_leaf_joint)
+        self.settingsTab.joint_checkBox.stateChanged.connect(
             partial(self.updateCheck,
                     self.settingsTab.joint_checkBox,
                     "joint"))
+        self.settingsTab.leafJoint_checkBox.stateChanged.connect(
+            partial(self.updateCheck,
+                    self.settingsTab.leafJoint_checkBox,
+                    "leafJoint"))
         self.settingsTab.uniScale_checkBox.stateChanged.connect(
             partial(self.updateCheck,
                     self.settingsTab.uniScale_checkBox,
@@ -297,3 +305,7 @@ class componentSettings(MayaQWidgetDockableMixin, guide.componentMainSettings):
 
     def dockCloseEventTriggered(self):
         pyqt.deleteInstances(self, MayaQDockWidget)
+
+    def enable_leaf_joint(self):
+        state = self.settingsTab.joint_checkBox.isChecked()
+        self.settingsTab.leafJoint_checkBox.setEnabled(state)

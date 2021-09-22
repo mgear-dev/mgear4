@@ -4,7 +4,7 @@ QtGui, QtCore, QtWidgets, wrapInstance = gqt.qt_import()
 class Ui_Form(object):
     def setupUi(self, Form):
         Form.setObjectName("Form")
-        Form.resize(733, 550)
+        Form.resize(283, 482)
         self.gridLayout = QtWidgets.QGridLayout(Form)
         self.gridLayout.setObjectName("gridLayout")
         self.groupBox = QtWidgets.QGroupBox(Form)
@@ -17,6 +17,10 @@ class Ui_Form(object):
         self.joint_checkBox = QtWidgets.QCheckBox(self.groupBox)
         self.joint_checkBox.setObjectName("joint_checkBox")
         self.verticalLayout_4.addWidget(self.joint_checkBox)
+        self.leafJoint_checkBox = QtWidgets.QCheckBox(self.groupBox)
+        self.leafJoint_checkBox.setEnabled(False)
+        self.leafJoint_checkBox.setObjectName("leafJoint_checkBox")
+        self.verticalLayout_4.addWidget(self.leafJoint_checkBox)
         self.uniScale_checkBox = QtWidgets.QCheckBox(self.groupBox)
         self.uniScale_checkBox.setObjectName("uniScale_checkBox")
         self.verticalLayout_4.addWidget(self.uniScale_checkBox)
@@ -196,6 +200,8 @@ class Ui_Form(object):
     def retranslateUi(self, Form):
         Form.setWindowTitle(gqt.fakeTranslate("Form", "Form", None, -1))
         self.joint_checkBox.setText(gqt.fakeTranslate("Form", "Joint", None, -1))
+        self.leafJoint_checkBox.setToolTip(gqt.fakeTranslate("Form", "<html><head/><body><p>When &quot;<span style=\" font-weight:600;\">is Leaf Joint</span>&quot; is checked, the component will create only the joint without the controls</p><p>As the name indicates this option is meant to create leaf joints, but you can use it also to create &quot;branches&quot;</p><p>Leaf joint can be used as a deformation helpers or/and games pipelines</p></body></html>", None, -1))
+        self.leafJoint_checkBox.setText(gqt.fakeTranslate("Form", "is Leaf Joint (Beta)", None, -1))
         self.uniScale_checkBox.setText(gqt.fakeTranslate("Form", "Uniform Scale", None, -1))
         self.neutralRotation_checkBox.setToolTip(gqt.fakeTranslate("Form", "<html><head/><body><p>If is active, it will align the control with world space</p></body></html>", None, -1))
         self.neutralRotation_checkBox.setText(gqt.fakeTranslate("Form", "World Space Orientation Align", None, -1))
