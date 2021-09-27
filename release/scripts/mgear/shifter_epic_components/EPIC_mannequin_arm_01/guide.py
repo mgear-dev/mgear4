@@ -84,6 +84,7 @@ class Guide(guide.ComponentGuide):
         self.pMirrorIK = self.addParam("mirrorIK", "bool", False)
         self.pExtraTweak = self.addParam("extraTweak", "bool", False)
         self.pTPoseRest = self.addParam("FK_rest_T_Pose", "bool", False)
+        self.pUseBlade = self.addParam("use_blade", "bool", True)
 
         # Divisions
         self.pDiv0 = self.addParam("div0", "long", 2, 0, None)
@@ -108,6 +109,12 @@ class Guide(guide.ComponentGuide):
         self.divisions = self.root.div0.get() + self.root.div1.get() + 3
 
         return self.divisions
+
+    def postDraw(self):
+        "Add post guide draw elements to the guide"
+        # hide blade if not in use
+        for shp in self.blade.getShapes():
+            pm.connectAttr(self.root.use_blade, shp.attr("visibility"))
 
 
 ##########################################################
@@ -173,6 +180,7 @@ class componentSettings(MayaQWidgetDockableMixin, guide.componentMainSettings):
         self.populateCheck(self.settingsTab.extraTweak_checkBox, "extraTweak")
         self.populateCheck(self.settingsTab.TPoseRest_checkBox,
                            "FK_rest_T_Pose")
+        self.populateCheck(self.settingsTab.useBlade_checkBox, "use_blade")
         self.settingsTab.div0_spinBox.setValue(self.root.attr("div0").get())
         self.settingsTab.div1_spinBox.setValue(self.root.attr("div1").get())
         ikRefArrayItems = self.root.attr("ikrefarray").get().split(",")
@@ -248,6 +256,10 @@ class componentSettings(MayaQWidgetDockableMixin, guide.componentMainSettings):
         self.settingsTab.TPoseRest_checkBox.stateChanged.connect(
             partial(self.updateCheck,
                     self.settingsTab.TPoseRest_checkBox, "FK_rest_T_Pose"))
+
+        self.settingsTab.useBlade_checkBox.stateChanged.connect(
+            partial(self.updateCheck,
+                    self.settingsTab.useBlade_checkBox, "use_blade"))
 
         self.settingsTab.mirrorIK_checkBox.stateChanged.connect(
             partial(self.updateCheck,

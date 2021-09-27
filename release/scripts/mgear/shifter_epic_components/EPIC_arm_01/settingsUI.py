@@ -1,6 +1,7 @@
 from mgear.core import pyqt
 QtGui, QtCore, QtWidgets, wrapInstance = pyqt.qt_import()
 
+from PySide2 import QtCore, QtGui, QtWidgets
 
 class Ui_Form(object):
     def setupUi(self, Form):
@@ -84,6 +85,9 @@ class Ui_Form(object):
         self.TPoseRest_checkBox = QtWidgets.QCheckBox(self.groupBox)
         self.TPoseRest_checkBox.setObjectName("TPoseRest_checkBox")
         self.verticalLayout.addWidget(self.TPoseRest_checkBox)
+        self.useBlade_checkBox = QtWidgets.QCheckBox(self.groupBox)
+        self.useBlade_checkBox.setObjectName("useBlade_checkBox")
+        self.verticalLayout.addWidget(self.useBlade_checkBox)
         self.horizontalLayout_2 = QtWidgets.QHBoxLayout()
         self.horizontalLayout_2.setObjectName("horizontalLayout_2")
         self.squashStretchProfile_pushButton = QtWidgets.QPushButton(self.groupBox)
@@ -222,6 +226,10 @@ class Ui_Form(object):
         self.TPoseRest_checkBox.setStatusTip(pyqt.fakeTranslate("Form", "This option set the axis of the mid CTL (elbow) and the up vector control to move in a mirror behaviour ", None, -1))
         self.TPoseRest_checkBox.setWhatsThis(pyqt.fakeTranslate("Form", "This option set the axis of the mid CTL (elbow) and the up vector control to move in a mirror behaviour ", None, -1))
         self.TPoseRest_checkBox.setText(pyqt.fakeTranslate("Form", "FK Rest T Pose", None, -1))
+        self.useBlade_checkBox.setToolTip(pyqt.fakeTranslate("Form", "<html><head/><body><p>If checked, the Rest pose for  FK controls will be in T Pose</p></body></html>", None, -1))
+        self.useBlade_checkBox.setStatusTip(pyqt.fakeTranslate("Form", "This option set the axis of the mid CTL (elbow) and the up vector control to move in a mirror behaviour ", None, -1))
+        self.useBlade_checkBox.setWhatsThis(pyqt.fakeTranslate("Form", "This option set the axis of the mid CTL (elbow) and the up vector control to move in a mirror behaviour ", None, -1))
+        self.useBlade_checkBox.setText(pyqt.fakeTranslate("Form", "Use Wrist Blade", None, -1))
         self.squashStretchProfile_pushButton.setText(pyqt.fakeTranslate("Form", "Squash and Stretch Profile", None, -1))
         self.ikRefArray_groupBox.setTitle(pyqt.fakeTranslate("Form", "IK Reference Array", None, -1))
         self.ikRefArray_copyRef_pushButton.setText(pyqt.fakeTranslate("Form", "Copy from UpV Ref", None, -1))

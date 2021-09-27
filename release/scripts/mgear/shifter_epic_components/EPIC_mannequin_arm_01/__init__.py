@@ -121,11 +121,18 @@ class Component(component.Main):
             self.fk1_ctl,
             ["tx", "ty", "tz", "ro", "rx", "ry", "rz", "sx"])
 
-        t = transform.getTransformLookingAt(self.guide.apos[2],
-                                            self.guide.apos[3],
-                                            self.blade_normal,
-                                            "x-z",
-                                            self.negate)
+        if self.settings["use_blade"]:
+            t = transform.getTransformLookingAt(self.guide.apos[2],
+                                                self.guide.apos[3],
+                                                self.blade_normal,
+                                                "x-z",
+                                                self.negate)
+        else:
+            t = transform.getTransformLookingAt(self.guide.apos[2],
+                                                self.guide.apos[3],
+                                                self.normal,
+                                                "xz",
+                                                self.negate)
 
         if self.settings["FK_rest_T_Pose"]:
             t_npo = transform.setMatrixPosition(
@@ -235,19 +242,28 @@ class Component(component.Main):
 
         attribute.setInvertMirror(self.ikcns_ctl, ["tx", "ty", "tz"])
 
+        if self.settings["use_blade"]:
+            normal = self.blade_normal
+            axis_ref1 = "xz"
+            axis_ref2 = "x-z"
+        else:
+            normal = self.normal
+            axis_ref1 = "x-yz"
+            axis_ref2 = "xy"
+
         if self.negate:
 
             m = transform.getTransformLookingAt(self.guide.pos["wrist"],
                                                 self.guide.pos["eff"],
-                                                self.blade_normal,
-                                                "xz",
+                                                normal,
+                                                axis_ref1,
                                                 True)
         else:
 
             m = transform.getTransformLookingAt(self.guide.pos["wrist"],
                                                 self.guide.pos["eff"],
-                                                self.blade_normal,
-                                                "x-z",
+                                                normal,
+                                                axis_ref2,
                                                 False)
 
         self.ik_ctl = self.addCtl(self.ikcns_ctl,
@@ -292,11 +308,19 @@ class Component(component.Main):
 
         # References --------------------------------------
         # Calculate  again the transfor for the IK ref. This way align with FK
+
+        if self.settings["use_blade"]:
+            normal = self.blade_normal
+            axis_ref = "x-z"
+        else:
+            normal = self.normal
+            axis_ref = "xz"
         trnIK_ref = transform.getTransformLookingAt(self.guide.pos["wrist"],
                                                     self.guide.pos["eff"],
-                                                    self.blade_normal,
-                                                    "x-z",
+                                                    normal,
+                                                    axis_ref,
                                                     self.negate)
+
         self.ik_ref = primitive.addTransform(self.ik_ctl_ref,
                                              self.getName("ik_ref"),
                                              trnIK_ref)
@@ -338,10 +362,18 @@ class Component(component.Main):
                                                      self.blade_normal,
                                                      axis="xy",
                                                      negate=self.negate)
-        self.eff_jnt_off = primitive.addTransform(
-            self.eff_loc,
-            self.getName("eff_off"),
-            self.off_t)
+        if self.settings["use_blade"]:
+            # set the offset rotation for the hand
+            self.off_t = transform.getTransformLookingAt(
+                self.guide.pos["wrist"],
+                self.guide.pos["eff"],
+                self.blade_normal,
+                axis="xy",
+                negate=self.negate)
+            self.eff_jnt_off = primitive.addTransform(
+                self.eff_loc,
+                self.getName("eff_off"),
+                self.off_t)
 
         # Mid Controler ------------------------------------
         t = transform.getTransform(self.ctrn_loc)
@@ -484,7 +516,11 @@ class Component(component.Main):
                      current_parent])
                 twist_idx += increment
 
-        self.jnt_pos.append([self.eff_jnt_off, 'hand', current_parent])
+        if self.settings["use_blade"]:
+            eff_loc = self.eff_jnt_off
+        else:
+            eff_loc = self.eff_loc
+        self.jnt_pos.append([eff_loc, 'hand', current_parent])
 
         # match IK FK references
         self.match_fk0_off = self.add_match_ref(self.fk_ctl[1],
@@ -955,9 +991,8 @@ class Component(component.Main):
             transform.matchWorldTransform(self.fk_ctl[2], self.match_fk2)
 
         # recover hand offset transform
-        self.eff_jnt_off.setMatrix(self.off_t, worldSpace=True)
-
-        return
+        if self.settings["use_blade"]:
+            self.eff_jnt_off.setMatrix(self.off_t, worldSpace=True)
 
     # =====================================================
     # CONNECTOR
