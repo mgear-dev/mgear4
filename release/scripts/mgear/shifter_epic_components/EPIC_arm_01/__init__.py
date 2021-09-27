@@ -411,8 +411,13 @@ class Component(component.Main):
         for x in self.rollRef:
             x.setAttr("visibility", False)
 
+        if self.settings["div0"]:
+            twst0_parent = self.rollRef[0]
+        else:
+            twst0_parent = self.root
+
         self.tws0_loc = primitive.addTransform(
-            self.rollRef[0],
+            twst0_parent,
             self.getName("tws0_loc"),
             transform.getTransform(self.fk_ctl[0]))
         self.tws0_rot = primitive.addTransform(
@@ -501,6 +506,7 @@ class Component(component.Main):
                      twist_name + str(twist_idx).zfill(2),
                      current_parent])
                 twist_idx += increment
+
         if self.settings["use_blade"]:
             eff_loc = self.eff_jnt_off
         else:
@@ -908,6 +914,9 @@ class Component(component.Main):
         # Roll Shoulder
         applyop.splineIK(self.getName("rollRef"), self.rollRef,
                          parent=self.root, cParent=self.bone0)
+
+        if not self.settings["div0"]:
+            applyop.oriCns(self.bone0, self.tws0_loc, maintainOffset=True)
 
         # Volume -------------------------------------------
         distA_node = node.createDistNode(self.tws0_loc, self.tws1_loc)

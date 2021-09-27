@@ -912,7 +912,12 @@ class Component(component.Main):
         attribute.setRotOrder(self.tws2_rot, "XYZ")
         pm.connectAttr(dm_node + ".outputRotate", self.tws2_rot + ".rotate")
 
-        applyop.oriCns(self.rollRef[0], self.tws0_loc, maintainOffset=True)
+        if self.settings["div0"]:
+            ori_ref = self.rollRef[0]
+        else:
+            ori_ref = self.bone0
+
+        applyop.oriCns(ori_ref, self.tws0_loc, maintainOffset=True)
 
         self.tws0_rot.setAttr("sx", .001)
         self.tws2_rot.setAttr("sx", .001)
