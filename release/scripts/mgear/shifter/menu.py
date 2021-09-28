@@ -67,7 +67,9 @@ def guide_template_samples_submenu(parent_menu_id):
         ("Quadruped Template", str_quadruped_template),
         ("-----", None),
         ("EPIC MetaHuman Template, Z-up", str_epic_metahuman_z_template),
-        ("EPIC Mannequin Template, Z-up", str_epic_mannequin_z_template)
+        ("EPIC Mannequin Template, Z-up", str_epic_mannequin_z_template),
+        ("-----", None),
+        ("EPIC MetaHuman Snap", str_epic_metahuman_snap)
     )
 
     mgear.menu.install("Guide Template Samples",
@@ -159,6 +161,12 @@ io.import_sample_template("quadruped.sgt")
 str_epic_metahuman_z_template = """
 from mgear.shifter import io
 io.import_sample_template("EPIC_metahuman_z_up.sgt")
+io.metahuman_snap()
+"""
+
+str_epic_metahuman_snap = """
+from mgear.shifter import io
+io.metahuman_snap()
 """
 
 str_epic_mannequin_z_template = """

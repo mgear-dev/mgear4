@@ -212,3 +212,74 @@ def import_sample_template(name, *args):
     shifter_path = os.path.dirname(shifter.__file__)
     path = os.path.join(shifter_path, "component", "_templates", name)
     import_guide_template(path)
+
+
+# Epic Metahuman snap to skeleton utility function
+def metahuman_snap():
+    """Snap and configure metahuman guide to attach to metahuman _drv skeleton
+    """
+    if pm.ls("root_drv"):
+        spine = [[u'root_C0_root', u'root_drv'],
+                 [u'body_C0_root', u'pelvis_drv'],
+                 [u'spine_C0_spineBase', u'spine_01_drv'],
+                 [u'spine_C0_tan0', u'spine_02_drv'],
+                 [u'spine_C0_spineTop', u'spine_04_drv'],
+                 [u'spine_C0_tan1', u'spine_03_drv'],
+                 [u'spine_C0_chest', u'spine_05_drv']]
+        leg = [[u'leg_L0_root', u'thigh_l_drv'],
+               [u'leg_L0_knee', u'calf_l_drv'],
+               [u'leg_L0_ankle', u'foot_l_drv'],
+               [u'foot_L0_0_loc', u'ball_l_drv']]
+        arm = [[u'clavicle_L0_root', u'clavicle_l_drv'],
+               [u'clavicle_L0_tip', u'upperarm_l_drv'],
+               [u'arm_L0_elbow', u'lowerarm_l_drv'],
+               [u'arm_L0_wrist', u'hand_l_drv']]
+        hand = [[u'index_metacarpal_L0_root', u'index_metacarpal_l_drv'],
+                [u'middle_metacarpal_L0_root', u'middle_metacarpal_l_drv'],
+                [u'ring_metacarpal_L1_root', u'ring_metacarpal_l_drv'],
+                [u'pinky_metacarpal_L0_root', u'pinky_metacarpal_l_drv'],
+                [u'thumb_L0_root', u'thumb_01_l_drv'],
+                [u'thumb_L0_0_loc', u'thumb_02_l_drv'],
+                [u'thumb_L0_1_loc', u'thumb_03_l_drv'],
+                [u'index_L0_root', u'index_01_l_drv'],
+                [u'index_L0_0_loc', u'index_02_l_drv'],
+                [u'index_L0_1_loc', u'index_03_l_drv'],
+                [u'middle_L0_root', u'middle_01_l_drv'],
+                [u'middle_L0_0_loc', u'middle_02_l_drv'],
+                [u'middle_L0_1_loc', u'middle_03_l_drv'],
+                [u'ring_L0_root', u'ring_01_l_drv'],
+                [u'ring_L0_0_loc', u'ring_02_l_drv'],
+                [u'ring_L0_1_loc', u'ring_03_l_drv'],
+                [u'pinky_L0_root', u'pinky_01_l_drv'],
+                [u'pinky_L0_0_loc', u'pinky_02_l_drv'],
+                [u'pinky_L0_1_loc', u'pinky_03_l_drv']]
+        neck = [[u'neck_C0_root', u'neck_01_drv'],
+                [u'neck_C0_neck', u'head_drv'],
+                [u'neck_C0_tan0', u'neck_02_drv']]
+
+        def match(a, b):
+            a = pm.PyNode(a)
+            b = pm.PyNode(b)
+            a.setTranslation(b.getTranslation(
+                space="world"), space="world")
+
+        locs = spine + leg + arm + hand + neck
+        for loc in locs:
+            try:
+                a = loc[0]
+                b = loc[1]
+                match(a, b)
+
+                if "_l_" in b:
+                    ar = a.replace("_L", "_R")
+                    br = b.replace("_l_", "_r_")
+                    match(ar, br)
+            except pm.MayaNodeError:
+                pm.displayWarning(
+                    "Can't match position for locator {}. Please check if "
+                    "the node exist and the name is not duplicated.".format(a))
+
+        try:
+            pm.setAttr("guide.joint_name_rule", r"{description}{side}_drv")
+        except pm.MayaAttributeError:
+            pm.displayInfo("Please check joint Name Rule before build.")
