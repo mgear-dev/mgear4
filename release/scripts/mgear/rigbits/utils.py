@@ -150,7 +150,7 @@ else:
 import pymel.core as pm
 
 if len(pm.selected()) !=2:
-    print "2 objects must be selected"
+    print("2 objects must be selected")
 else:
     source, target = pm.selected()
 
