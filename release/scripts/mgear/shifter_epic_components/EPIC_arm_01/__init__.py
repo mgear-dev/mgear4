@@ -248,7 +248,7 @@ class Component(component.Main):
             axis_ref2 = "x-z"
         else:
             normal = self.normal
-            axis_ref1 = "x-yz"
+            axis_ref1 = "x-y"
             axis_ref2 = "xy"
 
         if self.negate:
