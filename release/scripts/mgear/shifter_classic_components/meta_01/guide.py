@@ -62,6 +62,8 @@ class Guide(guide.ComponentGuide):
         self.pUseIndex = self.addParam("useIndex", "bool", False)
         self.pParentJointIndex = self.addParam(
             "parentJointIndex", "long", -1, None, None)
+        self.pJointChainCnx = self.addParam("jointChainCnx", "bool", True)
+        self.pMetaCtl = self.addParam("metaCtl", "bool", False)
 
 ##########################################################
 # Setting Page
@@ -122,6 +124,10 @@ class componentSettings(MayaQWidgetDockableMixin, guide.componentMainSettings):
                            "intRotation")
         self.populateCheck(self.settingsTab.intTranslation_checkBox,
                            "intTranslation")
+        self.populateCheck(self.settingsTab.jointChainCnx_checkBox,
+                           "jointChainCnx")
+        self.populateCheck(self.settingsTab.metaCtl_checkBox,
+                           "metaCtl")
 
     def create_componentLayout(self):
 
@@ -146,6 +152,15 @@ class componentSettings(MayaQWidgetDockableMixin, guide.componentMainSettings):
             partial(self.updateCheck,
                     self.settingsTab.intTranslation_checkBox,
                     "intTranslation"))
+
+        self.settingsTab.jointChainCnx_checkBox.stateChanged.connect(
+            partial(self.updateCheck,
+                    self.settingsTab.jointChainCnx_checkBox,
+                    "jointChainCnx"))
+        self.settingsTab.metaCtl_checkBox.stateChanged.connect(
+            partial(self.updateCheck,
+                    self.settingsTab.metaCtl_checkBox,
+                    "metaCtl"))
 
     def dockCloseEventTriggered(self):
         pyqt.deleteInstances(self, MayaQDockWidget)

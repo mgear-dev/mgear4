@@ -63,11 +63,14 @@ def guide_template_samples_submenu(parent_menu_id):
         parent_menu_id (str): Parent menu. i.e: "MayaWindow|mGear|menuItem355"
     """
     commands = (
-        ("Biped Template", str_biped_template),
-        ("Quadruped Template", str_quadruped_template),
+        ("Biped Template, Y-up", str_biped_template),
+        ("Quadruped Template, Y-up", str_quadruped_template),
+        ("Game Biped Template, Y-up", str_game_biped_template),
         ("-----", None),
         ("EPIC MetaHuman Template, Z-up", str_epic_metahuman_z_template),
         ("EPIC Mannequin Template, Z-up", str_epic_mannequin_z_template),
+        ("EPIC MetaHuman Template, Y-up", str_epic_metahuman_y_template),
+        ("EPIC Mannequin Template, Y-up", str_epic_mannequin_y_template),
         ("-----", None),
         ("EPIC MetaHuman Snap", str_epic_metahuman_snap)
     )
@@ -163,15 +166,30 @@ from mgear.shifter import io
 io.import_sample_template("EPIC_metahuman_z_up.sgt")
 io.metahuman_snap()
 """
+str_epic_mannequin_z_template = """
+from mgear.shifter import io
+io.import_sample_template("EPIC_mannequin_z_up.sgt")
+"""
+
+str_epic_metahuman_y_template = """
+from mgear.shifter import io
+io.import_sample_template("EPIC_metahuman_y_up.sgt")
+io.metahuman_snap()
+"""
+
+str_epic_mannequin_y_template = """
+from mgear.shifter import io
+io.import_sample_template("EPIC_mannequin_y_up.sgt")
+"""
 
 str_epic_metahuman_snap = """
 from mgear.shifter import io
 io.metahuman_snap()
 """
 
-str_epic_mannequin_z_template = """
+str_game_biped_template = """
 from mgear.shifter import io
-io.import_sample_template("EPIC_mannequin_z_up.sgt")
+io.import_sample_template("game_biped.sgt")
 """
 
 str_mocap_importSkeletonBiped = """

@@ -1,36 +1,10 @@
-# MGEAR is under the terms of the MIT License
-
-# Copyright (c) 2016 Jeremie Passerin, Miquel Campos
-
-# Permission is hereby granted, free of charge, to any person obtaining a copy
-# of this software and associated documentation files (the "Software"), to deal
-# in the Software without restriction, including without limitation the rights
-# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-# copies of the Software, and to permit persons to whom the Software is
-# furnished to do so, subject to the following conditions:
-
-# The above copyright notice and this permission notice shall be included in all
-# copies or substantial portions of the Software.
-
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-# SOFTWARE.
-
-# Author:     Jeremie Passerin      geerem@hotmail.com  www.jeremiepasserin.com
-# Author:     Miquel Campos         hello@miquel-campos.com  www.miquel-campos.com
-# Date:       2016 / 10 / 10
-
 import mgear.core.pyqt as gqt
 QtGui, QtCore, QtWidgets, wrapInstance = gqt.qt_import()
 
 class Ui_Form(object):
     def setupUi(self, Form):
         Form.setObjectName("Form")
-        Form.resize(269, 115)
+        Form.resize(269, 218)
         self.gridLayout = QtWidgets.QGridLayout(Form)
         self.gridLayout.setObjectName("gridLayout")
         self.groupBox = QtWidgets.QGroupBox(Form)
@@ -49,6 +23,12 @@ class Ui_Form(object):
         self.intTranslation_checkBox = QtWidgets.QCheckBox(self.groupBox)
         self.intTranslation_checkBox.setObjectName("intTranslation_checkBox")
         self.verticalLayout_4.addWidget(self.intTranslation_checkBox)
+        self.jointChainCnx_checkBox = QtWidgets.QCheckBox(self.groupBox)
+        self.jointChainCnx_checkBox.setObjectName("jointChainCnx_checkBox")
+        self.verticalLayout_4.addWidget(self.jointChainCnx_checkBox)
+        self.metaCtl_checkBox = QtWidgets.QCheckBox(self.groupBox)
+        self.metaCtl_checkBox.setObjectName("metaCtl_checkBox")
+        self.verticalLayout_4.addWidget(self.metaCtl_checkBox)
         spacerItem = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
         self.verticalLayout_4.addItem(spacerItem)
         self.gridLayout_2.addLayout(self.verticalLayout_4, 0, 0, 1, 1)
@@ -62,4 +42,8 @@ class Ui_Form(object):
         self.intScale_checkBox.setText(gqt.fakeTranslate("Form", "Interpolate Scale", None, -1))
         self.intRotation_checkBox.setText(gqt.fakeTranslate("Form", "Interpolate Rotation", None, -1))
         self.intTranslation_checkBox.setText(gqt.fakeTranslate("Form", "Interpolate Translation", None, -1))
+        self.jointChainCnx_checkBox.setToolTip(gqt.fakeTranslate("Form", "<html><head/><body><p>If checked will connect all the joints in chain, if uncheck will connect each joint to the parent component joint.</p></body></html>", None, -1))
+        self.jointChainCnx_checkBox.setText(gqt.fakeTranslate("Form", "Joint Chain Connection", None, -1))
+        self.metaCtl_checkBox.setToolTip(gqt.fakeTranslate("Form", "<html><head/><body><p>If Checked, will create one control for each section</p></body></html>", None, -1))
+        self.metaCtl_checkBox.setText(gqt.fakeTranslate("Form", "Meta Ctl", None, -1))
 

@@ -25,10 +25,12 @@ class Component(component.Main):
 
         # Chain of deformers -------------------------------
         self.locList = []
+        self.ctlList = []
         self.npoList = []
         parent = self.root
 
         self.jointList = []
+        self.previusTag = self.parentCtlTag
         for i, t in enumerate(transform.getChainTransform2(self.guide.apos,
                                                            self.normal,
                                                            self.negate)):
@@ -36,7 +38,33 @@ class Component(component.Main):
             lvl = primitive.addTransform(parent, self.getName("%s_lvl" % i), t)
             npo = primitive.addTransform(lvl, self.getName("%s_npo" % i), t)
             loc = primitive.addTransform(npo, self.getName("%s_loc" % i), t)
-            self.jnt_pos.append([loc, i])
+            jnt_parent = loc
+
+            if self.settings["metaCtl"]:
+
+                if i:
+                    guide_loc_ref = "{}_loc".format(str(i - 1))
+                else:
+                    guide_loc_ref = "root"
+                meta_ctl = self.addCtl(loc,
+                                       "meta%s_ctl" % i,
+                                       t,
+                                       self.color_ik,
+                                       "cube",
+                                       w=self.size * .2,
+                                       h=self.size * .2,
+                                       d=self.size * .2,
+                                       tp=self.previusTag,
+                                       guide_loc_ref=guide_loc_ref)
+
+                self.ctlList.append(meta_ctl)
+                self.previusTag = meta_ctl
+                jnt_parent = meta_ctl
+
+            if self.settings["jointChainCnx"]:
+                self.jnt_pos.append([jnt_parent, i])
+            else:
+                self.jnt_pos.append([jnt_parent, i, "parent_relative_jnt"])
 
             self.locList.append(loc)
             self.npoList.append(npo)

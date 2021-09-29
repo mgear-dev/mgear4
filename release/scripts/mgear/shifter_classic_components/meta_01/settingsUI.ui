@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>269</width>
-    <height>115</height>
+    <height>218</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -40,6 +40,26 @@
          <widget class="QCheckBox" name="intTranslation_checkBox">
           <property name="text">
            <string>Interpolate Translation</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QCheckBox" name="jointChainCnx_checkBox">
+          <property name="toolTip">
+           <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;If checked will connect all the joints in chain, if uncheck will connect each joint to the parent component joint.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+          </property>
+          <property name="text">
+           <string>Joint Chain Connection</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QCheckBox" name="metaCtl_checkBox">
+          <property name="toolTip">
+           <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;If Checked, will create one control for each section&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+          </property>
+          <property name="text">
+           <string>Meta Ctl</string>
           </property>
          </widget>
         </item>
