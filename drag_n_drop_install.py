@@ -22,7 +22,7 @@ VERSION = 1.1
 MGEAR_MOD_PATH = "MGEAR_MODULE_PATH"
 MAYA_MOD_PATH = "MAYA_MODULE_PATH"
 PLUGINS = ["mgear_solvers.mll", "weightDriver.mll"]
-DEFAULT_ITEMS = ["platforms", "mGear.mod", "scripts"]
+DEFAULT_ITEMS = ["platforms", "mGear.mod", "scripts", "icons"]
 CURRENT_FOLDER = os.path.dirname(__file__)
 
 
