@@ -1,6 +1,37 @@
 Release Log
 ===========
 
+
+4.0.3
+------
+
+**New Features**
+	* Project is back to mono repository on Github
+	* Python 3 Support and Maya 2022
+	* Shifter: Auto-snap for metahuman biped Template
+	* Shifter: connect to existing joint in the scene
+	* Shifter: Data collector for IO with other DCCs (Experimental Feature)
+	* Shifter: New components. Epic mannequin components, chain_ori_loc_01
+	* Shifter: New/Updated biped template
+	* Shifter: RGB color support for controls
+
+**Enhancements**
+	# Rigbits: Removed lagacy facial tools
+	* Anim_picker: Edit picker shape using curves
+	* mGear menu icons
+	* Shifter Component: Meta_01 new option to define how joints are connected
+	* Shifter: Added optional x-ray for controls on Maya 2022
+	* Shifter: Control_01 leaf joint option (Creates a joint without the ctl)
+	* Shifter: Guides blade new shape and color. Also new attribute to change the size
+	* Shifter: Metahuman and Mannequin templates updated and new naming on controls
+	* Shifter: Naming rule have separated side labels for controls and joints
+	* Shifter: Naming rule support for index padding
+	* Shifter: Updated pole vector FK/IK match
+
+**Bug Fix**
+	* General bug fixes in all modules, Python3 compatibility and Maya 2022. More info https://github.com/orgs/mgear-dev/projects/20
+
+
 3.7.11
 ------
 
