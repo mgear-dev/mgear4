@@ -2,8 +2,6 @@
 [//]: # (Setup Github Badges)
 [![GitHub](https://img.shields.io/github/license/mgear-dev/mgear4?style=flat-square)](https://github.com/mgear-dev/mgear4/blob/master/LICENSE)
 
-[![Maintainability](https://api.codeclimate.com/v1/badges/b5eb23bff762f3c3ce09/maintainability)](https://codeclimate.com/github/mgear-dev/mgear4/maintainability)
-[![GitHub Workflow Status](https://img.shields.io/github/workflow/status/mgear-dev/mgear4/Code%20Quality?label=Flake8&style=flat-square)](https://github.com/mgear-dev/mgear4/actions?query=workflow%3A%22Code+Quality%22)
 [![GitHub Workflow Status](https://img.shields.io/github/workflow/status/mgear-dev/mgear4/Code%20Tests%20(Python%202)?label=Py2%20Tests&style=flat-square)](https://github.com/mgear-dev/mgear4/actions?query=workflow%3A%22Code+Tests+%28Python+2%29%22)
 [![GitHub Workflow Status](https://img.shields.io/github/workflow/status/mgear-dev/mgear4/Code%20Tests%20(Python%203)?label=Py3%20Tests&style=flat-square)](https://github.com/mgear-dev/mgear4/actions?query=workflow%3A%22Code+Tests+%28Python+3%29%22)
 
@@ -15,8 +13,22 @@
 # mgear 4
 mGear v.4.x.x (python 3 ready)
 
-## About this repository
-This repository contains unfinished/ongoing code for mGear 4. The structure and code itself might change over time so please do not use this in any way on prods.
+
+mGear is a rigging framework for Autodesk Maya. mGear provides a set of convenient modules, tools and c++ solvers to streamline the development of rigging and animation tools.
+
+Originally mGear was design and develope by Jeremie Passerin and Miquel Campos. Currently  mGear is maintained by the mgear-dev organization team.
+
+**MGEAR is under the terms of the MIT License**
+
+### Useful links:
+
+- [mGear Web](http://www.mgear-framework.com/)
+- [mGear Forum](http://forum.mgear-framework.com/)
+- [mGear Youtube channel](https://www.youtube.com/c/mgearriggingframework)
+- [Release Log](https://mgear4.readthedocs.io/en/latest/releaseLog.html)
+
+### [Latest release](https://github.com/mgear-dev/mgear4/releases)
+
 
 ## Documentation
 The documentation if auto generated and can be found in here:
