@@ -533,7 +533,7 @@
                 "thumb_L0",
                 "index_metacarpal_L0",
                 "middle_metacarpal_L0",
-                "ring_metacarpal_L1",
+                "ring_metacarpal_L0",
                 "pinky_metacarpal_L0"
             ],
             "param_values": {
@@ -888,7 +888,7 @@
                 "thumb_R0",
                 "index_metacarpal_R0",
                 "middle_metacarpal_R0",
-                "ring_metacarpal_R1",
+                "ring_metacarpal_R0",
                 "pinky_metacarpal_R0"
             ],
             "param_values": {
@@ -7395,7 +7395,7 @@
                 "ui_host": "",
                 "useIndex": false
             },
-            "parent_fullName": "ring_metacarpal_L1",
+            "parent_fullName": "ring_metacarpal_L0",
             "parent_localName": "root",
             "pos": {
                 "0_loc": [
@@ -7716,7 +7716,7 @@
                 "ui_host": "",
                 "useIndex": false
             },
-            "parent_fullName": "ring_metacarpal_R1",
+            "parent_fullName": "ring_metacarpal_R0",
             "parent_localName": "root",
             "pos": {
                 "0_loc": [
@@ -7847,7 +7847,7 @@
                 ]
             }
         },
-        "ring_metacarpal_L1": {
+        "ring_metacarpal_L0": {
             "apos": [
                 [
                     50.31223927471345,
@@ -7933,7 +7933,7 @@
                 "Use_RGB_Color": false,
                 "color_fk": 6,
                 "color_ik": 18,
-                "comp_index": 1,
+                "comp_index": 0,
                 "comp_name": "ring_metacarpal",
                 "comp_side": "L",
                 "comp_type": "EPIC_control_01",
@@ -8034,7 +8034,7 @@
                 ]
             }
         },
-        "ring_metacarpal_R1": {
+        "ring_metacarpal_R0": {
             "apos": [
                 [
                     -50.312239274713484,
@@ -8120,7 +8120,7 @@
                 "Use_RGB_Color": false,
                 "color_fk": 6,
                 "color_ik": 18,
-                "comp_index": 1,
+                "comp_index": 0,
                 "comp_name": "ring_metacarpal",
                 "comp_side": "R",
                 "comp_type": "EPIC_control_01",
@@ -9718,7 +9718,7 @@
         "index_L0",
         "middle_metacarpal_L0",
         "middle_L0",
-        "ring_metacarpal_L1",
+        "ring_metacarpal_L0",
         "ring_L0",
         "pinky_metacarpal_L0",
         "pinky_L0",
@@ -9730,7 +9730,7 @@
         "index_R0",
         "middle_metacarpal_R0",
         "middle_R0",
-        "ring_metacarpal_R1",
+        "ring_metacarpal_R0",
         "ring_R0",
         "pinky_metacarpal_R0",
         "pinky_R0",
