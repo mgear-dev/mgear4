@@ -236,7 +236,7 @@ def metahuman_snap():
                [u'arm_L0_wrist', u'hand_l_drv']]
         hand = [[u'index_metacarpal_L0_root', u'index_metacarpal_l_drv'],
                 [u'middle_metacarpal_L0_root', u'middle_metacarpal_l_drv'],
-                [u'ring_metacarpal_L1_root', u'ring_metacarpal_l_drv'],
+                [u'ring_metacarpal_L0_root', u'ring_metacarpal_l_drv'],
                 [u'pinky_metacarpal_L0_root', u'pinky_metacarpal_l_drv'],
                 [u'thumb_L0_root', u'thumb_01_l_drv'],
                 [u'thumb_L0_0_loc', u'thumb_02_l_drv'],
