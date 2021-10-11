@@ -137,9 +137,6 @@ class InstallUI(QtWidgets.QDialog):
         # -- path to mgear logo
         image_path = os.path.normpath(os.path.join(CURRENT_FOLDER,
                                                    "release",
-                                                   "scripts",
-                                                   "mgear",
-                                                   "core",
                                                    "icons",
                                                    "mgear_logo.png"))
 
