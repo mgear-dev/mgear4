@@ -336,7 +336,7 @@ class Component(component.Main):
                                             "xz",
                                             self.negate)
         self.tws0_loc = primitive.addTransform(
-            self.root,
+            self.root_ctl,
             self.getName("tws0_loc"),
             t)
 
@@ -658,7 +658,12 @@ class Component(component.Main):
 
         applyop.oriCns(self.tws_ref, self.tws2_rot)
 
-        applyop.oriCns(self.rollRef[0], self.tws0_loc, maintainOffset=True)
+        if self.settings["div0"]:
+            ori_ref = self.rollRef[0]
+        else:
+            ori_ref = self.bone0
+
+        applyop.oriCns(ori_ref, self.tws0_loc, maintainOffset=True)
 
         self.tws0_loc.setAttr("sx", .001)
         self.tws2_loc.setAttr("sx", .001)

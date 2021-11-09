@@ -283,3 +283,11 @@ def metahuman_snap():
             pm.setAttr("guide.joint_name_rule", r"{description}{side}_drv")
         except pm.MayaAttributeError:
             pm.displayInfo("Please check joint Name Rule before build.")
+
+        # set roll division to 0 on upper leg and upper arm for correct deform
+        for side in "LR":
+            for comp in ["arm", "leg"]:
+                try:
+                    pm.setAttr("{}_{}0_root.div0".format(comp, side), 0)
+                except pm.MayaAttributeError:
+                    pass
