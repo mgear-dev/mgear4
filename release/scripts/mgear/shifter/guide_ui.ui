@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>459</width>
-    <height>749</height>
+    <height>838</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -903,6 +903,9 @@
        <layout class="QVBoxLayout" name="verticalLayout_5">
         <item>
          <widget class="QCheckBox" name="dataCollector_checkBox">
+          <property name="toolTip">
+           <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Collected data will be stored in the root joint of the rig, if exist.&lt;/p&gt;&lt;p&gt;The root joint is the first joint created in the rig. Not necessary to be called &amp;quot;root&amp;quot;&lt;/p&gt;&lt;p&gt;If a path is provided the data will be also stored on an external JSON file&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+          </property>
           <property name="text">
            <string>Collect Data</string>
           </property>

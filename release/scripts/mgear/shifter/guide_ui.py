@@ -4,7 +4,7 @@ from mgear.vendor.Qt import QtCore, QtWidgets
 class Ui_Form(object):
     def setupUi(self, Form):
         Form.setObjectName("Form")
-        Form.resize(459, 749)
+        Form.resize(459, 838)
         self.gridLayout_2 = QtWidgets.QGridLayout(Form)
         self.gridLayout_2.setObjectName("gridLayout_2")
         self.groupBox_6 = QtWidgets.QGroupBox(Form)
@@ -516,6 +516,7 @@ class Ui_Form(object):
         self.fk_label.setText(gqt.fakeTranslate("Form", "FK", None, -1))
         self.ik_label.setText(gqt.fakeTranslate("Form", "IK", None, -1))
         self.groupBox_8.setTitle(gqt.fakeTranslate("Form", "Post Build Data Collector (Experimental)", None, -1))
+        self.dataCollector_checkBox.setToolTip(gqt.fakeTranslate("Form", "<html><head/><body><p>Collected data will be stored in the root joint of the rig, if exist.</p><p>The root joint is the first joint created in the rig. Not necessary to be called &quot;root&quot;</p><p>If a path is provided the data will be also stored on an external JSON file</p></body></html>", None, -1))
         self.dataCollector_checkBox.setText(gqt.fakeTranslate("Form", "Collect Data", None, -1))
         self.dataCollector_label.setText(gqt.fakeTranslate("Form", "Data Path", None, -1))
         self.dataCollectorPath_pushButton.setText(gqt.fakeTranslate("Form", "...", None, -1))

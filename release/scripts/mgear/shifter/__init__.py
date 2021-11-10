@@ -509,18 +509,30 @@ class Rig(object):
                     + self.options["skin"] + " Skipped!")
 
     def collect_build_data(self):
-        """ Collect post build data """
+        """Collect post build data
+
+        by default the data is stored in the root joint.
+
+        Returns:
+            dict: The collected data
+        """
         self.build_data["Components"] = []
         for c, comp in self.customStepDic["mgearRun"].components.items():
             self.build_data["Components"].append(comp.build_data)
 
         if self.options["data_collector"]:
-            self.data_collector_output(self.options["data_collector_path"])
+            self.add_collected_data_to_root_jnt()
+            if self.options["data_collector_path"]:
+                self.data_collector_output(self.options["data_collector_path"])
 
         return self.build_data
 
     def data_collector_output(self, file_path=None):
+        """Output collected data to a Json file
 
+        Args:
+            file_path (Str, optional): Output path for the Json File
+        """
         if not file_path:
             ext_filter = 'Shifter Collected data (*{})'.format(
                 guide.DATA_COLLECTOR_EXT)
@@ -531,6 +543,21 @@ class Rig(object):
         f.write(json.dumps(self.build_data, indent=4))
         f.close()
         file_path = None
+
+    def add_collected_data_to_root_jnt(self):
+        """Add collected data to root joint
+        Root joint is the first joint generated in the rig.
+        """
+        root_jnt = None
+        for c in self.componentsIndex:
+            comp = self.customStepDic["mgearRun"].components[c]
+            if not root_jnt and comp.jointList:
+                root_jnt = comp.jointList[0]
+                attribute.addAttribute(root_jnt,
+                                       "collected_data",
+                                       "string",
+                                       str(json.dumps(self.build_data)))
+                break
 
     def addCtl(self, parent, name, m, color, iconShape, **kwargs):
         """Create the control and apply the shape, if this is alrealdy stored
