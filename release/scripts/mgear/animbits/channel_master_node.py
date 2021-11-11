@@ -8,6 +8,7 @@ from mgear.core import string
 
 from . import channel_master_utils as cmu
 import sys
+import os
 
 if sys.version_info[0] == 2:
     string_types = (basestring,)
@@ -18,6 +19,26 @@ else:
 __TAG__ = "_isChannelMasterNode"
 
 # TODO: Node should store the current active tab
+
+CHANNEL_MASTER_PATH = "CHANNEL_MASTER_PATH"
+
+
+def _convert_path_token(file_path):
+    """convert CHANNEL_MASTER_PATH env var to a full path
+
+    Args:
+        file_path (str): file path
+
+    Returns:
+        str: file path with updated token to path
+    """
+    path_token = "[{}]".format(CHANNEL_MASTER_PATH)
+    if path_token in file_path:
+        if os.environ.get(CHANNEL_MASTER_PATH, ""):
+            file_path = file_path.replace(path_token,
+                                          os.environ.get(
+                                              CHANNEL_MASTER_PATH, ""))
+    return file_path
 
 
 def list_channel_master_nodes():
@@ -52,6 +73,7 @@ def create_channel_master_node(name):
     cmds.addAttr(node, ln=__TAG__, at="bool", dv=True)
     cmds.setAttr("{}.{}".format(node, __TAG__), k=False, l=True)
     cmds.addAttr(node, ln="data", dt="string")
+    cmds.addAttr(node, ln="external_data", dt="string")
 
     attribute.lockAttribute(pm.PyNode(node))
 
@@ -60,6 +82,14 @@ def create_channel_master_node(name):
                  cmu.init_channel_master_config_data(),
                  type="string")
     return node
+
+
+def get_external_data(node):
+    path = cmds.getAttr("{}.external_data".format(node))
+    if path and os.path.isfile(path):
+        path = _convert_path_token(path)
+        data = json.load(open(path))
+        return data["config"]
 
 
 def get_node_data(node):
@@ -71,8 +101,12 @@ def get_node_data(node):
     Returns:
         dict: configuration data
     """
-    data = cmds.getAttr("{}.data".format(node))
-    return ast.literal_eval(data)
+    data = get_external_data(node)
+    if not data:
+        data = cmds.getAttr("{}.data".format(node))
+        return ast.literal_eval(data)
+    else:
+        return data
 
 
 def set_node_data(node, data):
@@ -174,3 +208,34 @@ def import_data(filePath=None, node=None, add_data=False):
     set_node_data(node, config)
 
     return node
+
+
+def set_external_config_path(node, filePath=None):
+    """Set the path to the external file configuration
+
+    Args:
+        node (PyNode): Channel Master node
+        filePath (str, optional): Path to the file confituration
+
+    Returns:
+        TYPE: Description
+    """
+    if not node:
+        pm.displayWarning("Channel Master Node doesn't exist")
+        return
+    if not filePath:
+        filePath = pm.fileDialog2(
+            fileMode=1,
+            fileFilter='Channel Master Configuration .cmc (*%s)' % ".cmc")
+    if not filePath:
+        return
+    else:
+        cmds.setAttr("{}.external_data".format(node),
+                     filePath[0],
+                     type="string")
+
+
+def remove_external_config_path(node):
+    cmds.setAttr("{}.external_data".format(node),
+                 "",
+                 type="string")

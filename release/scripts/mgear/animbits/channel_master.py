@@ -88,6 +88,14 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.file_save_node_action = QtWidgets.QAction("Save Current Node",
                                                        self)
         self.file_save_node_action.setIcon(pyqt.get_icon("mgear_save"))
+        self.set_external_config_action = QtWidgets.QAction(
+            "Add External Config", self)
+        self.set_external_config_action.setIcon(
+            pyqt.get_icon("mgear_plus-circle"))
+        self.remove_external_config_action = QtWidgets.QAction(
+            "Remove External Config", self)
+        self.remove_external_config_action.setIcon(
+            pyqt.get_icon("mgear_minus-circle"))
         self.file_export_all_action = QtWidgets.QAction("Export All Tabs",
                                                         self)
         self.file_export_all_action.setIcon(pyqt.get_icon("mgear_log-out"))
@@ -164,6 +172,9 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.file_menu.addAction(self.file_new_node_action)
         self.file_menu.addSeparator()
         self.file_menu.addAction(self.file_save_node_action)
+        self.file_menu.addSeparator()
+        self.file_menu.addAction(self.set_external_config_action)
+        self.file_menu.addAction(self.remove_external_config_action)
         self.file_menu.addSeparator()
         self.file_menu.addAction(self.file_export_all_action)
         self.file_menu.addAction(self.file_export_current_action)
@@ -312,6 +323,10 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
             self.create_new_node)
         self.file_save_node_action.triggered.connect(
             self.save_node_data)
+        self.set_external_config_action.triggered.connect(
+            self.set_external_config)
+        self.remove_external_config_action.triggered.connect(
+            self.remove_external_config)
         self.file_export_all_action.triggered.connect(
             self.export_node_data)
         self.file_export_current_action.triggered.connect(
@@ -488,6 +503,20 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         """
         current_node = self.get_current_node()
         cmn.import_data(node=current_node, add_data=True)
+        self.update_channel_master_from_node()
+
+    def set_external_config(self):
+        """set external config path
+        """
+        current_node = self.get_current_node()
+        cmn.set_external_config_path(current_node)
+        self.update_channel_master_from_node()
+
+    def remove_external_config(self):
+        """remove external config path
+        """
+        current_node = self.get_current_node()
+        cmn.remove_external_config_path(current_node)
         self.update_channel_master_from_node()
 
     def update_channel_master_from_node(self):
