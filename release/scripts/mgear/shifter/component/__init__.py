@@ -69,8 +69,8 @@ class Main(object):
                 self.color_fk = self.settings["RGB_fk"]
                 self.color_ik = self.settings["RGB_ik"]
             else:
-                self.color_fk = self.options["color_fk"]
-                self.color_ik = self.options["color_ik"]
+                self.color_fk = self.settings["color_fk"]
+                self.color_ik = self.settings["color_ik"]
         else:
             if self.options["Use_RGB_Color"]:
                 self.color_fk = self.options[self.side + "_RGB_fk"]
