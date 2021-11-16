@@ -55,7 +55,7 @@ def reloadModule(name="mgear", *args):
     """
     debugMode = setDebug(False)
 
-    for mod in sys.modules.keys():
+    for mod in sys.modules.copy():
         if mod.startswith(name):
             log("Removing module: {}".format(mod))
             del sys.modules[mod]
