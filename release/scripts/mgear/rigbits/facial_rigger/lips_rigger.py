@@ -707,7 +707,7 @@ def rig(edge_loop="",
         # in order to avoid flips lets create a reference transform
         # also to avoid flips, set any multi target parentConstraint to noFlip
         ref_cns_list = []
-        print ref_ctls
+        print (ref_ctls)
         for cns_ref in ref_ctls:
 
             t = transform.getTransformFromPos(

@@ -28,11 +28,6 @@ class ui(MayaQWidgetDockableMixin, QtWidgets.QDialog):
 
 
 def show(*args):
-    reload(eye_rigger)
-    reload(lips_rigger)
-    reload(brow_rigger)
-    reload(lib)
-
     gqt.showDialog(ui)
 
 
