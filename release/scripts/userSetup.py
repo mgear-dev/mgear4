@@ -16,6 +16,44 @@ print("""
 
 """)
 
+def settings_switch_callback():
+    from mgear.shifter import guide_manager
+    from mgear.core import pyqt
+    
+    state = cmds.optionVar(query="mgear_guide_switch_OV")
+    selections = cmds.ls(sl=1)
+    if not state or len(selections) != 1:
+        return
+    sel = selections[0]
+    
+    has_attr = cmds.attributeQuery("comp_type", node=sel, ex=True)
+    has_attr |= cmds.attributeQuery("ismodel", node=sel, ex=True)
+    
+    wind = guide_manager.__guide_settings_window__
+    is_valid = wind and isinstance(wind,pyqt.QtWidgets.QWidget)
+    is_valid &= pyqt.QtCompat.isValid(wind)
+    if has_attr and is_valid:
+        if wind.isVisible():
+            guide_manager.inspect_settings()
+        else:
+            wind.deleteLater()
+
+def install_settings_switch(menu_id):
+    # setup guide switch
+    if not cmds.optionVar(exists="mgear_guide_switch_OV"):
+        cmds.optionVar(intValue=("mgear_guide_switch_OV", 0))
+    
+    state = cmds.optionVar(query="mgear_guide_switch_OV")
+    cmds.setParent(menu_id, menu=True)
+    cmds.menuItem(
+        "mgear_guide_switch_menuitem",
+        label="Auto Guide Settings Switch",
+        command=lambda s: cmds.optionVar(intValue=("mgear_guide_switch_OV", int(s))),
+        checkBox=state,
+    )
+                  
+    # regsiter event
+    jobNum = cmds.scriptJob( e=["SelectionChanged",settings_switch_callback], pro=True)
 
 def mGear_menu_loader():
     """Create mGear menu"""
@@ -23,6 +61,7 @@ def mGear_menu_loader():
     # Install mGear Menu
     import mgear
     mgear.install()
+    install_settings_switch(mgear.menu_id)
 
     # Install Dag Menu option
     import mgear.core.dagmenu

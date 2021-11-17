@@ -12,7 +12,7 @@ from mgear import shifter
 ##############################
 # Helper Functions
 ##############################
-
+__guide_settings_window__ = None
 
 def draw_comp(comp_type, parent=None, showUI=True):
     """Draw a new component of a given name
@@ -94,22 +94,42 @@ def inspect_settings(tabIdx=0, *args):
         root = root.getParent()
         pm.select(root)
 
+    settings = None
     if comp_type:
         guide = shifter.importComponentGuide(comp_type)
-        wind = pyqt.showDialog(guide.componentSettings, dockable=True)
-        wind.tabs.setCurrentIndex(tabIdx)
+        settings = guide.componentSettings
 
     elif guide_root:
         module_name = "mgear.shifter.guide"
         level = -1 if sys.version_info < (3, 3) else 0
         guide = __import__(module_name, globals(), locals(), ["*"], level)
-        wind = pyqt.showDialog(guide.guideSettings, dockable=True)
-        wind.tabs.setCurrentIndex(tabIdx)
+        settings = guide.guideSettings
 
-    else:
+    if not settings:
         pm.displayError(
             "The selected object is not part of component guide")
+        return
+    
+    wind = globals().get("__guide_settings_window__")
+    is_valid = wind and isinstance(wind,pyqt.QtWidgets.QWidget)
+    is_valid = is_valid and pyqt.QtCompat.isValid(wind)
 
+    if is_valid and wind.isVisible():
+        widget = settings()
+        layout = wind.layout()
+        for child in wind.children():
+            if isinstance(child,pyqt.QtWidgets.QWidget):
+                child.deleteLater()
+        layout.addWidget(widget)
+        layout.setContentsMargins(0, 0, 0, 0)
+        wind = widget
+    else:
+        wind and pyqt.QtCompat.isValid(wind) and wind.deleteLater()
+        wind = pyqt.showDialog(settings, dockable=True)
+        globals()["__guide_settings_window__"] = wind
+    wind.window().setWindowTitle("%s - %s" % (wind.windowTitle(), root))
+    wind.tabs.setCurrentIndex(tabIdx)
+    
 
 def extract_controls(*args):
     """Extract the selected controls from the rig to use it in the new build
