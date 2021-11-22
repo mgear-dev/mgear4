@@ -98,6 +98,7 @@ def inspect_settings(tabIdx=0, *args):
         guide = shifter.importComponentGuide(comp_type)
         wind = pyqt.showDialog(guide.componentSettings, dockable=True)
         wind.tabs.setCurrentIndex(tabIdx)
+        return wind
 
     elif guide_root:
         module_name = "mgear.shifter.guide"
@@ -105,6 +106,7 @@ def inspect_settings(tabIdx=0, *args):
         guide = __import__(module_name, globals(), locals(), ["*"], level)
         wind = pyqt.showDialog(guide.guideSettings, dockable=True)
         wind.tabs.setCurrentIndex(tabIdx)
+        return wind
 
     else:
         pm.displayError(
