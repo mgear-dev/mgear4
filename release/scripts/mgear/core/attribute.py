@@ -582,6 +582,37 @@ def addFCurve(node, name="fcurve", keys=[]):
 
     return fCurve, attr_name
 
+
+def connect_add_dynamic_pivot(pivots, driven):
+    """connect dynamic pivot with option to add offset channels on XYZ
+
+    Args:
+        pivot (dagNode list): pivot translation
+        driven (dagNode): Driven object
+        offset (list): Description
+    """
+    if not isinstance(pivots, list):
+        pivots = [pivots]
+    node = pm.createNode("plusMinusAverage")
+    node.attr("operation").set(1)
+    for i, p in enumerate(pivots):
+        pm.connectAttr(p.t, node + ".input3D[%s]" % str(i))
+
+    pm.connectAttr(node + ".output3D", driven.rotatePivot)
+    pm.connectAttr(node + ".output3D", driven.scalePivot)
+
+
+def connect_dynamic_pivot(pivot, driven):
+    """connects translation of pivot dagNode to rotatePivot and scalePivot
+    of the driven transform
+
+    Args:
+        pivot (dagNode): pivot translation
+        driven (dagNode): Driven object
+    """
+    pivot.t >> driven.rotatePivot
+    pivot.t >> driven.scalePivot
+
 ##########################################################
 # PARAMETER DEFINITION
 ##########################################################
