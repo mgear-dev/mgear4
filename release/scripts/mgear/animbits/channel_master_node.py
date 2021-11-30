@@ -85,11 +85,12 @@ def create_channel_master_node(name):
 
 
 def get_external_data(node):
-    path = cmds.getAttr("{}.external_data".format(node))
-    if path and os.path.isfile(path):
-        path = _convert_path_token(path)
-        data = json.load(open(path))
-        return data["config"]
+    if pm.PyNode(node).hasAttr("external_data"):
+        path = cmds.getAttr("{}.external_data".format(node))
+        if path and os.path.isfile(path):
+            path = _convert_path_token(path)
+            data = json.load(open(path))
+            return data["config"]
 
 
 def get_node_data(node):
@@ -230,6 +231,10 @@ def set_external_config_path(node, filePath=None):
     if not filePath:
         return
     else:
+        # this enable back comatibility with old nodes just in case
+        # the externa data attr is missing
+        if not pm.PyNode(node).hasAttr("external_data"):
+            cmds.addAttr(node, ln="external_data", dt="string")
         cmds.setAttr("{}.external_data".format(node),
                      filePath[0],
                      type="string")
