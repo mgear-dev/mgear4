@@ -2166,7 +2166,11 @@ class GuideSettings(MayaQWidgetDockableMixin, QtWidgets.QDialog, HelperSlots):
             filePath = os.path.abspath(filePath)
             baseReplace = os.path.abspath(os.environ.get(
                 MGEAR_SHIFTER_CUSTOMSTEP_KEY, ""))
-            filePath = filePath.replace(baseReplace, "")[1:]
+            # backslashes (windows paths) can cause escape characters
+            filePath = filePath.replace(baseReplace, "").replace('\\', '/')
+            # remove front forward
+            if '/' == filePath[0]:
+                filePath = filePath[1:]
 
         fileName = os.path.split(filePath)[1].split(".")[0]
         stepWidget.addItem(fileName + " | " + filePath)
