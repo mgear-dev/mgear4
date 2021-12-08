@@ -486,21 +486,23 @@ class Plebes():
                 skin_weights = json.load(skin_json)
             weights = skin_weights.get('objDDic')[0].get('weights')
 
-            # DEBUG
+            # Prints skinned joints that are missing from the template
             in_template = []
             for item in self.template.get('skinning'):
                 for i in item[1]:
                     if not i in in_template:
                         in_template.append(i)
-
             missing = []
             for joint in skin_weights.get('objDDic')[0].get('weights').keys():
                 if not joint in in_template:
                     if not joint in missing:
                         missing.append(joint)
-            for m in missing:
-                print(m)
-            # END DEUBG
+            if missing:
+                pm.displayInfo(
+                    "The following joints are missing from the template."
+                )
+                for m in missing:
+                    print(m)
 
             for item in self.template.get('skinning'):
                 values = {}
