@@ -467,7 +467,7 @@ class Plebes():
         # Adding weights from two joints to one
         def add_dict(a, b):
             c = {}
-            keys = list(set(a.keys() + b.keys()))
+            keys = list(set(list(a.keys()) + list(b.keys())))
             for key in keys:
                 if key in a and key in b:
                     c[key] = a[key] + b[key]
@@ -517,8 +517,8 @@ class Plebes():
                                 )
                             )
 
-            with open(skin_file, 'wb') as skin_json:
-                json.dump(skin_weights, skin_json, indent=4)
+            with open(skin_file, 'w') as skin_json:
+                skin_json.write(json.dumps(skin_weights))
         
         if not self.export_only_check.getValue():
             for sel in selection:
