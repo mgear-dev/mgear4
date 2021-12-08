@@ -88,13 +88,20 @@
 	{"leg_L0_root": "lThighBend"},
 	{"leg_L0_knee": "lShin"},
 	{"leg_L0_ankle": "lFoot"},
-	{"foot_L0_0_loc": "lToe"},
+	{"foot_L0_0_loc": "lSmallToe2"},
+	{"foot_L0_1_loc": "lSmallToe2_2"},
+	{"foot_L0_2_loc": "PARENT_OFFSET"},
 	{"leg_R0_root": "rThighBend"},
 	{"leg_R0_knee": "rShin"},
 	{"leg_R0_ankle": "rFoot"},
-	{"foot_R0_0_loc": "rToe"}
+	{"foot_R0_0_loc": "rSmallToe2"},
+	{"foot_R0_1_loc": "rSmallToe2_2"},
+	{"foot_R0_2_loc": "PARENT_OFFSET"}
     ],
     "settings": [
+	{"spine_C0_root": [
+	    { "division": 5}
+	]},
 	{"arm_L0_root": [
 	    { "div0": 1 },
 	    { "div1": 1 },
@@ -133,7 +140,7 @@
             "joint": "chestLower",
             "constrain": "110"}
 	},
-	{"spine_C0_4_jnt": {
+	{"spine_C0_3_jnt": {
             "joint": "chestUpper",
             "constrain": "110"}
 	},
@@ -413,22 +420,6 @@
             "joint": "lSmallToe4",
             "constrain": "010"}
 	},
-	{"foot_L0_0_jnt": {
-            "joint": "lBigToe",
-            "constrain": "010"}
-	},
-	{"foot_L0_1_jnt": {
-            "joint": "lSmallToe1_2",
-            "constrain": "010"}
-	},
-	{"foot_L0_1_jnt": {
-            "joint": "lSmallToe2_2",
-            "constrain": "010"}
-	},
-	{"foot_L0_1_jnt": {
-            "joint": "lSmallToe3_2",
-            "constrain": "010"}
-	},
 	{"foot_L0_1_jnt": {
             "joint": "lSmallToe4_2",
             "constrain": "010"}
@@ -468,26 +459,91 @@
 	{"foot_R0_0_jnt": {
             "joint": "rSmallToe4",
             "constrain": "010"}
-	},
-	{"foot_R0_0_jnt": {
-            "joint": "rBigToe",
-            "constrain": "010"}
-	},
-	{"foot_R0_1_jnt": {
-            "joint": "rSmallToe1_2",
-            "constrain": "010"}
-	},
-	{"foot_R0_1_jnt": {
-            "joint": "rSmallToe2_2",
-            "constrain": "010"}
-	},
-	{"foot_R0_1_jnt": {
-            "joint": "rSmallToe3_2",
-            "constrain": "010"}
-	},
-	{"foot_R0_1_jnt": {
-            "joint": "rSmallToe4_2",
-            "constrain": "010"}
 	}
+    ],
+    "skinning": [
+	["local_C0_ctl", ["Genesis"]],
+	["spine_C0_0_jnt", ["hip", "pelvis", "abdomenLower"]],
+	["spine_C0_1_jnt", ["abdomenUpper"]],
+	["spine_C0_2_jnt", ["chestLower", "lPectoral", "rPectoral"]],
+	["spine_C0_3_jnt", ["chestUpper"]],
+	["neck_C0_0_jnt", ["neckLower"]],
+	["neck_C0_1_jnt", ["neckUpper"]],
+	["neck_C0_head_jnt", ["head", "lSquintInner", "lSquintOuter", "rSquintInner", "rSquintOuter", "lCheekUpper", "rCheekUpper", "Nose", "lNostril", "rNostril", "rBrowInner", "rBrowMid", "rBrowOuter", "lBrowInner", "lBrowMid", "lBrowOuter", "CenterBrow", "MidNoseBridge", "lNasolabialUpper", "rNasolabialUpper", "lNasolabialMiddle", "rNasolabialMiddle", "rLipNasolabialCrease", "lLipNasolabialCrease", "lEar", "rEar", "lEyelidInner", "lEyelidLower", "lEyelidLowerInner", "lEyelidLowerOuter", "lEyelidOuter", "rEyelidInner", "rEyelidLower", "rEyelidLowerInner", "rEyelidLowerOuter", "rEyelidOuter", "lLipCorner", "rLipCorner", "upperFaceRig"]],
+	["mouth_C0_jaw_jnt", ["lowerJaw", "lowerFaceRig", "lNasolabialLower", "rNasolabialLower", "lNasolabialMouthCorner", "rNasolabialMouthCorner", "Chin", "lCheekLower", "rCheekLower", "BelowJaw", "lJawClench", "rJawClench"]],
+	["mouth_C0_teethup_jnt", ["upperTeeth"]],
+	["mouth_C0_teethlow_jnt", ["lowerTeeth"]],
+	["mouth_C0_lipup_jnt", ["lLipBelowNose", "rLipBelowNose", "lLipUpperOuter", "lLipUpperInner", "LipUpperMiddle", "rLipUpperInner", "rLipUpperOuter"]],
+	["mouth_C0_liplow_jnt", ["LipBelow", "lLipLowerOuter", "lLipLowerInner", "LipLowerMiddle", "rLipLowerInner", "rLipLowerOuter"]],
+	["tongue_C0_0_jnt", ["tongue01"]],
+	["tongue_C0_1_jnt", ["tongue02"]],
+	["tongue_C0_2_jnt", ["tongue03"]],
+	["tongue_C0_3_jnt", ["tongue04"]],
+	["eye_L0_eye_jnt", ["lEye"]],
+	["eye_R0_eye_jnt", ["rEye"]],
+	["eye_L0_eyeOver_jnt", ["lEyelidUpper", "lEyelidUpperInner", "lEyelidUpperOuter"]],
+	["eye_R0_eyeOver_jnt", ["rEyelidUpper", "rEyelidUpperInner", "rEyelidUpperOuter"]],
+	["shoulder_L0_shoulder_jnt", ["lCollar"]],
+	["arm_L0_0_jnt", ["lShldrBend"]],
+	["arm_L0_1_jnt", ["lShldrTwist"]],
+	["arm_L0_2_jnt", ["lForearmBend"]],
+	["arm_L0_3_jnt", ["lForearmTwist"]],
+	["arm_L0_end_jnt", ["lHand"]],
+	["meta_L0_0_jnt", ["lCarpal1"]],
+	["thumb_L0_0_jnt", ["lThumb1"]],
+	["thumb_L0_1_jnt", ["lThumb2"]],
+	["thumb_L0_2_jnt", ["lThumb3"]],
+	["finger_L0_0_jnt", ["lIndex1"]],
+	["finger_L0_1_jnt", ["lIndex2"]],
+	["finger_L0_2_jnt", ["lIndex3"]],
+	["meta_L0_1_jnt", ["lCarpal2"]],
+	["finger_L1_0_jnt", ["lMid1"]],
+	["finger_L1_1_jnt", ["lMid2"]],
+	["finger_L1_2_jnt", ["lMid3"]],
+	["meta_L0_2_jnt", ["lCarpal3"]],
+	["finger_L2_0_jnt", ["lRing1"]],
+	["finger_L2_1_jnt", ["lRing2"]],
+	["finger_L2_2_jnt", ["lRing3"]],
+	["meta_L0_3_jnt", ["lCarpal4"]],
+	["finger_L3_0_jnt", ["lPinky1"]],
+	["finger_L3_1_jnt", ["lPinky2"]],
+	["finger_L3_2_jnt", ["lPinky3"]],
+	["shoulder_R0_shoulder_jnt", ["rCollar"]],
+	["arm_R0_0_jnt", ["rShldrBend"]],
+	["arm_R0_1_jnt", ["rShldrTwist"]],
+	["arm_R0_2_jnt", ["rForearmBend"]],
+	["arm_R0_3_jnt", ["rForearmTwist"]],
+	["arm_R0_end_jnt", ["rHand"]],
+	["meta_R0_0_jnt", ["rCarpal1"]],
+	["thumb_R0_0_jnt", ["rThumb1"]],
+	["thumb_R0_1_jnt", ["rThumb2"]],
+	["thumb_R0_2_jnt", ["rThumb3"]],
+	["finger_R0_0_jnt", ["rIndex1"]],
+	["finger_R0_1_jnt", ["rIndex2"]],
+	["finger_R0_2_jnt", ["rIndex3"]],
+	["meta_R0_1_jnt", ["rCarpal2"]],
+	["finger_R1_0_jnt", ["rMid1"]],
+	["finger_R1_1_jnt", ["rMid2"]],
+	["finger_R1_2_jnt", ["rMid3"]],
+	["meta_R0_2_jnt", ["rCarpal3"]],
+	["finger_R2_0_jnt", ["rRing1"]],
+	["finger_R2_1_jnt", ["rRing2"]],
+	["finger_R2_2_jnt", ["rRing3"]],
+	["meta_R0_3_jnt", ["rCarpal4"]],
+	["finger_R3_0_jnt", ["rPinky1"]],
+	["finger_R3_1_jnt", ["rPinky2"]],
+	["finger_R3_2_jnt", ["rPinky3"]],
+	["leg_L0_0_jnt", ["lThighBend"]],
+	["leg_L0_1_jnt", ["lThighTwist"]],
+	["leg_L0_2_jnt", ["lShin"]],
+	["leg_L0_end_jnt", ["lFoot", "lMetatarsals", "lMetatarsals", "lHeel", "lToe"]],
+	["foot_L0_0_jnt", ["lBigToe", "lSmallToe1", "lSmallToe2", "lSmallToe3", "lSmallToe4"]],
+	["foot_L0_1_jnt", ["lBigToe_2", "lSmallToe1_2", "lSmallToe2_2", "lSmallToe3_2", "lSmallToe4_2"]],
+	["leg_R0_0_jnt", ["rThighBend"]],
+	["leg_R0_1_jnt", ["rThighTwist"]],
+	["leg_R0_2_jnt", ["rShin"]],
+	["leg_R0_end_jnt", ["rFoot", "rMetatarsals", "rMetatarsals", "rHeel", "rToe"]],	
+	["foot_R0_0_jnt", ["rBigToe", "rSmallToe1", "rSmallToe2", "rSmallToe3", "rSmallToe4"]],
+	["foot_R0_1_jnt", ["rBigToe_2", "rSmallToe1_2", "rSmallToe2_2", "rSmallToe3_2", "rSmallToe4_2"]]
     ]
 }
