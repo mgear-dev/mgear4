@@ -1,0 +1,8 @@
+{
+    "help": "Plebe is a quick and dirty tool for rigging characters from various character geneartors using mGear. Once you select a character template from the menu above you'll see additional instructions for that character generator here.\n\nHOW TO\n\n * Import your character.\n * Hit 'Import Guides' to bring in the mGear's sample biped.\n * Hit 'Align Guides' to match the guides to your character. Note that Plebe's cannot match the heel position and foot width, plus some characters have knees and elbows pointing in funny directions, so you may need to adjust these guides.\n * Hit 'Build Rig' to build the mGear rig.\n * Either hit 'Constrain to Rig' OR select all the characters geometry and hit 'Skin to Rig'. Skinning transfers the weights over to the mGear joints, and generally works better, but you may loose weights from face rigs and similar where the mGear biped doesn't have matching joints.",
+    "root": "choose_a_character_template",
+    "guides": [],
+    "settings": [],
+    "joints": [],
+    "skinning": []
+}

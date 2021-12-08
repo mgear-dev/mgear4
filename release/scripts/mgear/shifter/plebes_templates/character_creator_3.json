@@ -1,5 +1,5 @@
 {
-    "help": "Character Creator 3 characters come with a keyframe on all their joints on the first frame. These will be deleted when you run 'Attach Plebe to Rig'.",
+    "help": "Export to FBX from Character Creator 3, and choose 'Mesh' and 'A-pose'. This is important as going to bind pose, doesn't seem to work with these characters.\n\nCharacter Creator 3 characters come with a keyframe on all their joints on the first frame. These will be deleted when you run 'Constrain to Rig' or ignored if you transfer 'Skin to Rig'.",
     "root": "CC_Base_BoneRoot",
     "guides": [
 	{"guide": "CC_Base_BoneRoot"},
@@ -126,22 +126,22 @@
 	{"arm_L0_root": [
 	    { "div0": 1 },
 	    { "div1": 1 },
-	    { "supportJoints": 0}
+	    { "supportJoints": 1}
 	]},
 	{"arm_R0_root": [
 	    { "div0": 1 },
 	    { "div1": 1 },
-	    { "supportJoints": 0}
+	    { "supportJoints": 1}
 	]},
 	{"leg_L0_root": [
 	    { "div0": 1 },
 	    { "div1": 1 },
-	    { "supportJoints": 0}
+	    { "supportJoints": 1}
 	]},
 	{"leg_R0_root": [
 	    { "div0": 1 },
 	    { "div1": 1 },
-	    { "supportJoints": 0}
+	    { "supportJoints": 1}
 	]}
     ],
     "joints": [
@@ -181,6 +181,14 @@
             "joint": "CC_Base_JawRoot",
             "constrain": "110"}
 	},
+	{"mouth_C0_teethup_jnt": {
+            "joint": "CC_Base_Teeth01",
+            "constrain": "110"}
+	},
+	{"mouth_C0_teethlow_jnt": {
+            "joint": "CC_Base_Teeth02",
+            "constrain": "110"}
+	},
 	{"tongue_C0_1_jnt": {
             "joint": "CC_Base_Tongue01",
             "constrain": "110"}
@@ -213,11 +221,15 @@
             "joint": "CC_Base_L_UpperarmTwist02",
             "constrain": "110"}
 	},
-	{"arm_L0_2_jnt": {
+	{"arm_L0_3_jnt": {
+            "joint": "CC_Base_L_ElbowShareBone",
+            "constrain": "110"}
+	},
+	{"arm_L0_4_jnt": {
             "joint": "CC_Base_L_Forearm",
             "constrain": "110"}
 	},
-	{"arm_L0_3_jnt": {
+	{"arm_L0_5_jnt": {
             "joint": "CC_Base_L_ForearmTwist02",
             "constrain": "110"}
 	},
@@ -297,11 +309,15 @@
             "joint": "CC_Base_R_UpperarmTwist02",
             "constrain": "110"}
 	},
-	{"arm_R0_2_jnt": {
+	{"arm_R0_3_jnt": {
+            "joint": "CC_Base_R_ElbowShareBone",
+            "constrain": "110"}
+	},
+	{"arm_R0_4_jnt": {
             "joint": "CC_Base_R_Forearm",
             "constrain": "110"}
 	},
-	{"arm_R0_3_jnt": {
+	{"arm_R0_5_jnt": {
             "joint": "CC_Base_R_ForearmTwist02",
             "constrain": "110"}
 	},
@@ -377,11 +393,15 @@
             "joint": "CC_Base_L_ThighTwist02",
             "constrain": "110"}
 	},
-	{"leg_L0_2_jnt": {
+	{"leg_L0_3_jnt": {
+            "joint": "CC_Base_L_KneeShareBone",
+            "constrain": "110"}
+	},
+	{"leg_L0_4_jnt": {
             "joint": "CC_Base_L_Calf",
             "constrain": "110"}
 	},
-	{"leg_L0_3_jnt": {
+	{"leg_L0_5_jnt": {
             "joint": "CC_Base_L_CalfTwist02",
             "constrain": "110"}
 	},
@@ -421,11 +441,15 @@
             "joint": "CC_Base_R_ThighTwist02",
             "constrain": "110"}
 	},
-	{"leg_R0_2_jnt": {
+	{"leg_R0_3_jnt": {
+            "joint": "CC_Base_R_KneeShareBone",
+            "constrain": "110"}
+	},
+	{"leg_R0_4_jnt": {
             "joint": "CC_Base_R_Calf",
             "constrain": "110"}
 	},
-	{"leg_R0_3_jnt": {
+	{"leg_R0_5_jnt": {
             "joint": "CC_Base_R_CalfTwist02",
             "constrain": "110"}
 	},
@@ -457,5 +481,83 @@
             "joint": "CC_Base_R_PinkyToe1",
             "constrain": "010"}
 	}
+    ],
+    "skinning": [
+	["local_C0_ctl", ["CC_Base_BoneRoot"]],
+	["spine_C0_0_jnt", ["CC_Base_Hip", "CC_Base_Pelvis"]],
+	["spine_C0_1_jnt", ["CC_Base_Waist"]],
+	["spine_C0_2_jnt", ["CC_Base_Spine01"]],
+	["spine_C0_4_jnt", ["CC_Base_Spine02", "CC_Base_L_Breast", "CC_Base_R_Breast", "CC_Base_L_RibsTwist", "CC_Base_R_RibsTwist"]],
+	["neck_C0_0_jnt", ["CC_Base_NeckTwist01"]],
+	["neck_C0_1_jnt", ["CC_Base_NeckTwist02"]],
+	["neck_C0_head_jnt", ["CC_Base_Head"]],
+	["mouth_C0_jaw_jnt", ["CC_Base_JawRoot"]],
+	["mouth_C0_teethup_jnt", ["CC_Base_Teeth01"]],
+	["mouth_C0_teethlow_jnt", ["CC_Base_Teeth02"]],
+	["tongue_C0_1_jnt", ["CC_Base_Tongue01"]],
+	["tongue_C0_2_jnt", ["CC_Base_Tongue02"]],
+	["tongue_C0_3_jnt", ["CC_Base_Tongue03"]],
+	["eye_L0_eye_jnt", ["CC_Base_L_Eye"]],
+	["eye_R0_eye_jnt", ["CC_Base_R_Eye"]],
+	["shoulder_L0_shoulder_jnt", ["CC_Base_L_Clavicle"]],
+	["arm_L0_0_jnt", ["CC_Base_L_Upperarm", "CC_Base_L_UpperarmTwist01"]],
+	["arm_L0_1_jnt", ["CC_Base_L_UpperarmTwist02"]],
+	["arm_L0_3_jnt", ["CC_Base_L_ElbowShareBone"]],
+	["arm_L0_4_jnt", ["CC_Base_L_Forearm", "CC_Base_L_ForearmTwist01"]],
+	["arm_L0_5_jnt", ["CC_Base_L_ForearmTwist02"]],
+	["arm_L0_end_jnt", ["CC_Base_L_Hand"]],
+	["finger_L0_0_jnt", ["CC_Base_L_Index1"]],
+	["finger_L0_1_jnt", ["CC_Base_L_Index2"]],
+	["finger_L0_2_jnt", ["CC_Base_L_Index3"]],
+	["finger_L1_0_jnt", ["CC_Base_L_Mid1"]],
+	["finger_L1_1_jnt", ["CC_Base_L_Mid2"]],
+	["finger_L1_2_jnt", ["CC_Base_L_Mid3"]],
+	["finger_L2_0_jnt", ["CC_Base_L_Ring1"]],
+	["finger_L2_1_jnt", ["CC_Base_L_Ring2"]],
+	["finger_L2_2_jnt", ["CC_Base_L_Ring3"]],
+	["finger_L3_0_jnt", ["CC_Base_L_Pinky1"]],
+	["finger_L3_1_jnt", ["CC_Base_L_Pinky2"]],
+	["finger_L3_2_jnt", ["CC_Base_L_Pinky3"]],
+	["thumb_L0_0_jnt", ["CC_Base_L_Thumb1"]],
+	["thumb_L0_1_jnt", ["CC_Base_L_Thumb2"]],
+	["thumb_L0_2_jnt", ["CC_Base_L_Thumb3"]],
+	["shoulder_R0_shoulder_jnt", ["CC_Base_R_Clavicle"]],
+	["arm_R0_0_jnt", ["CC_Base_R_Upperarm", "CC_Base_R_UpperarmTwist01"]],
+	["arm_R0_1_jnt", ["CC_Base_R_UpperarmTwist02"]],
+	["arm_R0_3_jnt", ["CC_Base_R_ElbowShareBone"]],
+	["arm_R0_4_jnt", ["CC_Base_R_Forearm", "CC_Base_R_ForearmTwist01"]],
+	["arm_R0_5_jnt", ["CC_Base_R_ForearmTwist02"]],
+	["arm_R0_end_jnt", ["CC_Base_R_Hand"]],
+	["finger_R0_0_jnt", ["CC_Base_R_Index1"]],
+	["finger_R0_1_jnt", ["CC_Base_R_Index2"]],
+	["finger_R0_2_jnt", ["CC_Base_R_Index3"]],
+	["finger_R1_0_jnt", ["CC_Base_R_Mid1"]],
+	["finger_R1_1_jnt", ["CC_Base_R_Mid2"]],
+	["finger_R1_2_jnt", ["CC_Base_R_Mid3"]],
+	["finger_R2_0_jnt", ["CC_Base_R_Ring1"]],
+	["finger_R2_1_jnt", ["CC_Base_R_Ring2"]],
+	["finger_R2_2_jnt", ["CC_Base_R_Ring3"]],
+	["finger_R3_0_jnt", ["CC_Base_R_Pinky1"]],
+	["finger_R3_1_jnt", ["CC_Base_R_Pinky2"]],
+	["finger_R3_2_jnt", ["CC_Base_R_Pinky3"]],
+	["thumb_R0_0_jnt", ["CC_Base_R_Thumb1"]],
+	["thumb_R0_1_jnt", ["CC_Base_R_Thumb2"]],
+	["thumb_R0_2_jnt", ["CC_Base_R_Thumb3"]],
+	["leg_L0_0_jnt", ["CC_Base_L_Thigh", "CC_Base_L_ThighTwist01"]],
+	["leg_L0_1_jnt", ["CC_Base_L_ThighTwist02"]],
+	["leg_L0_3_jnt", ["CC_Base_L_KneeShareBone"]],
+	["leg_L0_4_jnt", ["CC_Base_L_Calf", "CC_Base_L_CalfTwist01"]],
+	["leg_L0_5_jnt", ["CC_Base_L_CalfTwist02"]],
+	["leg_L0_end_jnt", ["CC_Base_L_Foot"]],
+	["foot_L0_0_jnt", ["CC_Base_L_ToeBase"]],
+	["foot_L0_1_jnt", ["CC_Base_L_BigToe1", "CC_Base_L_IndexToe1", "CC_Base_L_MidToe1", "CC_Base_L_RingToe1", "CC_Base_L_PinkyToe1"]],	["foot_L0_1_jnt", ["CC_Base_L_BigToe1"]],
+	["leg_R0_0_jnt", ["CC_Base_R_Thigh", "CC_Base_R_ThighTwist01"]],
+	["leg_R0_1_jnt", ["CC_Base_R_ThighTwist02"]],
+	["leg_R0_3_jnt", ["CC_Base_R_KneeShareBone"]],
+	["leg_R0_4_jnt", ["CC_Base_R_Calf", "CC_Base_R_CalfTwist01"]],
+	["leg_R0_5_jnt", ["CC_Base_R_CalfTwist02"]],
+	["leg_R0_end_jnt", ["CC_Base_R_Foot"]],
+	["foot_R0_0_jnt", ["CC_Base_R_ToeBase"]],
+	["foot_R0_1_jnt", ["CC_Base_R_BigToe1", "CC_Base_R_IndexToe1", "CC_Base_R_MidToe1", "CC_Base_R_RingToe1", "CC_Base_R_PinkyToe1"]]
     ]
 }

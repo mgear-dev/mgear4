@@ -1,11 +1,13 @@
 import os
 import re
 import json
+import tempfile
 from glob import glob
 import pymel.core as pm
 try:
     from mgear.shifter import io
     from mgear.shifter import guide_manager
+    from mgear.core import skin
 except:
     pm.warning("Failed to load Plebes as mGear was not found")
 
@@ -31,7 +33,7 @@ class Plebes():
         win = pm.window(
             'plebesDialog',
             title='Rig Plebe',
-            sizeable=False
+            sizeable=True
         )
         win.setHeight(475)
         win.setWidth(300)
@@ -91,23 +93,49 @@ class Plebes():
         align_guides_btn.setCommand(self.align_guides)
         align_guides_btn.setAnnotation(
             "Position the guides to match your character.\n\n"
-            "Note! You will need to adjust some of the guides manually (e.g. "
-            "the heel position and inner and outer foot)."
+            "You will need to adjust the heel and foot width guides\n"
+            "manually, and check that knees and elbows are pointing in the\n"
+            "right direction."
         )
 
         rig_btn = pm.button(label='Build Rig')
         rig_btn.setCommand(self.rig)
         rig_btn.setAnnotation(
-            "Builds the mGear rig based on the guides."
+            "Build the mGear rig based on the guides."
         )
 
-        attach_btn = pm.button(label='Attach Plebe to Rig')
-        attach_btn.setCommand(self.attach_to_rig)
-        attach_btn.setAnnotation(
+        pm.rowLayout(
+            numberOfColumns=3,
+            adjustableColumn=2,
+            columnAttach=[(1,'both',0), (2,'both',10), (2,'both',10)]
+        )
+        constrain_btn = pm.button(label='Constrain to Rig', width=125)
+        constrain_btn.setCommand(self.constrain_to_rig)
+        constrain_btn.setAnnotation(
             "Constrain the characters joints to the mGear rig."
         )
 
+        or_label = pm.text(label=' OR ')
+
+        pm.columnLayout(width=105)
+        skin_btn = pm.button(label='Skin to Rig', width=105)
+        skin_btn.setCommand(self.skin_to_rig)
+        skin_btn.setAnnotation(
+            "Transfer skinning to the mGear rig.\n\n"+
+            "This is done by first exporting the weights and the remapping\n"+
+            "the export to matching mGear joints, before bringing it in."
+        )
+
+        self.export_only_check = pm.checkBox(label='Export Only')
+        self.export_only_check.setAnnotation(
+            "Exports the skin weights, but don't re-apply them. You can\n"+
+            "use mGear>Skin and Weights>Import Skin Pack to manually\n"+
+            "bring them in later.\n\n"+
+            "See the script editor for where to find the skin pack."
+        )
+
         win.show()
+
 
     def populate_template_menu(self, template_menu):
         """Populate the template menu from PLEBE_TEMPLATES_DIR environment
@@ -343,14 +371,17 @@ class Plebes():
             pm.warning("Some guides failed to align correctly. "
                        "See the script editor for details!")
 
-    def attach_to_rig(self, nothing):
-        """Attach the plebe to the mGear rig
+    def constrain_to_rig(self, nothing):
+        """Constrain the plebe to the mGear rig using constraints
         """
         # Sanity checking
         if not pm.objExists(self.template.get('root')):
             pm.warning("Unable to find '{character}' in scene! ".format(
                 character=self.template.get('root')
             ), "Check that you have the correct template selected")
+            return False
+        if not pm.objExists('global_C0_ctl'):
+            pm.warning("You need to build the rig first!")
             return False
         warnings = False
 
@@ -395,6 +426,113 @@ class Plebes():
             pm.warning("Some joints failed to attach to the rig. "
                        "See the script editor for details!")
 
+
+    def skin_to_rig(self, nothing):
+        """Transfer skinning from the plebe to the mGear rig
+        """
+        # Sanity checking
+        if not pm.objExists(self.template.get('root')):
+            pm.warning("Unable to find '{character}' in scene! ".format(
+                character=self.template.get('root')
+            ), "Check that you have the correct template selected")
+            return False
+        if not pm.objExists('global_C0_ctl'):
+            pm.warning("You need to build the rig first!")
+            return False
+
+        # Check and prune selection
+        selection = []
+        for sel in pm.ls(selection=True):
+            skin_cluster = skin.getSkinCluster(sel)
+            if skin_cluster:
+                selection.append(sel)
+                # Hack to get around incorrect skinning method from MakeHuman
+                if skin_cluster.skinningMethod.get() < 0:
+                    skin_cluster.skinningMethod.set(0)
+        if not selection:
+            pm.error("Please select the geometry you want to skin to the rig.")
+        pm.select(selection, replace=True)
+
+        # Export a Skin Pack
+        if pm.sceneName():
+            filename = os.path.splitext(os.path.basename(pm.sceneName()))[0]
+        else:
+            filename = 'untitled'
+        skin_dir = os.path.join(tempfile.gettempdir(), "skin_tmp",filename)
+        if not os.path.exists(skin_dir):
+            os.makedirs(skin_dir)
+        pack_file = os.path.join(skin_dir, filename + ".gSkinPack")
+        skin.exportJsonSkinPack(packPath=pack_file)
+
+        # Adding weights from two joints to one
+        def add_dict(a, b):
+            c = {}
+            keys = list(set(list(a.keys()) + list(b.keys())))
+            for key in keys:
+                if key in a and key in b:
+                    c[key] = a[key] + b[key]
+                elif key in a:
+                    c[key] = a[key]
+                else:
+                    c[key] = b[key]
+            return(c)
+
+        # Edit the skin pack
+        with open(pack_file) as pack_json:
+            skin_pack = json.load(pack_json)
+        for jSkin in skin_pack.get("packFiles"):
+            skin_file = os.path.join(skin_dir, jSkin)
+            with open(skin_file) as skin_json:
+                skin_weights = json.load(skin_json)
+            weights = skin_weights.get('objDDic')[0].get('weights')
+
+            # Prints skinned joints that are missing from the template
+            in_template = []
+            for item in self.template.get('skinning'):
+                for i in item[1]:
+                    if not i in in_template:
+                        in_template.append(i)
+            missing = []
+            for joint in skin_weights.get('objDDic')[0].get('weights').keys():
+                if not joint in in_template:
+                    if not joint in missing:
+                        missing.append(joint)
+            if missing:
+                pm.displayInfo(
+                    "The following joints are missing from the template."
+                )
+                for m in missing:
+                    print(m)
+
+            for item in self.template.get('skinning'):
+                values = {}
+                for joint in item[1]:
+                    if joint in weights:
+                        value = weights.pop(joint)
+                        if value:
+                            values = add_dict(value, values)
+                            weights[item[0]] = values
+                        else:
+                            pm.displayInfo(
+                                "{joint} has no weights. Ignoring.".format(
+                                    joint=item[1]
+                                )
+                            )
+
+            with open(skin_file, 'w') as skin_json:
+                skin_json.write(json.dumps(skin_weights))
+        
+        if not self.export_only_check.getValue():
+            for sel in selection:
+                pm.skinCluster(sel, e=True, unbind=True)
+
+            # Import the modified skin pack
+            skin.importSkinPack(filePath=pack_file)
+            pm.displayInfo(
+                "Skinning transferred from old rig to mGear joints."
+            )
+
+        
 
 def plebes_gui():
     """Open the Plebes interface
