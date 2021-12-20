@@ -47,7 +47,10 @@ def get_keyable_attribute(node):
     Returns:
         list: list of keyable attributes
     """
-    attrs = cmds.listAttr(node, ud=False, k=True)
+    if cmds.nodeType(node) == "blendShape":
+        attrs = cmds.listAttr("{}.w".format(node), m=True)
+    else:
+        attrs = cmds.listAttr(node, ud=False, k=True)
 
     return attrs
 
