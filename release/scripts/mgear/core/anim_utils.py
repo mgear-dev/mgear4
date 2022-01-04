@@ -919,7 +919,7 @@ def ikFkMatch_with_namespace(namespace,
     if key:
         _all_controls = []
         _all_controls.extend(fk_ctrls)
-        _all_controls.extend([ik_ctrl, upv_ctrl, ui_node])
+        _all_controls.extend([ik_ctrl, upv_ctrl, o_attr])
         if ik_rot:
             _all_controls.extend([ik_rot_node])
         [cmds.setKeyframe("{}".format(elem),
