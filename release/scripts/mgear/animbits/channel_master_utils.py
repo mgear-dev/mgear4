@@ -67,7 +67,8 @@ def get_single_attribute_config(node, attr):
     """
     config = {}
     # config["ctl"] = node
-    config["ctl"] = pm.NameParser(node).stripNamespace().__str__()
+    # config["ctl"] = pm.NameParser(node).stripNamespace().__str__()
+    config["ctl"] = node
     config["color"] = None  # This is a place holder for the channel UI color
     config["type"] = cmds.attributeQuery(attr, node=node, attributeType=True)
 
@@ -160,8 +161,11 @@ def sync_graph_editor(attr_configs, namespace=None):
     for ac in attr_configs:
         ctl = ac["ctl"]
         if ctl not in ctls:
+            print(ctl)
             if namespace:
+                print(namespace)
                 ctl = namespace + ctl
+                print(ctl)
             ctls.append(ctl)
 
     pm.select(ctls, r=True)
