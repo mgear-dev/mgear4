@@ -165,11 +165,8 @@ def sync_graph_editor(attr_configs, namespace=None):
     for ac in attr_configs:
         ctl = ac["ctl"]
         if ctl not in ctls:
-            print(ctl)
             if namespace:
-                print(namespace)
                 ctl = namespace + pm.NameParser(ctl).stripNamespace().__str__()
-                print(ctl)
             ctls.append(ctl)
 
     pm.select(ctls, r=True)

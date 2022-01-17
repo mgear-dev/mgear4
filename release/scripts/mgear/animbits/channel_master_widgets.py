@@ -336,13 +336,10 @@ class ChannelTable(QtWidgets.QTableWidget):
         Returns:
             str: namespace sync name
         """
-        # print("namespace_sync >>")
-        # print(name)
         # If the channel master node has Namespace, this name space will
         # override any namespace stored in the channel
         if self.namespace and self.namespace not in name:
             name = pm.NameParser(name).stripNamespace().__str__()
-            # print(name)
             name = self.namespace + name
 
         return name

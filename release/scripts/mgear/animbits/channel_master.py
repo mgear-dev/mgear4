@@ -737,8 +737,6 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         Returns:
             None: Return none if no values stored in buffer
         """
-        print("Paste key")
-        print(self.values_buffer)
         if not self.values_buffer:
             return
         items = []
@@ -749,8 +747,6 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
 
         else:
             items = table.selectedItems()
-        print("items")
-        print(items)
         if len(items) == len(self.values_buffer):
             for e, item in enumerate(items):
                 attr = table.namespace_sync(
