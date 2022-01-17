@@ -539,7 +539,7 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         """
         self.main_table.update_table_from_selection()
         # Clean values buffer
-        self.values_buffer = []
+        # self.values_buffer = []
 
     def search_channels(self):
         """Filter the visible rows in the channel table.
@@ -572,7 +572,7 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         """
         self.refresh_channels_values()
         self.action_display_fullname()
-        self.values_buffer = []
+        # self.values_buffer = []
 
     # actions
     def action_scrubbing_update(self):
@@ -737,6 +737,8 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         Returns:
             None: Return none if no values stored in buffer
         """
+        print("Paste key")
+        print(self.values_buffer)
         if not self.values_buffer:
             return
         items = []
@@ -747,6 +749,8 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
 
         else:
             items = table.selectedItems()
+        print("items")
+        print(items)
         if len(items) == len(self.values_buffer):
             for e, item in enumerate(items):
                 attr = table.namespace_sync(
