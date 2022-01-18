@@ -1,5 +1,6 @@
 import pymel.core as pm
 import mgear
+import os
 
 menuId = "mGear"
 
@@ -17,11 +18,17 @@ def create(menuId=menuId):
     if pm.menu(menuId, exists=True):
         pm.deleteUI(menuId)
 
+    project_name = os.environ.get("MGEAR_PROJECT_NAME", None)
+    if project_name:
+        menuLabel = "mGear( {} )".format(project_name)
+    else:
+        menuLabel = menuId
+
     pm.menu(menuId,
             parent="MayaWindow",
             tearOff=True,
             allowOptionBoxes=True,
-            label=menuId)
+            label=menuLabel)
 
     return menuId
 
