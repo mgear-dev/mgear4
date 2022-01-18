@@ -318,8 +318,10 @@ class Component(component.Main):
                                            addy_node.output,
                                            addz_node.output],
                                           [-1, -1, -1])
+            add_node = node.createAddNode(neg_node.outputY.get() * -1,
+                                          neg_node.outputY)
             ik_outputs = [neg_node.outputX,
-                          neg_node.outputY,
+                          add_node.output,
                           neg_node.outputZ]
 
             # fk
