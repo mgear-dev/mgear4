@@ -106,6 +106,10 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.file_import_action.setIcon(pyqt.get_icon("mgear_log-in"))
         self.file_import_add_action = QtWidgets.QAction("Import Add", self)
         self.file_import_add_action.setIcon(pyqt.get_icon("mgear_log-in"))
+        self.use_node_namespace_action = QtWidgets.QAction(
+            "Use Namespace From ChannelMaster Node", self)
+        self.use_node_namespace_action.setCheckable(True)
+        self.use_node_namespace_action.setChecked(True)
 
         # Display actions
         self.display_fullname_action = QtWidgets.QAction(
@@ -180,6 +184,8 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.file_menu.addAction(self.file_export_current_action)
         self.file_menu.addAction(self.file_import_action)
         self.file_menu.addAction(self.file_import_add_action)
+        self.file_menu.addSeparator()
+        self.file_menu.addAction(self.use_node_namespace_action)
 
         self.display_menu = self.menu_bar.addMenu("Display")
         self.display_menu.addAction(self.display_sync_graph_action)
@@ -335,6 +341,8 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
             self.import_node_data)
         self.file_import_add_action.triggered.connect(
             self.add_node_data)
+        self.use_node_namespace_action.triggered.connect(
+            self.use_node_namespace)
 
         # actions display
         self.display_fullname_action.triggered.connect(
@@ -486,7 +494,7 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         current_node = self.get_current_node()
         if not current_node:
             return
-        self.namespace = pm.PyNode(current_node).namespace()
+        self.set_namespace(current_node)
 
         return cmn.get_node_data(current_node)
 
@@ -574,7 +582,16 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.action_display_fullname()
         # self.values_buffer = []
 
+    def set_namespace(self, current_node):
+        if self.use_node_namespace_action.isChecked():
+            self.namespace = pm.PyNode(current_node).namespace()
+        else:
+            self.namespace = None
+
     # actions
+    def use_node_namespace(self):
+        self.update_channel_master_from_node()
+
     def action_scrubbing_update(self):
         if self.scrubbing_update_action.isChecked():
             self.cb_manager.userTimeChangedCB(

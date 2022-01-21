@@ -145,7 +145,8 @@ def reset_attribute(attr_config, namespace=None):
         attr_config (dict): Attribute configuration
     """
     if namespace:
-        ctl = namespace + attr_config["ctl"]
+        ctl = namespace + pm.NameParser(
+            attr_config["ctl"]).stripNamespace().__str__()
     else:
         ctl = attr_config["ctl"]
     obj = pm.PyNode(ctl)

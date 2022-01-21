@@ -2,7 +2,6 @@ import maya.cmds as cmds
 import pymel.core as pm
 from mgear.core import pyflow_widgets
 from mgear.core import pyqt
-from mgear.core import widgets
 from mgear.vendor.Qt import QtWidgets
 from mgear.vendor.Qt import QtCore
 from mgear.vendor.Qt import QtGui
@@ -320,7 +319,8 @@ class ChannelTable(QtWidgets.QTableWidget):
 
         horizontal_header_view.setSectionResizeMode(
             0, QtWidgets.QHeaderView.ResizeToContents)
-        horizontal_header_view.setSectionResizeMode(2, QtWidgets.QHeaderView.Stretch)
+        horizontal_header_view.setSectionResizeMode(
+            2, QtWidgets.QHeaderView.Stretch)
 
     def contextMenuEvent(self, event):
         if self.selectedItems():
