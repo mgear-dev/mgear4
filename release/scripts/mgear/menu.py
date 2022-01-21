@@ -20,7 +20,7 @@ def create(menuId=menuId):
 
     project_name = os.environ.get("MGEAR_PROJECT_NAME", None)
     if project_name:
-        menuLabel = "mGear( {} )".format(project_name)
+        menuLabel = "mGear ({})".format(project_name)
     else:
         menuLabel = menuId
 
