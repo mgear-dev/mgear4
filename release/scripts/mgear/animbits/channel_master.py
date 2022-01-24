@@ -111,6 +111,10 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.use_node_namespace_action.setCheckable(True)
         self.use_node_namespace_action.setChecked(True)
 
+        self.use_only_local_data_action = QtWidgets.QAction(
+            "Use Only Data Embedded in Local Node", self)
+        self.use_only_local_data_action.setCheckable(True)
+
         # Display actions
         self.display_fullname_action = QtWidgets.QAction(
             "Channel Full Name", self)
@@ -186,6 +190,7 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.file_menu.addAction(self.file_import_add_action)
         self.file_menu.addSeparator()
         self.file_menu.addAction(self.use_node_namespace_action)
+        self.file_menu.addAction(self.use_only_local_data_action)
 
         self.display_menu = self.menu_bar.addMenu("Display")
         self.display_menu.addAction(self.display_sync_graph_action)
@@ -343,6 +348,8 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
             self.add_node_data)
         self.use_node_namespace_action.triggered.connect(
             self.use_node_namespace)
+        self.use_only_local_data_action.triggered.connect(
+            self.use_only_local_data)
 
         # actions display
         self.display_fullname_action.triggered.connect(
@@ -495,8 +502,8 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         if not current_node:
             return
         self.set_namespace(current_node)
-
-        return cmn.get_node_data(current_node)
+        use_local_data = self.use_only_local_data_action.isChecked()
+        return cmn.get_node_data(current_node, use_local_data)
 
     def import_node_data(self):
         """Create a new node and import the data from an exported data file
@@ -589,6 +596,10 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
             self.namespace = None
 
     # actions
+    def use_only_local_data(self):
+        print("Use only local data")
+        self.update_channel_master_from_node()
+
     def use_node_namespace(self):
         self.update_channel_master_from_node()
 

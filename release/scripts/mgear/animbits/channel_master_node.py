@@ -93,17 +93,20 @@ def get_external_data(node):
             return data["config"]
 
 
-def get_node_data(node):
+def get_node_data(node, use_local_data=False):
     """Get the configuration data from a node
+    Can get the data from the external data or from local data
 
     Args:
         node (str): nme of the node
+        use_local_data (bool, optional): If true will force to use the node
+                                         local data
 
     Returns:
         dict: configuration data
     """
     data = get_external_data(node)
-    if not data:
+    if not data or use_local_data:
         data = cmds.getAttr("{}.data".format(node))
         return ast.literal_eval(data)
     else:
