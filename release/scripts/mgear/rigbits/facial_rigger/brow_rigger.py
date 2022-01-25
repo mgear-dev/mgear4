@@ -1,6 +1,8 @@
 # Original design Krzysztof Marcinowski
 import json
 from functools import partial
+from six import string_types
+
 
 import mgear.core.pyqt as gqt
 import pymel.core as pm
@@ -89,7 +91,7 @@ def rig(edge_loop,
             return
 
         # set side
-        if edge_loop[0].getPoint(0, space='world') > 0:
+        if edge_loop[0].getPoint(0, space='world')[0] > 0:
             # left
             side = "L"
             l_Loop = edge_loop
@@ -778,7 +780,7 @@ def rig(edge_loop,
     ###########################################
     if parent_node:
         try:
-            if isinstance(parent_node, basestring):
+            if isinstance(parent_node, string_types):
                 parent_node = pm.PyNode(parent_node)
             parent_node.addChild(brows_root)
         except pm.MayaNodeError:

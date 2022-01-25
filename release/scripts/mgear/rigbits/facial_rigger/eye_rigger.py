@@ -3,6 +3,7 @@
 import json
 import traceback
 from functools import partial
+from six import string_types
 
 import mgear
 import mgear.core.pyqt as gqt
@@ -818,7 +819,7 @@ def rig(eyeMesh=None,
     ###########################################
     if parent_node:
         try:
-            if isinstance(parent_node, basestring):
+            if isinstance(parent_node, string_types):
                 parent_node = pm.PyNode(parent_node)
             parent_node.addChild(eye_root)
         except pm.MayaNodeError:

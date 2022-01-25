@@ -204,7 +204,8 @@ def edgeRangeInLoopFromMid(edgeList, midPos, endA, endB):
         count += 1
         if count > 50:
             break
-    loopRange = set(midEdges + extremeEdges)
+    # loopRange = set(midEdges + extremeEdges)
+    loopRange = midEdges + extremeEdges
     return loopRange
 
 
