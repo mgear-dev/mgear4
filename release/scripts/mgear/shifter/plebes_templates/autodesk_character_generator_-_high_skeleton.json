@@ -1,10 +1,11 @@
 {
-    "help": "Please remove the mixamorig* namespace before running this tool.\n\nNote that only some Mixamo characters have eye joints. If these are found, they will be used, otherwise they're ignored.",
+    "help": "Export characters from Autodesk Character Generator with high skeleton resolution.",
     "root": "Hips",
     "guides": [
+	{"guide": "master"},
 	{"body_C0_root": "Hips"},
 	{"spine_C0_root": "Hips"},
-	{"spine_C0_eff": "Spine2"},
+	{"spine_C0_eff": "Spine4"},
 	{"neck_C0_root": "Neck"},
 	{"neck_C0_neck": "Head"},
 	{"neck_C0_head": "Head"},
@@ -100,41 +101,41 @@
 	{"foot_L0_0_loc": "LeftToeBase"},
 	{"foot_L0_1_loc": [
 	    "LeftToeBase",
-	    "LeftToe_End"
+	    "LeftFootIndex3"
 	]},
-	{"foot_L0_2_loc": "LeftToe_End"},
+	{"foot_L0_2_loc": "LeftFootIndex3"},
 	{"leg_R0_root": "RightUpLeg"},
 	{"leg_R0_knee": "RightLeg"},
 	{"leg_R0_ankle": "RightFoot"},
 	{"foot_R0_0_loc": "RightToeBase"},
 	{"foot_R0_1_loc": [
 	    "RightToeBase",
-	    "RightToe_End"
+	    "RightFootIndex3"
 	]},
-	{"foot_R0_2_loc": "RightToe_End"}
+	{"foot_R0_2_loc": "RightFootIndex3"}
     ],
     "settings": [
 	{"spine_C0_root": [
-	    { "division": 4 }
+	    { "division": 6}
 	]},
 	{"arm_L0_root": [
-	    { "div0": 0 },
-	    { "div1": 0 },
+	    { "div0": 1 },
+	    { "div1": 1 },
 	    { "supportJoints": 0}
 	]},
 	{"arm_R0_root": [
-	    { "div0": 0 },
-	    { "div1": 0 },
+	    { "div0": 1 },
+	    { "div1": 1 },
 	    { "supportJoints": 0}
 	]},
 	{"leg_L0_root": [
-	    { "div0": 0 },
-	    { "div1": 0 },
+	    { "div0": 1 },
+	    { "div1": 1 },
 	    { "supportJoints": 0}
 	]},
 	{"leg_R0_root": [
-	    { "div0": 0 },
-	    { "div1": 0 },
+	    { "div0": 1 },
+	    { "div1": 1 },
 	    { "supportJoints": 0}
 	]}
     ],
@@ -155,6 +156,14 @@
             "joint": "Spine2",
             "constrain": "110"}
 	},
+	{"spine_C0_4_jnt": {
+            "joint": "Spine3",
+            "constrain": "110"}
+	},
+	{"spine_C0_5_jnt": {
+            "joint": "Spine4",
+            "constrain": "110"}
+	},
 	{"shoulder_L0_shoulder_jnt": {
             "joint": "LeftShoulder",
             "constrain": "110"}
@@ -164,7 +173,15 @@
             "constrain": "110"}
 	},
 	{"arm_L0_1_jnt": {
+            "joint": "LeftArmRoll",
+            "constrain": "110"}
+	},
+	{"arm_L0_2_jnt": {
             "joint": "LeftForeArm",
+            "constrain": "110"}
+	},
+	{"arm_L0_3_jnt": {
+            "joint": "LeftForeArmRoll",
             "constrain": "110"}
 	},
 	{"arm_L0_end_jnt": {
@@ -240,7 +257,15 @@
             "constrain": "110"}
 	},
 	{"arm_R0_1_jnt": {
+            "joint": "RightArmRoll",
+            "constrain": "110"}
+	},
+	{"arm_R0_2_jnt": {
             "joint": "RightForeArm",
+            "constrain": "110"}
+	},
+	{"arm_R0_3_jnt": {
+            "joint": "RightForeArmRoll",
             "constrain": "110"}
 	},
 	{"arm_R0_end_jnt": {
@@ -311,6 +336,10 @@
             "joint": "Neck",
             "constrain": "110"}
 	},
+	{"neck_C0_1_jnt": {
+            "joint": "Neck1",
+            "constrain": "110"}
+	},
 	{"neck_C0_head_jnt": {
             "joint": "Head",
             "constrain": "110"}
@@ -328,7 +357,15 @@
             "constrain": "110"}
 	},
 	{"leg_L0_1_jnt": {
+            "joint": "LeftUpLegRoll",
+            "constrain": "110"}
+	},
+	{"leg_L0_2_jnt": {
             "joint": "LeftLeg",
+            "constrain": "110"}
+	},
+	{"leg_L0_3_jnt": {
+            "joint": "LeftLegRoll",
             "constrain": "110"}
 	},
 	{"leg_L0_end_jnt": {
@@ -344,7 +381,15 @@
             "constrain": "110"}
 	},
 	{"leg_R0_1_jnt": {
+            "joint": "RightUpLegRoll",
+            "constrain": "110"}
+	},
+	{"leg_R0_2_jnt": {
             "joint": "RightLeg",
+            "constrain": "110"}
+	},
+	{"leg_R0_3_jnt": {
+            "joint": "RightLegRoll",
             "constrain": "110"}
 	},
 	{"leg_R0_end_jnt": {
@@ -358,60 +403,73 @@
     ],
     "skinning": [
 	["spine_C0_0_jnt", ["Hips"]],
-	["spine_C0_1_jnt", ["Spine"]],
-	["spine_C0_2_jnt", ["Spine1"]],
-	["spine_C0_3_jnt", ["Spine2"]],
+	["spine_C0_1_jnt", ["Spine", "SpineV"]],
+	["spine_C0_2_jnt", ["Spine1", "Spine1V"]],
+	["spine_C0_3_jnt", ["Spine2", "Spine2V"]],
+	["spine_C0_4_jnt", ["Spine3", "Spine4Left", "Spine4Right"]],
+	["spine_C0_5_jnt", ["Spine4"]],
 	["shoulder_L0_shoulder_jnt", ["LeftShoulder"]],
 	["arm_L0_0_jnt", ["LeftArm"]],
-	["arm_L0_1_jnt", ["LeftForeArm"]],
-	["arm_L0_end_jnt", ["LeftHand"]],
+	["arm_L0_1_jnt", ["LeftArmRoll"]],
+	["arm_L0_2_jnt", ["LeftForeArm"]],
+	["arm_L0_3_jnt", ["LeftForeArmRoll"]],
+	["arm_L0_end_jnt", ["LeftHand", "LeftFingerBase"]],
+	["meta_L0_3_jnt", ["LeftHandPinky0"]],
 	["finger_L3_0_jnt", ["LeftHandPinky1"]],
 	["finger_L3_1_jnt", ["LeftHandPinky2"]],
-	["finger_L3_2_jnt", ["LeftHandPinky3", "LeftHandPinky4"]],
+	["finger_L3_2_jnt", ["LeftHandPinky3"]],
 	["finger_L2_0_jnt", ["LeftHandRing1"]],
 	["finger_L2_1_jnt", ["LeftHandRing2"]],
-	["finger_L2_2_jnt", ["LeftHandRing3", "LeftHandRing4"]],
+	["finger_L2_2_jnt", ["LeftHandRing3"]],
 	["finger_L1_0_jnt", ["LeftHandMiddle1"]],
 	["finger_L1_1_jnt", ["LeftHandMiddle2"]],
-	["finger_L1_2_jnt", ["LeftHandMiddle3", "LeftHandMiddle4"]],
+	["finger_L1_2_jnt", ["LeftHandMiddle3"]],
+	["meta_L0_0_jnt", ["LeftHandIndex0"]],
 	["finger_L0_0_jnt", ["LeftHandIndex1"]],
 	["finger_L0_1_jnt", ["LeftHandIndex2"]],
-	["finger_L0_2_jnt", ["LeftHandIndex3", "LeftHandIndex4"]],
+	["finger_L0_2_jnt", ["LeftHandIndex3"]],
 	["thumb_L0_0_jnt", ["LeftHandThumb1"]],
 	["thumb_L0_1_jnt", ["LeftHandThumb2"]],
-	["thumb_L0_2_jnt", ["LeftHandThumb3", "LeftHandThumb4"]],
+	["thumb_L0_2_jnt", ["LeftHandThumb3"]],
 	["shoulder_R0_shoulder_jnt", ["RightShoulder"]],
 	["arm_R0_0_jnt", ["RightArm"]],
-	["arm_R0_1_jnt", ["RightForeArm"]],
-	["arm_R0_end_jnt", ["RightHand"]],
+	["arm_R0_1_jnt", ["RightArmRoll"]],
+	["arm_R0_2_jnt", ["RightForeArm"]],
+	["arm_R0_3_jnt", ["RightForeArmRoll"]],
+	["arm_R0_end_jnt", ["RightHand", "RightFingerBase"]],
+	["meta_R0_3_jnt", ["RightHandPinky0"]],
 	["finger_R3_0_jnt", ["RightHandPinky1"]],
 	["finger_R3_1_jnt", ["RightHandPinky2"]],
-	["finger_R3_2_jnt", ["RightHandPinky3", "RightHandPinky4"]],
+	["finger_R3_2_jnt", ["RightHandPinky3"]],
 	["finger_R2_0_jnt", ["RightHandRing1"]],
 	["finger_R2_1_jnt", ["RightHandRing2"]],
-	["finger_R2_2_jnt", ["RightHandRing3", "RightHandRing4"]],
+	["finger_R2_2_jnt", ["RightHandRing3"]],
 	["finger_R1_0_jnt", ["RightHandMiddle1"]],
 	["finger_R1_1_jnt", ["RightHandMiddle2"]],
-	["finger_R1_2_jnt", ["RightHandMiddle3", "RightHandMiddle4"]],
+	["finger_R1_2_jnt", ["RightHandMiddle3"]],
+	["meta_R0_0_jnt", ["RightHandIndex0"]],
 	["finger_R0_0_jnt", ["RightHandIndex1"]],
 	["finger_R0_1_jnt", ["RightHandIndex2"]],
-	["finger_R0_2_jnt", ["RightHandIndex3", "RightHandIndex4"]],
+	["finger_R0_2_jnt", ["RightHandIndex3"]],
 	["thumb_R0_0_jnt", ["RightHandThumb1"]],
 	["thumb_R0_1_jnt", ["RightHandThumb2"]],
-	["thumb_R0_2_jnt", ["RightHandThumb3", "RightHandThumb4"]],
+	["thumb_R0_2_jnt", ["RightHandThumb3"]],
 	["neck_C0_0_jnt", ["Neck"]],
+	["neck_C0_1_jnt", ["Neck1"]],
 	["neck_C0_head_jnt", ["Head"]],
 	["eye_L0_eye_jnt", ["LeftEye"]],
 	["eye_R0_eye_jnt", ["RightEye"]],
 	["leg_L0_0_jnt", ["LeftUpLeg"]],
-	["leg_L0_1_jnt", ["LeftLeg"]],
+	["leg_L0_1_jnt", ["LeftUpLegRoll"]],
+	["leg_L0_2_jnt", ["LeftLeg"]],
+	["leg_L0_3_jnt", ["LeftLegRoll"]],
 	["leg_L0_end_jnt", ["LeftFoot"]],
-	["foot_L0_0_jnt", ["LeftToeBase"]],
-	["foot_L0_1_jnt", ["LeftToe_End"]],
+	["foot_L0_0_jnt", ["LeftToeBase", "LeftFootExtraFinger1", "LeftFootExtraFinger2", "LeftFootExtraFinger3", "LeftFootIndex1", "LeftFootIndex2", "LeftFootIndex3", "LeftFootMiddle1", "LeftFootMiddle2", "LeftFootMiddle3", "LeftFootRing1", "LeftFootRing2", "LeftFootRing3", "LeftFootPinky1", "LeftFootPinky2", "LeftFootPinky3"]],
 	["leg_R0_0_jnt", ["RightUpLeg"]],
-	["leg_R0_1_jnt", ["RightLeg"]],
+	["leg_R0_1_jnt", ["RightUpLegRoll"]],
+	["leg_R0_2_jnt", ["RightLeg"]],
+	["leg_R0_3_jnt", ["RightLegRoll"]],
 	["leg_R0_end_jnt", ["RightFoot"]],
-	["foot_R0_0_jnt", ["RightToeBase"]],
-	["foot_R0_1_jnt", ["RightToe_End"]]
+	["foot_R0_0_jnt", ["RightToeBase", "RightFootExtraFinger1", "RightFootExtraFinger2", "RightFootExtraFinger3", "RightFootIndex1", "RightFootIndex2", "RightFootIndex3", "RightFootMiddle1", "RightFootMiddle2", "RightFootMiddle3", "RightFootRing1", "RightFootRing2", "RightFootRing3", "RightFootPinky1", "RightFootPinky2", "RightFootPinky3"]]
     ]
 }
