@@ -501,13 +501,24 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         node = self.get_current_node()
         if not node:
             return
-        self.set_namespace(node)
+        # local data usage
         # first check if node has force_local_data attr if not create it
         if not cmds.attributeQuery("force_local_data", node=node, exists=True):
             cmds.addAttr(node, ln="force_local_data", at="bool", dv=False)
         # refresh configuration status in actions
         force_local_data = cmds.getAttr("{}.force_local_data".format(node))
         self.use_only_local_data_action.setChecked(force_local_data)
+
+        # node namespace usage
+        # first check if node has use_node_namespace attr if not create it
+        if not cmds.attributeQuery("use_node_namespace", node=node, exists=True):
+            cmds.addAttr(node, ln="use_node_namespace", at="bool", dv=False)
+        # refresh configuration status in actions
+        use_node_namespace = cmds.getAttr("{}.use_node_namespace".format(node))
+        self.use_node_namespace_action.setChecked(use_node_namespace)
+
+        self.set_namespace(node)
+
         return cmn.get_node_data(node)
 
     def import_node_data(self):
@@ -543,7 +554,6 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         """Update the channel master content from the node configuration
 
         """
-        print("updating node")
         data = self.get_data_from_current_node()
         if not data:
             return
@@ -603,7 +613,6 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
 
     # actions
     def use_only_local_data(self):
-        print("Use only local data")
         node = self.get_current_node()
         if not node:
             return
@@ -612,6 +621,11 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.update_channel_master_from_node()
 
     def use_node_namespace(self):
+        node = self.get_current_node()
+        if not node:
+            return
+        use_node_ns = self.use_node_namespace_action.isChecked()
+        cmds.setAttr("{}.use_node_namespace".format(node), use_node_ns)
         self.update_channel_master_from_node()
 
     def action_scrubbing_update(self):
