@@ -498,12 +498,17 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         Returns:
             TYPE: Description
         """
-        current_node = self.get_current_node()
-        if not current_node:
+        node = self.get_current_node()
+        if not node:
             return
-        self.set_namespace(current_node)
-        use_local_data = self.use_only_local_data_action.isChecked()
-        return cmn.get_node_data(current_node, use_local_data)
+        self.set_namespace(node)
+        # first check if node has force_local_data attr if not create it
+        if not cmds.attributeQuery("force_local_data", node=node, exists=True):
+            cmds.addAttr(node, ln="force_local_data", at="bool", dv=False)
+        # refresh configuration status in actions
+        force_local_data = cmds.getAttr("{}.force_local_data".format(node))
+        self.use_only_local_data_action.setChecked(force_local_data)
+        return cmn.get_node_data(node)
 
     def import_node_data(self):
         """Create a new node and import the data from an exported data file
@@ -538,6 +543,7 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         """Update the channel master content from the node configuration
 
         """
+        print("updating node")
         data = self.get_data_from_current_node()
         if not data:
             return
@@ -598,6 +604,11 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
     # actions
     def use_only_local_data(self):
         print("Use only local data")
+        node = self.get_current_node()
+        if not node:
+            return
+        use_local_data = self.use_only_local_data_action.isChecked()
+        cmds.setAttr("{}.force_local_data".format(node), use_local_data)
         self.update_channel_master_from_node()
 
     def use_node_namespace(self):

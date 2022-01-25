@@ -74,6 +74,8 @@ def create_channel_master_node(name):
     cmds.setAttr("{}.{}".format(node, __TAG__), k=False, l=True)
     cmds.addAttr(node, ln="data", dt="string")
     cmds.addAttr(node, ln="external_data", dt="string")
+    cmds.addAttr(node, ln="use_node_namespace", at="bool", dv=True)
+    cmds.addAttr(node, ln="force_local_data", at="bool", dv=False)
 
     attribute.lockAttribute(pm.PyNode(node))
 
@@ -93,7 +95,7 @@ def get_external_data(node):
             return data["config"]
 
 
-def get_node_data(node, use_local_data=False):
+def get_node_data(node):
     """Get the configuration data from a node
     Can get the data from the external data or from local data
 
@@ -106,7 +108,8 @@ def get_node_data(node, use_local_data=False):
         dict: configuration data
     """
     data = get_external_data(node)
-    if not data or use_local_data:
+    # if not data or use_local_data:
+    if not data or cmds.getAttr("{}.force_local_data".format(node)):
         data = cmds.getAttr("{}.data".format(node))
         return ast.literal_eval(data)
     else:
