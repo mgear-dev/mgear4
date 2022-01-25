@@ -455,8 +455,14 @@ class Component(component.Main):
             self.tws3_loc,
             self.getName("tws3_rot"),
             transform.getTransform(self.legBones[3]))
-
         self.tws3_rot.setAttr("sx", .001)
+
+        self.tws3_drv = primitive.addTransform(
+            self.legBones[2],
+            self.getName("tws3_drv"),
+            transform.getTransform(self.legBones[3]))
+
+        self.tws3_drv.setAttr("sx", .001)
 
         # Divisions ----------------------------------------
         # We have at least one division at the start, the end and one for
@@ -480,51 +486,6 @@ class Component(component.Main):
         self.jnt_pos.append([self.end_ref, 'end'])
 
         # match IK FK references
-        # self.match_fk0_off = primitive.addTransform(
-        #     self.root,
-        #     self.getName("matchFk0_npo"),
-        #     transform.getTransform(self.fk_ctl[1]))
-
-        # self.match_fk0 = primitive.addTransform(
-        #     self.match_fk0_off,
-        #     self.getName("fk0_mth"),
-        #     transform.getTransform(self.fk_ctl[0]))
-
-        # self.match_fk1_off = primitive.addTransform(
-        #     self.root,
-        #     self.getName("matchFk1_npo"),
-        #     transform.getTransform(self.fk_ctl[2]))
-
-        # self.match_fk1 = primitive.addTransform(
-        #     self.match_fk1_off,
-        #     self.getName("fk1_mth"),
-        #     transform.getTransform(self.fk_ctl[1]))
-
-        # self.match_fk2_off = primitive.addTransform(
-        #     self.root,
-        #     self.getName("matchFk2_npo"),
-        #     transform.getTransform(self.fk_ctl[3]))
-
-        # self.match_fk2 = primitive.addTransform(
-        #     self.match_fk2_off,
-        #     self.getName("fk2_mth"),
-        #     transform.getTransform(self.fk_ctl[2]))
-
-        # self.match_fk3 = primitive.addTransform(
-        #     self.ik_ctl,
-        #     self.getName("fk3_mth"),
-        #     transform.getTransform(self.fk_ctl[3]))
-
-        # self.match_ik = primitive.addTransform(
-        #     self.fk3_ctl,
-        #     self.getName("ik_mth"),
-        #     transform.getTransform(self.ik_ctl))
-
-        # self.match_ikUpv = primitive.addTransform(
-        #     self.fk0_ctl,
-        #     self.getName("upv_mth"),
-        #     transform.getTransform(self.upv_ctl))
-
         self.match_fk0_off = self.add_match_ref(self.fk_ctl[1],
                                                 self.root,
                                                 "matchFk0_npo",
@@ -1084,7 +1045,7 @@ class Component(component.Main):
             perc = max(.001, min(.999, perc))
 
             # Roll
-            cts = [self.tws0_rot, self.tws1_rot, self.tws2_rot, self.tws3_rot]
+            cts = [self.tws0_rot, self.tws1_rot, self.tws2_rot, self.tws3_drv]
             o_node = applyop.gear_rollsplinekine_op(div_cns, cts, perc, subdiv)
 
             pm.connectAttr(self.resample_att, o_node + ".resample")
@@ -1099,6 +1060,13 @@ class Component(component.Main):
             pm.connectAttr(self.volDriver_att, o_node + ".driver")
             pm.connectAttr(self.st_att[i], o_node + ".stretch")
             pm.connectAttr(self.sq_att[i], o_node + ".squash")
+
+        # connect roll rotation driver reference
+        pm.orientConstraint(self.legBones[3],
+                            self.tws3_drv,
+                            skip=['y', 'z'],
+                            maintainOffset=True,
+                            weight=1)
 
         # Visibilities -------------------------------------
         # fk
