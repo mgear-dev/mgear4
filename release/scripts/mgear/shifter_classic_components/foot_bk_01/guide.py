@@ -118,8 +118,7 @@ class componentSettings(MayaQWidgetDockableMixin, guide.componentMainSettings):
         self.resize(280, 350)
 
     def create_componentControls(self):
-        self.settingsTab.rollAngle_spinBox.setValue(
-            self.root.attr("rollAngle").get())
+        return
 
     def populate_componentControls(self):
         """Populate Controls
@@ -133,6 +132,8 @@ class componentSettings(MayaQWidgetDockableMixin, guide.componentMainSettings):
 
         # populate component settings
         self.populateCheck(self.settingsTab.useRollCtl_checkBox, "useRollCtl")
+        self.settingsTab.rollAngle_spinBox.setValue(
+            self.root.attr("rollAngle").get())
 
         # populate connections in main settings
         for cnx in Guide.connectors:
