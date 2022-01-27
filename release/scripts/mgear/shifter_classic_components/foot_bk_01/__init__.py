@@ -196,7 +196,8 @@ class Component(component.Main):
 
         self.angles_att = [self.addAnimParam("angle_%s" % i,
                                              "Angle %s" % i,
-                                             "double", -20)
+                                             "double",
+                                             self.settings["rollAngle"])
                            for i in range(self.div_count)]
 
         # Setup ------------------------------------------
