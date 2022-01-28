@@ -2,6 +2,7 @@ import pymel.core as pm
 from mgear.core import meshNavigation, curve, applyop, primitive, icon
 from mgear.core import transform, attribute, skin, vector, pickWalk, utils
 from pymel.core import datatypes
+from six import string_types
 
 
 ##################
@@ -27,7 +28,7 @@ def sortVerts(points):
 
 
 def divideSegment(crv, count, name="Temp"):
-    if isinstance(crv, str) or isinstance(crv, unicode):
+    if isinstance(crv, str) or isinstance(crv, string_types):
         crv = pm.PyNode(crv)
 
     curveFromCurve = curve.createCurveFromCurve(crv, name, count)

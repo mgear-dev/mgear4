@@ -1,5 +1,5 @@
 import json
-
+from six import string_types
 import pymel.core
 
 from mgear.vendor.Qt import QtWidgets
@@ -45,7 +45,7 @@ def import_settings_from_file(file_path, widget):
     with open(file_path, "r") as f:
         settings = json.load(f)
 
-    for attr, obj in widget.__dict__.iteritems():
+    for attr, obj in widget.__dict__.items():
         if attr not in settings.keys():
             continue
 
@@ -54,7 +54,7 @@ def import_settings_from_file(file_path, widget):
 
 def get_settings_from_widget(widget):
     settings = {}
-    for attr, obj in widget.__dict__.iteritems():
+    for attr, obj in widget.__dict__.items():
         value = widget_get(obj)
         if value is not None:
             settings[attr] = value
@@ -75,7 +75,7 @@ def get_file_path(filter, mode):
     )
     if not file_path:
         return None
-    if not isinstance(file_path, basestring):
+    if not isinstance(file_path, string_types):
         file_path = file_path[0]
 
     return file_path

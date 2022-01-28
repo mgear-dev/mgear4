@@ -2,6 +2,7 @@
 
 import json
 from functools import partial
+from six import string_types
 
 import mgear.core.pyqt as gqt
 import pymel.core as pm
@@ -314,7 +315,7 @@ def rig(edge_loop="",
                        cns.attr("worldUpMatrix"))
 
         # getting joint parent
-        if head_joint and isinstance(head_joint, (str, unicode)):
+        if head_joint and isinstance(head_joint, (str, string_types)):
             try:
                 j_parent = pm.PyNode(head_joint)
             except pm.MayaNodeError:
@@ -373,7 +374,7 @@ def rig(edge_loop="",
                        cns.attr("worldUpMatrix"))
 
         # getting joint parent
-        if jaw_joint and isinstance(jaw_joint, (str, unicode)):
+        if jaw_joint and isinstance(jaw_joint, (str, string_types)):
             try:
                 j_parent = pm.PyNode(jaw_joint)
             except pm.MayaNodeError:
@@ -439,7 +440,7 @@ def rig(edge_loop="",
                 transform.getTranslation(joint),
                 cv
             )
-            if distance < nearest_distance or nearest_distance is None:
+            if nearest_distance is None or distance < nearest_distance:
                 nearest_distance = distance
                 nearest_joint = joint
 
@@ -510,7 +511,7 @@ def rig(edge_loop="",
                 transform.getTranslation(joint),
                 cv
             )
-            if distance < nearest_distance or nearest_distance is None:
+            if nearest_distance is None or distance < nearest_distance:
                 nearest_distance = distance
                 nearest_joint = joint
 
@@ -663,7 +664,7 @@ def rig(edge_loop="",
     ###########################################
     if parent_node:
         try:
-            if isinstance(parent_node, basestring):
+            if isinstance(parent_node, string_types):
                 parent_node = pm.PyNode(parent_node)
             parent_node.addChild(lips_root)
         except pm.MayaNodeError:
@@ -671,14 +672,14 @@ def rig(edge_loop="",
                               "this object doesn't exist." % parent_node)
     if head_joint and jaw_joint:
         try:
-            if isinstance(head_joint, basestring):
+            if isinstance(head_joint, string_types):
                 head_joint = pm.PyNode(head_joint)
         except pm.MayaNodeError:
             pm.displayWarning("Head Joint or Upper Lip Joint %s. Can not be "
                               "fount in the scene" % head_joint)
             return
         try:
-            if isinstance(jaw_joint, basestring):
+            if isinstance(jaw_joint, string_types):
                 jaw_joint = pm.PyNode(jaw_joint)
         except pm.MayaNodeError:
             pm.displayWarning("Jaw Joint or Lower Lip Joint %s. Can not be "
@@ -689,14 +690,14 @@ def rig(edge_loop="",
 
         if upper_lip_ctl and lower_lip_ctl:
             try:
-                if isinstance(upper_lip_ctl, basestring):
+                if isinstance(upper_lip_ctl, string_types):
                     upper_lip_ctl = pm.PyNode(upper_lip_ctl)
             except pm.MayaNodeError:
                 pm.displayWarning("Upper Lip Ctl %s. Can not be "
                                   "fount in the scene" % upper_lip_ctl)
                 return
             try:
-                if isinstance(lower_lip_ctl, basestring):
+                if isinstance(lower_lip_ctl, string_types):
                     lower_lip_ctl = pm.PyNode(lower_lip_ctl)
             except pm.MayaNodeError:
                 pm.displayWarning("Lower Lip Ctl %s. Can not be "
