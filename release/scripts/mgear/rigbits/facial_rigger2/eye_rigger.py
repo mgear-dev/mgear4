@@ -55,10 +55,6 @@ class ui(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.edgeloop_label = QtWidgets.QLabel("Edge Loop:")
         self.edgeLoop = QtWidgets.QLineEdit()
         self.edgeloop_button = QtWidgets.QPushButton("<<")
-        self.creaseEdgeloop_label = QtWidgets.QLabel("Crease Edge Loop:")
-        self.creaseEdgeloop = QtWidgets.QLineEdit()
-        self.creaseEdgeloop_button = QtWidgets.QPushButton("<<")
-
         # Manual corners
         self.manualCorners_group = QtWidgets.QGroupBox("Custom Eye Corners")
         self.customCorner = QtWidgets.QCheckBox(
@@ -175,19 +171,11 @@ class ui(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         edgeloop_layout.addWidget(self.edgeLoop)
         edgeloop_layout.addWidget(self.edgeloop_button)
 
-        # Crease Edge Loop Layout
-        creaseEdgeloop_layout = QtWidgets.QHBoxLayout()
-        creaseEdgeloop_layout.setContentsMargins(1, 1, 1, 1)
-        creaseEdgeloop_layout.addWidget(self.creaseEdgeloop_label)
-        creaseEdgeloop_layout.addWidget(self.creaseEdgeloop)
-        creaseEdgeloop_layout.addWidget(self.creaseEdgeloop_button)
-
         # Geometry Input Layout
         geometryInput_layout = QtWidgets.QVBoxLayout()
         geometryInput_layout.setContentsMargins(6, 1, 6, 2)
         geometryInput_layout.addLayout(eyeball_layout)
         geometryInput_layout.addLayout(edgeloop_layout)
-        geometryInput_layout.addLayout(creaseEdgeloop_layout)
         self.geometryInput_group.setLayout(geometryInput_layout)
 
         # Blink Height Layout
