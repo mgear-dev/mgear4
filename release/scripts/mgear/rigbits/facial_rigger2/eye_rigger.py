@@ -237,12 +237,18 @@ def rig(
     lowRest_target_crv = curve.createCurveFromCurve(
         low_crv, setName("lowRest_target_crv"), nbPoints=30, parent=eyeCrv_root
     )
-    # upProfile_target_crv = curve.createCurveFromCurve(
-    #     up_crv, setName("upProfile_target_crv"), nbPoints=30, parent=eyeCrv_root
-    # )
-    # lowProfile_target_crv = curve.createCurveFromCurve(
-    #     low_crv, setName("lowProfile_target_crv"), nbPoints=30, parent=eyeCrv_root
-    # )
+    upProfile_target_crv = curve.createCurveFromCurve(
+        up_crv,
+        setName("upProfile_target_crv"),
+        nbPoints=30,
+        parent=eyeCrv_root,
+    )
+    lowProfile_target_crv = curve.createCurveFromCurve(
+        low_crv,
+        setName("lowProfile_target_crv"),
+        nbPoints=30,
+        parent=eyeCrv_root,
+    )
     # upContact_target_crv = curve.createCurveFromCurve(
     #     up_crv,
     #     setName("upContact_target_crv"),
@@ -607,14 +613,14 @@ def rig(
         npo,
         setName("upBlink_ctl"),
         t,
-        icon="square",
+        icon="arrow",
         w=0.7,
         d=0.7,
         ro=datatypes.Vector(1.57079633, 0, 0),
         po=datatypes.Vector(0, 0, offset),
         color=4,
     )
-    attribute.setKeyableAttributes(up_ctl, ["ty"])
+    attribute.setKeyableAttributes(up_ctl, ["ty", "tx"])
 
     # use translation of the object to drive the blink
     blink_driver = primitive.addTransform(up_ctl, setName("blink_drv"), t)
@@ -629,14 +635,14 @@ def rig(
         npo,
         setName("lowBlink_ctl"),
         t,
-        icon="square",
+        icon="arrow",
         w=0.7,
         d=0.7,
         ro=datatypes.Vector(1.57079633, 0, 0),
         po=datatypes.Vector(0, 0, offset),
         color=4,
     )
-    attribute.setKeyableAttributes(low_ctl, ["ty"])
+    attribute.setKeyableAttributes(low_ctl, ["ty", "tx"])
 
     ##########################################
     # OPERATORS
@@ -646,11 +652,11 @@ def rig(
     applyop.gear_curvecns_op(lowCtl_crv, lowControls)
 
     # adding wires
-    # w1 = pm.wire(up_crv, w=upDriver_crv)[0]
-    # w2 = pm.wire(low_crv, w=lowDriver_crv)[0]
+    w1 = pm.wire(up_crv, w=upDriver_crv)[0]
+    w2 = pm.wire(low_crv, w=lowDriver_crv)[0]
 
-    # w3 = pm.wire(upProfile_target_crv, w=upCtl_crv)[0]
-    # w4 = pm.wire(lowProfile_target_crv, w=lowCtl_crv)[0]
+    w3 = pm.wire(upProfile_target_crv, w=upCtl_crv)[0]
+    w4 = pm.wire(lowProfile_target_crv, w=lowCtl_crv)[0]
 
     # connect blink driver
     pm.pointConstraint(low_ctl, blink_driver, mo=False)
@@ -667,11 +673,17 @@ def rig(
 
     # mid position drivers blendshapes
     bs_midUpDrive = pm.blendShape(
-        lowRest_target_crv, midUpDriver_crv, n="midUpDriver_blendShape"
+        lowRest_target_crv,
+        upProfile_target_crv,
+        midUpDriver_crv,
+        n="midUpDriver_blendShape",
     )
 
     bs_midLowDrive = pm.blendShape(
-        upRest_target_crv, midLowDriver_crv, n="midlowDriver_blendShape"
+        upRest_target_crv,
+        lowProfile_target_crv,
+        midLowDriver_crv,
+        n="midlowDriver_blendShape",
     )
 
     bs_closeTarget = pm.blendShape(
@@ -698,29 +710,32 @@ def rig(
     bs_upBlink = pm.blendShape(
         lowRest_target_crv,
         closeTarget_crv,
+        upProfile_target_crv,
         upDriver_crv,
-        n="upBlink_blendShape"
+        n="upBlink_blendShape",
     )
     bs_lowBlink = pm.blendShape(
         upRest_target_crv,
         closeTarget_crv,
+        lowProfile_target_crv,
         lowDriver_crv,
-        n="lowBlink_blendShape"
+        n="lowBlink_blendShape",
     )
 
-    cond_node = node.createConditionNode(
+    # blink contact connections
+    cond_node_up = node.createConditionNode(
         contact_div_node.outputX, 1, 3, 0, up_div_node.outputX
     )
     pm.connectAttr(
-        cond_node.outColorR,
+        cond_node_up.outColorR,
         bs_upBlink[0].attr(lowRest_target_crv.name()),
     )
 
-    cond_node = node.createConditionNode(
+    cond_node_low = node.createConditionNode(
         contact_div_node.outputX, 1, 3, 0, low_div_node.outputX
     )
     pm.connectAttr(
-        cond_node.outColorR,
+        cond_node_low.outColorR,
         bs_lowBlink[0].attr(upRest_target_crv.name()),
     )
 
@@ -738,38 +753,34 @@ def rig(
         bs_lowBlink[0].attr(closeTarget_crv.name()),
     )
 
-    # bs_upContact = pm.blendShape(
-    #     upRest_target_crv,
-    #     upContact_target_crv,
-    #     n="upContact_blendShape",
+    # profile driver connections
+    # cond_node_profile_open = node.createConditionNode(
+    #     contact_div_node.outputX, 1, 3, 0, 1
     # )
-    # bs_lowContact = pm.blendShape(
-    #     upRest_target_crv,
-    #     lowContact_target_crv,
-    #     n="lowContact_blendShape",
-    # )
-
-    # # mid drivers to drive the mid curve
-
-    # minus_node = node.createPlusMinusAverage1D(
-    #     [rest_val, blink_driver.ty], operation=2
-    # )
-
-    # contact_div_node = node.createDivNode(minus_node.output1D, rest_val)
-
-    # # upper eyelid blink
-    # up_div_node = node.createDivNode(up_ctl.ty, rest_val)
+    # cond_node_profile_open.colorIfTrueR.set(0)
     # pm.connectAttr(
-    #     up_div_node + ".outputX",
-    #     bs_upContact[0].attr(lowRest_target_crv.name()),
+    #     cond_node_profile_open.outColorR,
+    #     bs_upBlink[0].attr(upProfile_target_crv.name()),
+    # )
+    # pm.connectAttr(
+    #     cond_node_profile_open.outColorR,
+    #     bs_lowBlink[0].attr(lowProfile_target_crv.name()),
     # )
 
-    # # lower eyelid blink
-    # low_div_node = node.createDivNode(low_ctl.ty, rest_val * -1)
     # pm.connectAttr(
-    #     low_div_node + ".outputX",
-    #     bs_lowContact[0].attr(upRest_target_crv.name()),
+    #     cond_node_profile_open.outColorR,
+    #     bs_midUpDrive[0].attr(upProfile_target_crv.name()),
     # )
+    # pm.connectAttr(
+    #     cond_node_profile_open.outColorR,
+    #     bs_midLowDrive[0].attr(lowProfile_target_crv.name()),
+    # )
+
+    pm.setAttr(bs_upBlink[0].attr(upProfile_target_crv.name()), 1)
+    pm.setAttr(bs_lowBlink[0].attr(lowProfile_target_crv.name()), 1)
+
+    # pm.setAttr(bs_midUpDrive[0].attr(upProfile_target_crv.name()), 1)
+    # pm.setAttr(bs_midLowDrive[0].attr(lowProfile_target_crv.name()), 1)
 
 
 ##########################################################
