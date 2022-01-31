@@ -1,21 +1,19 @@
 """Rigbits eye rigger tool"""
 
 import json
-import traceback
 from functools import partial
-from six import string_types
 
-import mgear
 import mgear.core.pyqt as gqt
 import pymel.core as pm
 from maya.app.general.mayaMixin import MayaQWidgetDockableMixin
-from mgear.core import meshNavigation, curve, applyop, node, primitive, icon
-from mgear.core import transform, utils, attribute, skin, string
+# from mgear.core import meshNavigation, curve, applyop, node, primitive, icon
+# from mgear.core import transform, utils, attribute, skin, string
 from mgear.vendor.Qt import QtCore, QtWidgets
-from pymel.core import datatypes
+# from pymel.core import datatypes
 
-from mgear import rigbits
+# from mgear import rigbits
 from . import lib
+from . import eye_rigger
 
 
 ##########################################################
@@ -37,7 +35,7 @@ class ui(MayaQWidgetDockableMixin, QtWidgets.QDialog):
 
     def create(self):
 
-        self.setWindowTitle("Eye Rigger")
+        self.setWindowTitle("Eye Rigger 2.0")
         self.setWindowFlags(QtCore.Qt.Window)
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose, 1)
 
@@ -385,8 +383,7 @@ class ui(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.edgeLoop.setText(lib.get_edge_loop_from_selection())
 
     def build_rig(self):
-        print("No yet :P")
-        # rig(**lib.get_settings_from_widget(self))
+        eye_rigger.rig(**lib.get_settings_from_widget(self))
 
     def export_settings(self):
         data_string = json.dumps(
