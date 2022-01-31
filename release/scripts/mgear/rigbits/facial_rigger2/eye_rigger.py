@@ -249,18 +249,6 @@ def rig(
         nbPoints=30,
         parent=eyeCrv_root,
     )
-    # upContact_target_crv = curve.createCurveFromCurve(
-    #     up_crv,
-    #     setName("upContact_target_crv"),
-    #     nbPoints=30,
-    #     parent=eyeCrv_root,
-    # )
-    # lowContact_target_crv = curve.createCurveFromCurve(
-    #     low_crv,
-    #     setName("lowContact_target_crv"),
-    #     nbPoints=30,
-    #     parent=eyeCrv_root,
-    # )
 
     # mid driver
     midUpDriver_crv = curve.createCurveFromCurve(
@@ -275,21 +263,7 @@ def rig(
         up_crv, setName("closeTarget_crv"), nbPoints=30, parent=eyeCrv_root
     )
 
-    # rig_crvs = [
-    #     up_crv,
-    #     low_crv,
-    #     upCtl_crv,
-    #     lowCtl_crv,
-    #     upDriver_crv,
-    #     lowDriver_crv,
-    #     upRest_target_crv,
-    #     lowRest_target_crv,
-    #     upContact_target_crv,
-    #     lowContact_target_crv,
-    # ]
-
-    # for crv in rig_crvs:
-    #     crv.attr("visibility").set(False)
+    eyeCrv_root.attr("visibility").set(False)
 
     # localBBOX
     localBBox = eyeMesh.getBoundingBox(invisible=True, space="world")
@@ -671,6 +645,10 @@ def rig(
     )
     contact_div_node = node.createDivNode(minus_node.output1D, rest_val)
 
+    # wire tension
+    for w in [w1, w2, w3, w4]:
+        w.dropoffDistance[0].set(100)
+
     # mid position drivers blendshapes
     bs_midUpDrive = pm.blendShape(
         lowRest_target_crv,
@@ -753,34 +731,259 @@ def rig(
         bs_lowBlink[0].attr(closeTarget_crv.name()),
     )
 
-    # profile driver connections
-    # cond_node_profile_open = node.createConditionNode(
-    #     contact_div_node.outputX, 1, 3, 0, 1
-    # )
-    # cond_node_profile_open.colorIfTrueR.set(0)
-    # pm.connectAttr(
-    #     cond_node_profile_open.outColorR,
-    #     bs_upBlink[0].attr(upProfile_target_crv.name()),
-    # )
-    # pm.connectAttr(
-    #     cond_node_profile_open.outColorR,
-    #     bs_lowBlink[0].attr(lowProfile_target_crv.name()),
-    # )
-
-    # pm.connectAttr(
-    #     cond_node_profile_open.outColorR,
-    #     bs_midUpDrive[0].attr(upProfile_target_crv.name()),
-    # )
-    # pm.connectAttr(
-    #     cond_node_profile_open.outColorR,
-    #     bs_midLowDrive[0].attr(lowProfile_target_crv.name()),
-    # )
-
     pm.setAttr(bs_upBlink[0].attr(upProfile_target_crv.name()), 1)
     pm.setAttr(bs_lowBlink[0].attr(lowProfile_target_crv.name()), 1)
 
-    # pm.setAttr(bs_midUpDrive[0].attr(upProfile_target_crv.name()), 1)
-    # pm.setAttr(bs_midLowDrive[0].attr(lowProfile_target_crv.name()), 1)
+    # joints root
+    jnt_root = primitive.addTransformFromPos(
+        eye_root, setName("joints"), pos=bboxCenter
+    )
+    if deformers_group:
+        deformers_group = pm.PyNode(deformers_group)
+        pm.parentConstraint(eye_root, jnt_root, mo=True)
+        pm.scaleConstraint(eye_root, jnt_root, mo=True)
+        deformers_group.addChild(jnt_root)
+
+    # head joint
+    if headJnt:
+        try:
+            headJnt = pm.PyNode(headJnt)
+            jnt_base = headJnt
+        except pm.MayaNodeError:
+            pm.displayWarning("Aborted can not find %s " % headJnt)
+            return
+    else:
+        # Eye root
+        jnt_base = jnt_root
+
+    eyeTargets_root = primitive.addTransform(eye_root, setName("targets"))
+
+    eyeCenter_jnt = rigbits.addJnt(
+        arrow_ctl, jnt_base, grp=defset, jntName=setName("center_jnt")
+    )
+
+    # Upper Eyelid joints ##################################################
+
+    cvs = up_crv.getCVs(space="world")
+    upCrv_info = node.createCurveInfoNode(up_crv)
+
+    # aim constrain targets and joints
+    upperEyelid_aimTargets = []
+    upperEyelid_jnt = []
+    upperEyelid_jntRoot = []
+
+    for i, cv in enumerate(cvs):
+
+        # aim targets
+        trn = primitive.addTransformFromPos(
+            eyeTargets_root, setName("upEyelid_aimTarget", i), pos=cv
+        )
+        upperEyelid_aimTargets.append(trn)
+        # connecting positions with crv
+        pm.connectAttr(
+            upCrv_info + ".controlPoints[%s]" % str(i), trn.attr("translate")
+        )
+
+        # joints
+        jntRoot = primitive.addJointFromPos(
+            jnt_root, setName("upEyelid_jnt_base", i), pos=bboxCenter
+        )
+        jntRoot.attr("radius").set(0.08)
+        jntRoot.attr("visibility").set(False)
+        upperEyelid_jntRoot.append(jntRoot)
+        applyop.aimCns(jntRoot, trn, axis="zy", wupObject=jnt_root)
+
+        jnt_ref = primitive.addJointFromPos(
+            jntRoot, setName("upEyelid_jnt_ref", i), pos=cv
+        )
+        jnt_ref.attr("radius").set(0.08)
+        jnt_ref.attr("visibility").set(False)
+
+        jnt = rigbits.addJnt(
+            jnt_ref, jnt_base, grp=defset, jntName=setName("upEyelid_jnt", i)
+        )
+        upperEyelid_jnt.append(jnt)
+
+    # Lower Eyelid joints ##################################################
+
+    cvs = low_crv.getCVs(space="world")
+    lowCrv_info = node.createCurveInfoNode(low_crv)
+
+    # aim constrain targets and joints
+    lowerEyelid_aimTargets = []
+    lowerEyelid_jnt = []
+    lowerEyelid_jntRoot = []
+
+    for i, cv in enumerate(cvs):
+        if i in [0, len(cvs) - 1]:
+            continue
+
+        # aim targets
+        trn = primitive.addTransformFromPos(
+            eyeTargets_root, setName("lowEyelid_aimTarget", i), pos=cv
+        )
+        lowerEyelid_aimTargets.append(trn)
+        # connecting positions with crv
+        pm.connectAttr(
+            lowCrv_info + ".controlPoints[%s]" % str(i), trn.attr("translate")
+        )
+
+        # joints
+        jntRoot = primitive.addJointFromPos(
+            jnt_root, setName("lowEyelid_base", i), pos=bboxCenter
+        )
+        jntRoot.attr("radius").set(0.08)
+        jntRoot.attr("visibility").set(False)
+        lowerEyelid_jntRoot.append(jntRoot)
+        applyop.aimCns(jntRoot, trn, axis="zy", wupObject=jnt_root)
+
+        jnt_ref = primitive.addJointFromPos(
+            jntRoot, setName("lowEyelid_jnt_ref", i), pos=cv
+        )
+        jnt_ref.attr("radius").set(0.08)
+        jnt_ref.attr("visibility").set(False)
+
+        jnt = rigbits.addJnt(
+            jnt_ref, jnt_base, grp=defset, jntName=setName("lowEyelid_jnt", i)
+        )
+        lowerEyelid_jnt.append(jnt)
+
+    # Adding channels for eye tracking
+    upVTracking_att = attribute.addAttribute(
+        up_ctl, "vTracking", "float", upperVTrack, minValue=0, channelBox=True
+    )
+    upHTracking_att = attribute.addAttribute(
+        up_ctl, "hTracking", "float", upperHTrack, minValue=0, channelBox=True
+    )
+
+    lowVTracking_att = attribute.addAttribute(
+        low_ctl, "vTracking", "float", lowerVTrack, minValue=0, channelBox=True
+    )
+    lowHTracking_att = attribute.addAttribute(
+        low_ctl, "hTracking", "float", lowerHTrack, minValue=0, channelBox=True
+    )
+
+    mult_node = node.createMulNode(upVTracking_att, aimTrigger_ref.attr("ty"))
+    pm.connectAttr(mult_node + ".outputX", trackLvl[0].attr("ty"))
+    mult_node = node.createMulNode(upHTracking_att, aimTrigger_ref.attr("tx"))
+    # Correct right side horizontal tracking
+    if side == "R":
+        mult_node = node.createMulNode(mult_node.attr("outputX"), -1)
+    pm.connectAttr(mult_node + ".outputX", trackLvl[0].attr("tx"))
+
+    mult_node = node.createMulNode(lowVTracking_att, aimTrigger_ref.attr("ty"))
+    pm.connectAttr(mult_node + ".outputX", trackLvl[1].attr("ty"))
+    mult_node = node.createMulNode(lowHTracking_att, aimTrigger_ref.attr("tx"))
+    # Correct right side horizontal tracking
+    if side == "R":
+        mult_node = node.createMulNode(mult_node.attr("outputX"), -1)
+    pm.connectAttr(mult_node + ".outputX", trackLvl[1].attr("tx"))
+
+    ###########################################
+    # Reparenting
+    ###########################################
+    if parent_node:
+        try:
+            if isinstance(parent_node, string_types):
+                parent_node = pm.PyNode(parent_node)
+            parent_node.addChild(eye_root)
+        except pm.MayaNodeError:
+            pm.displayWarning(
+                "The eye rig can not be parent to: %s. Maybe "
+                "this object doesn't exist." % parent_node
+            )
+
+    ###########################################
+    # Auto Skinning
+    ###########################################
+    if doSkin:
+        # eyelid vertex rows
+        totalLoops = rigidLoops + falloffLoops
+        vertexLoopList = meshNavigation.getConcentricVertexLoop(
+            vertexList, totalLoops
+        )
+        vertexRowList = meshNavigation.getVertexRowsFromLoops(vertexLoopList)
+
+        # we set the first value 100% for the first initial loop
+        skinPercList = [1.0]
+        # we expect to have a regular grid topology
+        for r in range(rigidLoops):
+            for rr in range(2):
+                skinPercList.append(1.0)
+        increment = 1.0 / float(falloffLoops)
+        # we invert to smooth out from 100 to 0
+        inv = 1.0 - increment
+        for r in range(falloffLoops):
+            for rr in range(2):
+                if inv < 0.0:
+                    inv = 0.0
+                skinPercList.append(inv)
+            inv -= increment
+
+        # this loop add an extra 0.0 indices to avoid errors
+        for r in range(10):
+            for rr in range(2):
+                skinPercList.append(0.0)
+
+        # base skin
+        geo = pm.listRelatives(edgeLoopList[0], parent=True)[0]
+        # Check if the object has a skinCluster
+        objName = pm.listRelatives(geo, parent=True)[0]
+
+        skinCluster = skin.getSkinCluster(objName)
+        if not skinCluster:
+            skinCluster = pm.skinCluster(
+                headJnt, geo, tsb=True, nw=2, n="skinClsEyelid"
+            )
+
+        eyelidJoints = upperEyelid_jnt + lowerEyelid_jnt
+        pm.progressWindow(
+            title="Auto skinning process", progress=0, max=len(eyelidJoints)
+        )
+        firstBoundary = False
+        for jnt in eyelidJoints:
+            pm.progressWindow(e=True, step=1, status="\nSkinning %s" % jnt)
+            skinCluster.addInfluence(jnt, weight=0)
+            v = meshNavigation.getClosestVertexFromTransform(geo, jnt)
+
+            for row in vertexRowList:
+
+                if v in row:
+                    it = 0  # iterator
+                    inc = 1  # increment
+                    for i, rv in enumerate(row):
+                        try:
+                            perc = skinPercList[it]
+                            t_val = [(jnt, perc), (headJnt, 1.0 - perc)]
+                            pm.skinPercent(
+                                skinCluster, rv, transformValue=t_val
+                            )
+                            if rv.isOnBoundary():
+                                # we need to compare with the first boundary
+                                # to check if the row have inverted direction
+                                # and offset the value
+                                if not firstBoundary:
+                                    firstBoundary = True
+                                    firstBoundaryValue = it
+
+                                else:
+                                    if it < firstBoundaryValue:
+                                        it -= 1
+                                    elif it > firstBoundaryValue:
+                                        it += 1
+                                inc = 2
+                        except IndexError:
+                            continue
+
+                        it = it + inc
+        pm.progressWindow(e=True, endProgress=True)
+
+        # Eye Mesh skinning
+        skinCluster = skin.getSkinCluster(eyeMesh)
+        if not skinCluster:
+            skinCluster = pm.skinCluster(
+                eyeCenter_jnt, eyeMesh, tsb=True, nw=1, n="skinClsEye"
+            )
 
 
 ##########################################################
