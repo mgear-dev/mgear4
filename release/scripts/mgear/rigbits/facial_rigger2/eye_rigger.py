@@ -222,12 +222,14 @@ def rig(
         return
 
     # blendshape  curves. All crv have 30 point to allow blendshape connect
-    # upDriver_crv = curve.createCurveFromCurve(
-    #     up_crv, setName("upDriver_crv"), nbPoints=30, parent=eyeCrv_root
-    # )
-    # lowDriver_crv = curve.createCurveFromCurve(
-    #     low_crv, setName("lowDriver_crv"), nbPoints=30, parent=eyeCrv_root
-    # )
+    upDriver_crv = curve.createCurveFromCurve(
+        up_crv, setName("upDriver_crv"), nbPoints=30, parent=eyeCrv_root
+    )
+    upDriver_crv.attr("lineWidth").set(5)
+    lowDriver_crv = curve.createCurveFromCurve(
+        low_crv, setName("lowDriver_crv"), nbPoints=30, parent=eyeCrv_root
+    )
+    lowDriver_crv.attr("lineWidth").set(5)
 
     upRest_target_crv = curve.createCurveFromCurve(
         up_crv, setName("upRest_target_crv"), nbPoints=30, parent=eyeCrv_root
@@ -263,8 +265,8 @@ def rig(
     )
 
     # curve that define the close point of the eyelid
-    closeTarger_crv = curve.createCurveFromCurve(
-        up_crv, setName("closeTarger_crv"), nbPoints=30, parent=eyeCrv_root
+    closeTarget_crv = curve.createCurveFromCurve(
+        up_crv, setName("closeTarget_crv"), nbPoints=30, parent=eyeCrv_root
     )
 
     # rig_crvs = [
@@ -657,53 +659,85 @@ def rig(
     up_div_node = node.createDivNode(up_ctl.ty, rest_val)
     low_div_node = node.createDivNode(low_ctl.ty, rest_val * -1)
 
+    # contact driver
+    minus_node = node.createPlusMinusAverage1D(
+        [rest_val, blink_driver.ty], operation=2
+    )
+    contact_div_node = node.createDivNode(minus_node.output1D, rest_val)
+
     # mid position drivers blendshapes
     bs_midUpDrive = pm.blendShape(
-        lowRest_target_crv,
-        midUpDriver_crv,
-        n="midUpDriver_blendShape")
+        lowRest_target_crv, midUpDriver_crv, n="midUpDriver_blendShape"
+    )
 
     bs_midLowDrive = pm.blendShape(
-        upRest_target_crv,
-        midLowDriver_crv,
-        n="midlowDriver_blendShape")
+        upRest_target_crv, midLowDriver_crv, n="midlowDriver_blendShape"
+    )
 
     bs_closeTarget = pm.blendShape(
         midUpDriver_crv,
         midLowDriver_crv,
-        closeTarger_crv,
-        n="closeTarget_blendShape")
+        closeTarget_crv,
+        n="closeTarget_blendShape",
+    )
 
-    # upper eyelid blink
     pm.connectAttr(
         up_div_node.outputX,
         bs_midUpDrive[0].attr(lowRest_target_crv.name()),
     )
 
-    # lower eyelid blink
     pm.connectAttr(
         low_div_node.outputX,
         bs_midLowDrive[0].attr(upRest_target_crv.name()),
     )
 
-    pm.setAttr(bs_closeTarget[0].attr(midUpDriver_crv.name()), .5)
-    pm.setAttr(bs_closeTarget[0].attr(midLowDriver_crv.name()), .5)
+    pm.setAttr(bs_closeTarget[0].attr(midUpDriver_crv.name()), 0.5)
+    pm.setAttr(bs_closeTarget[0].attr(midLowDriver_crv.name()), 0.5)
 
+    # Main crv drivers
+    bs_upBlink = pm.blendShape(
+        lowRest_target_crv,
+        closeTarget_crv,
+        upDriver_crv,
+        n="upBlink_blendShape"
+    )
+    bs_lowBlink = pm.blendShape(
+        upRest_target_crv,
+        closeTarget_crv,
+        lowDriver_crv,
+        n="lowBlink_blendShape"
+    )
 
+    cond_node = node.createConditionNode(
+        contact_div_node.outputX, 1, 3, 0, up_div_node.outputX
+    )
+    pm.connectAttr(
+        cond_node.outColorR,
+        bs_upBlink[0].attr(lowRest_target_crv.name()),
+    )
 
+    cond_node = node.createConditionNode(
+        contact_div_node.outputX, 1, 3, 0, low_div_node.outputX
+    )
+    pm.connectAttr(
+        cond_node.outColorR,
+        bs_lowBlink[0].attr(upRest_target_crv.name()),
+    )
 
-    # bs_upBlink = pm.blendShape(
-    #     upContact_target_crv,
-    #     upProfile_target_crv,
-    #     upDriver_crv,
-    #     n="upBlink_blendShape",
-    # )
-    # bs_lowBlink = pm.blendShape(
-    #     lowContact_target_crv,
-    #     lowProfile_target_crv,
-    #     lowDriver_crv,
-    #     n="lowBlink_blendShape",
-    # )
+    cond_node_close = node.createConditionNode(
+        contact_div_node.outputX, 1, 2, 1, 0
+    )
+    cond_node_close.colorIfFalseR.set(0)
+    pm.connectAttr(
+        cond_node_close.outColorR,
+        bs_upBlink[0].attr(closeTarget_crv.name()),
+    )
+
+    pm.connectAttr(
+        cond_node_close.outColorR,
+        bs_lowBlink[0].attr(closeTarget_crv.name()),
+    )
+
     # bs_upContact = pm.blendShape(
     #     upRest_target_crv,
     #     upContact_target_crv,
@@ -716,20 +750,6 @@ def rig(
     # )
 
     # # mid drivers to drive the mid curve
-    # bs_midUpDriver = pm.blendShape(
-    #     upContact_target_crv,
-    #     midUpDriver_crv,
-    #     n="midUp_blendShape",
-    # )
-
-    # bs_midLowDriver = pm.blendShape(
-    #     upContact_target_crv,
-    #     midLowDriver_crv,
-    #     n="midLow_blendShape",
-    # )
-
-
-
 
     # minus_node = node.createPlusMinusAverage1D(
     #     [rest_val, blink_driver.ty], operation=2
