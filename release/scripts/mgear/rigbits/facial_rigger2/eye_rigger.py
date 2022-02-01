@@ -899,20 +899,40 @@ def rig(
     )
 
     # vertical tracking connect
-    remap_node = pm.createNode("remapValue")
-    contact_div_node.outputX >> remap_node.inputValue
-    remap_node.value[0].value_Interp.set(2)
-    remap_node.inputMin.set(0.9)
+    up_mult_node = node.createMulNode(
+        upVTracking_att, aimTrigger_ref.attr("ty")
+    )
+    low_mult_node = node.createMulNode(
+        lowVTracking_att, aimTrigger_ref.attr("ty")
+    )
+    # remap to use the low or the up eyelid as driver contact base on
+    # the eyetrack trigger direction
+    uT_remap_node = pm.createNode("remapValue")
+    aimTrigger_ref.attr("ty") >> uT_remap_node.inputValue
+    uT_remap_node.inputMax.set(0.1)
+    uT_remap_node.inputMin.set(-0.1)
+    up_mult_node.outputX >> uT_remap_node.outputMax
+    low_mult_node.outputX >> uT_remap_node.outputMin
+    # up
+    u_remap_node = pm.createNode("remapValue")
+    contact_div_node.outputX >> u_remap_node.inputValue
+    u_remap_node.value[0].value_Interp.set(2)
+    u_remap_node.inputMin.set(0.9)
+    up_mult_node.outputX >> u_remap_node.outputMin
+    uT_remap_node.outColorR >> u_remap_node.outputMax
 
-    up_mult_node = node.createMulNode(upVTracking_att, aimTrigger_ref.attr("ty"))
-    low_mult_node = node.createMulNode(lowVTracking_att, aimTrigger_ref.attr("ty"))
-    up_mult_node.outputX >> remap_node.outputMin
-    low_mult_node.outputX >> remap_node.outputMax
+    # low
+    l_remap_node = pm.createNode("remapValue")
+    contact_div_node.outputX >> l_remap_node.inputValue
+    l_remap_node.value[0].value_Interp.set(2)
+    l_remap_node.inputMin.set(0.9)
+    low_mult_node.outputX >> l_remap_node.outputMin
+    uT_remap_node.outColorR >> l_remap_node.outputMax
 
     # up connect and turn down to low when contact
-    pm.connectAttr(remap_node.outColorR, trackLvl[0].attr("ty"))
+    pm.connectAttr(u_remap_node.outColorR, trackLvl[0].attr("ty"))
 
-    pm.connectAttr(low_mult_node.outputX, trackLvl[1].attr("ty"))
+    pm.connectAttr(l_remap_node.outColorR, trackLvl[1].attr("ty"))
 
     # horizontal tracking connect
     mult_node = node.createMulNode(upHTracking_att, aimTrigger_ref.attr("tx"))
