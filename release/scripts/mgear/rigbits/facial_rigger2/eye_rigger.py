@@ -765,8 +765,7 @@ def rig(
     low_ctl.ty >> remap_node.inputValue
     remap_node.value[0].value_Interp.set(2)
     remap_node.inputMin.set((rest_val / 10) * -1)
-    reverse_node = node.createReverseNode(remap_node.outColorR)
-    reverse_node.outputX >> w2.scale[0]
+    remap_node.outColorR >> w2.scale[0]
 
     # mid position drivers blendshapes
     bs_midUpDrive = pm.blendShape(
