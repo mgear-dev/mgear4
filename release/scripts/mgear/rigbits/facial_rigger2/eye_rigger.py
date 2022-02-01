@@ -315,37 +315,37 @@ def rig(
         eye_root, setName("center_lookatRoot"), t
     )
 
-    over_ctl = icon.create(
-        over_npo,
-        setName("over_%s" % ctlName),
-        t,
-        icon="square",
-        w=wRadius,
-        d=dRadius,
-        ro=datatypes.Vector(1.57079633, 0, 0),
-        po=datatypes.Vector(0, 0, over_offset),
-        color=4,
-    )
-    node.add_controller_tag(over_ctl)
-    attribute.addAttribute(over_ctl, "isCtl", "bool", keyable=False)
-    attribute.add_mirror_config_channels(over_ctl)
-    attribute.setKeyableAttributes(
-        over_ctl,
-        params=["tx", "ty", "tz", "ro", "rx", "ry", "rz", "sx", "sy", "sz"],
-    )
+    # over_ctl = icon.create(
+    #     over_npo,
+    #     setName("over_%s" % ctlName),
+    #     t,
+    #     icon="square",
+    #     w=wRadius,
+    #     d=dRadius,
+    #     ro=datatypes.Vector(1.57079633, 0, 0),
+    #     po=datatypes.Vector(0, 0, over_offset),
+    #     color=4,
+    # )
+    # node.add_controller_tag(over_ctl)
+    # attribute.addAttribute(over_ctl, "isCtl", "bool", keyable=False)
+    # attribute.add_mirror_config_channels(over_ctl)
+    # attribute.setKeyableAttributes(
+    #     over_ctl,
+    #     params=["tx", "ty", "tz", "ro", "rx", "ry", "rz", "sx", "sy", "sz"],
+    # )
 
-    if side == "R":
-        over_npo.attr("rx").set(over_npo.attr("rx").get() * -1)
-        over_npo.attr("ry").set(over_npo.attr("ry").get() + 180)
-        over_npo.attr("sz").set(-1)
+    # if side == "R":
+    #     over_npo.attr("rx").set(over_npo.attr("rx").get() * -1)
+    #     over_npo.attr("ry").set(over_npo.attr("ry").get() + 180)
+    #     over_npo.attr("sz").set(-1)
 
-    if len(ctlName.split("_")) == 2 and ctlName.split("_")[-1] == "ghost":
-        pass
-    else:
-        pm.sets(ctlSet, add=over_ctl)
+    # if len(ctlName.split("_")) == 2 and ctlName.split("_")[-1] == "ghost":
+    #     pass
+    # else:
+    #     pm.sets(ctlSet, add=over_ctl)
 
     center_lookat = primitive.addTransform(
-        over_ctl, setName("center_lookat"), t
+        over_npo, setName("center_lookat"), t
     )
 
     # Tracking
@@ -412,6 +412,8 @@ def rig(
     # Controls lists
     upControls = []
     trackLvl = []
+    track_corner_lvl = []
+    corner_ctl = []
 
     # upper eyelid controls
     upperCtlNames = ["inCorner", "upInMid", "upMid", "upOutMid", "outCorner"]
@@ -447,12 +449,16 @@ def rig(
             center_lookat, setName("%s_npo" % upperCtlNames[i]), t
         )
         npoBase = npo
-        if i == 2:
+        # track for corners and mid point level
+        if i in [0, 2, 4]:
             # we add an extra level to input the tracking ofset values
             npo = primitive.addTransform(
                 npo, setName("%s_trk" % upperCtlNames[i]), t
             )
-            trackLvl.append(npo)
+            if i == 2:
+                trackLvl.append(npo)
+            else:
+                track_corner_lvl.append(npo)
 
         ctl = icon.create(
             npo,
@@ -465,9 +471,12 @@ def rig(
             po=datatypes.Vector(0, 0, offset),
             color=color,
         )
+        # add corner ctls to corner ctl list for tracking
+        if i in [0, 4]:
+            corner_ctl.append(ctl)
         attribute.addAttribute(ctl, "isCtl", "bool", keyable=False)
         attribute.add_mirror_config_channels(ctl)
-        node.add_controller_tag(ctl, over_ctl)
+        node.add_controller_tag(ctl, over_npo)
         upControls.append(ctl)
         if len(ctlName.split("_")) == 2 and ctlName.split("_")[-1] == "ghost":
             pass
@@ -562,7 +571,7 @@ def rig(
             npoBase.attr("ry").set(180)
             npoBase.attr("sz").set(-1)
     for lctl in reversed(lowControls[1:]):
-        node.add_controller_tag(lctl, over_ctl)
+        node.add_controller_tag(lctl, over_npo)
     lowControls.append(upControls[-1])
 
     # adding parent constraints to odd controls
@@ -581,20 +590,20 @@ def rig(
     # upper ctl
     p = upRest_target_crv.getCVs(space="world")[15]
     t = transform.setMatrixPosition(datatypes.Matrix(), p)
-    npo = primitive.addTransform(over_ctl, setName("upBlink_npo"), t)
+    npo = primitive.addTransform(over_npo, setName("upBlink_npo"), t)
 
     up_ctl = icon.create(
         npo,
         setName("upBlink_ctl"),
         t,
         icon="arrow",
-        w=0.7,
-        d=0.7,
-        ro=datatypes.Vector(1.57079633, 0, 0),
+        w=1.5,
+        d=1.5,
+        ro=datatypes.Vector(1.57079633, 1.57079633, 0),
         po=datatypes.Vector(0, 0, offset),
         color=4,
     )
-    attribute.setKeyableAttributes(up_ctl, ["ty", "tx"])
+    attribute.setKeyableAttributes(up_ctl, ["ty"])
 
     # use translation of the object to drive the blink
     blink_driver = primitive.addTransform(up_ctl, setName("blink_drv"), t)
@@ -603,20 +612,20 @@ def rig(
     p_low = lowRest_target_crv.getCVs(space="world")[15]
     p[1] = p_low[1]
     t = transform.setMatrixPosition(t, p)
-    npo = primitive.addTransform(over_ctl, setName("upBlink_npo"), t)
+    npo = primitive.addTransform(over_npo, setName("upBlink_npo"), t)
 
     low_ctl = icon.create(
         npo,
         setName("lowBlink_ctl"),
         t,
         icon="arrow",
-        w=0.7,
-        d=0.7,
-        ro=datatypes.Vector(1.57079633, 0, 0),
+        w=1.5,
+        d=1.5,
+        ro=datatypes.Vector(1.57079633, 1.57079633, 1.57079633 * 2),
         po=datatypes.Vector(0, 0, offset),
         color=4,
     )
-    attribute.setKeyableAttributes(low_ctl, ["ty", "tx"])
+    attribute.setKeyableAttributes(low_ctl, ["ty"])
 
     ##########################################
     # OPERATORS
@@ -648,6 +657,32 @@ def rig(
     # wire tension
     for w in [w1, w2, w3, w4]:
         w.dropoffDistance[0].set(100)
+
+    # TODO: what is the best solution?
+    # trigger using proximity
+    remap_node = pm.createNode("remapValue")
+    contact_div_node.outputX >> remap_node.inputValue
+    remap_node.value[0].value_Interp.set(2)
+    remap_node.inputMin.set(0.995)
+    reverse_node = node.createReverseNode(remap_node.outColorR)
+    for w in [w1, w2]:
+        reverse_node.outputX >> w.scale[0]
+
+    # trigger at starting movement for up and low
+    # up
+    remap_node = pm.createNode("remapValue")
+    up_ctl.ty >> remap_node.inputValue
+    remap_node.value[0].value_Interp.set(2)
+    remap_node.inputMax.set(rest_val / 10)
+    reverse_node = node.createReverseNode(remap_node.outColorR)
+    reverse_node.outputX >> w1.scale[0]
+    # low
+    remap_node = pm.createNode("remapValue")
+    up_ctl.ty >> remap_node.inputValue
+    remap_node.value[0].value_Interp.set(2)
+    remap_node.inputMin.set((rest_val / 10) * -1)
+    reverse_node = node.createReverseNode(remap_node.outColorR)
+    reverse_node.outputX >> w2.scale[0]
 
     # mid position drivers blendshapes
     bs_midUpDrive = pm.blendShape(
@@ -850,17 +885,17 @@ def rig(
 
     # Adding channels for eye tracking
     upVTracking_att = attribute.addAttribute(
-        up_ctl, "vTracking", "float", upperVTrack, minValue=0, channelBox=True
+        up_ctl, "vTracking", "float", upperVTrack, minValue=0
     )
     upHTracking_att = attribute.addAttribute(
-        up_ctl, "hTracking", "float", upperHTrack, minValue=0, channelBox=True
+        up_ctl, "hTracking", "float", upperHTrack, minValue=0
     )
 
     lowVTracking_att = attribute.addAttribute(
-        low_ctl, "vTracking", "float", lowerVTrack, minValue=0, channelBox=True
+        low_ctl, "vTracking", "float", lowerVTrack, minValue=0
     )
     lowHTracking_att = attribute.addAttribute(
-        low_ctl, "hTracking", "float", lowerHTrack, minValue=0, channelBox=True
+        low_ctl, "hTracking", "float", lowerHTrack, minValue=0
     )
 
     mult_node = node.createMulNode(upVTracking_att, aimTrigger_ref.attr("ty"))
@@ -878,6 +913,19 @@ def rig(
     if side == "R":
         mult_node = node.createMulNode(mult_node.attr("outputX"), -1)
     pm.connectAttr(mult_node + ".outputX", trackLvl[1].attr("tx"))
+
+    # adding channels for corner tracking
+    # track_corner_lvl
+    for i, ctl in enumerate(corner_ctl):
+        VTracking_att = attribute.addAttribute(
+            ctl, "vTracking", "float", 0.1, minValue=0
+        )
+        mult_node = node.createMulNode(VTracking_att, up_ctl.ty)
+        mult_node2 = node.createMulNode(VTracking_att, low_ctl.ty)
+        plus_node = node.createPlusMinusAverage1D(
+            [mult_node.outputX, mult_node2.outputX]
+        )
+        pm.connectAttr(plus_node.output1D, track_corner_lvl[i].attr("ty"))
 
     ###########################################
     # Reparenting
