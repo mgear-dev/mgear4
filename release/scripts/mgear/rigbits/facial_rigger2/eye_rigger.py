@@ -597,8 +597,8 @@ def rig(
         setName("upBlink_ctl"),
         t,
         icon="arrow",
-        w=1.5,
-        d=1.5,
+        w=2.5,
+        d=2.5,
         ro=datatypes.Vector(1.57079633, 1.57079633, 0),
         po=datatypes.Vector(0, 0, offset),
         color=4,
@@ -898,16 +898,29 @@ def rig(
         low_ctl, "hTracking", "float", lowerHTrack, minValue=0
     )
 
-    mult_node = node.createMulNode(upVTracking_att, aimTrigger_ref.attr("ty"))
-    pm.connectAttr(mult_node + ".outputX", trackLvl[0].attr("ty"))
+    # vertical tracking connect
+    remap_node = pm.createNode("remapValue")
+    contact_div_node.outputX >> remap_node.inputValue
+    remap_node.value[0].value_Interp.set(2)
+    remap_node.inputMin.set(0.9)
+
+    up_mult_node = node.createMulNode(upVTracking_att, aimTrigger_ref.attr("ty"))
+    low_mult_node = node.createMulNode(lowVTracking_att, aimTrigger_ref.attr("ty"))
+    up_mult_node.outputX >> remap_node.outputMin
+    low_mult_node.outputX >> remap_node.outputMax
+
+    # up connect and turn down to low when contact
+    pm.connectAttr(remap_node.outColorR, trackLvl[0].attr("ty"))
+
+    pm.connectAttr(low_mult_node.outputX, trackLvl[1].attr("ty"))
+
+    # horizontal tracking connect
     mult_node = node.createMulNode(upHTracking_att, aimTrigger_ref.attr("tx"))
     # Correct right side horizontal tracking
     if side == "R":
         mult_node = node.createMulNode(mult_node.attr("outputX"), -1)
     pm.connectAttr(mult_node + ".outputX", trackLvl[0].attr("tx"))
 
-    mult_node = node.createMulNode(lowVTracking_att, aimTrigger_ref.attr("ty"))
-    pm.connectAttr(mult_node + ".outputX", trackLvl[1].attr("ty"))
     mult_node = node.createMulNode(lowHTracking_att, aimTrigger_ref.attr("tx"))
     # Correct right side horizontal tracking
     if side == "R":
