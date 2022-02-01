@@ -1,19 +1,13 @@
-import json
 import traceback
-from functools import partial
 from six import string_types
 
 import mgear
-import mgear.core.pyqt as gqt
 import pymel.core as pm
-from maya.app.general.mayaMixin import MayaQWidgetDockableMixin
 from mgear.core import meshNavigation, curve, applyop, node, primitive, icon
 from mgear.core import transform, utils, attribute, skin, string
-from mgear.vendor.Qt import QtCore, QtWidgets
 from pymel.core import datatypes
 
 from mgear import rigbits
-from . import lib
 
 # TODO: change deformers_group to static_rig_parent
 # for the moment we keep this for backwards compativility with
