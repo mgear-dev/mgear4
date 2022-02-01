@@ -409,11 +409,53 @@ def rig(
     # connect  trigger with arrow_ctl
     pm.parentConstraint(arrow_ctl, aimTrigger_ref, mo=True)
 
+    # Blink driver controls
+    # upper ctl
+    p = upRest_target_crv.getCVs(space="world")[15]
+    ut = transform.setMatrixPosition(datatypes.Matrix(), p)
+    npo = primitive.addTransform(over_npo, setName("upBlink_npo"), ut)
+
+    up_ctl = icon.create(
+        npo,
+        setName("upBlink_ctl"),
+        ut,
+        icon="arrow",
+        w=2.5,
+        d=2.5,
+        ro=datatypes.Vector(1.57079633, 1.57079633, 0),
+        po=datatypes.Vector(0, 0, offset),
+        color=4,
+    )
+    attribute.setKeyableAttributes(up_ctl, ["ty"])
+
+    # use translation of the object to drive the blink
+    blink_driver = primitive.addTransform(up_ctl, setName("blink_drv"), ut)
+
+    # lowe ctl
+    p_low = lowRest_target_crv.getCVs(space="world")[15]
+    p[1] = p_low[1]
+    lt = transform.setMatrixPosition(ut, p)
+    npo = primitive.addTransform(over_npo, setName("upBlink_npo"), lt)
+
+    low_ctl = icon.create(
+        npo,
+        setName("lowBlink_ctl"),
+        lt,
+        icon="arrow",
+        w=1.5,
+        d=1.5,
+        ro=datatypes.Vector(1.57079633, 1.57079633, 1.57079633 * 2),
+        po=datatypes.Vector(0, 0, offset),
+        color=4,
+    )
+    attribute.setKeyableAttributes(low_ctl, ["ty"])
+
     # Controls lists
     upControls = []
     trackLvl = []
     track_corner_lvl = []
     corner_ctl = []
+    ghost_ctl = []
 
     # upper eyelid controls
     upperCtlNames = ["inCorner", "upInMid", "upMid", "upOutMid", "outCorner"]
@@ -460,29 +502,60 @@ def rig(
             else:
                 track_corner_lvl.append(npo)
 
-        ctl = icon.create(
-            npo,
-            setName("%s_%s" % (upperCtlNames[i], ctlName)),
-            t,
-            icon=icon_shape,
-            w=wd,
-            d=wd,
-            ro=datatypes.Vector(1.57079633, 0, 0),
-            po=datatypes.Vector(0, 0, offset),
-            color=color,
-        )
-        # add corner ctls to corner ctl list for tracking
-        if i in [0, 4]:
-            corner_ctl.append(ctl)
-        attribute.addAttribute(ctl, "isCtl", "bool", keyable=False)
-        attribute.add_mirror_config_channels(ctl)
-        node.add_controller_tag(ctl, over_npo)
-        upControls.append(ctl)
+        if i in [1, 2, 3]:
+            ctl = primitive.addTransform(
+                npo, setName("%s_loc" % upperCtlNames[i]), t
+            )
+            # ghost controls
+            if i == 2:
+                gt = ut
+            else:
+                gt = t
+            npo_g = primitive.addTransform(
+                up_ctl, setName("%sCtl_npo" % upperCtlNames[i]), gt
+            )
+            ctl_g = icon.create(
+                npo_g,
+                setName("%s_%s" % (upperCtlNames[i], ctlName)),
+                gt,
+                icon=icon_shape,
+                w=wd,
+                d=wd,
+                ro=datatypes.Vector(1.57079633, 0, 0),
+                po=datatypes.Vector(0, 0, offset),
+                color=color,
+            )
+            # define the ctl_param to recive the ctl configuration
+            ctl_param = ctl_g
+            ghost_ctl.append(ctl_g)
+            # connect local SRT
+            rigbits.connectLocalTransform([ctl_g, ctl])
+        else:
+            ctl = icon.create(
+                npo,
+                setName("%s_%s" % (upperCtlNames[i], ctlName)),
+                t,
+                icon=icon_shape,
+                w=wd,
+                d=wd,
+                ro=datatypes.Vector(1.57079633, 0, 0),
+                po=datatypes.Vector(0, 0, offset),
+                color=color,
+            )
+            # define the ctl_param to recive the ctl configuration
+            ctl_param = ctl
+        attribute.addAttribute(ctl_param, "isCtl", "bool", keyable=False)
+        attribute.add_mirror_config_channels(ctl_param)
+        node.add_controller_tag(ctl_param, over_npo)
         if len(ctlName.split("_")) == 2 and ctlName.split("_")[-1] == "ghost":
             pass
         else:
-            pm.sets(ctlSet, add=ctl)
-        attribute.setKeyableAttributes(ctl, params)
+            pm.sets(ctlSet, add=ctl_param)
+        attribute.setKeyableAttributes(ctl_param, params)
+        upControls.append(ctl)
+        # add corner ctls to corner ctl list for tracking
+        if i in [0, 4]:
+            corner_ctl.append(ctl)
         if side == "R":
             npoBase.attr("ry").set(180)
             npoBase.attr("sz").set(-1)
@@ -495,6 +568,16 @@ def rig(
             )
             # Make the constraint "noFlip"
             cns_node.interpType.set(0)
+
+    # adding parent constraint ghost controls
+    cns_node = pm.parentConstraint(
+        ghost_ctl[1], upControls[0], ghost_ctl[0].getParent(), mo=False
+    )
+    cns_node.interpType.set(0)
+    cns_node = pm.parentConstraint(
+        ghost_ctl[1], upControls[-1], ghost_ctl[2].getParent(), mo=False
+    )
+    cns_node.interpType.set(0)
 
     # lower eyelid controls
     lowControls = [upControls[0]]
@@ -585,47 +668,6 @@ def rig(
             )
             # Make the constraint "noFlip"
             cns_node.interpType.set(0)
-
-    # Blink driver controls
-    # upper ctl
-    p = upRest_target_crv.getCVs(space="world")[15]
-    t = transform.setMatrixPosition(datatypes.Matrix(), p)
-    npo = primitive.addTransform(over_npo, setName("upBlink_npo"), t)
-
-    up_ctl = icon.create(
-        npo,
-        setName("upBlink_ctl"),
-        t,
-        icon="arrow",
-        w=2.5,
-        d=2.5,
-        ro=datatypes.Vector(1.57079633, 1.57079633, 0),
-        po=datatypes.Vector(0, 0, offset),
-        color=4,
-    )
-    attribute.setKeyableAttributes(up_ctl, ["ty"])
-
-    # use translation of the object to drive the blink
-    blink_driver = primitive.addTransform(up_ctl, setName("blink_drv"), t)
-
-    # lowe ctl
-    p_low = lowRest_target_crv.getCVs(space="world")[15]
-    p[1] = p_low[1]
-    t = transform.setMatrixPosition(t, p)
-    npo = primitive.addTransform(over_npo, setName("upBlink_npo"), t)
-
-    low_ctl = icon.create(
-        npo,
-        setName("lowBlink_ctl"),
-        t,
-        icon="arrow",
-        w=1.5,
-        d=1.5,
-        ro=datatypes.Vector(1.57079633, 1.57079633, 1.57079633 * 2),
-        po=datatypes.Vector(0, 0, offset),
-        color=4,
-    )
-    attribute.setKeyableAttributes(low_ctl, ["ty"])
 
     ##########################################
     # OPERATORS
