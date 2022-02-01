@@ -6,12 +6,8 @@ from functools import partial
 import mgear.core.pyqt as gqt
 import pymel.core as pm
 from maya.app.general.mayaMixin import MayaQWidgetDockableMixin
-# from mgear.core import meshNavigation, curve, applyop, node, primitive, icon
-# from mgear.core import transform, utils, attribute, skin, string
 from mgear.vendor.Qt import QtCore, QtWidgets
-# from pymel.core import datatypes
 
-# from mgear import rigbits
 from . import lib
 from . import eye_rigger
 
