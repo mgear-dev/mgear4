@@ -571,11 +571,11 @@ def rig(
 
     # adding parent constraint ghost controls
     cns_node = pm.parentConstraint(
-        ghost_ctl[1], upControls[0], ghost_ctl[0].getParent(), mo=False
+        ghost_ctl[1], upControls[0], ghost_ctl[0].getParent(), mo=True
     )
     cns_node.interpType.set(0)
     cns_node = pm.parentConstraint(
-        ghost_ctl[1], upControls[-1], ghost_ctl[2].getParent(), mo=False
+        ghost_ctl[1], upControls[-1], ghost_ctl[2].getParent(), mo=True
     )
     cns_node.interpType.set(0)
 
@@ -623,32 +623,64 @@ def rig(
             center_lookat, setName("%s_npo" % lowerCtlNames[i]), t
         )
         npoBase = npo
-        if i == 2:
-            # we add an extra level to input the tracking ofset values
-            npo = primitive.addTransform(
-                npo, setName("%s_trk" % lowerCtlNames[i]), t
+        if i in [1, 2, 3]:
+            if i == 2:
+                # we add an extra level to input the tracking ofset values
+                npo = primitive.addTransform(
+                    npo, setName("%s_trk" % lowerCtlNames[i]), t
+                )
+                trackLvl.append(npo)
+            ctl = primitive.addTransform(
+                npo, setName("%s_loc" % lowerCtlNames[i]), t
             )
-            trackLvl.append(npo)
-        ctl = icon.create(
-            npo,
-            setName("%s_%s" % (lowerCtlNames[i], ctlName)),
-            t,
-            icon=icon_shape,
-            w=wd,
-            d=wd,
-            ro=datatypes.Vector(1.57079633, 0, 0),
-            po=datatypes.Vector(0, 0, offset),
-            color=color,
-        )
-        attribute.addAttribute(ctl, "isCtl", "bool", keyable=False)
-        attribute.add_mirror_config_channels(ctl)
+            # ghost controls
+            if i == 2:
+                gt = lt
+            else:
+                gt = t
+            # ghost controls
+            npo_g = primitive.addTransform(
+                low_ctl, setName("%sCtl_npo" % lowerCtlNames[i]), gt
+            )
+            ctl_g = icon.create(
+                npo_g,
+                setName("%s_%s" % (lowerCtlNames[i], ctlName)),
+                gt,
+                icon=icon_shape,
+                w=wd,
+                d=wd,
+                ro=datatypes.Vector(1.57079633, 0, 0),
+                po=datatypes.Vector(0, 0, offset),
+                color=color,
+            )
+            # define the ctl_param to recive the ctl configuration
+            ctl_param = ctl_g
+            ghost_ctl.append(ctl_g)
+            # connect local SRT
+            rigbits.connectLocalTransform([ctl_g, ctl])
+        else:
+            ctl = icon.create(
+                npo,
+                setName("%s_%s" % (lowerCtlNames[i], ctlName)),
+                t,
+                icon=icon_shape,
+                w=wd,
+                d=wd,
+                ro=datatypes.Vector(1.57079633, 0, 0),
+                po=datatypes.Vector(0, 0, offset),
+                color=color,
+            )
+            # define the ctl_param to recive the ctl configuration
+            ctl_param = ctl
+        attribute.addAttribute(ctl_param, "isCtl", "bool", keyable=False)
+        attribute.add_mirror_config_channels(ctl_param)
 
         lowControls.append(ctl)
         if len(ctlName.split("_")) == 2 and ctlName.split("_")[-1] == "ghost":
             pass
         else:
-            pm.sets(ctlSet, add=ctl)
-        attribute.setKeyableAttributes(ctl, params)
+            pm.sets(ctlSet, add=ctl_param)
+        attribute.setKeyableAttributes(ctl_param, params)
         # mirror behaviout on R side controls
         if side == "R":
             npoBase.attr("ry").set(180)
@@ -668,6 +700,16 @@ def rig(
             )
             # Make the constraint "noFlip"
             cns_node.interpType.set(0)
+
+    # adding parent constraint ghost controls
+    cns_node = pm.parentConstraint(
+        ghost_ctl[4], upControls[0], ghost_ctl[3].getParent(), mo=True
+    )
+    cns_node.interpType.set(0)
+    cns_node = pm.parentConstraint(
+        ghost_ctl[4], upControls[-1], ghost_ctl[5].getParent(), mo=True
+    )
+    cns_node.interpType.set(0)
 
     ##########################################
     # OPERATORS
@@ -702,13 +744,13 @@ def rig(
 
     # TODO: what is the best solution?
     # trigger using proximity
-    remap_node = pm.createNode("remapValue")
-    contact_div_node.outputX >> remap_node.inputValue
-    remap_node.value[0].value_Interp.set(2)
-    remap_node.inputMin.set(0.995)
-    reverse_node = node.createReverseNode(remap_node.outColorR)
-    for w in [w1, w2]:
-        reverse_node.outputX >> w.scale[0]
+    # remap_node = pm.createNode("remapValue")
+    # contact_div_node.outputX >> remap_node.inputValue
+    # remap_node.value[0].value_Interp.set(2)
+    # remap_node.inputMin.set(0.995)
+    # reverse_node = node.createReverseNode(remap_node.outColorR)
+    # for w in [w1, w2]:
+    #     reverse_node.outputX >> w.scale[0]
 
     # trigger at starting movement for up and low
     # up
@@ -720,7 +762,7 @@ def rig(
     reverse_node.outputX >> w1.scale[0]
     # low
     remap_node = pm.createNode("remapValue")
-    up_ctl.ty >> remap_node.inputValue
+    low_ctl.ty >> remap_node.inputValue
     remap_node.value[0].value_Interp.set(2)
     remap_node.inputMin.set((rest_val / 10) * -1)
     reverse_node = node.createReverseNode(remap_node.outColorR)
