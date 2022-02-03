@@ -533,11 +533,22 @@ public:
 	static MObject aGoalY;
 	static MObject aGoalZ;
 	static MObject aDamping;
+	static MObject aGravity;
 	static MObject aStiffness;
 	static MObject aTime;
+	static MObject aCollider;
+	static MObject aColliderX;
+	static MObject aColliderY;
+	static MObject aColliderZ;
+	static MObject aColliderRadius;
+	static MObject aColliderSoftness;
+	static MObject aColliderList;
 	//static MObject aParentInverse;
 	static MObject aSpringIntensity;
+	static MObject aSpringActive;
 
+	static MObject aUseGroundPlane;
+	static MObject aGroundPlaneHeight;
 	////variables
 
 	bool _initialized;
