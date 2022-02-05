@@ -80,6 +80,9 @@ PLUGIN_EXPORT MStatus initializePlugin( MObject obj )
 	status = plugin.registerNode("mgear_springNode", mgear_springNode::id, mgear_springNode::creator, mgear_springNode::initialize);
 		if (!status) { status.perror("registerNode() failed."); return status; }
 
+  status = plugin.registerNode("mgear_springGravityNode", mgear_springGravityNode::id, mgear_springGravityNode::creator, mgear_springGravityNode::initialize);
+		if (!status) { status.perror("registerNode() failed."); return status; }
+
 	status = plugin.registerNode("mgear_linearInterpolate3DvectorNode", mgear_linearInterpolate3DvectorNode::id, mgear_linearInterpolate3DvectorNode::creator, mgear_linearInterpolate3DvectorNode::initialize);
 		if (!status) { status.perror("registerNode() failed."); return status; }
 

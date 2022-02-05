@@ -515,11 +515,44 @@ public:
 
 };
 
+
 class mgear_springNode : public MPxNode
 {
 public:
-	mgear_springNode();
-	virtual			~mgear_springNode();
+    mgear_springNode();
+    virtual			~mgear_springNode();
+    virtual SchedulingType schedulingType() const;
+    static	void*	creator();
+
+    virtual MStatus		compute(const MPlug& plug, MDataBlock& data);
+    static MStatus		initialize();
+
+    static MTypeId id;
+    static MObject aOutput;
+    static MObject aGoal;
+    static MObject aGoalX;
+    static MObject aGoalY;
+    static MObject aGoalZ;
+    static MObject aDamping;
+    static MObject aStiffness;
+    static MObject aTime;
+    //static MObject aParentInverse;
+    static MObject aSpringIntensity;
+
+    ////variables
+
+    bool _initialized;
+    MTime _previousTime;
+    MFloatVector _currentPosition;
+    MFloatVector _previousPosition;
+
+};
+
+class mgear_springGravityNode : public MPxNode
+{
+public:
+	mgear_springGravityNode();
+	virtual			~mgear_springGravityNode();
 	virtual SchedulingType schedulingType() const;
 	static	void*	creator();
 
@@ -528,12 +561,14 @@ public:
 
 	static MTypeId id;
 	static MObject aOutput;
+  // static MObject aDebugOutput;
 	static MObject aGoal;
 	static MObject aGoalX;
 	static MObject aGoalY;
 	static MObject aGoalZ;
 	static MObject aDamping;
 	static MObject aGravity;
+  static MObject aGravityDirection;
 	static MObject aStiffness;
 	static MObject aTime;
 	static MObject aCollider;
@@ -543,20 +578,21 @@ public:
 	static MObject aColliderRadius;
 	static MObject aColliderSoftness;
 	static MObject aColliderList;
-	//static MObject aParentInverse;
+  static MObject aUseGroundPlane;
+  static MObject aGroundPlaneTransform;
+
 	static MObject aSpringIntensity;
 	static MObject aSpringActive;
 
-	static MObject aUseGroundPlane;
-	static MObject aGroundPlaneHeight;
 	////variables
-
 	bool _initialized;
 	MTime _previousTime;
-	MFloatVector _currentPosition;
-	MFloatVector _previousPosition;
+	MPoint _currentPosition;
+	MPoint _previousPosition;
 
 };
+
+
 
 class mgear_rayCastPosition : public MPxNode
 {
