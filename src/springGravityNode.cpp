@@ -67,7 +67,6 @@ MObject mgear_springGravityNode::aColliderList;
 MObject mgear_springGravityNode::aColliderSoftness;
 
 MObject mgear_springGravityNode::aSpringIntensity;
-MObject mgear_springGravityNode::aSpringActive;
 
 MObject mgear_springGravityNode::aUseGroundPlane;
 MObject mgear_springGravityNode::aGroundPlaneTransform;
@@ -144,13 +143,6 @@ MStatus mgear_springGravityNode::initialize()
 	nAttr.setMax(1.0f);
 	addAttribute(aSpringIntensity);
 	attributeAffects(aSpringIntensity, aOutput);
-
-	aSpringActive = nAttr.create("active", "active", MFnNumericData::kDouble, 1.0f);
-	nAttr.setKeyable(true);
-	nAttr.setMin(0.0f);
-	nAttr.setMax(1.0f);
-	addAttribute(aSpringActive);
-	attributeAffects(aSpringActive, aOutput);
 
 	aGravity = nAttr.create("gravity", "gravity", MFnNumericData::kDouble, 0.0f);
 	nAttr.setKeyable(true);
@@ -241,7 +233,6 @@ MStatus mgear_springGravityNode::compute(const MPlug& plug, MDataBlock& data)
 	double gravity = data.inputValue(aGravity, &status).asDouble();
 	MFloatVector gravityDirection = data.inputValue(aGravityDirection, &status).asFloatVector();
 
-	//MVector goal = data.inputValue(aGoal, &status).asVector();
 	MDataHandle h;
 	MVector goal;
 	h = data.inputValue(aGoal, &status);
@@ -251,7 +242,7 @@ MStatus mgear_springGravityNode::compute(const MPlug& plug, MDataBlock& data)
 
 	MTime currentTime = data.inputValue(aTime, &status).asTime();
 	double springIntensity = data.inputValue(aSpringIntensity, &status).asDouble();
-	double springActive = data.inputValue(aSpringActive, &status).asDouble();
+	double colliderStrength = 1.0 - data.inputValue(aColliderSoftness, &status).asDouble();
 
 
 	if (_initialized == false) {
@@ -260,9 +251,10 @@ MStatus mgear_springGravityNode::compute(const MPlug& plug, MDataBlock& data)
 		_previousPosition = goal;
 		_currentPosition = goal;
 		_previousTime = currentTime;
-		_initialized = true;
+    colliderStrength = 1.0;
 		//return MS::kSuccess;
 	}
+
 	// Check if the timestep is just 1 frame since we want a stable simulation
 	double timeDifference = currentTime.value() - _previousTime.value();
 	if (timeDifference > 1.0 || timeDifference < 0.0) {
@@ -284,7 +276,6 @@ MStatus mgear_springGravityNode::compute(const MPlug& plug, MDataBlock& data)
 
 
 	// Apply collision
-	double colliderStrength = 1.0 - data.inputValue(aColliderSoftness, &status).asDouble();
 	MVector colliderPos;
 	MVector distFromCollider;
 	double colliderRadius;
@@ -296,7 +287,7 @@ MStatus mgear_springGravityNode::compute(const MPlug& plug, MDataBlock& data)
 		arrayHandle.jumpToArrayElement(i);
 		h = arrayHandle.inputValue(&status);
 		McheckErr(status, "handle evaluation failed\n");
-		colliderPos = h.child(aCollider).asVector();
+		colliderPos = h.child(aCollider).asFloatVector();
 		colliderRadius = h.child(aColliderRadius).asDouble();
 		distFromCollider = newPosition - colliderPos;
 		collideAmount = (colliderRadius - distFromCollider.length()) / distFromCollider.length() * colliderStrength;
@@ -322,15 +313,18 @@ MStatus mgear_springGravityNode::compute(const MPlug& plug, MDataBlock& data)
       newPosition = transformedPosition;
   }
 
+	// multiply the position by the spring intensity
+	newPosition = goal + ((newPosition - goal) * springIntensity);
 
 	// store the states for the next calculation
 	_previousPosition = _currentPosition;
 	_currentPosition = newPosition;
 	_previousTime = currentTime;
 
-	// multiply the position by the spring intensity
-	newPosition = goal + (((newPosition - goal) * springIntensity) * springActive);
-
+  if (_initialized == false) {
+      _previousPosition = _currentPosition;
+      _initialized = true;
+  }
 
 
 	MDataHandle hOutput = data.outputValue(aOutput, &status);

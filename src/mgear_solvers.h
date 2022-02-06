@@ -582,7 +582,6 @@ public:
   static MObject aGroundPlaneTransform;
 
 	static MObject aSpringIntensity;
-	static MObject aSpringActive;
 
 	////variables
 	bool _initialized;
