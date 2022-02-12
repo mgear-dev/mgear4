@@ -1,3 +1,4 @@
+import json
 import traceback
 from six import string_types
 
@@ -421,6 +422,7 @@ def rig(
         color=4,
     )
     attribute.setKeyableAttributes(up_ctl, ["ty"])
+    pm.sets(ctlSet, add=up_ctl)
 
     # use translation of the object to drive the blink
     blink_driver = primitive.addTransform(up_ctl, setName("blink_drv"), ut)
@@ -443,6 +445,7 @@ def rig(
         color=4,
     )
     attribute.setKeyableAttributes(low_ctl, ["ty"])
+    pm.sets(ctlSet, add=low_ctl)
 
     # Controls lists
     upControls = []
@@ -751,14 +754,14 @@ def rig(
     remap_node = pm.createNode("remapValue")
     up_ctl.ty >> remap_node.inputValue
     remap_node.value[0].value_Interp.set(2)
-    remap_node.inputMax.set(rest_val / 10)
+    remap_node.inputMax.set(rest_val / 8)
     reverse_node = node.createReverseNode(remap_node.outColorR)
     reverse_node.outputX >> w1.scale[0]
     # low
     remap_node = pm.createNode("remapValue")
     low_ctl.ty >> remap_node.inputValue
     remap_node.value[0].value_Interp.set(2)
-    remap_node.inputMin.set((rest_val / 10) * -1)
+    remap_node.inputMin.set((rest_val / 8) * -1)
     remap_node.outColorR >> w2.scale[0]
 
     # mid position drivers blendshapes
@@ -1173,3 +1176,8 @@ def get_eye_mesh(eyeMesh):
             return
     else:
         pm.displayWarning("Please set the eye mesh first")
+
+
+# Build from json file.
+def rig_from_file(path):
+    rig(**json.load(open(path)))
