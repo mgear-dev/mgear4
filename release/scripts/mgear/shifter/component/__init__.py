@@ -13,7 +13,7 @@ from pymel import versions
 
 # mgear
 import mgear
-from mgear.core import primitive, vector, transform
+from mgear.core import primitive, vector, transform, curve
 from mgear.core import attribute, applyop, node, icon
 
 from mgear.shifter import naming
@@ -725,6 +725,7 @@ class Main(object):
         if bufferName in self.rig.guide.controllers.keys():
             ctl_ref = self.rig.guide.controllers[bufferName]
             ctl = primitive.addTransform(parent, fullName, m)
+            color = curve.get_color(ctl_ref)
             for shape in ctl_ref.getShapes():
                 ctl.addChild(shape, shape=True, add=True)
                 pm.rename(shape, fullName + "Shape")
