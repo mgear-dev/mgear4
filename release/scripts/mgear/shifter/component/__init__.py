@@ -972,7 +972,7 @@ class Main(object):
 
     def addAnimParam(self, longName, niceName, attType, value, minValue=None,
                      maxValue=None, keyable=True, readable=True, storable=True,
-                     writable=True, uihost=None):
+                     writable=True, uihost=None, exactName=False):
         """Add a parameter to the animation property.
 
         Note that animatable and keyable are True per default.
@@ -989,6 +989,8 @@ class Main(object):
             storable (bool): Set if the attribute is storable or not.(optional)
             writable (bool): Set if the attribute is writable or not.(optional)
             uihost (dagNode): Optional uihost, if none self.uihost will be use
+            exactName (bool): if true will use the attr name without prefix
+                            from the component name or instance name.(optional)
 
         Returns:
             str: The long name of the new attribute
@@ -1004,11 +1006,16 @@ class Main(object):
                                           keyable=keyable, readable=readable,
                                           storable=storable, writable=writable)
         else:
-            if uihost.hasAttr(self.getAttrName(longName)):
-                attr = uihost.attr(self.getAttrName(longName))
+            if exactName:
+                attr_name = longName
+            else:
+                attr_name = self.getAttrName(longName)
+
+            if uihost.hasAttr(attr_name):
+                attr = uihost.attr(attr_name)
             else:
                 attr = attribute.addAttribute(uihost,
-                                              self.getAttrName(longName),
+                                              attr_name,
                                               attType, value, niceName, None,
                                               minValue=minValue,
                                               maxValue=maxValue,
