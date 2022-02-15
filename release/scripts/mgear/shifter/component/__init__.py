@@ -215,6 +215,8 @@ class Main(object):
         attribute.addAttribute(self.root, "componentEmail",
                                "string", self.guide.email)
 
+        self.compCtl = self.root.addAttr("compCtl", at='message', m=1)
+
         # joint --------------------------------
         if self.options["joint_rig"]:
             self.component_jnt_org = primitive.addTransform(
@@ -821,6 +823,15 @@ class Main(object):
 
             self.add_controller_tag(ctl, tp)
         self.controlers.append(ctl)
+
+        # connect control message to root
+        ni = attribute.get_next_available_index(self.root.compCtl)
+        pm.connectAttr(ctl.message,
+                       self.root.attr("compCtl[{}]".format(str(ni))))
+
+        ctl.addAttr("compRoot", at='message', m=False)
+        self.root.message >> ctl.compRoot
+
         return ctl
 
     def add_controller_tag(self, ctl, tagParent):
