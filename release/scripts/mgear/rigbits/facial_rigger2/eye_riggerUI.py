@@ -51,8 +51,7 @@ class ui(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.edgeloop_button = QtWidgets.QPushButton("<<")
         # Manual corners
         self.manualCorners_group = QtWidgets.QGroupBox("Custom Eye Corners")
-        self.customCorner = QtWidgets.QCheckBox(
-            "Set Manual Vertex Corners")
+        self.customCorner = QtWidgets.QCheckBox("Set Manual Vertex Corners")
         self.customCorner.setChecked(False)
         self.intCorner_label = QtWidgets.QLabel("Internal Corner")
         self.intCorner = QtWidgets.QLineEdit()
@@ -70,7 +69,8 @@ class ui(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.blinkHeight_slider = QtWidgets.QSlider(QtCore.Qt.Horizontal)
         self.blinkHeight_slider.setRange(0, 100)
         self.blinkHeight_slider.setSingleStep(
-            self.blinkHeight_slider.maximum() / 10.0)
+            self.blinkHeight_slider.maximum() / 10.0
+        )
         self.blinkHeight_slider.setValue(20)
 
         # vTrack and hTrack
@@ -97,6 +97,13 @@ class ui(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.headJnt_label = QtWidgets.QLabel("Head or Eye area Joint:")
         self.headJnt = QtWidgets.QLineEdit()
         self.headJnt_button = QtWidgets.QPushButton("<<")
+        self.everyNVertex_label = QtWidgets.QLabel(
+            "Create Joint evey N number of Vertex:"
+        )
+        self.everyNVertex = QtWidgets.QSpinBox()
+        self.everyNVertex.setRange(0, 100)
+        self.everyNVertex.setSingleStep(1)
+        self.everyNVertex.setValue(1)
 
         # Topological Autoskin
         self.topoSkin_group = QtWidgets.QGroupBox("Skin")
@@ -111,8 +118,7 @@ class ui(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.falloffLoops.setSingleStep(1)
         self.falloffLoops.setValue(4)
 
-        self.doSkin = QtWidgets.QCheckBox(
-            'Compute Topological Autoskin')
+        self.doSkin = QtWidgets.QCheckBox("Compute Topological Autoskin")
         self.doSkin.setChecked(True)
 
         # Options
@@ -126,10 +132,11 @@ class ui(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.ctlShapeOffset_label = QtWidgets.QLabel("Controls Offset:")
         self.offset = QtWidgets.QDoubleSpinBox()
         self.offset.setRange(0, 10)
-        self.offset.setSingleStep(.05)
-        self.offset.setValue(.05)
+        self.offset.setSingleStep(0.05)
+        self.offset.setValue(0.05)
         self.sideRange = QtWidgets.QCheckBox(
-            "Use Z axis for wide calculation (i.e: Horse and fish side eyes)")
+            "Use Z axis for wide calculation (i.e: Horse and fish side eyes)"
+        )
         self.sideRange.setChecked(False)
 
         self.ctlSet_label = QtWidgets.QLabel("Controls Set:")
@@ -201,9 +208,14 @@ class ui(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         headJnt_layout.addWidget(self.headJnt)
         headJnt_layout.addWidget(self.headJnt_button)
 
+        everyNVertex_layout = QtWidgets.QHBoxLayout()
+        everyNVertex_layout.addWidget(self.everyNVertex_label)
+        everyNVertex_layout.addWidget(self.everyNVertex)
+
         joints_layout = QtWidgets.QVBoxLayout()
         joints_layout.setContentsMargins(6, 4, 6, 4)
         joints_layout.addLayout(headJnt_layout)
+        joints_layout.addLayout(everyNVertex_layout)
         self.joints_group.setLayout(joints_layout)
 
         # topological autoskin Layout
@@ -232,8 +244,9 @@ class ui(MayaQWidgetDockableMixin, QtWidgets.QDialog):
 
         manualCorners_layout = QtWidgets.QVBoxLayout()
         manualCorners_layout.setContentsMargins(6, 4, 6, 4)
-        manualCorners_layout.addWidget(self.customCorner,
-                                       alignment=QtCore.Qt.Alignment())
+        manualCorners_layout.addWidget(
+            self.customCorner, alignment=QtCore.Qt.Alignment()
+        )
         manualCorners_layout.addLayout(intCorner_layout)
         manualCorners_layout.addLayout(extCorner_layout)
         self.manualCorners_group.setLayout(manualCorners_layout)
@@ -301,21 +314,21 @@ class ui(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.setLayout(main_layout)
 
     def create_connections(self):
-        self.blinkH.valueChanged[int].connect(
-            self.blinkHeight_slider.setValue)
-        self.blinkHeight_slider.valueChanged[int].connect(
-            self.blinkH.setValue)
+        self.blinkH.valueChanged[int].connect(self.blinkHeight_slider.setValue)
+        self.blinkHeight_slider.valueChanged[int].connect(self.blinkH.setValue)
 
-        self.eyeball_button.clicked.connect(partial(self.populate_object,
-                                                    self.eyeMesh))
-        self.parent_button.clicked.connect(partial(self.populate_object,
-                                                   self.parent_node))
+        self.eyeball_button.clicked.connect(
+            partial(self.populate_object, self.eyeMesh)
+        )
+        self.parent_button.clicked.connect(
+            partial(self.populate_object, self.parent_node)
+        )
         self.aim_controller_button.clicked.connect(
             partial(self.populate_object, self.aim_controller)
         )
-        self.headJnt_button.clicked.connect(partial(self.populate_object,
-                                                    self.headJnt,
-                                                    1))
+        self.headJnt_button.clicked.connect(
+            partial(self.populate_object, self.headJnt, 1)
+        )
 
         self.edgeloop_button.clicked.connect(self.populate_edgeloop)
 
@@ -323,18 +336,19 @@ class ui(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.import_button.clicked.connect(self.import_settings)
         self.export_button.clicked.connect(self.export_settings)
 
-        self.intCorner_button.clicked.connect(partial(self.populate_element,
-                                                      self.intCorner,
-                                                      "vertex"))
-        self.extCorner_button.clicked.connect(partial(self.populate_element,
-                                                      self.extCorner,
-                                                      "vertex"))
+        self.intCorner_button.clicked.connect(
+            partial(self.populate_element, self.intCorner, "vertex")
+        )
+        self.extCorner_button.clicked.connect(
+            partial(self.populate_element, self.extCorner, "vertex")
+        )
 
-        self.ctlSet_button.clicked.connect(partial(self.populate_element,
-                                                   self.ctlSet,
-                                                   "objectSet"))
-        self.deformersSet_button.clicked.connect(partial(
-            self.populate_element, self.defSet, "objectSet"))
+        self.ctlSet_button.clicked.connect(
+            partial(self.populate_element, self.ctlSet, "objectSet")
+        )
+        self.deformersSet_button.clicked.connect(
+            partial(self.populate_element, self.defSet, "objectSet")
+        )
         self.deformers_group_button.clicked.connect(
             partial(self.populate_element, self.deformers_group)
         )
@@ -356,7 +370,8 @@ class ui(MayaQWidgetDockableMixin, QtWidgets.QDialog):
                 lEdit.setText(oSel[0].name())
             else:
                 pm.displayWarning(
-                    "The selected element is not a valid %s" % oType)
+                    "The selected element is not a valid %s" % oType
+                )
         else:
             pm.displayWarning("Please select first one %s." % oType)
 

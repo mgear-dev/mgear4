@@ -42,6 +42,7 @@ def rig(
     lowerHTrack=0.01,
     aim_controller="",
     deformers_group="",
+    everyNVertex=1,
 ):
     """Create eyelid and eye rig
 
@@ -69,8 +70,9 @@ def rig(
         lowerHTrack (None, optional): Description
         aim_controller (None, optional): Description
         deformers_group (None, optional): Description
+        everyNVertex (int, optional): Will create a joint every N vertex
 
-    Returns:
+    No Longer Returned:
         TYPE: Description
     """
 
@@ -888,6 +890,8 @@ def rig(
     upperEyelid_jntRoot = []
 
     for i, cv in enumerate(cvs):
+        if i % everyNVertex:
+            continue
 
         # aim targets
         trn = primitive.addTransformFromPos(
@@ -931,6 +935,9 @@ def rig(
 
     for i, cv in enumerate(cvs):
         if i in [0, len(cvs) - 1]:
+            continue
+
+        if i % everyNVertex:
             continue
 
         # aim targets
