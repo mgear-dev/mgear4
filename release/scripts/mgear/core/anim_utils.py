@@ -936,6 +936,37 @@ def ikFkMatch_with_namespace(
     o_attr = ui_node.attr(ikfk_attr)
     val = o_attr.get()
 
+    # check for  FOOT cnx
+    # get the information to handle the foot if the conexion exist
+    foot_cnx = False
+    if fk_ctrls[0].hasAttr("compRoot"):
+        comp_root = fk_ctrls[0].compRoot.listConnections()[0]
+        foot_IK_ctls = []
+        foot_FK_matrix = []
+        if comp_root.hasAttr("footCnx"):
+            foot_cnx = True
+            foot_root = comp_root.footCnx.listConnections()[0]
+            foot_bk = [x for x in reversed(foot_root.bk_ctl.listConnections())]
+            foot_IK_ctls.extend(foot_bk)
+            foot_fk = foot_root.fk_ctl.listConnections()
+            for c in foot_fk:
+                foot_FK_matrix.append(c.getMatrix(worldSpace=True))
+            heel_ctl = foot_root.heel_ctl.listConnections()[0]
+            foot_IK_ctls.append(heel_ctl)
+            tip_ctl = foot_root.tip_ctl.listConnections()[0]
+            foot_IK_ctls.append(tip_ctl)
+            if foot_root.hasAttr("roll_ctl"):
+                roll_ctl = foot_root.roll_ctl.listConnections()[0]
+                foot_IK_ctls.append(roll_ctl)
+            else:
+                roll_ctl = None
+            if foot_root.hasAttr("roll_cnx"):
+                roll_attr = foot_root.roll_cnx.listConnections()[0]
+                bank_attr = foot_root.bank_cnx.listConnections()[0]
+            else:
+                roll_attr = None
+                bank_attr = None
+
     # sets keyframes before snapping
     if key:
         _all_controls = []
@@ -943,6 +974,9 @@ def ikFkMatch_with_namespace(
         _all_controls.extend([ik_ctrl, upv_ctrl, o_attr])
         if ik_rot:
             _all_controls.extend([ik_rot_node])
+        if foot_cnx:
+            _all_controls.extend(foot_IK_ctls)
+            _all_controls.extend(foot_fk)
         [
             cmds.setKeyframe(
                 "{}".format(elem), time=(cmds.currentTime(query=True) - 1.0)
@@ -950,13 +984,17 @@ def ikFkMatch_with_namespace(
             for elem in _all_controls
         ]
 
-    # if is IKw then snap FK
+    # if is IK then snap FK
     if val == 1.0:
 
         for target, ctl in zip(fk_targets, fk_ctrls):
             transform.matchWorldTransform(target, ctl)
 
         o_attr.set(0.0)
+        # we match the foot FK after switch blend attr
+        if foot_cnx:
+            for i, c in enumerate(foot_fk):
+                c.setMatrix(foot_FK_matrix[i], worldSpace=True)
 
     # if is FK then sanp IK
     elif val == 0.0:
@@ -992,6 +1030,13 @@ def ikFkMatch_with_namespace(
         o_attr.set(1.0)
         roll_att = ui_node.attr(ikfk_attr.replace("blend", "roll"))
         roll_att.set(0.0)
+
+        # reset IK foot ctls
+        if foot_cnx:
+            attribute.reset_SRT(foot_IK_ctls)
+            if roll_attr:
+                roll_attr.set(0)
+                bank_attr.set(0)
 
     # sets keyframes
     if key:
