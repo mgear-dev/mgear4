@@ -79,6 +79,14 @@ def rig(
     ##########################################
     # INITIAL SETUP
     ##########################################
+    up_axis = pm.upAxis(q=True, axis=True)
+    print(up_axis)
+    if up_axis == "z":
+        z_up = True
+        print("Z_up!!!")
+    else:
+        z_up = False
+        print("Y_up!!!")
 
     # getters
     edgeLoopList = get_edge_loop(edgeLoop)
@@ -298,12 +306,16 @@ def rig(
         negate = False
         over_offset = dRadius
 
-    if side == "R" and sideRange or side == "R" and customCorner:
-        axis = "z-x"
-        # axis = "zx"
+    # if side == "R" and sideRange or side == "R" and customCorner:
+    #     axis = "z-x"
+    #     # axis = "zx"
+    # else:
+    #     axis = "z-x"
+    if z_up:
+        axis = "zx"
     else:
         axis = "z-x"
-
+    print(axis)
     t = transform.getTransformLookingAt(
         bboxCenter, averagePosition, normalVec, axis=axis, negate=negate
     )
@@ -312,34 +324,7 @@ def rig(
         eye_root, setName("center_lookatRoot"), t
     )
 
-    # over_ctl = icon.create(
-    #     over_npo,
-    #     setName("over_%s" % ctlName),
-    #     t,
-    #     icon="square",
-    #     w=wRadius,
-    #     d=dRadius,
-    #     ro=datatypes.Vector(1.57079633, 0, 0),
-    #     po=datatypes.Vector(0, 0, over_offset),
-    #     color=4,
-    # )
-    # node.add_controller_tag(over_ctl)
-    # attribute.addAttribute(over_ctl, "isCtl", "bool", keyable=False)
-    # attribute.add_mirror_config_channels(over_ctl)
-    # attribute.setKeyableAttributes(
-    #     over_ctl,
-    #     params=["tx", "ty", "tz", "ro", "rx", "ry", "rz", "sx", "sy", "sz"],
-    # )
-
-    # if side == "R":
-    #     over_npo.attr("rx").set(over_npo.attr("rx").get() * -1)
-    #     over_npo.attr("ry").set(over_npo.attr("ry").get() + 180)
-    #     over_npo.attr("sz").set(-1)
-
-    # if len(ctlName.split("_")) == 2 and ctlName.split("_")[-1] == "ghost":
-    #     pass
-    # else:
-    #     pm.sets(ctlSet, add=over_ctl)
+    # return
 
     center_lookat = primitive.addTransform(
         over_npo, setName("center_lookat"), t
