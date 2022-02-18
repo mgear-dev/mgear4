@@ -80,13 +80,13 @@ def rig(
     # INITIAL SETUP
     ##########################################
     up_axis = pm.upAxis(q=True, axis=True)
-    print(up_axis)
+    # print(up_axis)
     if up_axis == "z":
         z_up = True
-        print("Z_up!!!")
+        # print("Z_up!!!")
     else:
         z_up = False
-        print("Y_up!!!")
+        # print("Y_up!!!")
 
     # getters
     edgeLoopList = get_edge_loop(edgeLoop)
@@ -315,7 +315,7 @@ def rig(
         axis = "zx"
     else:
         axis = "z-x"
-    print(axis)
+    # print(axis)
     t = transform.getTransformLookingAt(
         bboxCenter, averagePosition, normalVec, axis=axis, negate=negate
     )
