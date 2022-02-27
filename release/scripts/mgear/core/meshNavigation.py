@@ -13,7 +13,7 @@ from . import utils
 # Vertex
 #############################################
 
-def getExtremeVertexFromLoop(edgeList=None, sideRange=False):
+def getExtremeVertexFromLoop(edgeList=None, sideRange=False, z_up=False):
     """Get extreme vertex X and  Y
 
     min and max positions from edge loop
@@ -49,19 +49,26 @@ def getExtremeVertexFromLoop(edgeList=None, sideRange=False):
         axisIndex = 2
     else:
         axisIndex = 0
+
+    if z_up:
+        up_axis = 2
+    else:
+        up_axis = 1
+        if axisIndex == 2:
+            axisIndex = 1
     for x in vertexList:
         pos = x.getPosition(space='world')
         if maxX is None or pos[axisIndex] > maxX:
             maxX = pos[axisIndex]
             outPos = x
-        if maxY is None or pos[1] > maxY:
-            maxY = pos[1]
+        if maxY is None or pos[up_axis] > maxY:
+            maxY = pos[up_axis]
             upPos = x
         if minX is None or pos[axisIndex] < minX:
             minX = pos[axisIndex]
             inPos = x
-        if minY is None or pos[1] < minY:
-            minY = pos[1]
+        if minY is None or pos[up_axis] < minY:
+            minY = pos[up_axis]
             lowPos = x
     if sideRange:
         return upPos, lowPos, outPos, inPos, edgeList, vertexList

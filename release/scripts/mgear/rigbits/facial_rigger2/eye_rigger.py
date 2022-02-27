@@ -109,7 +109,9 @@ def rig(
     # Initial Data
     bboxCenter = meshNavigation.bboxCenter(eyeMesh)
 
-    extr_v = meshNavigation.getExtremeVertexFromLoop(edgeLoopList, sideRange)
+    extr_v = meshNavigation.getExtremeVertexFromLoop(
+        edgeLoopList, sideRange, z_up
+    )
     upPos = extr_v[0]
     lowPos = extr_v[1]
     inPos = extr_v[2]
@@ -301,10 +303,10 @@ def rig(
     if side == "R":
         negate = False
         offset = offset
-        over_offset = dRadius
+        # over_offset = dRadius
     else:
         negate = False
-        over_offset = dRadius
+        # over_offset = dRadius
 
     # if side == "R" and sideRange or side == "R" and customCorner:
     #     axis = "z-x"
@@ -323,8 +325,6 @@ def rig(
     over_npo = primitive.addTransform(
         eye_root, setName("center_lookatRoot"), t
     )
-
-    # return
 
     center_lookat = primitive.addTransform(
         over_npo, setName("center_lookat"), t
@@ -392,6 +392,21 @@ def rig(
     pm.parentConstraint(arrow_ctl, aimTrigger_ref, mo=True)
 
     # Blink driver controls
+    if z_up:
+        trigger_axis = "tz"
+        # ro_up = [1.57079633, 1.57079633, -1.57079633]
+        ro_up = [0, 1.57079633 * 2, 1.57079633]
+        ro_low = [0, 0, 1.57079633]
+        # ro_low = [1.57079633, 1.57079633, 1.57079633 * 3]
+        po = [offset * -1, 0, 0]
+        low_pos = 2  # Z
+    else:
+        trigger_axis = "ty"
+        ro_up = (1.57079633, 1.57079633, 0)
+        ro_low = [1.57079633, 1.57079633, 1.57079633 * 2]
+        po = [0, 0, offset]
+        low_pos = 1  # Y
+
     # upper ctl
     p = upRest_target_crv.getCVs(space="world")[15]
     ut = transform.setMatrixPosition(datatypes.Matrix(), p)
@@ -404,11 +419,11 @@ def rig(
         icon="arrow",
         w=2.5,
         d=2.5,
-        ro=datatypes.Vector(1.57079633, 1.57079633, 0),
-        po=datatypes.Vector(0, 0, offset),
+        ro=datatypes.Vector(ro_up[0], ro_up[1], ro_up[2]),
+        po=datatypes.Vector(po[0], po[1], po[2]),
         color=4,
     )
-    attribute.setKeyableAttributes(up_ctl, ["ty"])
+    attribute.setKeyableAttributes(up_ctl, [trigger_axis])
     pm.sets(ctlSet, add=up_ctl)
 
     # use translation of the object to drive the blink
@@ -416,7 +431,7 @@ def rig(
 
     # lowe ctl
     p_low = lowRest_target_crv.getCVs(space="world")[15]
-    p[1] = p_low[1]
+    p[low_pos] = p_low[low_pos]
     lt = transform.setMatrixPosition(ut, p)
     npo = primitive.addTransform(over_npo, setName("upBlink_npo"), lt)
 
@@ -427,11 +442,11 @@ def rig(
         icon="arrow",
         w=1.5,
         d=1.5,
-        ro=datatypes.Vector(1.57079633, 1.57079633, 1.57079633 * 2),
-        po=datatypes.Vector(0, 0, offset),
+        ro=datatypes.Vector(ro_low[0], ro_low[1], ro_low[2]),
+        po=datatypes.Vector(po[0], po[1], po[2]),
         color=4,
     )
-    attribute.setKeyableAttributes(low_ctl, ["ty"])
+    attribute.setKeyableAttributes(low_ctl, [trigger_axis])
     pm.sets(ctlSet, add=low_ctl)
 
     # Controls lists
@@ -442,7 +457,7 @@ def rig(
     ghost_ctl = []
 
     # upper eyelid controls
-    upperCtlNames = ["inCorner", "upInMid", "upMid", "upOutMid", "outCorner"]
+    upperCtlNames = ["inCorner", "upInMid", "f", "upOutMid", "outCorner"]
     cvs = upCtl_crv.getCVs(space="world")
     if side == "R" and not sideRange:
         # if side == "R":
@@ -543,7 +558,6 @@ def rig(
         if side == "R":
             npoBase.attr("ry").set(180)
             npoBase.attr("sz").set(-1)
-
     # adding parent constraints to odd controls
     for i, ctl in enumerate(upControls):
         if utils.is_odd(i):
@@ -709,16 +723,23 @@ def rig(
     w3 = pm.wire(upProfile_target_crv, w=upCtl_crv)[0]
     w4 = pm.wire(lowProfile_target_crv, w=lowCtl_crv)[0]
 
+    if z_up:
+        trigger_axis = "tz"
+    else:
+        trigger_axis = "ty"
+
     # connect blink driver
     pm.pointConstraint(low_ctl, blink_driver, mo=False)
-    rest_val = blink_driver.ty.get()
+    rest_val = blink_driver.attr(trigger_axis).get()
 
-    up_div_node = node.createDivNode(up_ctl.ty, rest_val)
-    low_div_node = node.createDivNode(low_ctl.ty, rest_val * -1)
+    up_div_node = node.createDivNode(up_ctl.attr(trigger_axis), rest_val)
+    low_div_node = node.createDivNode(
+        low_ctl.attr(trigger_axis), rest_val * -1
+    )
 
     # contact driver
     minus_node = node.createPlusMinusAverage1D(
-        [rest_val, blink_driver.ty], operation=2
+        [rest_val, blink_driver.attr(trigger_axis)], operation=2
     )
     contact_div_node = node.createDivNode(minus_node.output1D, rest_val)
 
@@ -739,14 +760,14 @@ def rig(
     # trigger at starting movement for up and low
     # up
     remap_node = pm.createNode("remapValue")
-    up_ctl.ty >> remap_node.inputValue
+    up_ctl.attr(trigger_axis) >> remap_node.inputValue
     remap_node.value[0].value_Interp.set(2)
     remap_node.inputMax.set(rest_val / 8)
     reverse_node = node.createReverseNode(remap_node.outColorR)
     reverse_node.outputX >> w1.scale[0]
     # low
     remap_node = pm.createNode("remapValue")
-    low_ctl.ty >> remap_node.inputValue
+    low_ctl.attr(trigger_axis) >> remap_node.inputValue
     remap_node.value[0].value_Interp.set(2)
     remap_node.inputMin.set((rest_val / 8) * -1)
     remap_node.outColorR >> w2.scale[0]
@@ -874,6 +895,13 @@ def rig(
     upperEyelid_jnt = []
     upperEyelid_jntRoot = []
 
+    if z_up:
+        axis = "zy"
+        wupVector = [0, 0, 1]
+    else:
+        axis = "-yz"
+        wupVector = [0, 1, 0]
+
     for i, cv in enumerate(cvs):
         if i % everyNVertex:
             continue
@@ -895,7 +923,9 @@ def rig(
         jntRoot.attr("radius").set(0.08)
         jntRoot.attr("visibility").set(False)
         upperEyelid_jntRoot.append(jntRoot)
-        applyop.aimCns(jntRoot, trn, axis="zy", wupObject=jnt_root)
+        applyop.aimCns(
+            jntRoot, trn, axis=axis, wupObject=jnt_root, wupVector=wupVector
+        )
 
         jnt_ref = primitive.addJointFromPos(
             jntRoot, setName("upEyelid_jnt_ref", i), pos=cv
@@ -942,7 +972,9 @@ def rig(
         jntRoot.attr("radius").set(0.08)
         jntRoot.attr("visibility").set(False)
         lowerEyelid_jntRoot.append(jntRoot)
-        applyop.aimCns(jntRoot, trn, axis="zy", wupObject=jnt_root)
+        applyop.aimCns(
+            jntRoot, trn, axis=axis, wupObject=jnt_root, wupVector=wupVector
+        )
 
         jnt_ref = primitive.addJointFromPos(
             jntRoot, setName("lowEyelid_jnt_ref", i), pos=cv
