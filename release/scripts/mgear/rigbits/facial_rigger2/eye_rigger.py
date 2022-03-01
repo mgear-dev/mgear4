@@ -1031,14 +1031,14 @@ def rig(
     # horizontal tracking connect
     mult_node = node.createMulNode(upHTracking_att, aimTrigger_ref.attr("tx"))
     # Correct right side horizontal tracking
-    if side == "R":
-        mult_node = node.createMulNode(mult_node.attr("outputX"), -1)
+    # if side == "R":
+    #     mult_node = node.createMulNode(mult_node.attr("outputX"), -1)
     pm.connectAttr(mult_node + ".outputX", trackLvl[0].attr("tx"))
 
     mult_node = node.createMulNode(lowHTracking_att, aimTrigger_ref.attr("tx"))
     # Correct right side horizontal tracking
-    if side == "R":
-        mult_node = node.createMulNode(mult_node.attr("outputX"), -1)
+    # if side == "R":
+    #     mult_node = node.createMulNode(mult_node.attr("outputX"), -1)
     pm.connectAttr(mult_node + ".outputX", trackLvl[1].attr("tx"))
 
     # adding channels for corner tracking
@@ -1047,12 +1047,23 @@ def rig(
         VTracking_att = attribute.addAttribute(
             ctl, "vTracking", "float", 0.1, minValue=0
         )
-        mult_node = node.createMulNode(VTracking_att, up_ctl.ty)
-        mult_node2 = node.createMulNode(VTracking_att, low_ctl.ty)
-        plus_node = node.createPlusMinusAverage1D(
-            [mult_node.outputX, mult_node2.outputX]
-        )
-        pm.connectAttr(plus_node.output1D, track_corner_lvl[i].attr("ty"))
+        if z_up:
+            mult_node = node.createMulNode(VTracking_att, up_ctl.tz)
+            mult_node2 = node.createMulNode(VTracking_att, low_ctl.tz)
+            plus_node = node.createPlusMinusAverage1D(
+                [mult_node.outputX, mult_node2.outputX]
+            )
+
+            mult_node3 = node.createMulNode(plus_node.output1D, -1)
+            pm.connectAttr(mult_node3.outputX, track_corner_lvl[i].attr("ty"))
+        else:
+            mult_node = node.createMulNode(VTracking_att, up_ctl.ty)
+            mult_node2 = node.createMulNode(VTracking_att, low_ctl.ty)
+            plus_node = node.createPlusMinusAverage1D(
+                [mult_node.outputX, mult_node2.outputX]
+            )
+
+            pm.connectAttr(plus_node.output1D, track_corner_lvl[i].attr("ty"))
 
     ###########################################
     # Reparenting
