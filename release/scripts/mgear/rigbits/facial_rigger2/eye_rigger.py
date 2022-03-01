@@ -386,7 +386,7 @@ def rig(
         trigger_axis = "tz"
         ro_up = [0, 1.57079633 * 2, 1.57079633]
         ro_low = [0, 0, 1.57079633]
-        po = [offset * -1, 0, 0]
+        po = [0, offset * -1, 0]
         low_pos = 2  # Z
     else:
         trigger_axis = "ty"
@@ -450,6 +450,7 @@ def rig(
     if side == "R" and not sideRange:
         # if side == "R":
         cvs = [cv for cv in reversed(cvs)]
+        # offset = offset * -1
     for i, cv in enumerate(cvs):
         if utils.is_odd(i):
             color = 14
