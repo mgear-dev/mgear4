@@ -80,13 +80,10 @@ def rig(
     # INITIAL SETUP
     ##########################################
     up_axis = pm.upAxis(q=True, axis=True)
-    # print(up_axis)
     if up_axis == "z":
         z_up = True
-        # print("Z_up!!!")
     else:
         z_up = False
-        # print("Y_up!!!")
 
     # getters
     edgeLoopList = get_edge_loop(edgeLoop)
@@ -300,26 +297,13 @@ def rig(
         + inPos.getPosition(space="world")
         + outPos.getPosition(space="world")
     ) / 4
-    if side == "R":
-        negate = False
-        offset = offset
-        # over_offset = dRadius
-    else:
-        negate = False
-        # over_offset = dRadius
 
-    # if side == "R" and sideRange or side == "R" and customCorner:
-    #     axis = "z-x"
-    #     # axis = "zx"
-    # else:
-    #     axis = "z-x"
     if z_up:
         axis = "zx"
     else:
         axis = "z-x"
-    # print(axis)
     t = transform.getTransformLookingAt(
-        bboxCenter, averagePosition, normalVec, axis=axis, negate=negate
+        bboxCenter, averagePosition, normalVec, axis=axis, negate=False
     )
 
     over_npo = primitive.addTransform(
@@ -329,6 +313,12 @@ def rig(
     center_lookat = primitive.addTransform(
         over_npo, setName("center_lookat"), t
     )
+
+    if side == "R":
+        over_npo.attr("rx").set(over_npo.attr("rx").get() * -1)
+        over_npo.attr("ry").set(over_npo.attr("ry").get() + 180)
+        over_npo.attr("sz").set(-1)
+    t = transform.getTransform(over_npo)
 
     # Tracking
     # Eye aim control
@@ -394,10 +384,8 @@ def rig(
     # Blink driver controls
     if z_up:
         trigger_axis = "tz"
-        # ro_up = [1.57079633, 1.57079633, -1.57079633]
         ro_up = [0, 1.57079633 * 2, 1.57079633]
         ro_low = [0, 0, 1.57079633]
-        # ro_low = [1.57079633, 1.57079633, 1.57079633 * 3]
         po = [offset * -1, 0, 0]
         low_pos = 2  # Z
     else:
@@ -433,7 +421,7 @@ def rig(
     p_low = lowRest_target_crv.getCVs(space="world")[15]
     p[low_pos] = p_low[low_pos]
     lt = transform.setMatrixPosition(ut, p)
-    npo = primitive.addTransform(over_npo, setName("upBlink_npo"), lt)
+    npo = primitive.addTransform(over_npo, setName("lowBlink_npo"), lt)
 
     low_ctl = icon.create(
         npo,
@@ -457,7 +445,7 @@ def rig(
     ghost_ctl = []
 
     # upper eyelid controls
-    upperCtlNames = ["inCorner", "upInMid", "f", "upOutMid", "outCorner"]
+    upperCtlNames = ["inCorner", "upInMid", "upMid", "upOutMid", "outCorner"]
     cvs = upCtl_crv.getCVs(space="world")
     if side == "R" and not sideRange:
         # if side == "R":
@@ -507,7 +495,9 @@ def rig(
             )
             # ghost controls
             if i == 2:
-                gt = ut
+                gt = transform.setMatrixPosition(
+                    t, transform.getPositionFromMatrix(ut)
+                )
             else:
                 gt = t
             npo_g = primitive.addTransform(
@@ -555,9 +545,9 @@ def rig(
         # add corner ctls to corner ctl list for tracking
         if i in [0, 4]:
             corner_ctl.append(ctl)
-        if side == "R":
-            npoBase.attr("ry").set(180)
-            npoBase.attr("sz").set(-1)
+        # if side == "R":
+        #     npoBase.attr("ry").set(180)
+        #     npoBase.attr("sz").set(-1)
     # adding parent constraints to odd controls
     for i, ctl in enumerate(upControls):
         if utils.is_odd(i):
@@ -576,7 +566,6 @@ def rig(
         ghost_ctl[1], upControls[-1], ghost_ctl[2].getParent(), mo=True
     )
     cns_node.interpType.set(0)
-
     # lower eyelid controls
     lowControls = [upControls[0]]
     lowerCtlNames = [
@@ -633,7 +622,9 @@ def rig(
             )
             # ghost controls
             if i == 2:
-                gt = lt
+                gt = transform.setMatrixPosition(
+                    t, transform.getPositionFromMatrix(lt)
+                )
             else:
                 gt = t
             # ghost controls
@@ -680,9 +671,9 @@ def rig(
             pm.sets(ctlSet, add=ctl_param)
         attribute.setKeyableAttributes(ctl_param, params)
         # mirror behaviout on R side controls
-        if side == "R":
-            npoBase.attr("ry").set(180)
-            npoBase.attr("sz").set(-1)
+        # if side == "R":
+        #     npoBase.attr("ry").set(180)
+        #     npoBase.attr("sz").set(-1)
     for lctl in reversed(lowControls[1:]):
         node.add_controller_tag(lctl, over_npo)
     lowControls.append(upControls[-1])
@@ -708,7 +699,6 @@ def rig(
         ghost_ctl[4], upControls[-1], ghost_ctl[5].getParent(), mo=True
     )
     cns_node.interpType.set(0)
-
     ##########################################
     # OPERATORS
     ##########################################
