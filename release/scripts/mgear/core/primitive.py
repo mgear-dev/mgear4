@@ -126,7 +126,6 @@ def addJoint(parent, name, m=datatypes.Matrix(), vis=True):
     node = pm.PyNode(pm.createNode("joint", n=name))
     node.setTransformation(m)
     node.setAttr("visibility", vis)
-
     if parent is not None:
         parent.addChild(node)
 

@@ -257,14 +257,15 @@ class Main(object):
 
     def addJoint(
         self,
-        obj,
-        name,
+        obj=None,
+        name=None,
         newActiveJnt=None,
         UniScale=False,
         segComp=False,
         gearMulMatrix=False,
         rot_off=None,
         vanilla_nodes=False,
+        leaf_joint=False,
     ):
         """Add joint as child of the active joint or under driver object.
 
@@ -285,8 +286,10 @@ class Main(object):
                 False will use Maya's default mulMatrix node.
             rot_off (list, optional): offset in degrees for XYZ rotation
             vanilla_nodes (bool, optional): Description
+            leaf_joint (bool, optional): If true will create a child joint as
+                a leaf joint to  imput the scale. This option is meant for games
 
-        Returns:
+        No Longer Returned:
             dagNode: The newly created joint.
 
         """
@@ -309,16 +312,18 @@ class Main(object):
                 UniScale=UniScale,
                 segComp=segComp,
                 rot_off=rot_off,
+                leaf_joint=leaf_joint,
             )
 
     def _addJoint(
         self,
-        obj,
-        name,
+        obj=None,
+        name=None,
         newActiveJnt=None,
         UniScale=False,
         segComp=False,
         rot_off=None,
+        leaf_joint=False,
     ):
         """Add joint as child of the active joint or under driver object.
 
@@ -440,6 +445,20 @@ class Main(object):
                         pm.connectAttr(cns_m.scaleZ, jnt.sx)
                         pm.connectAttr(cns_m.scaleZ, jnt.sy)
                         pm.connectAttr(cns_m.scaleZ, jnt.sz)
+
+                    # leaf joint
+                    if leaf_joint and not UniScale:
+                        jnt.disconnectAttr("scale")
+                        leaf_jnt = primitive.addJoint(
+                            jnt, "leaf_" + jnt.name(), t
+                        )
+                        leaf_jnt.attr('radius').set(1.5)
+                        leaf_jnt.attr("overrideEnabled").set(1)
+                        leaf_jnt.attr("overrideColor").set(18)
+                        leaf_jnt.rotate.set([0, 0, 0])
+                        # connect scale
+                        pm.connectAttr(cns_m.scale, leaf_jnt.scale)
+
                 else:
                     cns_m = None
 
@@ -486,8 +505,8 @@ class Main(object):
     # old method to allow the joint creation using Maya default nodes
     def addJoint_vanilla(
         self,
-        obj,
-        name,
+        obj=None,
+        name=None,
         newActiveJnt=None,
         UniScale=False,
         segComp=False,
@@ -523,8 +542,6 @@ class Main(object):
         customName = self.getCustomJointName(len(self.jointList))
 
         if self.options["joint_rig"]:
-            print(newActiveJnt)
-            print(self.active_jnt)
             if newActiveJnt:
                 self.active_jnt = newActiveJnt
 
@@ -545,9 +562,6 @@ class Main(object):
                     pm.ungroup(jnt.getParent())
             # All new jnts are the active by default
             self.active_jnt = jnt
-            print("----")
-            print(self.active_jnt)
-
             if gearMulMatrix:
                 mulmat_node = applyop.gear_mulmatrix_op(
                     obj + ".worldMatrix", jnt + ".parentInverseMatrix"
@@ -1770,58 +1784,92 @@ class Main(object):
 
         # Joint creation
         for jpo in self.jnt_pos:
-            if len(jpo) >= 3 and self.options["joint_rig"]:
-                if jpo[2] == "component_jnt_org":
-                    newActiveJnt = self.component_jnt_org
-                elif jpo[2] == "parent_relative_jnt":
-                    # this option force the active jnt always to the parent
-                    # relative jnt.
-                    # If None the active jnt will be updated to the latest in
-                    # each jnt creation
-                    newActiveJnt = self.parent_relative_jnt
+
+            # NOTE: using a list was a mitake. Adding support for a kwargs dict
+            if isinstance(jpo, list):
+                if len(jpo) >= 3 and self.options["joint_rig"]:
+                    if jpo[2] == "component_jnt_org":
+                        newActiveJnt = self.component_jnt_org
+                    elif jpo[2] == "parent_relative_jnt":
+                        # this option force the active jnt always to the parent
+                        # relative jnt.
+                        # If None the active jnt will be updated to the latest in
+                        # each jnt creation
+                        newActiveJnt = self.parent_relative_jnt
+                    else:
+                        try:
+                            # here jpo[2] is also the string name of the jnt inside
+                            # the component. IE: "root"
+                            newActiveJnt = self.jointList[
+                                self.jointRelatives[jpo[2]]
+                            ]
+
+                        except Exception:
+                            if jpo[2]:
+                                pm.displayWarning(
+                                    "Joint Structure creation: "
+                                    "The object %s can't be found. Joint parent is"
+                                    " NONE for %s, from %s"
+                                    % (jpo[2], jpo[0], self.fullName)
+                                )
+                            newActiveJnt = None
                 else:
-                    try:
-                        # here jpo[2] is also the string name of the jnt inside
-                        # the component. IE: "root"
-                        newActiveJnt = self.jointList[
-                            self.jointRelatives[jpo[2]]
-                        ]
+                    newActiveJnt = None
+                # Handle the uniform scale
+                if len(jpo) >= 4 and self.options["joint_rig"]:
+                    uniScale = jpo[3]
+                else:
+                    uniScale = False
 
-                    except Exception:
-                        if jpo[2]:
-                            pm.displayWarning(
-                                "Joint Structure creation: "
-                                "The object %s can't be found. Joint parent is"
-                                " NONE for %s, from %s"
-                                % (jpo[2], jpo[0], self.fullName)
-                            )
-                        newActiveJnt = None
-            else:
-                newActiveJnt = None
-            # Handle the uniform scale
-            if len(jpo) >= 4 and self.options["joint_rig"]:
-                uniScale = jpo[3]
-            else:
-                uniScale = False
+                # TODO: handle rotation offset and vanilla nodes connection
+                # handle the matrix node connection
 
-            # TODO: handle rotation offset and vanilla nodes connection
-            # handle the matrix node connection
+                # Defaults to use Maya multiply Matrix node
+                if len(jpo) >= 5 and self.options["joint_rig"]:
+                    gearMulMatrix = jpo[4]
+                else:
+                    gearMulMatrix = False
 
-            # Defaults to use Maya multiply Matrix node
-            if len(jpo) >= 5 and self.options["joint_rig"]:
-                gearMulMatrix = jpo[4]
-            else:
-                gearMulMatrix = False
-
-            self.jointList.append(
-                self.addJoint(
-                    jpo[0],
-                    jpo[1],
-                    newActiveJnt,
-                    uniScale,
-                    gearMulMatrix=gearMulMatrix,
+                self.jointList.append(
+                    self.addJoint(
+                        jpo[0],
+                        jpo[1],
+                        newActiveJnt,
+                        uniScale,
+                        gearMulMatrix=gearMulMatrix,
+                    )
                 )
-            )
+            elif isinstance(jpo, dict):
+                if "newActiveJnt" in jpo.keys():
+                    if jpo["newActiveJnt"] == "component_jnt_org":
+                        jpo["newActiveJnt"] = self.component_jnt_org
+                    elif jpo["newActiveJnt"] == "parent_relative_jnt":
+                        # this option force the active jnt always to the parent
+                        # relative jnt.
+                        # If None the active jnt will be updated to the latest in
+                        # each jnt creation
+                        jpo["newActiveJnt"] = self.parent_relative_jnt
+                    else:
+                        try:
+                            # here jpo["newActiveJnt"] is also the string name of the jnt inside
+                            # the component. IE: "root"
+                            jpo["newActiveJnt"] = self.jointList[self.jointRelatives[
+                                jpo["newActiveJnt"]]]
+
+                        except Exception:
+                            if jpo["newActiveJnt"]:
+                                pm.displayWarning(
+                                    "Joint Structure creation: "
+                                    "The object %s can't be found. Joint parent is"
+                                    " NONE for %s, from %s"
+                                    % (jpo["newActiveJnt"], jpo["obj"], self.fullName)
+                                )
+                            jpo["newActiveJnt"] = None
+
+                self.jointList.append(
+                    self.addJoint(**jpo
+                                  )
+                )
 
     # =====================================================
     # FINALIZE
