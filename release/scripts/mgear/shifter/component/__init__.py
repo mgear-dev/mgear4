@@ -452,7 +452,7 @@ class Main(object):
                         leaf_jnt = primitive.addJoint(
                             jnt, "leaf_" + jnt.name(), t
                         )
-                        leaf_jnt.attr('radius').set(1.5)
+                        leaf_jnt.attr("radius").set(1.5)
                         leaf_jnt.attr("overrideEnabled").set(1)
                         leaf_jnt.attr("overrideColor").set(18)
                         leaf_jnt.rotate.set([0, 0, 0])
@@ -1851,10 +1851,11 @@ class Main(object):
                         jpo["newActiveJnt"] = self.parent_relative_jnt
                     else:
                         try:
-                            # here jpo["newActiveJnt"] is also the string name of the jnt inside
-                            # the component. IE: "root"
-                            jpo["newActiveJnt"] = self.jointList[self.jointRelatives[
-                                jpo["newActiveJnt"]]]
+                            # here jpo["newActiveJnt"] is also the string name
+                            # of the jnt inside the component. IE: "root"
+                            jpo["newActiveJnt"] = self.jointList[
+                                self.jointRelatives[jpo["newActiveJnt"]]
+                            ]
 
                         except Exception:
                             if jpo["newActiveJnt"]:
@@ -1862,14 +1863,15 @@ class Main(object):
                                     "Joint Structure creation: "
                                     "The object %s can't be found. Joint parent is"
                                     " NONE for %s, from %s"
-                                    % (jpo["newActiveJnt"], jpo["obj"], self.fullName)
+                                    % (
+                                        jpo["newActiveJnt"],
+                                        jpo["obj"],
+                                        self.fullName,
+                                    )
                                 )
                             jpo["newActiveJnt"] = None
 
-                self.jointList.append(
-                    self.addJoint(**jpo
-                                  )
-                )
+                self.jointList.append(self.addJoint(**jpo))
 
     # =====================================================
     # FINALIZE
