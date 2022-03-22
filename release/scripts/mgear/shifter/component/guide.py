@@ -1,7 +1,7 @@
 """
 Shifter's Component guide class.
 """
-
+import ast
 from functools import partial
 
 import maya.cmds as cmds
@@ -72,6 +72,7 @@ class ComponentGuide(guide.Main):
 
     connectors = []
     compatible = []
+    joint_names_description = []
     ctl_grp = ""
 
     # ====================================================
@@ -161,6 +162,13 @@ class ComponentGuide(guide.Main):
         self.pUIHost = self.addParam("ui_host", "string", "")
         self.pCtlGroup = self.addParam("ctlGrp", "string", "")
         self.pJointNames = self.addParam("joint_names", "string", "")
+        if self.joint_names_description:
+            self.pJointNamesDescription = self.addParam(
+                "jointNamesDescription", "string",
+                str(self.joint_names_description))
+            self.pJointNamesDescription_custom = self.addParam(
+                "jointNamesDescription_custom", "string",
+                str(self.joint_names_description))
         self.pJointRotOffX = self.addParam(
             "joint_rot_offset_x", "double", 0.0, -360.0, 360.0)
         self.pJointRotOffY = self.addParam(
@@ -987,6 +995,83 @@ class mainSettingsTab(QtWidgets.QDialog, msui.Ui_Form):
         self.setupUi(self)
 
 
+class jointNameDescriptor(QtWidgets.QDialog):
+
+    def __init__(self, parent=None):
+        super(jointNameDescriptor, self).__init__()
+
+        self.root = pm.selected()[0]
+        self.d_names = self.root.attr("jointNamesDescription").get()
+        self.d_names = ast.literal_eval(self.d_names)
+        self.d_custom_names = self.root.attr("jointNamesDescription_custom").get()
+        self.d_custom_names = ast.literal_eval(self.d_custom_names)
+
+        self.setWindowTitle("joint NameDescriptor")
+        self.setMinimumWidth(200)
+        self.descriptors_lineEdit = []
+        self.descriptors_layout = []
+        self.main_layout = QtWidgets.QVBoxLayout(self)
+
+        self.create_widgets()
+        self.create_layouts()
+
+    def create_descriptor(self, descriptor, d_custom):
+        """Create descriptor widgets
+
+        Args:
+            descriptor (str): Name of the joint descriptor
+            d_custom (str): Custom name of the joint descriptor when modified
+                by the user
+        """
+        # widgets
+        label = QtWidgets.QLabel(descriptor.capitalize())
+        lineedit = QtWidgets.QLineEdit(d_custom)
+        button = QtWidgets.QPushButton("Reset")
+
+        self.descriptors_lineEdit.append(lineedit)
+
+        # layout
+        layout = QtWidgets.QHBoxLayout(self)
+        layout.addWidget(label)
+        layout.addWidget(lineedit)
+        layout.addWidget(button)
+
+        # signal
+        def reset_button():
+            lineedit.setText(descriptor)
+            self.set_descriptors_attr()
+
+        button.clicked.connect(reset_button)
+        lineedit.editingFinished.connect(self.set_descriptors_attr)
+
+        self.descriptors_layout.append(layout)
+
+    def create_widgets(self):
+        for e, d in enumerate(self.d_names):
+            self.create_descriptor(d, self.d_custom_names[e])
+
+    def create_layouts(self):
+
+        for d in self.descriptors_layout:
+            self.main_layout.addLayout(d)
+
+        spacerItem = QtWidgets.QSpacerItem(
+            20,
+            40,
+            QtWidgets.QSizePolicy.Minimum,
+            QtWidgets.QSizePolicy.Expanding)
+        self.main_layout.addItem(spacerItem)
+
+    def set_descriptors_attr(self):
+        descriptors_attr_val = []
+        for d in self.descriptors_lineEdit:
+            d_name = string.normalize_with_padding(d.text())
+            d.setText(d_name)
+            descriptors_attr_val.append(d_name)
+            self.root.attr(
+                "jointNamesDescription_custom").set(str(descriptors_attr_val))
+
+
 class componentMainSettings(QtWidgets.QDialog, guide.helperSlots):
     valueChanged = QtCore.Signal(int)
 
@@ -997,6 +1082,8 @@ class componentMainSettings(QtWidgets.QDialog, guide.helperSlots):
         self.root = pm.selected()[0]
 
         self.mainSettingsTab = mainSettingsTab()
+        if self.root.hasAttr("jointNamesDescription"):
+            self.jointNameDescriptor = jointNameDescriptor()
 
         self.create_controls()
         self.populate_controls()
@@ -1096,6 +1183,11 @@ class componentMainSettings(QtWidgets.QDialog, guide.helperSlots):
                                    tab.useRGB_checkBox.checkState())
 
         self.refresh_controls()
+
+        # joint names tab
+        if self.root.hasAttr("jointNamesDescription"):
+            self.tabs.insertTab(
+                2, self.jointNameDescriptor, "Joints Description Names")
 
     def refresh_controls(self):
         joint_names = [name.strip() for name in
