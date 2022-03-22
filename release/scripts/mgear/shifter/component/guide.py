@@ -1009,6 +1009,7 @@ class jointNameDescriptor(QtWidgets.QDialog):
         self.setWindowTitle("joint NameDescriptor")
         self.setMinimumWidth(200)
         self.descriptors_lineEdit = []
+        self.descriptors_label = []
         self.descriptors_layout = []
         self.main_layout = QtWidgets.QVBoxLayout(self)
 
@@ -1029,6 +1030,7 @@ class jointNameDescriptor(QtWidgets.QDialog):
         button = QtWidgets.QPushButton("Reset")
 
         self.descriptors_lineEdit.append(lineedit)
+        self.descriptors_label.append(label)
 
         # layout
         layout = QtWidgets.QHBoxLayout(self)
@@ -1064,8 +1066,12 @@ class jointNameDescriptor(QtWidgets.QDialog):
 
     def set_descriptors_attr(self):
         descriptors_attr_val = []
-        for d in self.descriptors_lineEdit:
-            d_name = string.normalize_with_padding(d.text())
+        for e, d in enumerate(self.descriptors_lineEdit):
+            # we use the label to determine if the name should filer  "#":
+            if "#" in self.descriptors_label[e].text():
+                d_name = string.normalize_with_padding(d.text())
+            else:
+                d_name = string.normalize2(d.text())
             d.setText(d_name)
             descriptors_attr_val.append(d_name)
             self.root.attr(
