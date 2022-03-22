@@ -1067,7 +1067,7 @@ class jointNameDescriptor(QtWidgets.QDialog):
     def set_descriptors_attr(self):
         descriptors_attr_val = []
         for e, d in enumerate(self.descriptors_lineEdit):
-            # we use the label to determine if the name should filer  "#":
+            # we use the label to determine if the name should filter  "#"
             if "#" in self.descriptors_label[e].text():
                 d_name = string.normalize_with_padding(d.text())
             else:
