@@ -36,6 +36,8 @@ class Guide(guide.ComponentGuide):
     email = EMAIL
     version = VERSION
 
+    joint_names_description = ["spine_##", "head"]
+
     def postInit(self):
         """Initialize the position for the guide"""
         self.save_transform = ["root", "tan0", "tan1", "neck", "head", "eff"]

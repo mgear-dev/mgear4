@@ -2,9 +2,10 @@ import pymel.core as pm
 from pymel.core import datatypes
 
 from mgear.shifter import component
+import ast
 
 from mgear.core import node, fcurve, applyop, vector, curve
-from mgear.core import attribute, transform, primitive
+from mgear.core import attribute, transform, primitive, string
 
 #############################################
 # COMPONENT
@@ -19,6 +20,12 @@ class Component(component.Main):
     # =====================================================
     def addObjects(self):
         """Add all the objects needed to create the component."""
+
+        # joint Description Names
+        jd_names = ast.literal_eval(
+            self.settings["jointNamesDescription_custom"])
+        jdn_neck = jd_names[0]
+        jdn_head = jd_names[1]
 
         self.normal = self.guide.blades["blade"].z * -1
         self.up_axis = pm.upAxis(q=True, axis=True)
@@ -228,9 +235,10 @@ class Component(component.Main):
             self.fk_npo.append(fk_npo)
             parentctl = fk_ctl
 
-            # self.jnt_pos.append([fk_ctl, i])
             if i != self.divisions - 1:
-                self.jnt_pos.append([fk_ctl, "neck_" + str(i + 1).zfill(2)])
+                self.jnt_pos.append(
+                    [fk_ctl, string.replaceSharpWithPadding(jdn_neck, i + 1)]
+                )
 
             t = transform.getTransformLookingAt(
                 self.guide.pos["root"],
@@ -280,11 +288,12 @@ class Component(component.Main):
         attribute.setRotOrder(self.head_ctl, "ZXY")
         attribute.setInvertMirror(self.head_ctl, ["tx", "rz", "ry"])
 
-        self.jnt_pos.append([self.head_ctl, "head"])
+        self.jnt_pos.append([self.head_ctl, jdn_head])
 
     # =====================================================
     # ATTRIBUTES
     # =====================================================
+
     def addAttributes(self):
         """Create the anim and setupr rig attributes for the component"""
         # Anim -------------------------------------------
