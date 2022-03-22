@@ -419,7 +419,7 @@ class Component(component.Main):
         self.cnx0 = primitive.addTransform(self.root, self.getName("0_cnx"))
         self.cnx1 = primitive.addTransform(self.root, self.getName("1_cnx"))
         self.jnt_pos.append(
-            [self.cnx1, string.replaceSharpWithPadding(jdn_spine), i + 2]
+            [self.cnx1, string.replaceSharpWithPadding(jdn_spine, i + 2)]
         )
 
     def addAttributes(self):
