@@ -1,11 +1,12 @@
 
+import ast
 import pymel.core as pm
 from pymel.core import datatypes
 
 from mgear.shifter import component
 
 from mgear.core import node, fcurve, applyop, vector, icon
-from mgear.core import attribute, transform, primitive
+from mgear.core import attribute, transform, primitive, string
 
 #############################################
 # COMPONENT
@@ -487,23 +488,32 @@ class Component(component.Main):
             else:
                 driver = div_cns
 
+            # joint Description Name
+            jd_names = ast.literal_eval(
+                self.settings["jointNamesDescription_custom"])
+            upperarm = jd_names[0]
+            lowerarm = jd_names[1]
+            upperarm_twist_ = jd_names[2]
+            lowerarm_twist_ = jd_names[3]
+            hand = jd_names[4]
+
             # setting the joints
             if i == 0:
-                self.jnt_pos.append([driver, "upperarm"])
+                self.jnt_pos.append([driver, upperarm])
                 current_parent = "root"
-                twist_name = "upperarm_twist_"
+                twist_name = upperarm_twist_
                 twist_idx = 1
                 increment = 1
             elif i == self.settings["div0"] + 1:
-                self.jnt_pos.append([driver, "lowerarm", current_parent])
-                twist_name = "lowerarm_twist_"
+                self.jnt_pos.append([driver, lowerarm, current_parent])
+                twist_name = lowerarm_twist_
                 current_parent = "elbow"
                 twist_idx = self.settings["div1"]
                 increment = -1
             else:
                 self.jnt_pos.append(
                     [driver,
-                     twist_name + str(twist_idx).zfill(2),
+                     string.replaceSharpWithPadding(twist_name, twist_idx),
                      current_parent])
                 twist_idx += increment
 
@@ -511,7 +521,7 @@ class Component(component.Main):
             eff_loc = self.eff_jnt_off
         else:
             eff_loc = self.eff_loc
-        self.jnt_pos.append([eff_loc, 'hand', current_parent])
+        self.jnt_pos.append([eff_loc, hand, current_parent])
 
         # match IK FK references
         self.match_fk0_off = self.add_match_ref(self.fk_ctl[1],

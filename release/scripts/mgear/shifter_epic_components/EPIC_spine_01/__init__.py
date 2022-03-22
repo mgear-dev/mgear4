@@ -1,10 +1,12 @@
 import pymel.core as pm
 from pymel.core import datatypes
 
+import ast
+
 from mgear.shifter import component
 
 from mgear.core import node, fcurve, applyop, vector, curve
-from mgear.core import attribute, transform, primitive
+from mgear.core import attribute, transform, primitive, string
 
 #############################################
 # COMPONENT
@@ -21,6 +23,12 @@ class Component(component.Main):
         """Add all the objects needed to create the component."""
 
         self.up_axis = pm.upAxis(q=True, axis=True)
+
+        # joint Description Names
+        jd_names = ast.literal_eval(
+            self.settings["jointNamesDescription_custom"])
+        jdn_pelvis = jd_names[0]
+        jdn_spine = jd_names[1]
 
         # Auto bend with position controls  -------------------
         if self.settings["autoBend"]:
@@ -93,7 +101,7 @@ class Component(component.Main):
         self.pelvis_lvl = primitive.addTransform(
             self.pelvis_ctl, self.getName("pelvis_lvl"),
             transform.setMatrixPosition(t, self.guide.apos[0]))
-        self.jnt_pos.append([self.pelvis_lvl, "pelvis"])
+        self.jnt_pos.append([self.pelvis_lvl, jdn_pelvis])
 
         t = transform.setMatrixPosition(t, self.guide.apos[-2])
         if self.settings["autoBend"]:
@@ -351,7 +359,8 @@ class Component(component.Main):
             self.scl_transforms.append(scl_ref)
 
             # Deformers (Shadow)
-            self.jnt_pos.append([scl_ref, "spine_" + str(i + 1).zfill(2)])
+            self.jnt_pos.append([scl_ref,
+                                 string.replaceSharpWithPadding(jdn_spine, i+1)])
 
             # Twist references (This objects will replace the spinlookup
             # slerp solver behavior)
@@ -379,7 +388,8 @@ class Component(component.Main):
         # Connections (Hooks) ------------------------------
         self.cnx0 = primitive.addTransform(self.root, self.getName("0_cnx"))
         self.cnx1 = primitive.addTransform(self.root, self.getName("1_cnx"))
-        self.jnt_pos.append([self.cnx1, "spine_" + str(i + 2).zfill(2)])
+        self.jnt_pos.append([self.cnx1,
+                             string.replaceSharpWithPadding(jdn_spine), i+2])
 
     def addAttributes(self):
 

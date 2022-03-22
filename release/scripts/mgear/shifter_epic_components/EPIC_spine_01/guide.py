@@ -11,7 +11,7 @@ from . import settingsUI as sui
 
 # guide info
 AUTHOR = "Jeremie Passerin, Miquel Campos, Gotetz"
-URL = "www.jeremiepasserin.com, www.miquel-campos.com"
+URL = "www.mcsGear.com"
 EMAIL = ""
 VERSION = [1, 0, 0]
 TYPE = "EPIC_spine_01"
@@ -35,6 +35,8 @@ class Guide(guide.ComponentGuide):
     url = URL
     email = EMAIL
     version = VERSION
+
+    joint_names_description = ["pelvis", "spine_##"]
 
     def postInit(self):
         """Initialize the position for the guide"""
