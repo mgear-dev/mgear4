@@ -16,8 +16,10 @@ EMAIL = ""
 VERSION = [1, 0, 0]
 TYPE = "EPIC_neck_01"
 NAME = "neck"
-DESCRIPTION = "Game ready component for EPIC's UE and other Game Engines\n"\
+DESCRIPTION = (
+    "Game ready component for EPIC's UE and other Game Engines\n"
     "Based on neck_ik_01"
+)
 
 ##########################################################
 # CLASS
@@ -57,13 +59,15 @@ class Guide(guide.ComponentGuide):
         v0 = vector.linearlyInterpolate(
             self.root.getTranslation(space="world"),
             self.neck.getTranslation(space="world"),
-            .333)
+            0.333,
+        )
 
         self.tan0 = self.addLoc("tan0", self.root, v0)
         v1 = vector.linearlyInterpolate(
             self.root.getTranslation(space="world"),
             self.neck.getTranslation(space="world"),
-            .666)
+            0.666,
+        )
 
         self.tan1 = self.addLoc("tan1", self.neck, v1)
 
@@ -84,7 +88,7 @@ class Guide(guide.ComponentGuide):
 
         # Default values
         self.pMaxStretch = self.addParam("maxstretch", "double", 1.5, 1)
-        self.pMaxSquash = self.addParam("maxsquash", "double", .5, 0, 1)
+        self.pMaxSquash = self.addParam("maxsquash", "double", 0.5, 0, 1)
         self.pSoftness = self.addParam("softness", "double", 0, 0, 1)
 
         # Options
@@ -95,18 +99,21 @@ class Guide(guide.ComponentGuide):
 
         # FCurves
         self.pSt_profile = self.addFCurveParam(
-            "st_profile", [[0, 0], [.5, -1], [1, 0]])
+            "st_profile", [[0, 0], [0.5, -1], [1, 0]]
+        )
 
         self.pSq_profile = self.addFCurveParam(
-            "sq_profile", [[0, 0], [.5, 1], [1, 0]])
+            "sq_profile", [[0, 0], [0.5, 1], [1, 0]]
+        )
 
         self.pUseIndex = self.addParam("useIndex", "bool", False)
 
         self.pParentJointIndex = self.addParam(
-            "parentJointIndex", "long", -1, None, None)
+            "parentJointIndex", "long", -1, None, None
+        )
 
     def get_divisions(self):
-        """ Returns correct segments divisions """
+        """Returns correct segments divisions"""
 
         self.divisions = self.root.division.get() + 1
 
@@ -116,6 +123,7 @@ class Guide(guide.ComponentGuide):
 ##########################################################
 # Setting Page
 ##########################################################
+
 
 class settingsTab(QtWidgets.QDialog, sui.Ui_Form):
     """The Component settings UI"""
@@ -165,28 +173,34 @@ class componentSettings(MayaQWidgetDockableMixin, guide.componentMainSettings):
 
         # populate component settings
         self.settingsTab.softness_slider.setValue(
-            int(self.root.attr("softness").get() * 100))
+            int(self.root.attr("softness").get() * 100)
+        )
 
         self.settingsTab.softness_spinBox.setValue(
-            int(self.root.attr("softness").get() * 100))
+            int(self.root.attr("softness").get() * 100)
+        )
 
         self.settingsTab.maxStretch_spinBox.setValue(
-            self.root.attr("maxstretch").get())
+            self.root.attr("maxstretch").get()
+        )
 
         self.settingsTab.maxSquash_spinBox.setValue(
-            self.root.attr("maxsquash").get())
+            self.root.attr("maxsquash").get()
+        )
 
         self.settingsTab.division_spinBox.setValue(
-            self.root.attr("division").get())
+            self.root.attr("division").get()
+        )
 
-        self.populateCheck(self.settingsTab.tangentControls_checkBox,
-                           "tangentControls")
+        self.populateCheck(
+            self.settingsTab.tangentControls_checkBox, "tangentControls"
+        )
 
-        self.populateCheck(self.settingsTab.chickenStyleIK_checkBox,
-                           "chickenStyleIK")
+        self.populateCheck(
+            self.settingsTab.chickenStyleIK_checkBox, "chickenStyleIK"
+        )
 
-        self.populateCheck(self.settingsTab.IKWorldOri_checkBox,
-                           "IKWorldOri")
+        self.populateCheck(self.settingsTab.IKWorldOri_checkBox, "IKWorldOri")
 
         ikRefArrayItems = self.root.attr("ikrefarray").get().split(",")
         for item in ikRefArrayItems:
@@ -206,81 +220,122 @@ class componentSettings(MayaQWidgetDockableMixin, guide.componentMainSettings):
     def create_componentConnections(self):
 
         self.settingsTab.softness_slider.valueChanged.connect(
-            partial(self.updateSlider,
-                    self.settingsTab.softness_slider,
-                    "softness"))
+            partial(
+                self.updateSlider, self.settingsTab.softness_slider, "softness"
+            )
+        )
 
         self.settingsTab.softness_spinBox.valueChanged.connect(
-            partial(self.updateSlider,
-                    self.settingsTab.softness_spinBox,
-                    "softness"))
+            partial(
+                self.updateSlider,
+                self.settingsTab.softness_spinBox,
+                "softness",
+            )
+        )
 
         self.settingsTab.maxStretch_spinBox.valueChanged.connect(
-            partial(self.updateSpinBox,
-                    self.settingsTab.maxStretch_spinBox,
-                    "maxstretch"))
+            partial(
+                self.updateSpinBox,
+                self.settingsTab.maxStretch_spinBox,
+                "maxstretch",
+            )
+        )
 
         self.settingsTab.maxSquash_spinBox.valueChanged.connect(
-            partial(self.updateSpinBox,
-                    self.settingsTab.maxSquash_spinBox,
-                    "maxsquash"))
+            partial(
+                self.updateSpinBox,
+                self.settingsTab.maxSquash_spinBox,
+                "maxsquash",
+            )
+        )
 
         self.settingsTab.division_spinBox.valueChanged.connect(
-            partial(self.updateSpinBox,
-                    self.settingsTab.division_spinBox,
-                    "division"))
+            partial(
+                self.updateSpinBox,
+                self.settingsTab.division_spinBox,
+                "division",
+            )
+        )
 
         self.settingsTab.tangentControls_checkBox.stateChanged.connect(
-            partial(self.updateCheck,
-                    self.settingsTab.tangentControls_checkBox,
-                    "tangentControls"))
+            partial(
+                self.updateCheck,
+                self.settingsTab.tangentControls_checkBox,
+                "tangentControls",
+            )
+        )
 
         self.settingsTab.chickenStyleIK_checkBox.stateChanged.connect(
-            partial(self.updateCheck,
-                    self.settingsTab.chickenStyleIK_checkBox,
-                    "chickenStyleIK"))
+            partial(
+                self.updateCheck,
+                self.settingsTab.chickenStyleIK_checkBox,
+                "chickenStyleIK",
+            )
+        )
 
         self.settingsTab.IKWorldOri_checkBox.stateChanged.connect(
-            partial(self.updateCheck,
-                    self.settingsTab.IKWorldOri_checkBox,
-                    "IKWorldOri"))
+            partial(
+                self.updateCheck,
+                self.settingsTab.IKWorldOri_checkBox,
+                "IKWorldOri",
+            )
+        )
 
         self.settingsTab.squashStretchProfile_pushButton.clicked.connect(
-            self.setProfile)
+            self.setProfile
+        )
 
         self.settingsTab.ikRefArrayAdd_pushButton.clicked.connect(
-            partial(self.addItem2listWidget,
-                    self.settingsTab.ikRefArray_listWidget,
-                    "ikrefarray"))
+            partial(
+                self.addItem2listWidget,
+                self.settingsTab.ikRefArray_listWidget,
+                "ikrefarray",
+            )
+        )
 
         self.settingsTab.ikRefArrayRemove_pushButton.clicked.connect(
-            partial(self.removeSelectedFromListWidget,
-                    self.settingsTab.ikRefArray_listWidget,
-                    "ikrefarray"))
+            partial(
+                self.removeSelectedFromListWidget,
+                self.settingsTab.ikRefArray_listWidget,
+                "ikrefarray",
+            )
+        )
 
         self.settingsTab.ikRefArray_copyRef_pushButton.clicked.connect(
-            partial(self.copyFromListWidget,
-                    self.settingsTab.headRefArray_listWidget,
-                    self.settingsTab.ikRefArray_listWidget,
-                    "ikrefarray"))
+            partial(
+                self.copyFromListWidget,
+                self.settingsTab.headRefArray_listWidget,
+                self.settingsTab.ikRefArray_listWidget,
+                "ikrefarray",
+            )
+        )
 
         self.settingsTab.ikRefArray_listWidget.installEventFilter(self)
 
         self.settingsTab.headRefArrayAdd_pushButton.clicked.connect(
-            partial(self.addItem2listWidget,
-                    self.settingsTab.headRefArray_listWidget,
-                    "headrefarray"))
+            partial(
+                self.addItem2listWidget,
+                self.settingsTab.headRefArray_listWidget,
+                "headrefarray",
+            )
+        )
 
         self.settingsTab.headRefArrayRemove_pushButton.clicked.connect(
-            partial(self.removeSelectedFromListWidget,
-                    self.settingsTab.headRefArray_listWidget,
-                    "headrefarray"))
+            partial(
+                self.removeSelectedFromListWidget,
+                self.settingsTab.headRefArray_listWidget,
+                "headrefarray",
+            )
+        )
 
         self.settingsTab.headRefArray_copyRef_pushButton.clicked.connect(
-            partial(self.copyFromListWidget,
-                    self.settingsTab.ikRefArray_listWidget,
-                    self.settingsTab.headRefArray_listWidget,
-                    "headrefarray"))
+            partial(
+                self.copyFromListWidget,
+                self.settingsTab.ikRefArray_listWidget,
+                self.settingsTab.headRefArray_listWidget,
+                "headrefarray",
+            )
+        )
 
         self.settingsTab.headRefArray_listWidget.installEventFilter(self)
 

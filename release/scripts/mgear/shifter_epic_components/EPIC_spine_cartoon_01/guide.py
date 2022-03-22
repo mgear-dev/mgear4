@@ -16,8 +16,10 @@ EMAIL = ""
 VERSION = [1, 0, 0]
 TYPE = "EPIC_spine_cartoon_01"
 NAME = "spine"
-DESCRIPTION = "Game ready component for EPIC's UE and other Game Engines\n"\
+DESCRIPTION = (
+    "Game ready component for EPIC's UE and other Game Engines\n"
     "Based on spine_S_shape_01"
+)
 
 ##########################################################
 # CLASS
@@ -51,14 +53,14 @@ class Guide(guide.ComponentGuide):
         vTan0 = vector.linearlyInterpolate(
             self.root.getTranslation(space="world"),
             self.eff.getTranslation(space="world"),
-            0.3333
+            0.3333,
         )
         self.tan0 = self.addLoc("tan0", self.root, vTan0)
 
         vTan1 = vector.linearlyInterpolate(
             self.eff.getTranslation(space="world"),
             self.root.getTranslation(space="world"),
-            0.3333
+            0.3333,
         )
         self.tan1 = self.addLoc("tan1", self.root, vTan1)
 
@@ -70,9 +72,9 @@ class Guide(guide.ComponentGuide):
 
         # tangent handles
         self.disp_tancrv0 = self.addDispCurve(
-            "crvTan0", [self.root, self.tan0])
-        self.disp_tancrv1 = self.addDispCurve(
-            "crvTan1", [self.eff, self.tan1])
+            "crvTan0", [self.root, self.tan0]
+        )
+        self.disp_tancrv1 = self.addDispCurve("crvTan1", [self.eff, self.tan1])
 
     def addParameters(self):
         """Add the configurations settings"""
@@ -80,7 +82,7 @@ class Guide(guide.ComponentGuide):
         # Default values
         self.pPosition = self.addParam("position", "double", 0, 0, 1)
         self.pMaxStretch = self.addParam("maxstretch", "double", 1.5, 1)
-        self.pMaxSquash = self.addParam("maxsquash", "double", .5, 0, 1)
+        self.pMaxSquash = self.addParam("maxsquash", "double", 0.5, 0, 1)
         self.pSoftness = self.addParam("softness", "double", 0, 0, 1)
         self.pLockOri = self.addParam("lock_ori", "double", 1, 0, 1)
 
@@ -92,18 +94,21 @@ class Guide(guide.ComponentGuide):
 
         # FCurves
         self.pSt_profile = self.addFCurveParam(
-            "st_profile", [[0, 0], [.5, -1], [1, 0]])
+            "st_profile", [[0, 0], [0.5, -1], [1, 0]]
+        )
 
         self.pSq_profile = self.addFCurveParam(
-            "sq_profile", [[0, 0], [.5, 1], [1, 0]])
+            "sq_profile", [[0, 0], [0.5, 1], [1, 0]]
+        )
 
         self.pUseIndex = self.addParam("useIndex", "bool", False)
 
         self.pParentJointIndex = self.addParam(
-            "parentJointIndex", "long", -1, None, None)
+            "parentJointIndex", "long", -1, None, None
+        )
 
     def get_divisions(self):
-        """ Returns correct segments divisions """
+        """Returns correct segments divisions"""
 
         self.divisions = self.root.division.get()
 
@@ -113,6 +118,7 @@ class Guide(guide.ComponentGuide):
 ##########################################################
 # Setting Page
 ##########################################################
+
 
 class settingsTab(QtWidgets.QDialog, sui.Ui_Form):
     """The Component settings UI"""
@@ -162,27 +168,37 @@ class componentSettings(MayaQWidgetDockableMixin, guide.componentMainSettings):
 
         # populate component settings
         self.settingsTab.softness_slider.setValue(
-            int(self.root.attr("softness").get() * 100))
+            int(self.root.attr("softness").get() * 100)
+        )
         self.settingsTab.position_spinBox.setValue(
-            int(self.root.attr("position").get() * 100))
+            int(self.root.attr("position").get() * 100)
+        )
         self.settingsTab.position_slider.setValue(
-            int(self.root.attr("position").get() * 100))
+            int(self.root.attr("position").get() * 100)
+        )
         self.settingsTab.lockOri_spinBox.setValue(
-            int(self.root.attr("lock_ori").get() * 100))
+            int(self.root.attr("lock_ori").get() * 100)
+        )
         self.settingsTab.lockOri_slider.setValue(
-            int(self.root.attr("lock_ori").get() * 100))
+            int(self.root.attr("lock_ori").get() * 100)
+        )
         self.settingsTab.softness_spinBox.setValue(
-            int(self.root.attr("softness").get() * 100))
+            int(self.root.attr("softness").get() * 100)
+        )
         self.settingsTab.maxStretch_spinBox.setValue(
-            self.root.attr("maxstretch").get())
+            self.root.attr("maxstretch").get()
+        )
         self.settingsTab.maxSquash_spinBox.setValue(
-            self.root.attr("maxsquash").get())
+            self.root.attr("maxsquash").get()
+        )
         self.settingsTab.division_spinBox.setValue(
-            self.root.attr("division").get())
+            self.root.attr("division").get()
+        )
         self.populateCheck(self.settingsTab.autoBend_checkBox, "autoBend")
         self.populateCheck(self.settingsTab.IKWorldOri_checkBox, "IKWorldOri")
-        self.populateCheck(self.settingsTab.centralTangent_checkBox,
-                           "centralTangent")
+        self.populateCheck(
+            self.settingsTab.centralTangent_checkBox, "centralTangent"
+        )
 
     def create_componentLayout(self):
 
@@ -195,55 +211,84 @@ class componentSettings(MayaQWidgetDockableMixin, guide.componentMainSettings):
     def create_componentConnections(self):
 
         self.settingsTab.softness_slider.valueChanged.connect(
-            partial(self.updateSlider,
-                    self.settingsTab.softness_slider,
-                    "softness"))
+            partial(
+                self.updateSlider, self.settingsTab.softness_slider, "softness"
+            )
+        )
         self.settingsTab.softness_spinBox.valueChanged.connect(
-            partial(self.updateSlider,
-                    self.settingsTab.softness_spinBox,
-                    "softness"))
+            partial(
+                self.updateSlider,
+                self.settingsTab.softness_spinBox,
+                "softness",
+            )
+        )
         self.settingsTab.position_slider.valueChanged.connect(
-            partial(self.updateSlider,
-                    self.settingsTab.position_slider,
-                    "position"))
+            partial(
+                self.updateSlider, self.settingsTab.position_slider, "position"
+            )
+        )
         self.settingsTab.position_spinBox.valueChanged.connect(
-            partial(self.updateSlider,
-                    self.settingsTab.position_spinBox,
-                    "position"))
+            partial(
+                self.updateSlider,
+                self.settingsTab.position_spinBox,
+                "position",
+            )
+        )
         self.settingsTab.lockOri_slider.valueChanged.connect(
-            partial(self.updateSlider,
-                    self.settingsTab.lockOri_slider,
-                    "lock_ori"))
+            partial(
+                self.updateSlider, self.settingsTab.lockOri_slider, "lock_ori"
+            )
+        )
         self.settingsTab.lockOri_spinBox.valueChanged.connect(
-            partial(self.updateSlider,
-                    self.settingsTab.lockOri_spinBox,
-                    "lock_ori"))
+            partial(
+                self.updateSlider, self.settingsTab.lockOri_spinBox, "lock_ori"
+            )
+        )
         self.settingsTab.maxStretch_spinBox.valueChanged.connect(
-            partial(self.updateSpinBox,
-                    self.settingsTab.maxStretch_spinBox,
-                    "maxstretch"))
+            partial(
+                self.updateSpinBox,
+                self.settingsTab.maxStretch_spinBox,
+                "maxstretch",
+            )
+        )
         self.settingsTab.maxSquash_spinBox.valueChanged.connect(
-            partial(self.updateSpinBox,
-                    self.settingsTab.maxSquash_spinBox,
-                    "maxsquash"))
+            partial(
+                self.updateSpinBox,
+                self.settingsTab.maxSquash_spinBox,
+                "maxsquash",
+            )
+        )
         self.settingsTab.division_spinBox.valueChanged.connect(
-            partial(self.updateSpinBox,
-                    self.settingsTab.division_spinBox,
-                    "division"))
+            partial(
+                self.updateSpinBox,
+                self.settingsTab.division_spinBox,
+                "division",
+            )
+        )
         self.settingsTab.autoBend_checkBox.stateChanged.connect(
-            partial(self.updateCheck,
-                    self.settingsTab.autoBend_checkBox,
-                    "autoBend"))
+            partial(
+                self.updateCheck,
+                self.settingsTab.autoBend_checkBox,
+                "autoBend",
+            )
+        )
         self.settingsTab.IKWorldOri_checkBox.stateChanged.connect(
-            partial(self.updateCheck,
-                    self.settingsTab.IKWorldOri_checkBox,
-                    "IKWorldOri"))
+            partial(
+                self.updateCheck,
+                self.settingsTab.IKWorldOri_checkBox,
+                "IKWorldOri",
+            )
+        )
         self.settingsTab.centralTangent_checkBox.stateChanged.connect(
-            partial(self.updateCheck,
-                    self.settingsTab.centralTangent_checkBox,
-                    "centralTangent"))
+            partial(
+                self.updateCheck,
+                self.settingsTab.centralTangent_checkBox,
+                "centralTangent",
+            )
+        )
         self.settingsTab.squashStretchProfile_pushButton.clicked.connect(
-            self.setProfile)
+            self.setProfile
+        )
 
     def dockCloseEventTriggered(self):
         pyqt.deleteInstances(self, MayaQDockWidget)

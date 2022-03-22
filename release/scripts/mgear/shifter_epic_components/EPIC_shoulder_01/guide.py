@@ -1,4 +1,3 @@
-
 from functools import partial
 
 from mgear.shifter.component import guide
@@ -17,8 +16,10 @@ EMAIL = ""
 VERSION = [1, 0, 0]
 TYPE = "EPIC_shoulder_01"
 NAME = "shoulder"
-DESCRIPTION = "Game ready component for EPIC's UE and other Game Engines\n"\
+DESCRIPTION = (
+    "Game ready component for EPIC's UE and other Game Engines\n"
     "Based on shoulder_01, Joint name taken from component instance name"
+)
 
 ##########################################################
 # CLASS
@@ -60,12 +61,14 @@ class Guide(guide.ComponentGuide):
         self.pUseIndex = self.addParam("useIndex", "bool", False)
 
         self.pParentJointIndex = self.addParam(
-            "parentJointIndex", "long", -1, None, None)
+            "parentJointIndex", "long", -1, None, None
+        )
 
 
 ##########################################################
 # Setting Page
 ##########################################################
+
 
 class settingsTab(QtWidgets.QDialog, sui.Ui_Form):
     """The Component settings UI"""
@@ -129,14 +132,20 @@ class componentSettings(MayaQWidgetDockableMixin, guide.componentMainSettings):
     def create_componentConnections(self):
 
         self.settingsTab.refArrayAdd_pushButton.clicked.connect(
-            partial(self.addItem2listWidget,
-                    self.settingsTab.refArray_listWidget,
-                    "refArray"))
+            partial(
+                self.addItem2listWidget,
+                self.settingsTab.refArray_listWidget,
+                "refArray",
+            )
+        )
 
         self.settingsTab.refArrayRemove_pushButton.clicked.connect(
-            partial(self.removeSelectedFromListWidget,
-                    self.settingsTab.refArray_listWidget,
-                    "refArray"))
+            partial(
+                self.removeSelectedFromListWidget,
+                self.settingsTab.refArray_listWidget,
+                "refArray",
+            )
+        )
 
         self.settingsTab.refArray_listWidget.installEventFilter(self)
 

@@ -17,8 +17,10 @@ EMAIL = ""
 VERSION = [1, 0, 0]
 TYPE = "EPIC_chain_01"
 NAME = "chain"
-DESCRIPTION = "Game ready component for EPIC's UE and other Game Engines\n"\
+DESCRIPTION = (
+    "Game ready component for EPIC's UE and other Game Engines\n"
     "Based on lite_chain_01. Joint name taken from component instance name"
+)
 
 ##########################################################
 # CLASS
@@ -63,7 +65,9 @@ class Guide(guide.ComponentGuide):
         self.pAddJoints = self.addParam("addJoints", "bool", True)
         self.pUseIndex = self.addParam("useIndex", "bool", False)
         self.pParentJointIndex = self.addParam(
-            "parentJointIndex", "long", -1, None, None)
+            "parentJointIndex", "long", -1, None, None
+        )
+
 
 ##########################################################
 # Setting Page
@@ -71,14 +75,12 @@ class Guide(guide.ComponentGuide):
 
 
 class settingsTab(QtWidgets.QDialog, sui.Ui_Form):
-
     def __init__(self, parent=None):
         super(settingsTab, self).__init__(parent)
         self.setupUi(self)
 
 
 class componentSettings(MayaQWidgetDockableMixin, guide.componentMainSettings):
-
     def __init__(self, parent=None):
         self.toolName = TYPE
         # Delete old instances of the componet settings window.
@@ -115,12 +117,13 @@ class componentSettings(MayaQWidgetDockableMixin, guide.componentMainSettings):
         self.tabs.insertTab(1, self.settingsTab, "Component Settings")
 
         # populate component settings
-        self.populateCheck(self.settingsTab.neutralPose_checkBox,
-                           "neutralpose")
-        self.populateCheck(self.settingsTab.overrideNegate_checkBox,
-                           "overrideNegate")
-        self.populateCheck(self.settingsTab.addJoints_checkBox,
-                           "addJoints")
+        self.populateCheck(
+            self.settingsTab.neutralPose_checkBox, "neutralpose"
+        )
+        self.populateCheck(
+            self.settingsTab.overrideNegate_checkBox, "overrideNegate"
+        )
+        self.populateCheck(self.settingsTab.addJoints_checkBox, "addJoints")
 
     def create_componentLayout(self):
 
@@ -133,19 +136,28 @@ class componentSettings(MayaQWidgetDockableMixin, guide.componentMainSettings):
     def create_componentConnections(self):
 
         self.settingsTab.neutralPose_checkBox.stateChanged.connect(
-            partial(self.updateCheck,
-                    self.settingsTab.neutralPose_checkBox,
-                    "neutralpose"))
+            partial(
+                self.updateCheck,
+                self.settingsTab.neutralPose_checkBox,
+                "neutralpose",
+            )
+        )
 
         self.settingsTab.overrideNegate_checkBox.stateChanged.connect(
-            partial(self.updateCheck,
-                    self.settingsTab.overrideNegate_checkBox,
-                    "overrideNegate"))
+            partial(
+                self.updateCheck,
+                self.settingsTab.overrideNegate_checkBox,
+                "overrideNegate",
+            )
+        )
 
         self.settingsTab.addJoints_checkBox.stateChanged.connect(
-            partial(self.updateCheck,
-                    self.settingsTab.addJoints_checkBox,
-                    "addJoints"))
+            partial(
+                self.updateCheck,
+                self.settingsTab.addJoints_checkBox,
+                "addJoints",
+            )
+        )
 
     def dockCloseEventTriggered(self):
         pyqt.deleteInstances(self, MayaQDockWidget)

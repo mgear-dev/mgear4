@@ -1,4 +1,3 @@
-
 from functools import partial
 
 from mgear.shifter.component import guide
@@ -17,8 +16,10 @@ EMAIL = ""
 VERSION = [1, 0, 0]
 TYPE = "EPIC_mannequin_leg_01"
 NAME = "leg"
-DESCRIPTION = "Game ready component for EPIC's UE and other Game Engines\n"\
+DESCRIPTION = (
+    "Game ready component for EPIC's UE and other Game Engines\n"
     "Based on leg_2jnt_01"
+)
 
 ##########################################################
 # CLASS
@@ -49,7 +50,7 @@ class Guide(guide.ComponentGuide):
         self.knee = self.addLoc("knee", self.root, vTemp)
         vTemp = transform.getOffsetPosition(self.root, [0, -6, 0])
         self.ankle = self.addLoc("ankle", self.knee, vTemp)
-        vTemp = transform.getOffsetPosition(self.root, [0, -6, .5])
+        vTemp = transform.getOffsetPosition(self.root, [0, -6, 0.5])
         self.eff = self.addLoc("eff", self.ankle, vTemp)
 
         vTemp = transform.getOffsetPosition(self.root, [0, 0, 0])
@@ -79,22 +80,26 @@ class Guide(guide.ComponentGuide):
 
         # FCurves
         self.pSt_profile = self.addFCurveParam(
-            "st_profile", [[0, 0], [.5, -.5], [1, 0]])
+            "st_profile", [[0, 0], [0.5, -0.5], [1, 0]]
+        )
 
         self.pSq_profile = self.addFCurveParam(
-            "sq_profile", [[0, 0], [.5, .5], [1, 0]])
+            "sq_profile", [[0, 0], [0.5, 0.5], [1, 0]]
+        )
 
         self.pUseIndex = self.addParam("useIndex", "bool", False)
 
         self.pParentJointIndex = self.addParam(
-            "parentJointIndex", "long", -1, None, None)
+            "parentJointIndex", "long", -1, None, None
+        )
 
     def get_divisions(self):
-        """ Returns correct segments divisions """
+        """Returns correct segments divisions"""
 
         self.divisions = self.root.div0.get() + self.root.div1.get() + 3
 
         return self.divisions
+
 
 ##########################################################
 # Setting Page
@@ -149,18 +154,22 @@ class componentSettings(MayaQWidgetDockableMixin, guide.componentMainSettings):
 
         # populate component settings
         self.settingsTab.ikfk_slider.setValue(
-            int(self.root.attr("blend").get() * 100))
+            int(self.root.attr("blend").get() * 100)
+        )
 
         self.settingsTab.ikfk_spinBox.setValue(
-            int(self.root.attr("blend").get() * 100))
+            int(self.root.attr("blend").get() * 100)
+        )
 
         self.settingsTab.maxStretch_spinBox.setValue(
-            self.root.attr("maxstretch").get())
+            self.root.attr("maxstretch").get()
+        )
 
         self.populateCheck(self.settingsTab.mirrorMid_checkBox, "mirrorMid")
         self.populateCheck(self.settingsTab.extraTweak_checkBox, "extraTweak")
-        self.populateCheck(self.settingsTab.TPoseRest_checkBox,
-                           "FK_rest_T_Pose")
+        self.populateCheck(
+            self.settingsTab.TPoseRest_checkBox, "FK_rest_T_Pose"
+        )
         self.settingsTab.div0_spinBox.setValue(self.root.attr("div0").get())
         self.settingsTab.div1_spinBox.setValue(self.root.attr("div1").get())
         ikRefArrayItems = self.root.attr("ikrefarray").get().split(",")
@@ -184,88 +193,134 @@ class componentSettings(MayaQWidgetDockableMixin, guide.componentMainSettings):
     def create_componentConnections(self):
 
         self.settingsTab.ikfk_slider.valueChanged.connect(
-            partial(self.updateSlider, self.settingsTab.ikfk_slider, "blend"))
+            partial(self.updateSlider, self.settingsTab.ikfk_slider, "blend")
+        )
 
         self.settingsTab.ikfk_spinBox.valueChanged.connect(
-            partial(self.updateSlider, self.settingsTab.ikfk_spinBox, "blend"))
+            partial(self.updateSlider, self.settingsTab.ikfk_spinBox, "blend")
+        )
 
         self.settingsTab.maxStretch_spinBox.valueChanged.connect(
-            partial(self.updateSpinBox,
-                    self.settingsTab.maxStretch_spinBox,
-                    "maxstretch"))
+            partial(
+                self.updateSpinBox,
+                self.settingsTab.maxStretch_spinBox,
+                "maxstretch",
+            )
+        )
 
         self.settingsTab.div0_spinBox.valueChanged.connect(
-            partial(self.updateSpinBox, self.settingsTab.div0_spinBox, "div0"))
+            partial(self.updateSpinBox, self.settingsTab.div0_spinBox, "div0")
+        )
 
         self.settingsTab.div1_spinBox.valueChanged.connect(
-            partial(self.updateSpinBox, self.settingsTab.div1_spinBox, "div1"))
+            partial(self.updateSpinBox, self.settingsTab.div1_spinBox, "div1")
+        )
         self.settingsTab.squashStretchProfile_pushButton.clicked.connect(
-            self.setProfile)
+            self.setProfile
+        )
 
         self.settingsTab.mirrorMid_checkBox.stateChanged.connect(
-            partial(self.updateCheck,
-                    self.settingsTab.mirrorMid_checkBox,
-                    "mirrorMid"))
+            partial(
+                self.updateCheck,
+                self.settingsTab.mirrorMid_checkBox,
+                "mirrorMid",
+            )
+        )
 
         self.settingsTab.extraTweak_checkBox.stateChanged.connect(
-            partial(self.updateCheck,
-                    self.settingsTab.extraTweak_checkBox, "extraTweak"))
+            partial(
+                self.updateCheck,
+                self.settingsTab.extraTweak_checkBox,
+                "extraTweak",
+            )
+        )
 
         self.settingsTab.TPoseRest_checkBox.stateChanged.connect(
-            partial(self.updateCheck,
-                    self.settingsTab.TPoseRest_checkBox, "FK_rest_T_Pose"))
+            partial(
+                self.updateCheck,
+                self.settingsTab.TPoseRest_checkBox,
+                "FK_rest_T_Pose",
+            )
+        )
 
         self.settingsTab.ikRefArrayAdd_pushButton.clicked.connect(
-            partial(self.addItem2listWidget,
-                    self.settingsTab.ikRefArray_listWidget,
-                    "ikrefarray"))
+            partial(
+                self.addItem2listWidget,
+                self.settingsTab.ikRefArray_listWidget,
+                "ikrefarray",
+            )
+        )
 
         self.settingsTab.ikRefArrayRemove_pushButton.clicked.connect(
-            partial(self.removeSelectedFromListWidget,
-                    self.settingsTab.ikRefArray_listWidget,
-                    "ikrefarray"))
+            partial(
+                self.removeSelectedFromListWidget,
+                self.settingsTab.ikRefArray_listWidget,
+                "ikrefarray",
+            )
+        )
 
         self.settingsTab.ikRefArray_copyRef_pushButton.clicked.connect(
-            partial(self.copyFromListWidget,
-                    self.settingsTab.upvRefArray_listWidget,
-                    self.settingsTab.ikRefArray_listWidget,
-                    "ikrefarray"))
+            partial(
+                self.copyFromListWidget,
+                self.settingsTab.upvRefArray_listWidget,
+                self.settingsTab.ikRefArray_listWidget,
+                "ikrefarray",
+            )
+        )
 
         self.settingsTab.ikRefArray_listWidget.installEventFilter(self)
 
         self.settingsTab.upvRefArrayAdd_pushButton.clicked.connect(
-            partial(self.addItem2listWidget,
-                    self.settingsTab.upvRefArray_listWidget,
-                    "upvrefarray"))
+            partial(
+                self.addItem2listWidget,
+                self.settingsTab.upvRefArray_listWidget,
+                "upvrefarray",
+            )
+        )
 
         self.settingsTab.upvRefArrayRemove_pushButton.clicked.connect(
-            partial(self.removeSelectedFromListWidget,
-                    self.settingsTab.upvRefArray_listWidget,
-                    "upvrefarray"))
+            partial(
+                self.removeSelectedFromListWidget,
+                self.settingsTab.upvRefArray_listWidget,
+                "upvrefarray",
+            )
+        )
 
         self.settingsTab.upvRefArray_copyRef_pushButton.clicked.connect(
-            partial(self.copyFromListWidget,
-                    self.settingsTab.ikRefArray_listWidget,
-                    self.settingsTab.upvRefArray_listWidget,
-                    "upvrefarray"))
+            partial(
+                self.copyFromListWidget,
+                self.settingsTab.ikRefArray_listWidget,
+                self.settingsTab.upvRefArray_listWidget,
+                "upvrefarray",
+            )
+        )
 
         self.settingsTab.upvRefArray_listWidget.installEventFilter(self)
 
         self.settingsTab.pinRefArrayAdd_pushButton.clicked.connect(
-            partial(self.addItem2listWidget,
-                    self.settingsTab.pinRefArray_listWidget,
-                    "pinrefarray"))
+            partial(
+                self.addItem2listWidget,
+                self.settingsTab.pinRefArray_listWidget,
+                "pinrefarray",
+            )
+        )
 
         self.settingsTab.pinRefArrayRemove_pushButton.clicked.connect(
-            partial(self.removeSelectedFromListWidget,
-                    self.settingsTab.pinRefArray_listWidget,
-                    "pinrefarray"))
+            partial(
+                self.removeSelectedFromListWidget,
+                self.settingsTab.pinRefArray_listWidget,
+                "pinrefarray",
+            )
+        )
 
         self.settingsTab.pinRefArray_copyRef_pushButton.clicked.connect(
-            partial(self.copyFromListWidget,
-                    self.settingsTab.ikRefArray_listWidget,
-                    self.settingsTab.pinRefArray_listWidget,
-                    "pinrefarray"))
+            partial(
+                self.copyFromListWidget,
+                self.settingsTab.ikRefArray_listWidget,
+                self.settingsTab.pinRefArray_listWidget,
+                "pinrefarray",
+            )
+        )
 
         self.settingsTab.pinRefArray_listWidget.installEventFilter(self)
 

@@ -17,8 +17,10 @@ EMAIL = ""
 VERSION = [1, 0, 0]
 TYPE = "EPIC_foot_01"
 NAME = "foot"
-DESCRIPTION = "Game ready component for EPIC's UE and other Game Engines\n"\
+DESCRIPTION = (
+    "Game ready component for EPIC's UE and other Game Engines\n"
     "Based on foot_bk_01"
+)
 
 ##########################################################
 # CLASS
@@ -37,10 +39,12 @@ class Guide(guide.ComponentGuide):
     email = EMAIL
     version = VERSION
 
-    connectors = ["EPIC_leg_01",
-                  "leg_2jnt_01",
-                  "leg_ms_2jnt_01",
-                  "leg_3jnt_01"]
+    connectors = [
+        "EPIC_leg_01",
+        "leg_2jnt_01",
+        "leg_ms_2jnt_01",
+        "leg_3jnt_01",
+    ]
 
     def postInit(self):
         """Initialize the position for the guide"""
@@ -74,12 +78,14 @@ class Guide(guide.ComponentGuide):
         self.pRoll = self.addParam("useRollCtl", "bool", True)
         self.pUseIndex = self.addParam("useIndex", "bool", False)
         self.pParentJointIndex = self.addParam(
-            "parentJointIndex", "long", -1, None, None)
+            "parentJointIndex", "long", -1, None, None
+        )
 
 
 ##########################################################
 # Setting Page
 ##########################################################
+
 
 class settingsTab(QtWidgets.QDialog, sui.Ui_Form):
     """The Component settings UI"""
@@ -139,9 +145,11 @@ class componentSettings(MayaQWidgetDockableMixin, guide.componentMainSettings):
         if currentConnector not in self.connector_items:
             self.mainSettingsTab.connector_comboBox.addItem(currentConnector)
             self.connector_items.append(currentConnector)
-            pm.displayWarning("The current connector: %s, is not a valid "
-                              "connector for this component. "
-                              "Build will Fail!!")
+            pm.displayWarning(
+                "The current connector: %s, is not a valid "
+                "connector for this component. "
+                "Build will Fail!!"
+            )
         comboIndex = self.connector_items.index(currentConnector)
         self.mainSettingsTab.connector_comboBox.setCurrentIndex(comboIndex)
 
@@ -156,13 +164,19 @@ class componentSettings(MayaQWidgetDockableMixin, guide.componentMainSettings):
     def create_componentConnections(self):
 
         self.settingsTab.useRollCtl_checkBox.stateChanged.connect(
-            partial(self.updateCheck,
-                    self.settingsTab.useRollCtl_checkBox,
-                    "useRollCtl"))
+            partial(
+                self.updateCheck,
+                self.settingsTab.useRollCtl_checkBox,
+                "useRollCtl",
+            )
+        )
         self.mainSettingsTab.connector_comboBox.currentIndexChanged.connect(
-            partial(self.updateConnector,
-                    self.mainSettingsTab.connector_comboBox,
-                    self.connector_items))
+            partial(
+                self.updateConnector,
+                self.mainSettingsTab.connector_comboBox,
+                self.connector_items,
+            )
+        )
 
     def dockCloseEventTriggered(self):
         pyqt.deleteInstances(self, MayaQDockWidget)
