@@ -37,6 +37,8 @@ class Guide(guide.ComponentGuide):
     email = EMAIL
     version = VERSION
 
+    joint_names_description = ["section_##"]
+
     def postInit(self):
         """Initialize the position for the guide"""
         self.save_transform = ["root", "tip"]

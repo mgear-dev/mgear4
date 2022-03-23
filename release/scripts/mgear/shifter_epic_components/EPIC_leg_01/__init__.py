@@ -1,10 +1,11 @@
 import pymel.core as pm
+import ast
 from pymel.core import datatypes
 
 from mgear.shifter import component
 
 from mgear.core import node, fcurve, applyop, vector, icon
-from mgear.core import attribute, transform, primitive
+from mgear.core import attribute, transform, primitive, string
 
 #############################################
 # COMPONENT
@@ -205,18 +206,6 @@ class Component(component.Main):
         )
         attribute.setInvertMirror(self.ikcns_ctl, ["tx"])
 
-        # m = transform.getTransformLookingAt(self.guide.pos["ankle"],
-        #                                     self.guide.pos["eff"],
-        #                                     self.x_axis,
-        #                                     "zx",
-        #                                     False)
-        # if self.settings["FK_rest_T_Pose"]:
-        #     t_ik = transform.getTransformLookingAt(self.guide.pos["ankle"],
-        #                                            self.guide.pos["eff"],
-        #                                            self.normal * -1,
-        #                                            "zx",
-        #                                            False)
-        # else:
         t_ik = transform.getTransformFromPos(self.guide.pos["ankle"])
 
         self.ik_ctl = self.addCtl(
@@ -446,16 +435,26 @@ class Component(component.Main):
             else:
                 driver = div_cns
 
+            # joint Description Name
+            jd_names = ast.literal_eval(
+                self.settings["jointNamesDescription_custom"]
+            )
+            jdn_thigh = jd_names[0]
+            jdn_calf = jd_names[1]
+            jdn_thigh_twist = jd_names[2]
+            jdn_calf_twist = jd_names[3]
+            jdn_foot = jd_names[4]
+
             # setting the joints
             if i == 0:
-                self.jnt_pos.append([driver, "thigh"])
+                self.jnt_pos.append([driver, jdn_thigh])
                 current_parent = "root"
-                twist_name = "thigh_twist_"
+                twist_name = jdn_thigh_twist
                 twist_idx = 1
                 increment = 1
             elif i == self.settings["div0"] + 1:
-                self.jnt_pos.append([driver, "calf", current_parent])
-                twist_name = "calf_twist_"
+                self.jnt_pos.append([driver, jdn_calf, current_parent])
+                twist_name = jdn_calf_twist
                 current_parent = "knee"
                 twist_idx = self.settings["div1"]
                 increment = -1
@@ -463,7 +462,7 @@ class Component(component.Main):
                 self.jnt_pos.append(
                     [
                         driver,
-                        twist_name + str(twist_idx).zfill(2),
+                        string.replaceSharpWithPadding(twist_name, twist_idx),
                         current_parent,
                     ]
                 )
@@ -480,7 +479,7 @@ class Component(component.Main):
         )
         if self.up_axis == "z":
             self.end_jnt_off.rz.set(-90)
-        self.jnt_pos.append([self.end_jnt_off, "foot", current_parent])
+        self.jnt_pos.append([self.end_jnt_off, jdn_foot, current_parent])
 
         # match IK FK references
         self.match_fk0_off = self.add_match_ref(

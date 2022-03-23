@@ -1,7 +1,7 @@
 """Component Hydraulic 01 module"""
-
+import ast
 from mgear.shifter import component
-from mgear.core import attribute, transform, primitive, applyop
+from mgear.core import attribute, transform, primitive, applyop, string
 
 
 ##########################################################
@@ -17,6 +17,12 @@ class Component(component.Main):
     # =====================================================
     def addObjects(self):
         """Add all the objects needed to create the component."""
+
+        # joint Description Names
+        jd_names = ast.literal_eval(
+            self.settings["jointNamesDescription_custom"]
+        )
+        jdn_section = jd_names[0]
 
         self.normal = self.guide.blades["blade"].z * -1
         self.binormal = self.guide.blades["blade"].x
@@ -68,7 +74,9 @@ class Component(component.Main):
                                              self.getName("div%s_loc" % i))
 
             self.div_cns.append(div_cns)
-            self.jnt_pos.append([div_cns, i])
+            self.jnt_pos.append(
+                [div_cns, string.replaceSharpWithPadding(jdn_section, i + 1)]
+            )
 
     # =====================================================
     # ATTRIBUTES

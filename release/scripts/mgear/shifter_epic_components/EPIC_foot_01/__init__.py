@@ -1,4 +1,5 @@
 import pymel.core as pm
+import ast
 from pymel.core import datatypes
 
 from mgear.shifter import component
@@ -15,6 +16,12 @@ class Component(component.Main):
     # =====================================================
     def addObjects(self):
         """Add all the objects needed to create the component."""
+
+        # joint Description Names
+        jd_names = ast.literal_eval(
+            self.settings["jointNamesDescription_custom"]
+        )
+        jdn_ball = jd_names[0]
 
         self.up_axis = pm.upAxis(q=True, axis=True)
 
@@ -215,9 +222,9 @@ class Component(component.Main):
             self.previousTag = fk_ctl
             attribute.setKeyableAttributes(fk_ctl)
             if i:
-                name = "ball" + str(i)
+                name = jdn_ball + str(i)
             else:
-                name = "ball"
+                name = jdn_ball
             self.jnt_pos.append([fk_ctl, name])
 
             parent = fk_ctl

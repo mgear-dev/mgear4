@@ -551,22 +551,22 @@ class Component(component.Main):
             jd_names = ast.literal_eval(
                 self.settings["jointNamesDescription_custom"]
             )
-            upperarm = jd_names[0]
-            lowerarm = jd_names[1]
-            upperarm_twist_ = jd_names[2]
-            lowerarm_twist_ = jd_names[3]
-            hand = jd_names[4]
+            jdn_upperarm = jd_names[0]
+            jdn_lowerarm = jd_names[1]
+            jdn_upperarm_twist = jd_names[2]
+            jdn_lowerarm_twist = jd_names[3]
+            jdn_hand = jd_names[4]
 
             # setting the joints
             if i == 0:
-                self.jnt_pos.append([driver, upperarm])
+                self.jnt_pos.append([driver, jdn_upperarm])
                 current_parent = "root"
-                twist_name = upperarm_twist_
+                twist_name = jdn_upperarm_twist
                 twist_idx = 1
                 increment = 1
             elif i == self.settings["div0"] + 1:
-                self.jnt_pos.append([driver, lowerarm, current_parent])
-                twist_name = lowerarm_twist_
+                self.jnt_pos.append([driver, jdn_lowerarm, current_parent])
+                twist_name = jdn_lowerarm_twist
                 current_parent = "elbow"
                 twist_idx = self.settings["div1"]
                 increment = -1
@@ -584,7 +584,7 @@ class Component(component.Main):
             eff_loc = self.eff_jnt_off
         else:
             eff_loc = self.eff_loc
-        self.jnt_pos.append([eff_loc, hand, current_parent])
+        self.jnt_pos.append([eff_loc, jdn_hand, current_parent])
 
         # match IK FK references
         self.match_fk0_off = self.add_match_ref(

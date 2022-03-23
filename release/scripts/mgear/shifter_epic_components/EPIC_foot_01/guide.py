@@ -46,6 +46,8 @@ class Guide(guide.ComponentGuide):
         "leg_3jnt_01",
     ]
 
+    joint_names_description = ["ball"]
+
     def postInit(self):
         """Initialize the position for the guide"""
         self.save_transform = ["root", "#_loc", "heel", "outpivot", "inpivot"]
