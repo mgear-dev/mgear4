@@ -454,7 +454,7 @@ class Main(object):
                         )
                         leaf_jnt.attr("radius").set(1.5)
                         leaf_jnt.attr("overrideEnabled").set(1)
-                        leaf_jnt.attr("overrideColor").set(18)
+                        leaf_jnt.attr("overrideColor").set(13)
                         leaf_jnt.rotate.set([0, 0, 0])
                         # connect scale
                         pm.connectAttr(cns_m.scale, leaf_jnt.scale)
