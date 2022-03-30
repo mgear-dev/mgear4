@@ -281,7 +281,8 @@ def __switch_fkik_callback(*args):
                                  ik=ik_controls["ik_control"],
                                  upv=ik_controls["pole_vector"],
                                  ik_rot=ik_controls["ik_rot"],
-                                 key=keyframe)
+                                 key=keyframe,
+                                 ik_controls=ik_controls)
 
 
 def __switch_parent_callback(*args):

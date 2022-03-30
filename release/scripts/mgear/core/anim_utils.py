@@ -329,6 +329,8 @@ def get_ik_fk_controls_by_role(uiHost, attr_ctl_cnx):
                     ik_controls["ik_control"] = c.stripNamespace()
                 elif role == "ikRot":
                     ik_controls["ik_rot"] = c.stripNamespace()
+                elif role == "roll":
+                    ik_controls["roll"] = c.stripNamespace()
 
     fk_controls = sorted(fk_controls)
     return ik_controls, fk_controls
@@ -876,7 +878,15 @@ def getComboKeys(model, object_name, combo_attr):
 
 
 def ikFkMatch_with_namespace(
-    namespace, ikfk_attr, ui_host, fks, ik, upv, ik_rot=None, key=None
+    namespace,
+    ikfk_attr,
+    ui_host,
+    fks,
+    ik,
+    upv,
+    ik_rot=None,
+    key=None,
+    ik_controls=None,
 ):
     """Switch IK/FK with matching functionality
 
@@ -1030,6 +1040,11 @@ def ikFkMatch_with_namespace(
         o_attr.set(1.0)
         roll_att = ui_node.attr(ikfk_attr.replace("blend", "roll"))
         roll_att.set(0.0)
+
+        # reset roll ctl if exist
+        if ik_controls and "roll" in ik_controls.keys():
+            roll_ctl = _get_node(ik_controls["roll"])
+            roll_ctl.rotateX.set(0)
 
         # reset IK foot ctls
         if foot_cnx:
