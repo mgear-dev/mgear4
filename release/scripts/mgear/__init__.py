@@ -12,6 +12,10 @@ __path__ = extend_path(__path__, __name__)
 # Debug mode for the logger
 logDebug = False
 
+# Log mode and log window
+logMode = True
+use_log_window = True
+
 # Severity for logged messages
 sev_fatal = 1
 sev_error = 2
@@ -95,6 +99,18 @@ def toggleDebug():
     return logDebug
 
 
+def toggleLog():
+    """Toggle the log value.
+
+    Returns;
+        bool: The new debug mode value.
+
+    """
+    global logMode
+    logMode = not logMode
+    return logMode
+
+
 def log(message, severity=sev_comment, infos=False):
     """Log a message using severity and additional info from the file itself.
 
@@ -113,12 +129,13 @@ def log(message, severity=sev_comment, infos=False):
             line number.
 
     """
-    message = str(message)
+    if logMode:
+        message = str(message)
 
-    if infos or logDebug:
-        message = getInfos(1) + "\n" + message
+        if infos or logDebug:
+            message = getInfos(1) + "\n" + message
 
-    sys.stdout.write(message + "\n")
+        sys.stdout.write(message + "\n")
 
 # ========================================================
 # Exception

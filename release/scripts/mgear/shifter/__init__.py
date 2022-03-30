@@ -42,30 +42,35 @@ SHIFTER_COMPONENT_ENV_KEY = "MGEAR_SHIFTER_COMPONENT_PATH"
 
 
 def log_window():
-    log_window_name = "mgear_shifter_build_log_window"
-    log_window_field_reporter = "mgear_shifter_log_field_reporter"
-    if not pm.window(log_window_name, exists=True):
-        logWin = pm.window(
-            log_window_name, title="Shifter Build Log", iconName="Shifter Log"
-        )
-        pm.columnLayout(adjustableColumn=True)
-        pm.cmdScrollFieldReporter(
-            log_window_field_reporter, width=800, height=500, clr=True
-        )
-        pm.button(
-            label="Close",
-            command=(
-                'import pymel.core as pm\npm.deleteUI("'
-                + logWin
-                + '", window=True)'
-            ),
-        )
-        pm.setParent("..")
-        pm.showWindow(logWin)
-    else:
-        pm.cmdScrollFieldReporter(log_window_field_reporter, e=True, clr=True)
-        pm.showWindow(log_window_name)
-    mgear.logInfos()
+    if mgear.logMode and mgear.use_log_window:
+        log_window_name = "mgear_shifter_build_log_window"
+        log_window_field_reporter = "mgear_shifter_log_field_reporter"
+        if not pm.window(log_window_name, exists=True):
+            logWin = pm.window(
+                log_window_name,
+                title="Shifter Build Log",
+                iconName="Shifter Log",
+            )
+            pm.columnLayout(adjustableColumn=True)
+            pm.cmdScrollFieldReporter(
+                log_window_field_reporter, width=800, height=500, clr=True
+            )
+            pm.button(
+                label="Close",
+                command=(
+                    'import pymel.core as pm\npm.deleteUI("'
+                    + logWin
+                    + '", window=True)'
+                ),
+            )
+            pm.setParent("..")
+            pm.showWindow(logWin)
+        else:
+            pm.cmdScrollFieldReporter(
+                log_window_field_reporter, e=True, clr=True
+            )
+            pm.showWindow(log_window_name)
+        mgear.logInfos()
 
 
 def getComponentDirectories():

@@ -1,9 +1,10 @@
+import mgear
 import mgear.menu
+from maya import cmds
 
 
 def install():
-    """Install Shifter submenu
-    """
+    """Install Shifter submenu"""
     commands = (
         ("Guide Manager", str_show_guide_manager, "mgear_list.svg"),
         ("-----", None),
@@ -13,16 +14,22 @@ def install():
         ("Extract Controls", str_extract_controls, "mgear_move.svg"),
         ("-----", None),
         ("Build from Selection", str_build_from_selection, "mgear_play.svg"),
-        ("Build From Guide Template File",
-         str_build_from_file,
-         "mgear_play-circle.svg"),
+        (
+            "Build From Guide Template File",
+            str_build_from_file,
+            "mgear_play-circle.svg",
+        ),
         ("-----", None),
-        ("Import Guide Template",
-         str_import_guide_template,
-         "mgear_log-in.svg"),
-        ("Export Guide Template",
-         str_export_guide_template,
-         "mgear_log-out.svg"),
+        (
+            "Import Guide Template",
+            str_import_guide_template,
+            "mgear_log-in.svg",
+        ),
+        (
+            "Export Guide Template",
+            str_export_guide_template,
+            "mgear_log-out.svg",
+        ),
         ("-----", None),
         (None, guide_template_samples_submenu),
         ("-----", None),
@@ -35,10 +42,71 @@ def install():
         ("-----", None),
         ("Update Guide", str_updateGuide, "mgear_loader.svg"),
         ("-----", None),
-        ("Reload Components", str_reloadComponents, "mgear_refresh-cw.svg")
+        ("Reload Components", str_reloadComponents, "mgear_refresh-cw.svg"),
+        ("-----", None),
+        (None, log_submenu),
+
     )
 
     mgear.menu.install("Shifter", commands, image="mgear_shifter.svg")
+
+
+def get_mgear_log_window_state():
+    """get the option variable from maya to check if mGear log window
+    is requested
+
+    Returns:
+        int: 0 or 1, state of override
+    """
+    if not cmds.optionVar(exists="mgear_log_window_OV"):
+        cmds.optionVar(intValue=("mgear_log_window_OV", 0))
+    state = cmds.optionVar(query="mgear_log_window_OV")
+    mgear.use_log_window = state
+    return state
+
+
+def log_window(m):
+    # get state
+    state = get_mgear_log_window_state()
+
+    cmds.setParent(m, menu=True)
+    cmds.menuItem(
+        "mgear_logWindow_menuitem",
+        label="Shifter Log Window ",
+        command=toogle_log_window,
+        checkBox=state,
+    )
+
+
+def toogle_log_window(*args, **kwargs):
+    # toogle log window
+    state = args[0]
+    mgear.use_log_window = state
+    if state:
+        cmds.optionVar(intValue=("mgear_log_window_OV", 1))
+    else:
+        cmds.optionVar(intValue=("mgear_log_window_OV", 0))
+
+
+def log_submenu(parent_menu_id):
+    """Create the guide sample templates submenu
+
+    Args:
+        parent_menu_id (str): Parent menu. i.e: "MayaWindow|mGear|menuItem355"
+    """
+    commands = (
+        ("Toggle Log", str_toggleLog),
+        ("Toggle Debug Mode", str_toggleDebugMode),
+    )
+
+    m = mgear.menu.install(
+        "Build Log",
+        commands,
+        parent_menu_id,
+        image="mgear_printer.svg",
+    )
+
+    log_window(m)
 
 
 def mocap_submenu(parent_menu_id):
@@ -50,7 +118,7 @@ def mocap_submenu(parent_menu_id):
     commands = (
         ("Import Mocap Skeleton Biped", str_mocap_importSkeletonBiped),
         ("Characterize Biped", str_mocap_characterizeBiped),
-        ("Bake Mocap Biped", str_mocap_bakeMocap)
+        ("Bake Mocap Biped", str_mocap_bakeMocap),
     )
 
     mgear.menu.install("Mocap", commands, parent_menu_id)
@@ -72,13 +140,15 @@ def guide_template_samples_submenu(parent_menu_id):
         ("EPIC MetaHuman Template, Y-up", str_epic_metahuman_y_template),
         ("EPIC Mannequin Template, Y-up", str_epic_mannequin_y_template),
         ("-----", None),
-        ("EPIC MetaHuman Snap", str_epic_metahuman_snap)
+        ("EPIC MetaHuman Snap", str_epic_metahuman_snap),
     )
 
-    mgear.menu.install("Guide Template Samples",
-                       commands,
-                       parent_menu_id,
-                       image="mgear_users.svg")
+    mgear.menu.install(
+        "Guide Template Samples",
+        commands,
+        parent_menu_id,
+        image="mgear_users.svg",
+    )
 
 
 str_show_guide_manager = """
@@ -205,4 +275,16 @@ mocap_tools.characterizeBiped()
 str_mocap_bakeMocap = """
 from mgear.shifter import mocap_tools
 mocap_tools.bakeMocap()
+"""
+
+str_toggleLog = """
+import mgear
+state = mgear.toggleLog()
+print("Log State: ".format(state))
+"""
+
+str_toggleDebugMode = """
+import mgear
+state = mgear.toggleDebug()
+print("Debug Mode State: ".format(state))
 """
