@@ -449,7 +449,7 @@ class Component(component.Main):
 
         # add message connections to parent component.
         # this connection will be used to track the ctl relation when IK/FK
-        # match is permormed
+        # match is performed
         self.parent_comp.root.addAttr("footCnx", at="message", m=False)
         self.root.message >> self.parent_comp.root.footCnx
 
