@@ -321,7 +321,7 @@ class Component(component.Main):
 
     def setRelation(self):
         """Set the relation beetween object from guide to rig"""
-        every_each = len(self.fk_ctl) / (len(self.ik_ctl) - 1)
+        every_each = int(len(self.fk_ctl) / (len(self.ik_ctl) - 1))
 
         self.relatives["root"] = self.fk_ctl[0]
         self.controlRelatives["root"] = self.fk_ctl[0]
