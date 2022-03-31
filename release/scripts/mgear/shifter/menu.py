@@ -280,11 +280,11 @@ mocap_tools.bakeMocap()
 str_toggleLog = """
 import mgear
 state = mgear.toggleLog()
-print("Log State: ".format(state))
+print("Log State: {}".format(state))
 """
 
 str_toggleDebugMode = """
 import mgear
 state = mgear.toggleDebug()
-print("Debug Mode State: ".format(state))
+print("Debug Mode State: {}".format(state))
 """
