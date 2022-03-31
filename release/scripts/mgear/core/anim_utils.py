@@ -172,7 +172,7 @@ def getClosestNode(node, nodesToQuery):
     for index, nodeTQ in enumerate(nodesToQuery):
         nodeTQ = pm.PyNode(nodeTQ)
         tmpDist = vector.getDistance2(node, nodeTQ)
-        if index is 0:
+        if index == 0:
             distance = tmpDist
             closestNode = nodeTQ
         if distance > tmpDist:

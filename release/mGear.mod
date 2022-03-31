@@ -45,3 +45,15 @@ icons: ../../../../icons
 + MAYAVERSION:2022 PLATFORM:mac   mGear 4.0 ./platforms/2022/osx/x64
 scripts: ../../../../scripts
 icons: ../../../../icons
+
++ MAYAVERSION:2023 PLATFORM:win64 mGear 4.0 ./platforms/2023/windows/x64
+scripts: ../../../../scripts
+icons: ../../../../icons
+
++ MAYAVERSION:2023 PLATFORM:linux mGear 4.0 ./platforms/2023/linux/x64
+scripts: ../../../../scripts
+icons: ../../../../icons
+
++ MAYAVERSION:2023 PLATFORM:mac   mGear 4.0 ./platforms/2023/osx/x64
+scripts: ../../../../scripts
+icons: ../../../../icons
