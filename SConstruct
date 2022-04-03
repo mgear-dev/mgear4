@@ -23,12 +23,12 @@ gen = excons.config.AddGenerator(
                    "MGEAR_VERSION_MINOR": "%d" % version[1],
                    "MGEAR_VERSION_PATCH": "%d" % version[2]})
 
-mgearmod = gen("mGear.mod", "mGear.mod.in")
+# mgearmod = gen("mGear.mod", "mGear.mod.in")
 mgearpy = filter(lambda x: not os.path.basename(x).startswith(
     "__init__.py"), excons.glob("scripts/mgear/*"))
 qtpy = ["vendor/Qtdotpy/Qt.py"]
 qjason = ["vendor/QJsonModel/qjsonmodel.py"]
-NoClean(mgearmod)
+# NoClean(mgearmod)
 
 defines = []
 if sys.platform == "win32":
@@ -53,8 +53,7 @@ targets = [
         "name": "mgear_core",
         "type": "install",
         "desc": "mgear core python modules",
-        "install": {"scripts/mgear/vendor": qjason + qtpy,
-                    "": mgearmod}
+        "install": {"scripts/mgear/vendor": qjason + qtpy}
     },
     {
         "name": "mgear_solvers",
