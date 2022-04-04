@@ -1,6 +1,25 @@
 Release Log
 ===========
 
+4.0.9
+------
+**Enhancements**
+	* Maya 2023 compatible. (OSX and Linux only mgear_solvers are available. WeightDriver and other C++ 3rd party plugins are not yet available)
+	* Rigbits: Facial Rigger 2.0 BETA (Not yet exposed in menu)
+	* Shifter Component: Expose Foot roll default value in the component settings
+	* Shifter: addParamAnim exact name argument
+	* Shifter: Build log options
+	* Shifter: Extract controls keep color
+	* Shifter: Shifter: Improve IK/FK matching for legs + foot
+	* Shifter_EPIC_components: Joint name descriptions exposes in settings new tab
+
+**Bug Fix**
+	* Rigbits: Facial rigger had some issues with Py3
+	* Shifter: component: chain_IK_spline_variable_FK_01 TypeError
+	* Shifter: FK/FK Match on Metahuman Leg Broken
+	* Shifter_EPIC_components: Epic_arm mirrored mid_ctr problem
+	* Shifter_EPIC_components: EPIC_leg_01 (Right) is broken
+
 
 4.0.7
 ------
