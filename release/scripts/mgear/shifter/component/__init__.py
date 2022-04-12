@@ -732,6 +732,7 @@ class Main(object):
         lp=True,
         mirrorConf=[0, 0, 0, 0, 0, 0, 0, 0, 0],
         guide_loc_ref=None,
+        add_2_grp=True,
         **kwargs
     ):
         """
@@ -858,17 +859,17 @@ class Main(object):
 
         # create the attributes to handlde mirror and symetrical pose
         attribute.add_mirror_config_channels(ctl, mirrorConf)
+        if add_2_grp:
+            if self.settings["ctlGrp"]:
+                ctlGrp = self.settings["ctlGrp"]
+                self.addToGroup(ctl, ctlGrp, "controllers")
+            else:
+                ctlGrp = "controllers"
+                self.addToGroup(ctl, ctlGrp)
 
-        if self.settings["ctlGrp"]:
-            ctlGrp = self.settings["ctlGrp"]
-            self.addToGroup(ctl, ctlGrp, "controllers")
-        else:
-            ctlGrp = "controllers"
-            self.addToGroup(ctl, ctlGrp)
-
-        # lock the control parent attributes if is not a control
-        if parent not in self.groups[ctlGrp] and lp:
-            self.transform2Lock.append(parent)
+            # lock the control parent attributes if is not a control
+            if parent not in self.groups[ctlGrp] and lp:
+                self.transform2Lock.append(parent)
 
         # Set the control shapes isHistoricallyInteresting
         for oShape in ctl.getShapes():
