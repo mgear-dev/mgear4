@@ -36,7 +36,7 @@ RBF_MODULES = {"weightDriver": weightNode_io}
 # =============================================================================
 # Data export
 # =============================================================================
-def fileDialog(startDir, mode=0):
+def fileDialog(startDir=None, mode=0):
     """prompt dialog for either import/export from a UI
 
     Args:
