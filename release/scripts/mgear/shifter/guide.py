@@ -1233,15 +1233,11 @@ class HelperSlots(object):
         pyqt.deleteInstances(self, MayaQDockWidget)
 
     def get_cs_file_fullpath(self, cs_data):
-        filepath = cs_data.split("|")[-1][1:]
-        if os.environ.get(MGEAR_SHIFTER_CUSTOMSTEP_KEY, ""):
-            fullpath = os.path.join(
-                os.environ.get(
-                    MGEAR_SHIFTER_CUSTOMSTEP_KEY, ""), filepath)
-        else:
-            fullpath = filepath
 
-        return fullpath
+        if "|" in cs_data:
+            return getCustomstepFullPath(cs_data.split("|")[-1][1:])
+
+        return getCustomstepFullPath(cs_data)
 
     def editFile(self, widgetList):
         try:
@@ -1324,13 +1320,7 @@ class HelperSlots(object):
                     stepPath = stepPath.replace('\\', '/')
 
                 fileName = os.path.split(stepPath)[1].split(".")[0]
-
-                if os.environ.get(MGEAR_SHIFTER_CUSTOMSTEP_KEY, ""):
-                    runPath = os.path.join(
-                        os.environ.get(
-                            MGEAR_SHIFTER_CUSTOMSTEP_KEY, ""), stepPath)
-                else:
-                    runPath = stepPath
+                runPath = getCustomstepFullPath(stepPath)
 
                 customStep = imp.load_source(fileName, runPath)
                 if hasattr(customStep, "CustomShifterStep"):
@@ -1992,8 +1982,9 @@ class GuideSettings(MayaQWidgetDockableMixin, QtWidgets.QDialog, HelperSlots):
         config["joint_index_padding"] = self.root.attr(
             "joint_index_padding").get()
 
-        if os.environ.get(MGEAR_SHIFTER_CUSTOMSTEP_KEY, ""):
-            startDir = os.environ.get(MGEAR_SHIFTER_CUSTOMSTEP_KEY, "")
+        csDirectories = getCustomStepDirectories()
+        if csDirectories:
+            startDir = csDirectories[0]
         else:
             startDir = pm.workspace(q=True, rootDirectory=True)
         data_string = json.dumps(config, indent=4, sort_keys=True)
@@ -2011,10 +2002,12 @@ class GuideSettings(MayaQWidgetDockableMixin, QtWidgets.QDialog, HelperSlots):
         f.close()
 
     def import_name_config(self, file_path=None):
-        if os.environ.get(MGEAR_SHIFTER_CUSTOMSTEP_KEY, ""):
-            startDir = os.environ.get(MGEAR_SHIFTER_CUSTOMSTEP_KEY, "")
+        csDirectories = getCustomStepDirectories()
+        if csDirectories:
+            startDir = csDirectories[0]
         else:
             startDir = pm.workspace(q=True, rootDirectory=True)
+
         if not file_path:
             file_path = pm.fileDialog2(
                 fileMode=1,
@@ -2141,8 +2134,9 @@ class GuideSettings(MayaQWidgetDockableMixin, QtWidgets.QDialog, HelperSlots):
             stepWidget = self.customStepTab.postCustomStep_listWidget
 
         # Check if we have a custom env for the custom steps initial folder
-        if os.environ.get(MGEAR_SHIFTER_CUSTOMSTEP_KEY, ""):
-            startDir = os.environ.get(MGEAR_SHIFTER_CUSTOMSTEP_KEY, "")
+        csDirectories = getCustomStepDirectories()
+        if csDirectories:
+            startDir = csDirectories[0]
         else:
             startDir = self.root.attr(stepAttr).get()
 
@@ -2162,15 +2156,8 @@ class GuideSettings(MayaQWidgetDockableMixin, QtWidgets.QDialog, HelperSlots):
         if itemsList and not itemsList[0]:
             stepWidget.takeItem(0)
 
-        if os.environ.get(MGEAR_SHIFTER_CUSTOMSTEP_KEY, ""):
-            filePath = os.path.abspath(filePath)
-            baseReplace = os.path.abspath(os.environ.get(
-                MGEAR_SHIFTER_CUSTOMSTEP_KEY, ""))
-            # backslashes (windows paths) can cause escape characters
-            filePath = filePath.replace(baseReplace, "").replace('\\', '/')
-            # remove front forward
-            if '/' == filePath[0]:
-                filePath = filePath[1:]
+        if csDirectories:
+            filePath = replacePathFromAbsToCustomStepRelative(filePath, csDirectories)
 
         fileName = os.path.split(filePath)[1].split(".")[0]
         stepWidget.addItem(fileName + " | " + filePath)
@@ -2581,6 +2568,100 @@ class CustomShifterStep(cstp.customShifterMainStep):
         searchText = self.customStepTab.postSearch_lineEdit.text()
         self._highlightSearch(self.customStepTab.postCustomStep_listWidget,
                               searchText)
+
+
+def getCustomStepDirectories():
+    """Get the components directory"""
+
+    directories_dict = utils.gatherCustomModuleDirectories(
+        MGEAR_SHIFTER_CUSTOMSTEP_KEY,
+        [],
+    )
+
+    directories = list(directories_dict.keys())
+    directories = [
+        os.path.normpath(os.path.abspath(x)).replace(os.sep, "/")
+        for x in directories
+    ]
+    return directories
+
+
+def getCustomstepFullPath(filepath):
+    import glob
+
+    if not filepath:
+        message = "= GEAR RIG SYSTEM ======"
+        message += "invalid empty argument for getCustomstepFullPath" \
+                   " for {}".format("")
+        mgear.log(message, mgear.sev_error)
+        return ""
+
+    if os.path.isabs(filepath):
+        return filepath
+
+    customStepDirectories = getCustomStepDirectories()
+
+    # first, search direct children
+    for directory in customStepDirectories:
+        for f in os.listdir(directory):
+            if f == filepath:
+                return os.path.join(directory, f).replace(os.sep, "/")
+
+    # netx, search descendants recursively
+    def compare(f, d, filepath):
+        nf = f.replace(os.sep, "/")
+        nd = d.replace(os.sep, "/")
+
+        stripped = nf.replace(nd, "").lstrip("/")
+        return filepath in stripped
+
+    for directory in customStepDirectories:
+        for f in glob.glob("{}/**/*.py".format(directory)):
+            if compare(f, directory, filepath):
+                return f.replace(os.sep, "/")
+
+    return filepath
+
+
+def replacePathFromAbsToCustomStepRelative(filePath, directories=None):
+    """Return relative path from the customstep directory
+
+    Arguments:
+        filePath: the file path for search.
+        directories: the directories for search in. this is got by
+            gatherCustomModuleDirectories
+
+    Returns:
+        filePath: replaced filePa
+
+    """
+
+    filePath = os.path.abspath(filePath).replace(os.sep, "/")
+    if not directories:
+        directories = getCustomStepDirectories()
+
+    def compare(a, b):
+        return b in a
+
+    founds = []
+    directories = [x.replace(os.sep, "/") for x in getCustomStepDirectories()]
+    for directory in directories:
+        if compare(filePath, directory):
+            founds.append(directory)
+
+    if not founds:
+        return filePath
+
+    founds.sort(key=len)
+
+    baseReplace = founds[-1]
+    # backslashes (windows paths) can cause escape characters
+    filePath = filePath.replace(baseReplace, "").replace('\\', '/')
+    # remove front forward
+    if '/' == filePath[0]:
+        filePath = filePath[1:]
+
+    return filePath
 
 
 # Backwards compatibility aliases
