@@ -355,6 +355,7 @@ def rig(
         pm.sets(ctlSet, add=arrow_ctl)
     attribute.setKeyableAttributes(arrow_ctl, params=["rx", "ry", "rz"])
     attribute.addAttribute(arrow_ctl, "isCtl", "bool", keyable=False)
+    attribute.add_mirror_config_channels(arrow_ctl)
 
     # tracking custom trigger
     if side == "R":
@@ -412,6 +413,8 @@ def rig(
         color=4,
     )
     attribute.setKeyableAttributes(up_ctl, [trigger_axis])
+    attribute.addAttribute(up_ctl, "isCtl", "bool", keyable=False)
+    attribute.add_mirror_config_channels(up_ctl)
     pm.sets(ctlSet, add=up_ctl)
 
     # use translation of the object to drive the blink
@@ -436,6 +439,8 @@ def rig(
     )
     attribute.setKeyableAttributes(low_ctl, [trigger_axis])
     pm.sets(ctlSet, add=low_ctl)
+    attribute.addAttribute(low_ctl, "isCtl", "bool", keyable=False)
+    attribute.add_mirror_config_channels(low_ctl)
 
     # Controls lists
     upControls = []
