@@ -447,24 +447,39 @@ class Component(component.Main):
 
             # setting the joints
             if i == 0:
-                self.jnt_pos.append([driver, jdn_thigh])
+                self.jnt_pos.append(
+                    {
+                        "obj": driver,
+                        "name": jdn_thigh,
+                        "guide_relative": self.guide.guide_locators[0],
+                    }
+                )
                 current_parent = "root"
                 twist_name = jdn_thigh_twist
                 twist_idx = 1
                 increment = 1
             elif i == self.settings["div0"] + 1:
-                self.jnt_pos.append([driver, jdn_calf, current_parent])
+                self.jnt_pos.append(
+                    {
+                        "obj": driver,
+                        "name": jdn_calf,
+                        "newActiveJnt": current_parent,
+                        "guide_relative": self.guide.guide_locators[1],
+                    }
+                )
                 twist_name = jdn_calf_twist
                 current_parent = "knee"
                 twist_idx = self.settings["div1"]
                 increment = -1
             else:
                 self.jnt_pos.append(
-                    [
-                        driver,
-                        string.replaceSharpWithPadding(twist_name, twist_idx),
-                        current_parent,
-                    ]
+                    {
+                        "obj": driver,
+                        "name": string.replaceSharpWithPadding(
+                            twist_name, twist_idx
+                        ),
+                        "newActiveJnt": current_parent,
+                    }
                 )
                 twist_idx += increment
 
@@ -479,7 +494,14 @@ class Component(component.Main):
         )
         if self.up_axis == "z":
             self.end_jnt_off.rz.set(-90)
-        self.jnt_pos.append([self.end_jnt_off, jdn_foot, current_parent])
+        self.jnt_pos.append(
+            {
+                "obj": self.end_jnt_off,
+                "name": jdn_foot,
+                "newActiveJnt": current_parent,
+                "guide_relative": self.guide.guide_locators[2],
+            }
+        )
 
         # match IK FK references
         self.match_fk0_off = self.add_match_ref(

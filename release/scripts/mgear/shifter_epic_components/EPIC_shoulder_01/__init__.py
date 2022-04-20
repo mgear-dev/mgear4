@@ -75,7 +75,13 @@ class Component(component.Main):
             tp=self.ctl,
         )
 
-        self.jnt_pos.append([self.ctl, self.name])
+        self.jnt_pos.append(
+            {
+                "obj": self.ctl,
+                "name": self.name,
+                "guide_relative": self.guide.guide_locators[0],
+            }
+        )
 
     # =====================================================
     # ATTRIBUTES

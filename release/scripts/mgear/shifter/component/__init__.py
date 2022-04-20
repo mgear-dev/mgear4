@@ -266,6 +266,7 @@ class Main(object):
         rot_off=None,
         vanilla_nodes=False,
         leaf_joint=False,
+        guide_relative=None,
     ):
         """Add joint as child of the active joint or under driver object.
 
@@ -288,6 +289,8 @@ class Main(object):
             vanilla_nodes (bool, optional): Description
             leaf_joint (bool, optional): If true will create a child joint as
                 a leaf joint to  imput the scale. This option is meant for games
+            guide_relative (str, optional): Guide locator name that define joint
+                position
 
         No Longer Returned:
             dagNode: The newly created joint.
@@ -313,6 +316,7 @@ class Main(object):
                 segComp=segComp,
                 rot_off=rot_off,
                 leaf_joint=leaf_joint,
+                guide_relative=guide_relative,
             )
 
     def _addJoint(
@@ -324,6 +328,7 @@ class Main(object):
         segComp=False,
         rot_off=None,
         leaf_joint=False,
+        guide_relative=None,
     ):
         """Add joint as child of the active joint or under driver object.
 
@@ -341,8 +346,13 @@ class Main(object):
             segComp (bool): Set True or False the segment compensation in the
                 joint..
             rot_off (list, optional): offset in degrees for XYZ rotation
+            leaf_joint (bool, optional): If true will create a child joint as
+                a leaf joint to  imput the scale. This option is meant for games
+            guide_relative (str, optional): Guide locator name tha define joint
+                position
 
-        Returns:
+
+        Deleted Parameters:
             dagNode: The newly created joint.
 
         """
@@ -499,6 +509,10 @@ class Main(object):
             attribute.lockAttribute(jnt)
 
         self.addToGroup(jnt, "deformers")
+
+        if guide_relative:
+            at = attribute.addAttribute(jnt, "guide_relative", "string")
+            at.set(guide_relative)
 
         return jnt
 

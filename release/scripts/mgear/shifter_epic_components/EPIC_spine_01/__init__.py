@@ -109,7 +109,13 @@ class Component(component.Main):
             self.getName("pelvis_lvl"),
             transform.setMatrixPosition(t, self.guide.apos[0]),
         )
-        self.jnt_pos.append([self.pelvis_lvl, jdn_pelvis])
+        self.jnt_pos.append(
+            {
+                "obj": self.pelvis_lvl,
+                "name": jdn_pelvis,
+                "guide_relative": self.guide.guide_locators[0],
+            }
+        )
 
         t = transform.setMatrixPosition(t, self.guide.apos[-2])
         if self.settings["autoBend"]:
@@ -384,8 +390,18 @@ class Component(component.Main):
             self.scl_transforms.append(scl_ref)
 
             # Deformers (Shadow)
+            if i == 0:
+                guide_relative = self.guide.guide_locators[1]
+            elif i == self.settings["division"] - 1:
+                guide_relative = self.guide.guide_locators[-2]
+            else:
+                guide_relative = None
             self.jnt_pos.append(
-                [scl_ref, string.replaceSharpWithPadding(jdn_spine, i + 1)]
+                {
+                    "obj": scl_ref,
+                    "name": string.replaceSharpWithPadding(jdn_spine, i + 1),
+                    "guide_relative": guide_relative,
+                }
             )
 
             # Twist references (This objects will replace the spinlookup
@@ -419,7 +435,11 @@ class Component(component.Main):
         self.cnx0 = primitive.addTransform(self.root, self.getName("0_cnx"))
         self.cnx1 = primitive.addTransform(self.root, self.getName("1_cnx"))
         self.jnt_pos.append(
-            [self.cnx1, string.replaceSharpWithPadding(jdn_spine, i + 2)]
+            {
+                "obj": self.cnx1,
+                "name": string.replaceSharpWithPadding(jdn_spine, i + 2),
+                "guide_relative": self.guide.guide_locators[-1],
+            }
         )
 
     def addAttributes(self):

@@ -126,6 +126,9 @@ class ComponentGuide(guide.Main):
         self.minmax = {}
         self.minmax_blade = {}
 
+        # store guide locators names
+        self.guide_locators = []
+
         # Init the guide
         self.postInit()
         self.initialHierarchy()
@@ -276,6 +279,7 @@ class ComponentGuide(guide.Main):
                     self.atra.append(node.getMatrix(worldSpace=True))
                     self.pos[localName] = node.getTranslation(space="world")
                     self.apos.append(node.getTranslation(space="world"))
+                    self.guide_locators.append(node.name())
 
                     i += 1
 
@@ -298,6 +302,7 @@ class ComponentGuide(guide.Main):
                 self.atra.append(node.getMatrix(worldSpace=True))
                 self.pos[name] = node.getTranslation(space="world")
                 self.apos.append(node.getTranslation(space="world"))
+                self.guide_locators.append(node.name())
 
         for name in self.save_blade:
             if "#" in name:

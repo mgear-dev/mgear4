@@ -225,7 +225,13 @@ class Component(component.Main):
                 name = jdn_ball + str(i)
             else:
                 name = jdn_ball
-            self.jnt_pos.append([fk_ctl, name])
+            self.jnt_pos.append(
+                {
+                    "obj": fk_ctl,
+                    "name": name,
+                    "guide_relative": self.guide.guide_locators[i + 1],
+                }
+            )
 
             parent = fk_ctl
             self.fk_ctl.append(fk_ctl)
@@ -256,7 +262,6 @@ class Component(component.Main):
         self.blend_att = self.addSetupParam(
             "blend", "Fk/Ik Blend", "double", 1, 0, 1
         )
-
 
         # track match references for IK/FK match
         self.root.addAttr("bk_ctl", at="message", m=True)

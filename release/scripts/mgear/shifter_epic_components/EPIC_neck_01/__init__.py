@@ -269,8 +269,18 @@ class Component(component.Main):
             parentctl = fk_ctl
 
             if i != self.divisions - 1:
+                if i == 0:
+                    guide_relative = self.guide.guide_locators[0]
+                else:
+                    guide_relative = None
                 self.jnt_pos.append(
-                    [fk_ctl, string.replaceSharpWithPadding(jdn_neck, i + 1)]
+                    {
+                        "obj": fk_ctl,
+                        "name": string.replaceSharpWithPadding(
+                            jdn_neck, i + 1
+                        ),
+                        "guide_relative": guide_relative,
+                    }
                 )
 
             t = transform.getTransformLookingAt(
@@ -333,6 +343,13 @@ class Component(component.Main):
         attribute.setInvertMirror(self.head_ctl, ["tx", "rz", "ry"])
 
         self.jnt_pos.append([self.head_ctl, jdn_head])
+        self.jnt_pos.append(
+            {
+                "obj": self.head_ctl,
+                "name": jdn_head,
+                "guide_relative": self.guide.guide_locators[-2],
+            }
+        )
 
     # =====================================================
     # ATTRIBUTES

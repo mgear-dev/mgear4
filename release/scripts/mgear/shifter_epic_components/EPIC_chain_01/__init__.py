@@ -82,7 +82,13 @@ class Component(component.Main):
             parent = fk_ctl
             if self.settings["addJoints"]:
                 jnt_name = "_".join([self.name, str(i + 1).zfill(2)])
-                self.jnt_pos.append([fk_ctl, jnt_name, None, False])
+                self.jnt_pos.append(
+                    {
+                        "obj": fk_ctl,
+                        "name": jnt_name,
+                        "guide_relative": self.guide.guide_locators[i],
+                    }
+                )
 
     # =====================================================
     # ATTRIBUTES

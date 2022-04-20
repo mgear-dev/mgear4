@@ -74,8 +74,21 @@ class Component(component.Main):
                                              self.getName("div%s_loc" % i))
 
             self.div_cns.append(div_cns)
+            # self.jnt_pos.append(
+            #     [div_cns, string.replaceSharpWithPadding(jdn_section, i + 1)]
+            # )
+            if i == 0:
+                guide_relative = self.guide.guide_locators[0]
+            elif i == self.settings["div"] - 1:
+                guide_relative = self.guide.guide_locators[-1]
+            else:
+                guide_relative = None
             self.jnt_pos.append(
-                [div_cns, string.replaceSharpWithPadding(jdn_section, i + 1)]
+                {
+                    "obj": div_cns,
+                    "name": string.replaceSharpWithPadding(jdn_section, i + 1),
+                    "guide_relative": guide_relative,
+                }
             )
 
     # =====================================================
