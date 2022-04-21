@@ -481,10 +481,10 @@ class BackgroundOptionsDialog(QtWidgets.QDialog):
 
         width_label = QtWidgets.QLabel("Width")
         self.width_box = QtWidgets.QSpinBox()
-        self.width_box.setRange(1, 2000)
+        self.width_box.setRange(1, 6000)
         height_label = QtWidgets.QLabel("Height")
         self.height_box = QtWidgets.QSpinBox()
-        self.height_box.setRange(1, 2000)
+        self.height_box.setRange(1, 6000)
         self.aspect_button = QtWidgets.QPushButton("Maintain Aspect Ratio")
         self.aspect_button.setCheckable(True)
         self.aspect_button.setChecked(True)
