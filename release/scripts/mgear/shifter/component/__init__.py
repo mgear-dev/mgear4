@@ -1603,7 +1603,31 @@ class Main(object):
             else:
                 ref = []
                 for ref_name in ref_names:
-                    ref.append(self.rig.findRelative(ref_name))
+                    # handle special case for full mirror behavior negating
+                    # scaleY axis to -1
+                    # this is needed because parent constraining  doesn't handle
+                    # scaling and the maintain offset will not work properly
+                    if cns_obj.sy.get() < 0:
+                        original_trans = self.rig.findRelative(ref_name)
+                        ref_trans_name = (
+                            cns_obj.getName()
+                            + "_"
+                            + original_trans.getName()
+                            + "_space_ref"
+                        )
+
+                        # check if already exist
+                        if pm.ls(ref_trans_name):
+                            ref_trans = pm.ls(ref_trans_name)[0]
+                        else:
+                            ref_trans = primitive.addTransform(
+                                original_trans,
+                                ref_trans_name,
+                            )
+                            transform.matchWorldTransform(cns_obj, ref_trans)
+                        ref.append(ref_trans)
+                    else:
+                        ref.append(self.rig.findRelative(ref_name))
 
                 ref.append(cns_obj)
                 cns_node = pm.parentConstraint(*ref, maintainOffset=True)
