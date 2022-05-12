@@ -342,7 +342,6 @@ class Component(component.Main):
         attribute.setRotOrder(self.head_ctl, "ZXY")
         attribute.setInvertMirror(self.head_ctl, ["tx", "rz", "ry"])
 
-        self.jnt_pos.append([self.head_ctl, jdn_head])
         self.jnt_pos.append(
             {
                 "obj": self.head_ctl,
