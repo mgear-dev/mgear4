@@ -16,23 +16,25 @@ from mgear.core import pyqt
 from mgear.vendor.Qt import QtCore, QtWidgets
 
 if sys.version_info[0] == 2:
-    string_types = (basestring, )
+    string_types = (basestring,)
 else:
     string_types = (str,)
 
-SRT_CHANNELS = ["translate",
-                "translate.translateX",
-                "translate.translateY",
-                "translate.translateZ",
-                "rotate",
-                "rotate.rotateX",
-                "rotate.rotateY",
-                "rotate.rotateZ",
-                "scale",
-                "scale.scaleX",
-                "scale.scaleY",
-                "scale.scaleZ",
-                "shear"]
+SRT_CHANNELS = [
+    "translate",
+    "translate.translateX",
+    "translate.translateY",
+    "translate.translateZ",
+    "rotate",
+    "rotate.rotateX",
+    "rotate.rotateY",
+    "rotate.rotateZ",
+    "scale",
+    "scale.scaleX",
+    "scale.scaleY",
+    "scale.scaleZ",
+    "shear",
+]
 
 
 @mutils.one_undo
@@ -54,7 +56,8 @@ def disconnect(cnxDict):
                     pm.disconnectAttr(cnxDict["attrs"][i][e], plug)
             if cnxDict["attrs"][i][13]:
                 pm.disconnectAttr(
-                    oJnt.parentInverseMatrix[0], cnxDict["attrs"][i][13])
+                    oJnt.parentInverseMatrix[0], cnxDict["attrs"][i][13]
+                )
 
 
 def connect(cnxDict, nsRig=None, nsSkin=None):
@@ -76,23 +79,27 @@ def connect(cnxDict, nsRig=None, nsSkin=None):
             if cnxDict["attrs"][i][e]:
                 if nsRig:
                     pm.connectAttr(
-                        nsRig + ":" + cnxDict["attrs"][i][e], plug, f=True)
+                        nsRig + ":" + cnxDict["attrs"][i][e], plug, f=True
+                    )
                 else:
                     pm.connectAttr(cnxDict["attrs"][i][e], plug, f=True)
 
         if cnxDict["attrs"][i][13]:
             if nsRig:
                 pm.connectAttr(
-                    oJnt.parentInverseMatrix[0], nsRig + ":"
-                    + cnxDict["attrs"][i][13], f=True)
+                    oJnt.parentInverseMatrix[0],
+                    nsRig + ":" + cnxDict["attrs"][i][13],
+                    f=True,
+                )
             else:
                 pm.connectAttr(
                     oJnt.parentInverseMatrix[0],
                     cnxDict["attrs"][i][13],
-                    f=True)
+                    f=True,
+                )
 
         # except Exception:
-            # pm.displayError("{} is not found in the scene".format(jnt))
+        # pm.displayError("{} is not found in the scene".format(jnt))
 
 
 def connectCns(cnxDict, nsRig=None, nsSkin=None):
@@ -117,7 +124,8 @@ def connectCns(cnxDict, nsRig=None, nsSkin=None):
 
             oNode = oAttr.node()
             oTrans = pm.listConnections(
-                pm.listConnections(oNode.inputMatrix)[0].matrixIn[0])
+                pm.listConnections(oNode.inputMatrix)[0].matrixIn[0]
+            )
             pm.parentConstraint(oTrans, oJnt, mo=True)
             pm.scaleConstraint(oTrans, oJnt, mo=True)
 
@@ -147,14 +155,17 @@ def exportConnections(source=None, filePath=None, disc=False):
             for chn in SRT_CHANNELS:
                 at = x.attr(chn)
                 at_cnx = pm.listConnections(
-                    at, p=True, type="mgear_matrixConstraint")
+                    at, p=True, type="mgear_matrixConstraint"
+                )
                 if not at_cnx:
                     at_cnx = pm.listConnections(
-                        at, p=True, type="decomposeMatrix")
+                        at, p=True, type="decomposeMatrix"
+                    )
                 attrs_list.append(at_cnx)
 
             parentInv_attr = pm.listConnections(
-                x.parentInverseMatrix[0], d=True, p=True)
+                x.parentInverseMatrix[0], d=True, p=True
+            )
             attrs_list.append(parentInv_attr)
 
             attrs_list_checked = []
@@ -169,16 +180,17 @@ def exportConnections(source=None, filePath=None, disc=False):
 
     data_string = json.dumps(connections, indent=4, sort_keys=True)
     if not filePath:
-        filePath = pm.fileDialog2(fileMode=0,
-                                  fileFilter=' Shifter joint cnx matrix'
-                                  '  .jmm (*%s)' % ".jmm")
+        filePath = pm.fileDialog2(
+            fileMode=0,
+            fileFilter=" Shifter joint cnx matrix" "  .jmm (*%s)" % ".jmm",
+        )
         if not filePath:
             return
         if not isinstance(filePath, string_types):
             filePath = filePath[0]
 
     if connections["joints"]:
-        with open(filePath, 'w') as f:
+        with open(filePath, "w") as f:
             f.write(data_string)
 
         if disc:
@@ -202,10 +214,11 @@ def importConnections(filePath=None, nsRig=None, nsSkin=None, useMtx=True):
     """
     if not filePath:
         startDir = pm.workspace(q=True, rootDirectory=True)
-        filePath = pm.fileDialog2(fileMode=1,
-                                  startingDirectory=startDir,
-                                  fileFilter=' Shifter joint cnx matrix '
-                                  ' .jmm (*%s)' % ".jmm")
+        filePath = pm.fileDialog2(
+            fileMode=1,
+            startingDirectory=startDir,
+            fileFilter=" Shifter joint cnx matrix " " .jmm (*%s)" % ".jmm",
+        )
     if not filePath:
         return
     if not isinstance(filePath, string_types):
@@ -233,7 +246,8 @@ def getRigTopNode(node=None):
         if not node.hasAttr("is_rig"):
             pm.displayWarning(
                 "Please select a valid rig top node!. '{}' "
-                "is not a rig top node".format(node.name()))
+                "is not a rig top node".format(node.name())
+            )
             return False
         return node.name()
     else:
@@ -248,7 +262,7 @@ def runScript(path=None):
         path (str, optional): Path to the python file
     """
     if path:
-        exec(compile(open(path, "rb").read(), path, 'exec'))
+        exec(compile(open(path, "rb").read(), path, "exec"))
 
 
 @mutils.one_undo
@@ -270,7 +284,8 @@ def exportAssetAssembly(name, rigTopNode, meshTopNode, path, postScript=None):
     else:
         pm.displayError(
             "{} doesn't exist or duplicated. Please check your "
-            "scene".format(rigTopNode))
+            "scene".format(rigTopNode)
+        )
         return
 
     if pm.ls(meshTopNode):
@@ -278,7 +293,8 @@ def exportAssetAssembly(name, rigTopNode, meshTopNode, path, postScript=None):
     else:
         pm.displayError(
             "{} doesn't exist or duplicated. Please check "
-            "your scene".format(meshTopNode))
+            "your scene".format(meshTopNode)
+        )
         return
     # check the folder and script
     # if the target name exist abort and request another name
@@ -286,13 +302,14 @@ def exportAssetAssembly(name, rigTopNode, meshTopNode, path, postScript=None):
     deformer_jnts = rigTopNode.rigGroups[3].connections()[0].members()
     if not deformer_jnts:
         pm.displayError(
-            "{} is empty. The tool can't find any joint".format(meshTopNode))
+            "{} is empty. The tool can't find any joint".format(meshTopNode)
+        )
 
     # export connections and cut joint connections
     file_path = os.path.join(path, name + ".jmm")
-    dm_nodes = exportConnections(source=deformer_jnts,
-                                 filePath=file_path,
-                                 disc=True)
+    dm_nodes = exportConnections(
+        source=deformer_jnts, filePath=file_path, disc=True
+    )
 
     # cut al possible remaining connection and adjust hierarchy
     # joint or visibility
@@ -300,11 +317,8 @@ def exportAssetAssembly(name, rigTopNode, meshTopNode, path, postScript=None):
     pm.disconnectAttr(rigTopNode.jnt_vis, jnt_org.visibility)
 
     # restructure model
-    model = pm.createNode("transform",
-                          n="model",
-                          p=None,
-                          ss=True)
-    pm.addAttr(model, ln="rigGroups", at='message', m=1)
+    model = pm.createNode("transform", n="model", p=None, ss=True)
+    pm.addAttr(model, ln="rigGroups", at="message", m=1)
     pm.parent(meshTopNode, jnt_org, model)
 
     # disconnect jnt set
@@ -329,15 +343,21 @@ def exportAssetAssembly(name, rigTopNode, meshTopNode, path, postScript=None):
     # post script
     if postScript:
         try:
-            exec(compile(open(postScript, "rb").read(), postScript, 'exec'))
+            exec(compile(open(postScript, "rb").read(), postScript, "exec"))
         except Exception as ex:
             template = "An exception of type {0} occured. Arguments:\n{1!r}"
             message = template.format(type(ex).__name__, ex.args)
             pm.displayError(message)
-            cont = pm.confirmBox("FAIL: Script Fail",
-                                 "Do you want to export anyway?" + "\n\n"
-                                 + message + "\n\n" + traceback.format_exc(),
-                                 "Continue", "Cancel")
+            cont = pm.confirmBox(
+                "FAIL: Script Fail",
+                "Do you want to export anyway?"
+                + "\n\n"
+                + message
+                + "\n\n"
+                + traceback.format_exc(),
+                "Continue",
+                "Cancel",
+            )
             if not cont:
                 pm.undo()
                 return
@@ -371,10 +391,11 @@ def createAssetAssembly(filePath=None, reference=False):
     """
     if not filePath:
         startDir = pm.workspace(q=True, rootDirectory=True)
-        filePath = pm.fileDialog2(fileMode=1,
-                                  startingDirectory=startDir,
-                                  fileFilter=' Shifter joint cnx matrix '
-                                  ' .jmm (*%s)' % ".jmm")
+        filePath = pm.fileDialog2(
+            fileMode=1,
+            startingDirectory=startDir,
+            fileFilter=" Shifter joint cnx matrix " " .jmm (*%s)" % ".jmm",
+        )
 
     if not filePath:
         return
@@ -395,13 +416,15 @@ def createAssetAssembly(filePath=None, reference=False):
             imp = True
             message = "Import"
         pm.displayInfo("{} asset: {} ".format(message, asset_path))
-        cmds.file(asset_path,
-                  i=imp,
-                  reference=ref,
-                  type="mayaAscii",
-                  ignoreVersion=True,
-                  mergeNamespacesOnClash=True,
-                  namespace=asset_name)
+        cmds.file(
+            asset_path,
+            i=imp,
+            reference=ref,
+            type="mayaAscii",
+            ignoreVersion=True,
+            mergeNamespacesOnClash=True,
+            namespace=asset_name,
+        )
 
     # import cnx
     pm.displayInfo("Import connections dictionary ".format(filePath))
@@ -418,10 +441,10 @@ def createAssetAssembly(filePath=None, reference=False):
 # Soft tweaks Manager dialog
 ####################################
 
+
 class gameToolsUI(QtWidgets.QDialog, gtUI.Ui_gameTools):
 
-    """Game tools UI layout
-    """
+    """Game tools UI layout"""
 
     def __init__(self, parent=None):
         super(gameToolsUI, self).__init__(parent)
@@ -462,8 +485,7 @@ class gameTools(MayaQWidgetDockableMixin, QtWidgets.QDialog):
             super(gameTools, self).keyPressEvent(event)
 
     def gameTools_window(self):
-        """Game tools window
-        """
+        """Game tools window"""
         self.setObjectName(self.toolName)
         self.setWindowFlags(QtCore.Qt.Window)
         self.setWindowTitle("Shifter Game Tools")
@@ -488,8 +510,7 @@ class gameTools(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         lEdit.setText(name)
 
     def populateRigTopNode(self):
-        """Populate the rig top node information
-        """
+        """Populate the rig top node information"""
         topNode = getRigTopNode()
         if topNode:
             self.gtUIInst.rigNode_lineEdit.setText(topNode)
@@ -513,9 +534,11 @@ class gameTools(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         Returns:
             None: None
         """
-        filePath = pm.fileDialog2(fileMode=2,
-                                  startingDirectory=self.startDir,
-                                  fileFilter=' Shifter Game Assembly folder')
+        filePath = pm.fileDialog2(
+            fileMode=2,
+            startingDirectory=self.startDir,
+            fileFilter=" Shifter Game Assembly folder",
+        )
         if not filePath:
             return
         if not isinstance(filePath, string_types):
@@ -528,9 +551,11 @@ class gameTools(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         Returns:
             None: None
         """
-        filePath = pm.fileDialog2(fileMode=1,
-                                  startingDirectory=self.startDir,
-                                  fileFilter=' Post Script  .py (*%s)' % ".py")
+        filePath = pm.fileDialog2(
+            fileMode=1,
+            startingDirectory=self.startDir,
+            fileFilter=" Post Script  .py (*%s)" % ".py",
+        )
         if not filePath:
             return
         if not isinstance(filePath, string_types):
@@ -538,8 +563,7 @@ class gameTools(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.gtUIInst.script_lineEdit.setText(filePath)
 
     def disconnectExport(self):
-        """Collect all the information and export the asset assembly
-        """
+        """Collect all the information and export the asset assembly"""
         name = self.gtUIInst.assetName_lineEdit.text()
         rigTopNode = self.gtUIInst.rigNode_lineEdit.text()
         meshTopNode = self.gtUIInst.meshNode_lineEdit.text()
@@ -548,42 +572,49 @@ class gameTools(MayaQWidgetDockableMixin, QtWidgets.QDialog):
 
         if name and rigTopNode and meshTopNode and path:
             exportAssetAssembly(
-                name, rigTopNode, meshTopNode, path, postScript)
+                name, rigTopNode, meshTopNode, path, postScript
+            )
         else:
             pm.displayWarning(
                 "Name, Rig Top Node, Mesh Top Node and path "
-                "are mandatory fields. Please check it.")
+                "are mandatory fields. Please check it."
+            )
 
     def importAssembly(self):
-        """Import asset assembly
-        """
+        """Import asset assembly"""
         createAssetAssembly(filePath=None, reference=False)
 
     def referenceAssembly(self):
-        """References the asset assembly
-        """
+        """References the asset assembly"""
         createAssetAssembly(filePath=None, reference=True)
 
     # Connect slots
     def createConnections(self):
-        """Create slots connections
-        """
+        """Create slots connections"""
         self.gtUIInst.assetName_lineEdit.editingFinished.connect(
-            partial(gameTools._validCharacters,
-                    self.gtUIInst.assetName_lineEdit))
+            partial(
+                gameTools._validCharacters, self.gtUIInst.assetName_lineEdit
+            )
+        )
         self.gtUIInst.rigNode_pushButton.clicked.connect(
-            self.populateRigTopNode)
+            self.populateRigTopNode
+        )
         self.gtUIInst.meshNode_pushButton.clicked.connect(
-            self.populateMeshTopNode)
+            self.populateMeshTopNode
+        )
         self.gtUIInst.path_pushButton.clicked.connect(
-            self.populateOutputFolder)
+            self.populateOutputFolder
+        )
         self.gtUIInst.script_pushButton.clicked.connect(self.populateScript)
         self.gtUIInst.disconnectExport_pushButton.clicked.connect(
-            self.disconnectExport)
+            self.disconnectExport
+        )
         self.gtUIInst.importConnect_pushButton.clicked.connect(
-            self.importAssembly)
+            self.importAssembly
+        )
         self.gtUIInst.referenceConnect_pushButton.clicked.connect(
-            self.referenceAssembly)
+            self.referenceAssembly
+        )
 
 
 def openGameTools(*args):
