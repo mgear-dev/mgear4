@@ -169,7 +169,7 @@ class Component(component.Main):
 
         # set keyable attr for tweak controls
         [attribute.setKeyableAttributes(t_ctl, ["tx", "ty", "tz", "rx"])
-            for t_ctl in self.tweak_ctl]
+            for t_ctl in self.tweak_ctl[:-1]]
 
         # Curves -------------------------------------------
         self.mst_crv = curve.addCnsCurve(self.root,
@@ -357,10 +357,10 @@ class Component(component.Main):
             self.controlRelatives["%s_loc" % i] = self.fk_ctl[i + 1]
             self.jointRelatives["%s_loc" % i] = i + 1
             self.aliasRelatives["%s_ctl" % i] = i + 1
-        self.relatives["%s_loc" % (len(self.fk_ctl) - 1)] = self.fk_ctl[-1]
+        self.relatives["%s_loc" % (len(self.fk_ctl) - 1)] = self.tweak_ctl[-1]
         self.controlRelatives["%s_loc" % (
-            len(self.fk_ctl) - 1)] = self.fk_ctl[-1]
+            len(self.fk_ctl) - 1)] = self.tweak_ctl[-1]
         self.jointRelatives["%s_loc" % (
-            len(self.fk_ctl) - 1)] = len(self.fk_ctl) - 1
+            len(self.fk_ctl) - 1)] = len(self.jnt_pos) - 1
         self.aliasRelatives["%s_loc" % (
             len(self.fk_ctl) - 1)] = len(self.fk_ctl) - 1
