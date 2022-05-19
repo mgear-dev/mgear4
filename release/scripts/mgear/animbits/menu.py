@@ -10,6 +10,8 @@ def install():
         ("Soft Tweaks", str_openSoftTweakManager),
         ("Cache Manager", str_run_cache_mamanger),
         ("-----", None),
+        ("Space Recorder", str_space_recorder, "mgear_key.svg"),
+        ("-----", None),
         ("Smart Reset Attribute/SRT", str_smart_reset)
     )
 
@@ -34,4 +36,9 @@ run_cache_mamanger()
 str_smart_reset = """
 from mgear.core import attribute
 attribute.smart_reset()
+"""
+
+str_space_recorder = """
+from mgear.animbits import space_recorder
+space_recorder.open()
 """
