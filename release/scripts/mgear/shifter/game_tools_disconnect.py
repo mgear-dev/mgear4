@@ -9,7 +9,7 @@ import os.path
 import mgear.core.utils as mutils
 from mgear.core import string
 
-import mgear.shifter.game_tools_ui as gtUI
+import mgear.shifter.game_tools_disconnect_ui as gtUI
 
 from maya.app.general.mayaMixin import MayaQWidgetDockableMixin
 from mgear.core import pyqt
@@ -442,22 +442,22 @@ def createAssetAssembly(filePath=None, reference=False):
 ####################################
 
 
-class gameToolsUI(QtWidgets.QDialog, gtUI.Ui_gameTools):
+class GameToolsDisconnectUI(QtWidgets.QDialog, gtUI.Ui_gameTools):
 
     """Game tools UI layout"""
 
     def __init__(self, parent=None):
-        super(gameToolsUI, self).__init__(parent)
+        super(GameToolsDisconnectUI, self).__init__(parent)
         self.setupUi(self)
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose, True)
         self.installEventFilter(self)
 
     def keyPressEvent(self, event):
         if not event.key() == QtCore.Qt.Key_Escape:
-            super(gameToolsUI, self).keyPressEvent(event)
+            super(GameToolsDisconnectUI, self).keyPressEvent(event)
 
 
-class gameTools(MayaQWidgetDockableMixin, QtWidgets.QDialog):
+class GameToolsDisconnect(MayaQWidgetDockableMixin, QtWidgets.QDialog):
 
     """Game Tools UI
 
@@ -469,7 +469,7 @@ class gameTools(MayaQWidgetDockableMixin, QtWidgets.QDialog):
     def __init__(self, parent=None):
         self.toolName = "shifterGameTools"
         super(self.__class__, self).__init__(parent=parent)
-        self.gtUIInst = gameToolsUI()
+        self.gtUIInst = GameToolsDisconnectUI()
 
         self.startDir = pm.workspace(q=True, rootDirectory=True)
 
@@ -593,7 +593,8 @@ class gameTools(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         """Create slots connections"""
         self.gtUIInst.assetName_lineEdit.editingFinished.connect(
             partial(
-                gameTools._validCharacters, self.gtUIInst.assetName_lineEdit
+                GameToolsDisconnect._validCharacters,
+                self.gtUIInst.assetName_lineEdit,
             )
         )
         self.gtUIInst.rigNode_pushButton.clicked.connect(
@@ -617,15 +618,15 @@ class gameTools(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         )
 
 
-def openGameTools(*args):
+def openGameToolsDisconnect(*args):
     """Open game tools window
 
     Args:
         *args: Dummy for Maya
     """
-    pyqt.showDialog(gameTools)
+    pyqt.showDialog(GameToolsDisconnect)
 
 
 if __name__ == "__main__":
 
-    pyqt.showDialog(gameTools)
+    pyqt.showDialog(GameToolsDisconnect)
