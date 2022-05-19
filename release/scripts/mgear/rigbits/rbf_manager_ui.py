@@ -1160,7 +1160,7 @@ class RBFManagerUI(MayaQWidgetDockableMixin, QtWidgets.QMainWindow):
         Args:
             rbfNodes (list): [of RBFNodes]
         """
-        rbfNodes = sorted(rbfNodes)
+        rbfNodes = sorted(rbfNodes, key=lambda x: x.name)
         self.rbfTabWidget.clear()
         for rbfNode in rbfNodes:
             weightInfo = rbfNode.getNodeInfo()
