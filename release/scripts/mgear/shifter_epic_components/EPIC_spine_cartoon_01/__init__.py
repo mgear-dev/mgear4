@@ -80,7 +80,13 @@ class Component(component.Main):
             self.hip_lvl = primitive.addTransform(
                 self.ik0_ctl, self.getName("hip_lvl"), t
             )
-            self.jnt_pos.append([self.hip_lvl, "pelvis"])
+            self.jnt_pos.append(
+                {
+                    "obj": self.hip_lvl,
+                    "name": "pelvis",
+                    "guide_relative": self.guide.guide_locators[0],
+                }
+            )
 
         t = transform.setMatrixPosition(t, self.guide.apos[-1])
         if self.settings["autoBend"]:
@@ -381,8 +387,20 @@ class Component(component.Main):
             self.scl_transforms.append(scl_ref)
 
             # Deformers (Shadow)
-            # self.jnt_pos.append([scl_ref, i])
-            self.jnt_pos.append([scl_ref, "spine_" + str(i + 1).zfill(2)])
+            if i == 0:
+                guide_relative = self.guide.guide_locators[1]
+            elif i == self.settings["division"] - 1:
+                guide_relative = self.guide.guide_locators[-2]
+            else:
+                guide_relative = None
+            self.jnt_pos.append(
+                {
+                    "obj": scl_ref,
+                    "name": "spine_" + str(i + 1).zfill(2),
+                    "guide_relative": guide_relative,
+                    "data_contracts": "Twist,Squash",
+                }
+            )
 
             # Twist references (This objects will replace the spinlookup
             # slerp solver behavior)

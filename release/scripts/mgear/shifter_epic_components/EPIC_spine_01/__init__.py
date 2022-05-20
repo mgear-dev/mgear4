@@ -401,6 +401,7 @@ class Component(component.Main):
                     "obj": scl_ref,
                     "name": string.replaceSharpWithPadding(jdn_spine, i + 1),
                     "guide_relative": guide_relative,
+                    "data_contracts": "Twist,Squash",
                 }
             )
 
@@ -439,6 +440,7 @@ class Component(component.Main):
                 "obj": self.cnx1,
                 "name": string.replaceSharpWithPadding(jdn_spine, i + 2),
                 "guide_relative": self.guide.guide_locators[-1],
+                "data_contracts": "Twist,Squash",
             }
         )
 

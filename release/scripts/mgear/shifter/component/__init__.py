@@ -267,6 +267,7 @@ class Main(object):
         vanilla_nodes=False,
         leaf_joint=False,
         guide_relative=None,
+        data_contracts=None,
     ):
         """Add joint as child of the active joint or under driver object.
 
@@ -317,6 +318,7 @@ class Main(object):
                 rot_off=rot_off,
                 leaf_joint=leaf_joint,
                 guide_relative=guide_relative,
+                data_contracts=data_contracts,
             )
 
     def _addJoint(
@@ -329,6 +331,7 @@ class Main(object):
         rot_off=None,
         leaf_joint=False,
         guide_relative=None,
+        data_contracts=None,
     ):
         """Add joint as child of the active joint or under driver object.
 
@@ -513,6 +516,10 @@ class Main(object):
         if guide_relative:
             at = attribute.addAttribute(jnt, "guide_relative", "string")
             at.set(guide_relative)
+
+        if data_contracts:
+            at = attribute.addAttribute(jnt, "data_contracts", "string")
+            at.set(data_contracts)
 
         return jnt
 
@@ -1943,6 +1950,7 @@ class Main(object):
         self.build_data["Controls"] = []
         self.build_data["Ik"] = []
         self.build_data["Twist"] = []
+        self.build_data["Squash"] = []
 
         # joints
         for j in self.jointList:
@@ -1950,6 +1958,21 @@ class Main(object):
             jnt_dict["Name"] = j.name()
             jnt_dict.update(self.gather_transform_info(j))
             self.build_data["Joints"].append(jnt_dict)
+            if j.hasAttr("data_contracts"):
+                for dc in j.data_contracts.get().split(","):
+                    # check if the Data contract indentifier type is a valid
+                    # data contract
+                    if dc not in self.build_data.keys():
+                        pm.displayWarning(
+                            "{} is not a valid Data Contract Key".format(dc)
+                        )
+                        continue
+                    # populate component active data contracts list
+                    if dc not in self.build_data["DataContracts"]:
+                        self.build_data["DataContracts"].append(dc)
+                    # add joint Name to the corresponding data contract list
+                    self.build_data[dc].append(j.name())
+
         # controls
         for c in self.controlers:
             ctl_dict = {}

@@ -554,24 +554,40 @@ class Component(component.Main):
 
             # setting the joints
             if i == 0:
-                self.jnt_pos.append([driver, "upperarm"])
+                self.jnt_pos.append(
+                    {
+                        "obj": driver,
+                        "name": "upperarm",
+                        "guide_relative": self.guide.guide_locators[0],
+                        "data_contracts": "Ik",
+                    }
+                )
                 current_parent = "root"
                 twist_name = "upperarm_twist_"
                 twist_idx = 1
                 increment = 1
             elif i == self.settings["div0"] + 1:
-                self.jnt_pos.append([driver, "lowerarm", current_parent])
+                self.jnt_pos.append(
+                    {
+                        "obj": driver,
+                        "name": "lowerarm",
+                        "newActiveJnt": current_parent,
+                        "guide_relative": self.guide.guide_locators[1],
+                        "data_contracts": "Ik",
+                    }
+                )
                 twist_name = "lowerarm_twist_"
                 current_parent = "elbow"
                 twist_idx = self.settings["div1"]
                 increment = -1
             else:
                 self.jnt_pos.append(
-                    [
-                        driver,
-                        twist_name + str(twist_idx).zfill(2),
-                        current_parent,
-                    ]
+                    {
+                        "obj": driver,
+                        "name": twist_name + str(twist_idx).zfill(2),
+                        "newActiveJnt": current_parent,
+                        "data_contracts": "Twist,Squash",
+                    }
                 )
                 twist_idx += increment
 
@@ -579,7 +595,15 @@ class Component(component.Main):
             eff_loc = self.eff_jnt_off
         else:
             eff_loc = self.eff_loc
-        self.jnt_pos.append([eff_loc, "hand", current_parent])
+        self.jnt_pos.append(
+            {
+                "obj": eff_loc,
+                "name": "hand",
+                "newActiveJnt": current_parent,
+                "guide_relative": self.guide.guide_locators[2],
+                "data_contracts": "Ik",
+            }
+        )
 
         # match IK FK references
         self.match_fk0_off = self.add_match_ref(
@@ -1140,12 +1164,3 @@ class Component(component.Main):
         """Custom connection to be use with shoulder 01 component"""
         self.connect_standard()
         pm.parent(self.rollRef[0], self.ikHandleUpvRef, self.parent_comp.ctl)
-
-    def collect_build_data(self):
-        component.Main.collect_build_data(self)
-        self.build_data["DataContracts"] = ["ik"]
-        self.build_data["ik"] = [
-            self.jointList[0].name(),
-            self.jointList[self.settings["div0"] + 1].name(),
-            self.jointList[-1].name(),
-        ]

@@ -451,24 +451,40 @@ class Component(component.Main):
 
             # setting the joints
             if i == 0:
-                self.jnt_pos.append([driver, "thigh"])
+                self.jnt_pos.append(
+                    {
+                        "obj": driver,
+                        "name": "thigh",
+                        "guide_relative": self.guide.guide_locators[0],
+                        "data_contracts": "Ik",
+                    }
+                )
                 current_parent = "root"
                 twist_name = "thigh_twist_"
                 twist_idx = 1
                 increment = 1
             elif i == self.settings["div0"] + 1:
-                self.jnt_pos.append([driver, "calf", current_parent])
+                self.jnt_pos.append(
+                    {
+                        "obj": driver,
+                        "name": "calf",
+                        "newActiveJnt": current_parent,
+                        "guide_relative": self.guide.guide_locators[1],
+                        "data_contracts": "Ik",
+                    }
+                )
                 twist_name = "calf_twist_"
                 current_parent = "knee"
                 twist_idx = self.settings["div1"]
                 increment = -1
             else:
                 self.jnt_pos.append(
-                    [
-                        driver,
-                        twist_name + str(twist_idx).zfill(2),
-                        current_parent,
-                    ]
+                    {
+                        "obj": driver,
+                        "name": twist_name + str(twist_idx).zfill(2),
+                        "newActiveJnt": current_parent,
+                        "data_contracts": "Twist,Squash",
+                    }
                 )
                 twist_idx += increment
 
@@ -483,7 +499,15 @@ class Component(component.Main):
         )
         if self.up_axis == "z":
             self.end_jnt_off.rz.set(-90)
-        self.jnt_pos.append([self.end_jnt_off, "foot", current_parent])
+        self.jnt_pos.append(
+            {
+                "obj": self.end_jnt_off,
+                "name": "foot",
+                "newActiveJnt": current_parent,
+                "guide_relative": self.guide.guide_locators[2],
+                "data_contracts": "Ik",
+            }
+        )
 
         # match IK FK references
         self.match_fk0_off = self.add_match_ref(
@@ -870,12 +894,3 @@ class Component(component.Main):
                 [self.ctrn_loc],
                 False,
             )
-
-    def collect_build_data(self):
-        component.Main.collect_build_data(self)
-        self.build_data["DataContracts"] = ["ik"]
-        self.build_data["ik"] = [
-            self.jointList[0].name(),
-            self.jointList[self.settings["div0"] + 1].name(),
-            self.jointList[-1].name(),
-        ]

@@ -452,6 +452,7 @@ class Component(component.Main):
                         "obj": driver,
                         "name": jdn_thigh,
                         "guide_relative": self.guide.guide_locators[0],
+                        "data_contracts": "Ik",
                     }
                 )
                 current_parent = "root"
@@ -465,6 +466,7 @@ class Component(component.Main):
                         "name": jdn_calf,
                         "newActiveJnt": current_parent,
                         "guide_relative": self.guide.guide_locators[1],
+                        "data_contracts": "Ik",
                     }
                 )
                 twist_name = jdn_calf_twist
@@ -479,6 +481,7 @@ class Component(component.Main):
                             twist_name, twist_idx
                         ),
                         "newActiveJnt": current_parent,
+                        "data_contracts": "Twist,Squash",
                     }
                 )
                 twist_idx += increment
@@ -500,6 +503,7 @@ class Component(component.Main):
                 "name": jdn_foot,
                 "newActiveJnt": current_parent,
                 "guide_relative": self.guide.guide_locators[2],
+                "data_contracts": "Ik",
             }
         )
 
@@ -888,12 +892,3 @@ class Component(component.Main):
                 [self.ctrn_loc],
                 False,
             )
-
-    def collect_build_data(self):
-        component.Main.collect_build_data(self)
-        self.build_data["DataContracts"] = ["Ik"]
-        self.build_data["Ik"] = [
-            self.jointList[0].name(),
-            self.jointList[self.settings["div0"] + 1].name(),
-            self.jointList[-1].name(),
-        ]

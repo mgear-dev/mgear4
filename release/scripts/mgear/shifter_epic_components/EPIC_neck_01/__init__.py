@@ -280,6 +280,7 @@ class Component(component.Main):
                             jdn_neck, i + 1
                         ),
                         "guide_relative": guide_relative,
+                        "data_contracts": "Twist,Squash",
                     }
                 )
 

@@ -564,6 +564,7 @@ class Component(component.Main):
                         "obj": driver,
                         "name": jdn_upperarm,
                         "guide_relative": self.guide.guide_locators[0],
+                        "data_contracts": "Ik",
                     }
                 )
                 current_parent = "root"
@@ -577,6 +578,7 @@ class Component(component.Main):
                         "name": jdn_lowerarm,
                         "newActiveJnt": current_parent,
                         "guide_relative": self.guide.guide_locators[1],
+                        "data_contracts": "Ik",
                     }
                 )
                 twist_name = jdn_lowerarm_twist
@@ -591,6 +593,7 @@ class Component(component.Main):
                             twist_name, twist_idx
                         ),
                         "newActiveJnt": current_parent,
+                        "data_contracts": "Twist,Squash",
                     }
                 )
                 twist_idx += increment
@@ -605,6 +608,7 @@ class Component(component.Main):
                 "name": jdn_hand,
                 "newActiveJnt": current_parent,
                 "guide_relative": self.guide.guide_locators[2],
+                "data_contracts": "Ik",
             }
         )
 
@@ -1163,12 +1167,3 @@ class Component(component.Main):
         """Custom connection to be use with shoulder 01 component"""
         self.connect_standard()
         pm.parent(self.rollRef[0], self.ikHandleUpvRef, self.parent_comp.ctl)
-
-    def collect_build_data(self):
-        component.Main.collect_build_data(self)
-        self.build_data["DataContracts"] = ["Ik"]
-        self.build_data["Ik"] = [
-            self.jointList[0].name(),
-            self.jointList[self.settings["div0"] + 1].name(),
-            self.jointList[-1].name(),
-        ]
