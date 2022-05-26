@@ -591,12 +591,12 @@ def skinCopy(sourceMesh=None, targetMesh=None, *args):
             skinMethod = ss.skinningMethod.get()
             oDef = pm.skinCluster(sourceMesh, query=True, influence=True)
             # strip | from longName, or skinCluster command may fail.
-            skinName = targetMesh.name().replace('|', '') + "_SkinCluster"
+            skinName = targetMesh.name().replace('|', '') + "_skinCluster"
             skinCluster = pm.skinCluster(oDef,
                                          targetMesh,
                                          tsb=True,
                                          nw=1,
-                                         n=targetMesh.name() + "_SkinCluster")
+                                         n=targetMesh.name() + "_skinCluster")
             pm.copySkinWeights(sourceSkin=ss.stripNamespace(),
                                destinationSkin=skinCluster.name(),
                                noMirror=True,
