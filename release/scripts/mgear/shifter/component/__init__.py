@@ -1635,7 +1635,6 @@ class Main(object):
                         ref.append(ref_trans)
                     else:
                         ref.append(self.rig.findRelative(ref_name))
-
                 ref.append(cns_obj)
                 cns_node = pm.parentConstraint(*ref, maintainOffset=True)
                 cns_attr = pm.parentConstraint(
@@ -1660,6 +1659,7 @@ class Main(object):
                         pm.setAttr(node_name + ".colorIfTrueR", 1)
                         pm.setAttr(node_name + ".colorIfFalseR", 0)
                         pm.connectAttr(node_name + ".outColorR", attr)
+                return ref
 
     def connectRef2(
         self,
@@ -1725,6 +1725,8 @@ class Main(object):
                     pm.setAttr(node_name + ".colorIfTrueR", 1)
                     pm.setAttr(node_name + ".colorIfFalseR", 0)
                     pm.connectAttr(node_name + ".outColorR", attr)
+
+                return ref
 
     def connect_standardWithRotRef(self, refArray, cns_obj):
         """Connect the cns_obj to a multiple object
