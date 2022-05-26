@@ -1038,7 +1038,14 @@ def ikFkMatch_with_namespace(
 
         # sets blend attribute new value
         o_attr.set(1.0)
-        roll_att = ui_node.attr(ikfk_attr.replace("blend", "roll"))
+
+        # handle the upvector roll
+        roll_att_name = ikfk_attr.replace("blend", "roll")
+        try:
+            roll_att = ui_node.attr(roll_att_name)
+        except pm.MayaAttributeError:
+            # if is not in the uiHost lets check the IK ctl
+            roll_att = ik_ctrl.attr(roll_att_name)
         roll_att.set(0.0)
 
         # reset roll ctl if exist
