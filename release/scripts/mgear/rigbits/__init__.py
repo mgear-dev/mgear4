@@ -316,11 +316,11 @@ def connectLocalTransform(objects=None, s=True, r=True, t=True, *args):
 
         for target in targets:
             if t:
-                pm.connectAttr(source + ".translate", target + ".translate")
+                pm.connectAttr(source + ".translate", target + ".translate", force=True)
             if s:
-                pm.connectAttr(source + ".scale", target + ".scale")
+                pm.connectAttr(source + ".scale", target + ".scale", force=True)
             if r:
-                pm.connectAttr(source + ".rotate", target + ".rotate")
+                pm.connectAttr(source + ".rotate", target + ".rotate", force=True)
     else:
         pm.displayWarning("Please at less select 2 objects. Source + target/s")
 
