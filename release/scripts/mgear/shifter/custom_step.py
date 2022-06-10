@@ -79,6 +79,7 @@ class customShifterMainStep(object):
             PyNode: The new duplicated object.
         """
         dup = pm.duplicate(source)[0]
+        dup.visibility.set(True)
         if name:
             pm.rename(dup, name)
         else:
