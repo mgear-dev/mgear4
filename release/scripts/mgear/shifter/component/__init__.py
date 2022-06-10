@@ -1980,6 +1980,7 @@ class Main(object):
             ctl_dict = {}
             ctl_dict["Name"] = c.name()
             ctl_dict["Role"] = c.ctl_role.get()
+            ctl_dict["Shape"] = curve.collect_curve_data(c)
             ctl_dict.update(self.gather_transform_info(c))
             self.build_data["Controls"].append(ctl_dict)
 
