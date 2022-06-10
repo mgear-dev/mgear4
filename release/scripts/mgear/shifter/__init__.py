@@ -212,11 +212,14 @@ class Rig(object):
         self.stopBuild = False
         selection = pm.ls(selection=True)
         if not selection:
-            mgear.log(
-                "Select one or more guide root or a guide model",
-                mgear.sev_error,
-            )
-            return
+            selection = pm.ls("guide")
+            if not selection:
+                mgear.log(
+                    "Not guide found or selected.\n "
+                    + "Select one or more guide root or a guide model",
+                    mgear.sev_error,
+                )
+                return
 
         # check if is partial build or full guide build
         ismodel = False
