@@ -172,7 +172,9 @@ def createRivetTweak(
     """
     blendShape = blendShapes.getBlendShape(mesh)
     if not inputMesh:
-        inputMesh = blendShape.listConnections(sh=True, t="shape", d=False)[0]
+        inputMesh = blendShape.inputTarget.listConnections(
+            sh=True, t="shape", d=False
+        )[0]
 
     oRivet = rivet.rivet()
     base = oRivet.create(inputMesh, edgePair[0], edgePair[1], parent)
