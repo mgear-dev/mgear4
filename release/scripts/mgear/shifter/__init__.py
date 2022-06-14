@@ -46,25 +46,42 @@ def log_window():
         log_window_name = "mgear_shifter_build_log_window"
         log_window_field_reporter = "mgear_shifter_log_field_reporter"
         if not pm.window(log_window_name, exists=True):
-            logWin = pm.window(
+            log_win = pm.window(
                 log_window_name,
                 title="Shifter Build Log",
                 iconName="Shifter Log",
+                width=800,
+                height=500,
             )
-            pm.columnLayout(adjustableColumn=True)
-            pm.cmdScrollFieldReporter(
-                log_window_field_reporter, width=800, height=500, clr=True
+            form = pm.formLayout()
+            reporter = pm.cmdScrollFieldReporter(
+                log_window_field_reporter, width=400, height=200, clr=True
             )
-            pm.button(
+
+            btn_close = pm.button(
                 label="Close",
-                command=(
-                    'import pymel.core as pm\npm.deleteUI("'
-                    + logWin
-                    + '", window=True)'
-                ),
+                command=lambda *args: pm.deleteUI(log_win, window=True),
             )
+
+            margin_v = 5
+            margin_h = 5
+            pm.formLayout(
+                form, e=True,
+                attachForm=[
+                    (reporter, 'top', margin_v),
+                    (reporter, 'right', margin_h),
+                    (reporter, 'left', margin_h),
+                    (btn_close, 'bottom', margin_v),
+                    (btn_close, 'right', margin_h),
+                    (btn_close, 'left', margin_h),
+                ],
+                attachControl=[
+                    (reporter, 'bottom', margin_v, btn_close),
+                ],
+            )
+
             pm.setParent("..")
-            pm.showWindow(logWin)
+            pm.showWindow(log_win)
         else:
             pm.cmdScrollFieldReporter(
                 log_window_field_reporter, e=True, clr=True
