@@ -208,7 +208,7 @@ afg_tools_ui.show()
 
 str_openGameTools = """
 from mgear.shifter import game_tools_disconnect
-game_tools_disconnect.openGameTools()
+game_tools_disconnect.openGameToolsDisconnect()
 """
 
 str_updateGuide = """
