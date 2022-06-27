@@ -38,7 +38,7 @@ def install():
         ("Plebes...", str_plebes),
         ("-----", None),
         (None, mocap_submenu),
-        ("Game Tools", str_openGameTools),
+        ("Game Tools Disconnect", str_openGameTools),
         ("-----", None),
         ("Update Guide", str_updateGuide, "mgear_loader.svg"),
         ("-----", None),
