@@ -212,15 +212,15 @@ def getRootNode():
     if not current:
         raise RuntimeError("You need to select at least one rig node")
 
-    if pm.objExists("{}.is_rig".format(current[0])):
+    if current[0].hasAttr("is_rig"):
         root = current[0]
     else:
         holder = current[0]
-        while pm.listRelatives(holder, parent=True) and not root:
-            if pm.objExists("{}.is_rig".format(holder)):
-                root = holder
+        while holder.getParent() and not root:
+            if holder.getParent().hasAttr("is_rig"):
+                root = holder.getParent()
             else:
-                holder = pm.listRelatives(holder, parent=True)[0]
+                holder = holder.getParent()
 
     if not root:
         raise RuntimeError("Couldn't find root node from your selection")
