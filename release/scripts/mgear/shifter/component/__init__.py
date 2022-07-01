@@ -236,9 +236,7 @@ class Main(object):
 
         # joint --------------------------------
         if self.options["joint_rig"]:
-            self.component_jnt_org = primitive.addTransform(
-                self.rig.jnt_org, self.getName("jnt_org")
-            )
+            self.component_jnt_org = self.rig.jnt_org
             # The initial assigment of the active jnt and the parent relative
             # jnt is the same, later will be updated base in the user options
             self.active_jnt = self.component_jnt_org

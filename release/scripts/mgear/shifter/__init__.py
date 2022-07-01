@@ -532,9 +532,11 @@ class Rig(object):
         # clean jnt_org --------------------------------------
         if self.options["joint_rig"]:
             mgear.log("Cleaning jnt org")
-            for jOrg in dag.findChildrenPartial(self.jnt_org, "org"):
-                if not jOrg.listRelatives(c=True):
-                    pm.delete(jOrg)
+            jnt_org_child = dag.findChildrenPartial(self.jnt_org, "org")
+            if jnt_org_child:
+                for jOrg in jnt_org_child:
+                    if not jOrg.listRelatives(c=True):
+                        pm.delete(jOrg)
 
         # Groups ------------------------------------------
         mgear.log("Creating groups")
