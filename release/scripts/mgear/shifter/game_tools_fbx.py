@@ -13,7 +13,9 @@ from functools import partial
 from maya.app.general.mayaMixin import MayaQWidgetDockableMixin
 import importlib
 
-# from . import game_tools_fbx_widgets as gtw
+from mgear.shifter import game_tools_fbx_utils as fu
+
+# from . import game_tools_fbx_widgets as fw
 
 
 class FBXExport(MayaQWidgetDockableMixin, QtWidgets.QDialog):
@@ -48,7 +50,7 @@ class FBXExport(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.file_menu.addAction(self.file_new_node_action)
         self.file_menu.addSeparator()
 
-        # set roots
+        # set source roots
         self.mesh_root_label = QtWidgets.QLabel("Mesh Root")
         self.mesh_root_lineedit = QtWidgets.QLineEdit()
         self.mesh_root_set_button = QtWidgets.QPushButton("Set")
@@ -57,18 +59,34 @@ class FBXExport(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.joint_root_lineedit = QtWidgets.QLineEdit()
         self.joint_root_set_button = QtWidgets.QPushButton("Set")
 
-        # model export options
+        # model deformers options
         self.skinning_checkbox = QtWidgets.QCheckBox("Skinning")
+        self.skinning_checkbox.setChecked(True)
         self.blendshapes_checkbox = QtWidgets.QCheckBox("Blendshapes")
+        self.blendshapes_checkbox.setChecked(True)
 
         # settings
-        self.up_axis_combox = QtWidgets.QComboBox("Up Axis")
-        self.up_axis_combox.addItem("Y")
-        self.up_axis_combox.addItem("Z")
-        self.file_type_combox = QtWidgets.QComboBox("File Type")
-        self.file_type_combox.addItem("Binary")
-        self.file_type_combox.addItem("ASCII")
-        self.fbx_version_combox = QtWidgets.QComboBox("FBX Version")
+        self.up_axis_label = QtWidgets.QLabel("Up Axis")
+        self.up_axis_combobox = QtWidgets.QComboBox()
+        self.up_axis_combobox.addItem("Y")
+        self.up_axis_combobox.addItem("Z")
+        self.file_type_label = QtWidgets.QLabel("File Type")
+        self.file_type_combobox = QtWidgets.QComboBox()
+        self.file_type_combobox.addItem("Binary")
+        self.file_type_combobox.addItem("ASCII")
+        self.fbx_version_label = QtWidgets.QLabel("FBX Version")
+        self.fbx_version_combobox = QtWidgets.QComboBox()
+        self.populate_fbx_versions_combobox(self.fbx_version_combobox)
+
+        # FBX SDK settings
+        self.remove_namespace_checkbox = QtWidgets.QCheckBox(
+            "Remove Namespace"
+        )
+        self.remove_namespace_checkbox.setChecked(True)
+        self.clean_scene_checkbox = QtWidgets.QCheckBox(
+            "Joint and Mesh Root Child of Scene Root + Clean Up Scene"
+        )
+        self.clean_scene_checkbox.setChecked(True)
 
         # animation
 
@@ -110,6 +128,38 @@ class FBXExport(MayaQWidgetDockableMixin, QtWidgets.QDialog):
             self.model_deformers_groupbox
         )
 
+        # settings layout
+        self.settings_groupbox = QtWidgets.QGroupBox("Settings")
+        self.settings_form_layout = QtWidgets.QFormLayout(
+            self.settings_groupbox
+        )
+        self.settings_form_layout.setWidget(
+            0, QtWidgets.QFormLayout.LabelRole, self.up_axis_label
+        )
+        self.settings_form_layout.setWidget(
+            0, QtWidgets.QFormLayout.FieldRole, self.up_axis_combobox
+        )
+        self.settings_form_layout.setWidget(
+            1, QtWidgets.QFormLayout.LabelRole, self.file_type_label
+        )
+        self.settings_form_layout.setWidget(
+            1, QtWidgets.QFormLayout.FieldRole, self.file_type_combobox
+        )
+        self.settings_form_layout.setWidget(
+            2, QtWidgets.QFormLayout.LabelRole, self.fbx_version_label
+        )
+        self.settings_form_layout.setWidget(
+            2, QtWidgets.QFormLayout.FieldRole, self.fbx_version_combobox
+        )
+
+        # FBX SDK settings
+        self.sdk_settings_groupbox = QtWidgets.QGroupBox("FBX SDK settings")
+        self.sdk_settings_layout = QtWidgets.QVBoxLayout(
+            self.sdk_settings_groupbox
+        )
+        self.sdk_settings_layout.addWidget(self.remove_namespace_checkbox)
+        self.sdk_settings_layout.addWidget(self.clean_scene_checkbox)
+
         # Main layout
         self.main_layout = QtWidgets.QVBoxLayout(self)
         self.main_layout.setContentsMargins(2, 2, 2, 2)
@@ -118,10 +168,19 @@ class FBXExport(MayaQWidgetDockableMixin, QtWidgets.QDialog):
 
         self.main_layout.addWidget(self.set_source_groupbox)
         self.main_layout.addWidget(self.model_deformers_groupbox)
+        self.main_layout.addWidget(self.settings_groupbox)
+        self.main_layout.addWidget(self.sdk_settings_groupbox)
         self.main_layout.addStretch()
 
     def create_connections(self):
         return
+
+    # Helper methods
+
+    def populate_fbx_versions_combobox(self, combobox):
+        fbx_versions = pfbx.get_fbx_versions()
+        for v in fbx_versions:
+            combobox.addItem(v)
 
 
 def openFBXExport(*args):

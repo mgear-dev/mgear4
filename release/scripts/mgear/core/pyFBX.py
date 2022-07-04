@@ -734,6 +734,18 @@ def FBXUIShowOptions(*args, **kwargs):
     return _py_fbx("FBXUIShowOptions", *args, **kwargs)
 
 
+# Helper functions
+
+
+def get_fbx_versions():
+    """Get available FBX version list
+
+    Returns:
+        list: String names of the available fbx versions
+    """
+    return pm.mel.eval("FBXExportFileVersion -uivl;")
+
+
 # SNIPPETS
 # docs https://knowledge.autodesk.com/support/maya/learn-explore/caas/CloudHelp/cloudhelp/2023/ENU/Maya-DataExchange/files/GUID-F48E3B78-3E56-4869-9914-CE0FAB6E3116-htm.html
 
