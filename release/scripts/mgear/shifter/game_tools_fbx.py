@@ -1,11 +1,18 @@
 import maya.cmds as cmds
 import pymel.core as pm
 from mgear.core import pyqt
+from mgear.core import widgets
 from mgear.core import attribute
 from mgear.core import utils
-from mgear.vendor.Qt import QtWidgets
-from mgear.vendor.Qt import QtCore
-from mgear.vendor.Qt import QtGui
+
+# from mgear.vendor.Qt import QtWidgets
+# from mgear.vendor.Qt import QtCore
+# from mgear.vendor.Qt import QtGui
+# TODO: comment out later. using direct import for better autocompletion
+from PySide2 import QtCore
+from PySide2 import QtGui
+from PySide2 import QtWidgets
+
 from mgear.core import callbackManager
 from mgear.core import pyFBX as pfbx
 import timeit
@@ -39,15 +46,26 @@ class FBXExport(MayaQWidgetDockableMixin, QtWidgets.QDialog):
 
     def create_actions(self):
         # file actions
-        self.file_new_node_action = QtWidgets.QAction("New Node", self)
-        self.file_new_node_action.setIcon(pyqt.get_icon("mgear_plus-square"))
+        self.file_export_mesh_preset_action = QtWidgets.QAction(
+            "Export Mesh Preset", self
+        )
+        self.file_export_mesh_preset_action.setIcon(
+            pyqt.get_icon("mgear_plus-square")
+        )
+        self.file_export_anim_preset_action = QtWidgets.QAction(
+            "Export Animation Preset", self
+        )
+        self.file_export_anim_preset_action.setIcon(
+            pyqt.get_icon("mgear_plus-square")
+        )
 
     def create_widgets(self):
 
         # menu bar
         self.menu_bar = QtWidgets.QMenuBar()
         self.file_menu = self.menu_bar.addMenu("File")
-        self.file_menu.addAction(self.file_new_node_action)
+        self.file_menu.addAction(self.file_export_mesh_preset_action)
+        self.file_menu.addAction(self.file_export_anim_preset_action)
         self.file_menu.addSeparator()
 
         # set source roots
@@ -59,22 +77,13 @@ class FBXExport(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.joint_root_lineedit = QtWidgets.QLineEdit()
         self.joint_root_set_button = QtWidgets.QPushButton("Set")
 
-        # model deformers options
-        self.skinning_checkbox = QtWidgets.QCheckBox("Skinning")
-        self.skinning_checkbox.setChecked(True)
-        self.blendshapes_checkbox = QtWidgets.QCheckBox("Blendshapes")
-        self.blendshapes_checkbox.setChecked(True)
-
         # settings
-        self.up_axis_label = QtWidgets.QLabel("Up Axis")
         self.up_axis_combobox = QtWidgets.QComboBox()
         self.up_axis_combobox.addItem("Y")
         self.up_axis_combobox.addItem("Z")
-        self.file_type_label = QtWidgets.QLabel("File Type")
         self.file_type_combobox = QtWidgets.QComboBox()
         self.file_type_combobox.addItem("Binary")
         self.file_type_combobox.addItem("ASCII")
-        self.fbx_version_label = QtWidgets.QLabel("FBX Version")
         self.fbx_version_combobox = QtWidgets.QComboBox()
         self.populate_fbx_versions_combobox(self.fbx_version_combobox)
 
@@ -83,14 +92,34 @@ class FBXExport(MayaQWidgetDockableMixin, QtWidgets.QDialog):
             "Remove Namespace"
         )
         self.remove_namespace_checkbox.setChecked(True)
+        self.remove_namespace_checkbox.setEnabled(pfbx.FBX_SDK)
         self.clean_scene_checkbox = QtWidgets.QCheckBox(
             "Joint and Mesh Root Child of Scene Root + Clean Up Scene"
         )
         self.clean_scene_checkbox.setChecked(True)
+        self.clean_scene_checkbox.setEnabled(pfbx.FBX_SDK)
 
-        # animation
+        # path and filename
+        self.file_path_label = QtWidgets.QLabel("Path")
+        self.file_path_lineedit = QtWidgets.QLineEdit()
+        self.file_path_set_button = QtWidgets.QPushButton("Set")
 
-        return
+        self.file_name_label = QtWidgets.QLabel("File Name")
+        self.file_name_lineedit = QtWidgets.QLineEdit()
+
+        # export skeletalMesh settings
+        self.skinning_checkbox = QtWidgets.QCheckBox("Skinning")
+        self.skinning_checkbox.setChecked(True)
+        self.blendshapes_checkbox = QtWidgets.QCheckBox("Blendshapes")
+        self.blendshapes_checkbox.setChecked(True)
+        self.export_skeletal_mesh_button = QtWidgets.QPushButton(
+            "Export SkeletalMesh/SkinnedMesh"
+        )
+
+        # export animation
+        self.export_animation_button = QtWidgets.QPushButton(
+            "Export Animation"
+        )
 
     def create_layout(self):
 
@@ -107,16 +136,66 @@ class FBXExport(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.joint_root_layout.addWidget(self.joint_root_lineedit)
         self.joint_root_layout.addWidget(self.joint_root_set_button)
 
-        self.set_source_groupbox = QtWidgets.QGroupBox("Set Source Elements")
-        self.set_source_layout = QtWidgets.QVBoxLayout(
-            self.set_source_groupbox
-        )
+        self.set_source_layout = QtWidgets.QVBoxLayout()
         self.set_source_layout.addLayout(self.mesh_root_layout)
         self.set_source_layout.addLayout(self.joint_root_layout)
-
         self.set_source_layout.setSpacing(2)
 
-        # deformers layout
+        self.set_source_collap_wgt = widgets.CollapsibleWidget(
+            "Set Source Elements"
+        )
+        self.set_source_collap_wgt.addLayout(self.set_source_layout)
+
+        # settings layout
+        self.settings_groupbox = QtWidgets.QGroupBox("FBX Settings")
+        self.settings_form_layout = QtWidgets.QFormLayout(
+            self.settings_groupbox
+        )
+
+        self.settings_form_layout.addRow("Up Axis", self.up_axis_combobox)
+        self.settings_form_layout.addRow("File Type", self.file_type_combobox)
+        self.settings_form_layout.addRow(
+            "File Version", self.fbx_version_combobox
+        )
+        # FBX SDK settings
+        if pfbx.FBX_SDK:
+            title = "FBX SDK settings"
+        else:
+            title = "FBX SDK settings (Disable SDK Not Found)"
+
+        self.sdk_settings_groupbox = QtWidgets.QGroupBox(title)
+        self.sdk_settings_layout = QtWidgets.QVBoxLayout(
+            self.sdk_settings_groupbox
+        )
+        self.sdk_settings_layout.addWidget(self.remove_namespace_checkbox)
+        self.sdk_settings_layout.addWidget(self.clean_scene_checkbox)
+
+        # general setting collapsible widget
+        self.settings_collap_wgt = widgets.CollapsibleWidget("Settings")
+        self.settings_collap_wgt.addWidget(self.settings_groupbox)
+        self.settings_collap_wgt.addWidget(self.sdk_settings_groupbox)
+
+        # export path layout
+        self.file_path_layout = QtWidgets.QHBoxLayout()
+        self.file_path_layout.setContentsMargins(1, 1, 1, 1)
+        self.file_path_layout.addWidget(self.file_path_label)
+        self.file_path_layout.addWidget(self.file_path_lineedit)
+        self.file_path_layout.addWidget(self.file_path_set_button)
+
+        self.file_name_layout = QtWidgets.QHBoxLayout()
+        self.file_name_layout.setContentsMargins(1, 1, 1, 1)
+        self.file_name_layout.addWidget(self.file_name_label)
+        self.file_name_layout.addWidget(self.file_name_lineedit)
+
+        self.path_layout = QtWidgets.QVBoxLayout()
+        self.path_layout.addLayout(self.file_path_layout)
+        self.path_layout.addLayout(self.file_name_layout)
+        self.path_layout.setSpacing(2)
+
+        self.file_path_collap_wgt = widgets.CollapsibleWidget("File Path")
+        self.file_path_collap_wgt.addLayout(self.path_layout)
+
+        # export skeletalMesh layout
         self.model_deformers_groupbox = QtWidgets.QGroupBox("Deformers")
         self.model_deformers_layout = QtWidgets.QHBoxLayout(
             self.model_deformers_groupbox
@@ -124,41 +203,37 @@ class FBXExport(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.model_deformers_layout.addWidget(self.skinning_checkbox)
         self.model_deformers_layout.addWidget(self.blendshapes_checkbox)
 
-        self.set_source_layout = QtWidgets.QVBoxLayout(
-            self.model_deformers_groupbox
+        self.export_mesh_collap_wgt = widgets.CollapsibleWidget(
+            "Export Skeletal Mesh"
         )
+        self.export_mesh_collap_wgt.addWidget(self.model_deformers_groupbox)
+        self.export_mesh_collap_wgt.addWidget(self.export_skeletal_mesh_button)
 
-        # settings layout
-        self.settings_groupbox = QtWidgets.QGroupBox("Settings")
-        self.settings_form_layout = QtWidgets.QFormLayout(
-            self.settings_groupbox
+        # export Animation layout
+        self.export_anim_collap_wgt = widgets.CollapsibleWidget(
+            "Export Animation"
         )
-        self.settings_form_layout.setWidget(
-            0, QtWidgets.QFormLayout.LabelRole, self.up_axis_label
-        )
-        self.settings_form_layout.setWidget(
-            0, QtWidgets.QFormLayout.FieldRole, self.up_axis_combobox
-        )
-        self.settings_form_layout.setWidget(
-            1, QtWidgets.QFormLayout.LabelRole, self.file_type_label
-        )
-        self.settings_form_layout.setWidget(
-            1, QtWidgets.QFormLayout.FieldRole, self.file_type_combobox
-        )
-        self.settings_form_layout.setWidget(
-            2, QtWidgets.QFormLayout.LabelRole, self.fbx_version_label
-        )
-        self.settings_form_layout.setWidget(
-            2, QtWidgets.QFormLayout.FieldRole, self.fbx_version_combobox
-        )
+        self.export_anim_collap_wgt.addWidget(self.export_animation_button)
 
-        # FBX SDK settings
-        self.sdk_settings_groupbox = QtWidgets.QGroupBox("FBX SDK settings")
-        self.sdk_settings_layout = QtWidgets.QVBoxLayout(
-            self.sdk_settings_groupbox
+        # Scroll Area layoout
+        self.base_scrollarea_wgt = QtWidgets.QWidget()
+
+        self.scrollarea_layout = QtWidgets.QVBoxLayout(
+            self.base_scrollarea_wgt
         )
-        self.sdk_settings_layout.addWidget(self.remove_namespace_checkbox)
-        self.sdk_settings_layout.addWidget(self.clean_scene_checkbox)
+        self.scrollarea_layout.setContentsMargins(2, 2, 2, 2)
+        self.scrollarea_layout.setSpacing(2)
+        self.scrollarea_layout.setAlignment(QtCore.Qt.AlignTop)
+        self.scrollarea_layout.addWidget(self.set_source_collap_wgt)
+        self.scrollarea_layout.addWidget(self.settings_collap_wgt)
+        self.scrollarea_layout.addWidget(self.file_path_collap_wgt)
+        self.scrollarea_layout.addWidget(self.export_mesh_collap_wgt)
+        self.scrollarea_layout.addWidget(self.export_anim_collap_wgt)
+
+        self.scrollarea_wgt = QtWidgets.QScrollArea(self)
+        self.scrollarea_wgt.setFrameShape(QtWidgets.QFrame.NoFrame)
+        self.scrollarea_wgt.setWidgetResizable(True)
+        self.scrollarea_wgt.setWidget(self.base_scrollarea_wgt)
 
         # Main layout
         self.main_layout = QtWidgets.QVBoxLayout(self)
@@ -166,14 +241,23 @@ class FBXExport(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.main_layout.setSpacing(2)
         self.main_layout.setMenuBar(self.menu_bar)
 
-        self.main_layout.addWidget(self.set_source_groupbox)
-        self.main_layout.addWidget(self.model_deformers_groupbox)
-        self.main_layout.addWidget(self.settings_groupbox)
-        self.main_layout.addWidget(self.sdk_settings_groupbox)
-        self.main_layout.addStretch()
+        self.main_layout.addWidget(self.scrollarea_wgt)
 
     def create_connections(self):
-        return
+        self.mesh_root_set_button.clicked.connect(
+            partial(
+                self.set_line_edit_text_from_sel,
+                self.mesh_root_lineedit,
+                "transform",
+            )
+        )
+        self.joint_root_set_button.clicked.connect(
+            partial(
+                self.set_line_edit_text_from_sel,
+                self.joint_root_lineedit,
+                "joint",
+            )
+        )
 
     # Helper methods
 
@@ -181,6 +265,51 @@ class FBXExport(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         fbx_versions = pfbx.get_fbx_versions()
         for v in fbx_versions:
             combobox.addItem(v)
+
+    def set_mesh_root():
+        return
+
+    def set_joint_root():
+        return
+
+    def get_rig_root():
+        return
+
+    def filter_sel_by_type(self, type_filter=None):
+        """Return the first selected element name if match the correct type
+
+        Args:
+            type_filter (str, optional): Type to filter: for example "joint"
+                                         or "transform"
+
+        Returns:
+            str: Name
+
+        """
+        sel = pm.selected()
+        if not sel:
+            pm.displayWarning("Nothing selected")
+            return
+        if type_filter:
+            sel_type = sel[0].type()
+            if not type_filter == sel_type:
+                pm.displayWarning(
+                    "Selected element is not of type: {}".format(type_filter)
+                )
+                return
+        return sel[0].name()
+
+    def set_line_edit_text_from_sel(self, lieneedit, type_filter):
+        """Set line edit text from selected element filtered by type
+
+        Args:
+            lieneedit (QLineEdit): QT line edit object
+            type_filter (str): Type to filter: for example "joint"
+                               or "transform"
+        """
+        text = self.filter_sel_by_type(type_filter)
+        if text:
+            lieneedit.setText(text)
 
 
 def openFBXExport(*args):

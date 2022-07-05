@@ -8,6 +8,7 @@ import maya.OpenMaya as api
 # CUSTOM WIDGETS
 #################################################
 
+
 class TableWidgetDragRows(QtWidgets.QTableWidget):
     """qTableWidget with drag and drop functionality"""
 
@@ -29,10 +30,15 @@ class TableWidgetDragRows(QtWidgets.QTableWidget):
             drop_row = self.drop_on(event)
 
             rows = sorted(set(item.row() for item in self.selectedItems()))
-            rows_to_move = [[QtWidgets.QTableWidgetItem(
-                self.item(row_index, column_index))
-                for column_index in range(self.columnCount())]
-                for row_index in rows]
+            rows_to_move = [
+                [
+                    QtWidgets.QTableWidgetItem(
+                        self.item(row_index, column_index)
+                    )
+                    for column_index in range(self.columnCount())
+                ]
+                for row_index in rows
+            ]
 
             for row_index in reversed(rows):
                 self.removeRow(row_index)
@@ -47,16 +53,20 @@ class TableWidgetDragRows(QtWidgets.QTableWidget):
             event.accept()
             for row_index in range(len(rows_to_move)):
                 for column_index in range(self.columnCount()):
-                    self.item(drop_row + row_index,
-                              column_index).setSelected(True)
+                    self.item(drop_row + row_index, column_index).setSelected(
+                        True
+                    )
 
     def drop_on(self, event):
         index = self.indexAt(event.pos())
         if not index.isValid():
             return self.rowCount()
 
-        return index.row() + 1 if self.is_below(event.pos(),
-                                                index) else index.row()
+        return (
+            index.row() + 1
+            if self.is_below(event.pos(), index)
+            else index.row()
+        )
 
     def is_below(self, pos, index):
         rect = self.visualRect(index)
@@ -65,10 +75,13 @@ class TableWidgetDragRows(QtWidgets.QTableWidget):
             return False
         elif rect.bottom() - pos.y() < margin:
             return True
-        return rect.contains(pos, True) \
-            and not (int(self.model().flags(index))
-                     & QtCore.Qt.ItemIsDropEnabled) \
+        return (
+            rect.contains(pos, True)
+            and not (
+                int(self.model().flags(index)) & QtCore.Qt.ItemIsDropEnabled
+            )
             and pos.y() >= rect.center().y()
+        )
 
     def getSelectedRowsFast(self):
         selRows = []
@@ -83,9 +96,11 @@ class TableWidgetDragRows(QtWidgets.QTableWidget):
         if self.dragDropMode() == QtWidgets.QAbstractItemView.InternalMove:
             dropAction = QtCore.Qt.MoveAction
 
-        if (event.source() == self
+        if (
+            event.source() == self
             and event.possibleActions() & QtCore.Qt.MoveAction
-                and dropAction == QtCore.Qt.MoveAction):
+            and dropAction == QtCore.Qt.MoveAction
+        ):
             selectedIndexes = self.selectedIndexes()
             child = index
             while child.isValid() and child != self.rootIndex():
@@ -105,15 +120,16 @@ class TableWidgetDragRows(QtWidgets.QTableWidget):
 
         if self.viewport().rect().contains(event.pos()):
             index = self.indexAt(event.pos())
-            if (not index.isValid()
-                    or not self.visualRect(index).contains(event.pos())):
+            if not index.isValid() or not self.visualRect(index).contains(
+                event.pos()
+            ):
                 index = self.rootIndex()
 
         if self.model().supportedDropActions() & event.dropAction():
             if index != self.rootIndex():
-                dropIndicatorPosition = self.position(event.pos(),
-                                                      self.visualRect(index),
-                                                      index)
+                dropIndicatorPosition = self.position(
+                    event.pos(), self.visualRect(index), index
+                )
                 qabw = QtWidgets.QAbstractItemView
                 if dropIndicatorPosition == qabw.AboveItem:
                     row = index.row()
@@ -140,9 +156,9 @@ class TableWidgetDragRows(QtWidgets.QTableWidget):
         elif rect.contains(pos, True):
             r = QtWidgets.QAbstractItemView.OnItem
 
-        if (r == QtWidgets.QAbstractItemView.OnItem
-                and not (self.model().flags(index)
-                         & QtCore.Qt.ItemIsDropEnabled)):
+        if r == QtWidgets.QAbstractItemView.OnItem and not (
+            self.model().flags(index) & QtCore.Qt.ItemIsDropEnabled
+        ):
             if pos.y() < rect.center().y():
                 r = QtWidgets.QAbstractItemView.AboveItem
             else:
@@ -154,6 +170,7 @@ class TableWidgetDragRows(QtWidgets.QTableWidget):
 ######################################
 # drag and drop QListView to Maya view
 ######################################
+
 
 def selectFromScreenApi(x, y, x_rect=None, y_rect=None):
     """Find the object under the cursor on Maya view
@@ -177,7 +194,8 @@ def selectFromScreenApi(x, y, x_rect=None, y_rect=None):
     # select from screen
     if x_rect is not None and y_rect is not None:
         api.MGlobal.selectFromScreen(
-            x, y, x_rect, y_rect, api.MGlobal.kReplaceList)
+            x, y, x_rect, y_rect, api.MGlobal.kReplaceList
+        )
     else:
         api.MGlobal.selectFromScreen(x, y, api.MGlobal.kReplaceList)
     objects = api.MSelectionList()
@@ -214,7 +232,7 @@ class DragQListView(QtWidgets.QListView):
     def mouseMoveEvent(self, event):
 
         mimeData = QtCore.QMimeData()
-        mimeData.setText('%d,%d' % (event.x(), event.y()))
+        mimeData.setText("%d,%d" % (event.x(), event.y()))
 
         drag = QtGui.QDrag(self)
         drag.setMimeData(mimeData)
@@ -224,16 +242,19 @@ class DragQListView(QtWidgets.QListView):
             pos = QtGui.QCursor.pos()
             widget = QtWidgets.QApplication.widgetAt(pos)
             if self.ignore_self and (
-                    widget is self
-                    or widget.objectName() == "qt_scrollarea_viewport"):
+                widget is self
+                or widget.objectName() == "qt_scrollarea_viewport"
+            ):
                 return
             relpos = widget.mapFromGlobal(pos)
             # need to invert Y axis
             invY = widget.frameSize().height() - relpos.y()
-            sel = selectFromScreenApi(relpos.x() - self.exp,
-                                      invY - self.exp,
-                                      relpos.x() + self.exp,
-                                      invY + self.exp)
+            sel = selectFromScreenApi(
+                relpos.x() - self.exp,
+                invY - self.exp,
+                relpos.x() + self.exp,
+                invY + self.exp,
+            )
 
             self.doAction(sel)
 
@@ -242,3 +263,99 @@ class DragQListView(QtWidgets.QListView):
 
     def doAction(self, sel):
         self.theAction(sel)
+
+
+######################################
+# collapsible widget
+######################################
+
+
+class CollapsibleHeader(QtWidgets.QWidget):
+
+    COLLAPSED_PIXMAP = QtGui.QPixmap(":teRightArrow.png")
+    EXPANDED_PIXMAP = QtGui.QPixmap(":teDownArrow.png")
+
+    clicked = QtCore.Signal()
+
+    def __init__(self, text, parent=None):
+        super(CollapsibleHeader, self).__init__(parent)
+
+        self.setAutoFillBackground(True)
+        self.set_background_color(None)
+
+        self.icon_label = QtWidgets.QLabel()
+        self.icon_label.setFixedWidth(self.COLLAPSED_PIXMAP.width())
+
+        self.text_label = QtWidgets.QLabel()
+        self.text_label.setAttribute(QtCore.Qt.WA_TransparentForMouseEvents)
+
+        self.main_layout = QtWidgets.QHBoxLayout(self)
+        self.main_layout.setContentsMargins(2, 2, 2, 2)
+        self.main_layout.addWidget(self.icon_label)
+        self.main_layout.addWidget(self.text_label)
+
+        self.set_text(text)
+        self.set_expanded(True)
+
+    def set_text(self, text):
+        self.text_label.setText("<b>{0}</b>".format(text))
+
+    def set_background_color(self, color):
+        if not color:
+            color = (
+                QtWidgets.QPushButton().palette().color(QtGui.QPalette.Button)
+            )
+
+        palette = self.palette()
+        palette.setColor(QtGui.QPalette.Window, color)
+        self.setPalette(palette)
+
+    def is_expanded(self):
+        return self._expanded
+
+    def set_expanded(self, expanded):
+        self._expanded = expanded
+
+        if self._expanded:
+            self.icon_label.setPixmap(self.EXPANDED_PIXMAP)
+        else:
+            self.icon_label.setPixmap(self.COLLAPSED_PIXMAP)
+
+    def mouseReleaseEvent(self, event):
+        self.clicked.emit()
+
+
+class CollapsibleWidget(QtWidgets.QWidget):
+    def __init__(self, text, expanded=True, parent=None):
+        super(CollapsibleWidget, self).__init__(parent)
+
+        self.header_wgt = CollapsibleHeader(text)
+        self.header_wgt.clicked.connect(self.on_header_clicked)
+        self.body_wgt = QtWidgets.QWidget()
+
+        self.body_layout = QtWidgets.QVBoxLayout(self.body_wgt)
+        self.body_layout.setContentsMargins(4, 2, 4, 2)
+        self.body_layout.setSpacing(3)
+
+        self.main_layout = QtWidgets.QVBoxLayout(self)
+        self.main_layout.setContentsMargins(0, 0, 0, 0)
+        self.main_layout.addWidget(self.header_wgt)
+        self.main_layout.addWidget(self.body_wgt)
+
+        self.set_expanded(expanded)
+
+    def addWidget(self, widget):
+        self.body_layout.addWidget(widget)
+
+    def addLayout(self, layout):
+        self.body_layout.addLayout(layout)
+
+    def set_expanded(self, expanded):
+        self.header_wgt.set_expanded(expanded)
+        self.body_wgt.setVisible(expanded)
+
+    def set_header_background_color(self, color):
+        self.header_wgt.set_background_color(color)
+
+    def on_header_clicked(self):
+        self.set_expanded(not self.header_wgt.is_expanded())
