@@ -569,6 +569,13 @@ class Rig(object):
                     masterSet.remove(sub)
                 pg.add(sub)
 
+        # create geo group
+
+        geoSet = pm.sets(n=self.model.name() + "_geo_grp", em=True)
+        pm.connectAttr(geoSet.message, self.model.rigGroups[groupIdx])
+        masterSet.add(geoSet)
+        groupIdx += 1
+
         # Bind pose ---------------------------------------
         # controls_grp = self.groups["controllers"]
         # pprint(controls_grp, stream=None, indent=1, width=100)
