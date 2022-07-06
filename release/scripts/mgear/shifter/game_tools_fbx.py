@@ -46,32 +46,28 @@ class FBXExport(MayaQWidgetDockableMixin, QtWidgets.QDialog):
 
     def create_actions(self):
         # file actions
-        self.file_export_mesh_preset_action = QtWidgets.QAction(
-            "Export Mesh Preset", self
+        self.file_export_preset_action = QtWidgets.QAction(
+            "Export Preset", self
         )
-        self.file_export_mesh_preset_action.setIcon(
-            pyqt.get_icon("mgear_plus-square")
+        self.file_export_preset_action.setIcon(pyqt.get_icon("mgear_log-out"))
+        self.file_import_preset_action = QtWidgets.QAction(
+            "Import Preset", self
         )
-        self.file_export_anim_preset_action = QtWidgets.QAction(
-            "Export Animation Preset", self
-        )
-        self.file_export_anim_preset_action.setIcon(
-            pyqt.get_icon("mgear_plus-square")
-        )
+        self.file_import_preset_action.setIcon(pyqt.get_icon("mgear_log-in"))
 
     def create_widgets(self):
 
         # menu bar
         self.menu_bar = QtWidgets.QMenuBar()
         self.file_menu = self.menu_bar.addMenu("File")
-        self.file_menu.addAction(self.file_export_mesh_preset_action)
-        self.file_menu.addAction(self.file_export_anim_preset_action)
+        self.file_menu.addAction(self.file_export_preset_action)
         self.file_menu.addSeparator()
+        self.file_menu.addAction(self.file_import_preset_action)
 
         # set source roots
-        self.mesh_root_label = QtWidgets.QLabel("Mesh Root")
-        self.mesh_root_lineedit = QtWidgets.QLineEdit()
-        self.mesh_root_set_button = QtWidgets.QPushButton("Set")
+        self.geo_root_label = QtWidgets.QLabel("Geo Root")
+        self.geo_root_lineedit = QtWidgets.QLineEdit()
+        self.geo_root_set_button = QtWidgets.QPushButton("Set")
 
         self.joint_root_label = QtWidgets.QLabel("Joint Root")
         self.joint_root_lineedit = QtWidgets.QLineEdit()
@@ -94,7 +90,7 @@ class FBXExport(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.remove_namespace_checkbox.setChecked(True)
         self.remove_namespace_checkbox.setEnabled(pfbx.FBX_SDK)
         self.clean_scene_checkbox = QtWidgets.QCheckBox(
-            "Joint and Mesh Root Child of Scene Root + Clean Up Scene"
+            "Joint and Geo Root Child of Scene Root + Clean Up Scene"
         )
         self.clean_scene_checkbox.setChecked(True)
         self.clean_scene_checkbox.setEnabled(pfbx.FBX_SDK)
@@ -112,23 +108,29 @@ class FBXExport(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.skinning_checkbox.setChecked(True)
         self.blendshapes_checkbox = QtWidgets.QCheckBox("Blendshapes")
         self.blendshapes_checkbox.setChecked(True)
-        self.export_skeletal_mesh_button = QtWidgets.QPushButton(
+        self.export_skeletal_geo_button = QtWidgets.QPushButton(
             "Export SkeletalMesh/SkinnedMesh"
+        )
+        self.export_skeletal_geo_button.setStyleSheet(
+            "QPushButton {background:rgb(70, 100, 150); }"
         )
 
         # export animation
         self.export_animation_button = QtWidgets.QPushButton(
             "Export Animation"
         )
+        self.export_animation_button.setStyleSheet(
+            "QPushButton {background:rgb(150, 35, 50); }"
+        )
 
     def create_layout(self):
 
         # set source layout
-        self.mesh_root_layout = QtWidgets.QHBoxLayout()
-        self.mesh_root_layout.setContentsMargins(1, 1, 1, 1)
-        self.mesh_root_layout.addWidget(self.mesh_root_label)
-        self.mesh_root_layout.addWidget(self.mesh_root_lineedit)
-        self.mesh_root_layout.addWidget(self.mesh_root_set_button)
+        self.geo_root_layout = QtWidgets.QHBoxLayout()
+        self.geo_root_layout.setContentsMargins(1, 1, 1, 1)
+        self.geo_root_layout.addWidget(self.geo_root_label)
+        self.geo_root_layout.addWidget(self.geo_root_lineedit)
+        self.geo_root_layout.addWidget(self.geo_root_set_button)
 
         self.joint_root_layout = QtWidgets.QHBoxLayout()
         self.joint_root_layout.setContentsMargins(1, 1, 1, 1)
@@ -137,7 +139,7 @@ class FBXExport(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.joint_root_layout.addWidget(self.joint_root_set_button)
 
         self.set_source_layout = QtWidgets.QVBoxLayout()
-        self.set_source_layout.addLayout(self.mesh_root_layout)
+        self.set_source_layout.addLayout(self.geo_root_layout)
         self.set_source_layout.addLayout(self.joint_root_layout)
         self.set_source_layout.setSpacing(2)
 
@@ -203,11 +205,11 @@ class FBXExport(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.model_deformers_layout.addWidget(self.skinning_checkbox)
         self.model_deformers_layout.addWidget(self.blendshapes_checkbox)
 
-        self.export_mesh_collap_wgt = widgets.CollapsibleWidget(
-            "Export Skeletal Mesh"
+        self.export_geo_collap_wgt = widgets.CollapsibleWidget(
+            "Export Skeletal Geo"
         )
-        self.export_mesh_collap_wgt.addWidget(self.model_deformers_groupbox)
-        self.export_mesh_collap_wgt.addWidget(self.export_skeletal_mesh_button)
+        self.export_geo_collap_wgt.addWidget(self.model_deformers_groupbox)
+        self.export_geo_collap_wgt.addWidget(self.export_skeletal_geo_button)
 
         # export Animation layout
         self.export_anim_collap_wgt = widgets.CollapsibleWidget(
@@ -227,7 +229,7 @@ class FBXExport(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.scrollarea_layout.addWidget(self.set_source_collap_wgt)
         self.scrollarea_layout.addWidget(self.settings_collap_wgt)
         self.scrollarea_layout.addWidget(self.file_path_collap_wgt)
-        self.scrollarea_layout.addWidget(self.export_mesh_collap_wgt)
+        self.scrollarea_layout.addWidget(self.export_geo_collap_wgt)
         self.scrollarea_layout.addWidget(self.export_anim_collap_wgt)
 
         self.scrollarea_wgt = QtWidgets.QScrollArea(self)
@@ -244,10 +246,10 @@ class FBXExport(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.main_layout.addWidget(self.scrollarea_wgt)
 
     def create_connections(self):
-        self.mesh_root_set_button.clicked.connect(
+        self.geo_root_set_button.clicked.connect(
             partial(
                 self.set_line_edit_text_from_sel,
-                self.mesh_root_lineedit,
+                self.geo_root_lineedit,
                 "transform",
             )
         )
@@ -266,7 +268,7 @@ class FBXExport(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         for v in fbx_versions:
             combobox.addItem(v)
 
-    def set_mesh_root():
+    def set_geo_root():
         return
 
     def set_joint_root():
