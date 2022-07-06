@@ -813,7 +813,7 @@ class Component(component.Main):
         self.ikHandle2 = primitive.addIkHandle(self.softblendLoc2,
                                                self.getName("ik2BonesHandle"),
                                                self.chain2bones,
-                                               self.ikSolver,
+                                               "ikRPsolver",
                                                self.upv_ctl)
 
         node.createMulNode(self.roll_att, mulVal, self.ikHandle2.attr("twist"))
