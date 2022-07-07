@@ -42,6 +42,7 @@ def install():
         ("Channel Wrangler", str_openChannelWrangler),
         ("-----", None),
         ("Facial Rigger", str_facial_rigger),
+        ("Eyelid Rigger 2.0", str_eye_rigger),
         ("-----", None),
         ("Proxy Slicer", str_proxySlicer),
         ("Proxy Slicer Parenting", str_proxySlicer_parent),
@@ -259,18 +260,12 @@ rigbits.connectLocalTransform(None, 0, 0, 1)
 """
 
 
-# legacy facial str commands
+# eye rigger 2.0 str commands
 
 str_eye_rigger = """
-from mgear.rigbits import eye_rigger
-eye_rigger.showEyeRigUI()
+from mgear.rigbits import facial_rigger2
+facial_rigger2.eye_riggerUI.show()
 """
-
-str_lips_rigger = """
-from mgear.rigbits import lips_rigger
-lips_rigger.showLipRigUI()
-"""
-
 
 # Gimmick joints str commands
 
