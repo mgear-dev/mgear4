@@ -471,11 +471,29 @@ class Component(component.Main):
         self.divisions = o_set["div0"] + o_set["div1"] + o_set["div2"] + 4
 
         self.div_cns = []
+        self.tweak_ctl = []
+        tagP = self.parentCtlTag
         for i in range(self.divisions):
             div_cns = primitive.addTransform(self.root_ctl,
                                              self.getName("div%s_loc" % i))
             self.div_cns.append(div_cns)
-            self.jnt_pos.append([div_cns, i])
+
+            tweak_ctl = self.addCtl(
+                div_cns,
+                "tweak%s_ctl" % i,
+                datatypes.TransformationMatrix(),
+                self.color_fk,
+                "square",
+                w=self.size * 0.15,
+                d=self.size * 0.15,
+                ro=datatypes.Vector([0, 0, 1.5708]),
+                tp=tagP,
+            )
+            attribute.setKeyableAttributes(tweak_ctl)
+            tagP = tweak_ctl
+            self.tweak_ctl.append(tweak_ctl)
+
+            self.jnt_pos.append([tweak_ctl, i])
 
         # End reference ------------------------------------
         # To help the deformation on the foot
@@ -599,6 +617,10 @@ class Component(component.Main):
                     self.upv_ctl])
             attribute.addProxyAttribute(self.roll_att,
                                         [self.ik_ctl, self.upv_ctl])
+
+        self.tweakVis_att = self.addAnimParam(
+            "Tweak_vis", "Tweak Vis", "bool", False
+        )
 
         # Setup ------------------------------------------
         # Eval Fcurve
@@ -1078,6 +1100,10 @@ class Component(component.Main):
         for ctrl in [self.ik_ctl, self.roll_ctl, self.upv_ctl, self.line_ref]:
             for shp in ctrl.getShapes():
                 pm.connectAttr(self.blend_att, shp.attr("visibility"))
+        # tweaks
+        for tweak_ctl in self.tweak_ctl:
+            for shp in tweak_ctl.getShapes():
+                pm.connectAttr(self.tweakVis_att, shp.attr("visibility"))
 
         # setup leg o_node scale compensate
         pm.connectAttr(self.rig.global_ctl + ".scale", self.setup + ".scale")
