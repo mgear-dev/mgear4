@@ -7,18 +7,6 @@
 [submodule "vendor/weightDriver"]
 	path = vendor/weightDriver
 	url = https://github.com/IngoClemens/weightDriver.git
-[submodule "vendor/TwistSpline"]
-	path = vendor/TwistSpline
-	url = https://github.com/blurstudio/TwistSpline.git
-[submodule "vendor/grim_IK"]
-	path = vendor/grim_IK
-	url = https://github.com/kattkieru/grim_IK.git
-[submodule "vendor/maya-math-nodes"]
-	path = vendor/maya-math-nodes
-	url = https://github.com/serguei-k/maya-math-nodes.git
 [submodule "vendor/QJsonModel"]
 	path = vendor/QJsonModel
 	url = https://github.com/dridk/QJsonModel.git
-[submodule "vendor/cvwrap"]
-	path = vendor/cvwrap
-	url = https://github.com/chadmv/cvwrap.git
