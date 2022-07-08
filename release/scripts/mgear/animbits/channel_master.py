@@ -3,6 +3,7 @@ import pymel.core as pm
 from mgear.core import pyqt
 from mgear.core import attribute
 from mgear.core import utils
+from mgear.core import widgets as mwgt
 from mgear.vendor.Qt import QtWidgets
 from mgear.vendor.Qt import QtCore
 from mgear.vendor.Qt import QtGui
@@ -224,32 +225,32 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.tab_menu.addAction(self.tab_del_action)
 
         # Keyframe widgets
-        self.key_all_button = cmw.create_button(
+        self.key_all_button = mwgt.create_button(
             size=34, icon="mgear_key", toolTip="Keyframe")
-        self.key_copy_button = cmw.create_button(
+        self.key_copy_button = mwgt.create_button(
             size=34, icon="mgear_copy", toolTip="Copy Keyframe")
-        self.key_paste_button = cmw.create_button(
+        self.key_paste_button = mwgt.create_button(
             size=34, icon="mgear_clipboard", toolTip="Paste Keyframe")
 
         # channel listing widgets
-        self.lock_button = cmw.create_button(
+        self.lock_button = mwgt.create_button(
             size=34,
             icon="mgear_unlock",
             toggle_icon="mgear_lock",
             toolTip="Lock Channel Auto Refresh")
-        self.refresh_button = cmw.create_button(
+        self.refresh_button = mwgt.create_button(
             size=17, icon="mgear_refresh-cw", toolTip="Refresh Channel List")
-        self.add_channel_button = cmw.create_button(
+        self.add_channel_button = mwgt.create_button(
             size=34, icon="mgear_plus", toolTip="Add Selected Channels")
-        self.remove_channel_button = cmw.create_button(
+        self.remove_channel_button = mwgt.create_button(
             size=34, icon="mgear_minus", toolTip="Remove Selected Channels")
 
         # node list widgets
         self.node_list_combobox = QtWidgets.QComboBox()
         self.node_list_combobox.setMaximumHeight(17)
-        self.refresh_node_list_button = cmw.create_button(
+        self.refresh_node_list_button = mwgt.create_button(
             size=17, icon="mgear_refresh-cw", toolTip="Refresh Node List")
-        self.new_node_button = cmw.create_button(
+        self.new_node_button = mwgt.create_button(
             size=17,
             icon="mgear_plus",
             toolTip="Create New Channel Master Node")
@@ -257,12 +258,12 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         # search widgets
         self.search_label = QtWidgets.QLabel("Filter Channel: ")
         self.search_lineEdit = QtWidgets.QLineEdit()
-        self.search_clear_button = cmw.create_button(
+        self.search_clear_button = mwgt.create_button(
             size=17, icon="mgear_delete", toolTip="Clear Search Field")
 
         # tabs widget
         self.tab_widget = QtWidgets.QTabWidget()
-        self.add_tab_button = cmw.create_button(
+        self.add_tab_button = mwgt.create_button(
             size=17, icon="mgear_plus", toolTip="Add New Tab")
         self.add_tab_button.setFlat(True)
         self.add_tab_button.setMaximumWidth(34)
