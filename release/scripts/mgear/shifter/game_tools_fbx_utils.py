@@ -59,7 +59,9 @@ def get_geo_grp():
     geo_groups = pm.ls("*:*_geo_grp", "*_geo_grp", type="objectSet")
     if geo_groups:
         if len(geo_groups) > 1:
-            geo_grp = pm.PyNode(select_item(geo_groups, "Select Geo Group"))
+            item = select_item(geo_groups, "Select Geo Group")
+            if item:
+                geo_grp = pm.PyNode(item)
         else:
             geo_grp = geo_groups[0]
     return geo_grp
@@ -80,9 +82,9 @@ def get_joint_org():
     joint_orgs = pm.ls("*:jnt_org", "*jnt_org", type="transform")
     if joint_orgs:
         if len(joint_orgs) > 1:
-            jnt_org = pm.PyNode(
-                select_item(joint_orgs, "Select Joint Org Node")
-            )
+            item = select_item(joint_orgs, "Select Joint Org Node")
+            if item:
+                jnt_org = pm.PyNode(item)
         else:
             jnt_org = joint_orgs[0]
     return jnt_org
@@ -158,11 +160,11 @@ class SelectorDialog(QtWidgets.QDialog):
 
     def create_connections(self):
         self.list_wgt.itemClicked.connect(self.get_item)
+        self.list_wgt.itemDoubleClicked.connect(self.accept)
 
         self.ok_btn.clicked.connect(self.accept)
 
     def get_item(self, item):
-        print(item.text())
         self.item = item.text()
 
 
