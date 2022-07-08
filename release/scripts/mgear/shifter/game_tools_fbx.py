@@ -4,11 +4,12 @@ from mgear.core import pyqt
 from mgear.core import widgets
 from mgear.core import attribute
 from mgear.core import utils
+from mgear.core import string
 
 # from mgear.vendor.Qt import QtWidgets
 # from mgear.vendor.Qt import QtCore
 # from mgear.vendor.Qt import QtGui
-# TODO: comment out later. using direct import for better autocompletion
+# TODO: comment out later. using direct import for better auto completion
 from PySide2 import QtCore
 from PySide2 import QtGui
 from PySide2 import QtWidgets
@@ -98,7 +99,7 @@ class FBXExport(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         # path and filename
         self.file_path_label = QtWidgets.QLabel("Path")
         self.file_path_lineedit = QtWidgets.QLineEdit()
-        self.file_path_set_button = QtWidgets.QPushButton("Set")
+        self.file_path_set_button = widgets.create_button(icon="mgear_folder")
 
         self.file_name_label = QtWidgets.QLabel("File Name")
         self.file_name_lineedit = QtWidgets.QLineEdit()
@@ -217,7 +218,7 @@ class FBXExport(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         )
         self.export_anim_collap_wgt.addWidget(self.export_animation_button)
 
-        # Scroll Area layoout
+        # Scroll Area layout
         self.base_scrollarea_wgt = QtWidgets.QWidget()
 
         self.scrollarea_layout = QtWidgets.QVBoxLayout(
@@ -260,19 +261,61 @@ class FBXExport(MayaQWidgetDockableMixin, QtWidgets.QDialog):
                 "joint",
             )
         )
+        self.file_path_set_button.clicked.connect(self.set_folder_path)
+        self.export_skeletal_geo_button.clicked.connect(
+            self.export_skeletal_mesh
+        )
 
-    # Helper methods
+    # slots
 
     def populate_fbx_versions_combobox(self, combobox):
         fbx_versions = pfbx.get_fbx_versions()
         for v in fbx_versions:
             combobox.addItem(v)
 
-    def set_geo_root():
-        return
+    def set_folder_path(self):
+        folder_path = pm.fileDialog2(fileMode=3)
+        if folder_path:
+            self.file_path_lineedit.setText(
+                string.normalize_path(folder_path[0])
+            )
 
-    def set_joint_root():
-        return
+    def export_skeletal_mesh(self):
+        self.auto_set_geo_root()
+        self.auto_set_joint_root()
+
+    # Helper methods
+
+    def list_to_str(self, element_list):
+        """Create a comma "," separated list with the string names of the elements
+
+        Args:
+            element_list (list): PyNode list
+
+        Returns:
+            str: formatted string list
+        """
+        str_list = element_list[0].name()
+        if len(element_list) > 1:
+            for e in element_list[1:]:
+                str_list = "{},{}".format(str_list, e.name())
+
+        print(str_list)
+        return str_list
+
+    def auto_set_geo_root(self):
+        if not self.geo_root_lineedit.text():
+            g_root = fu.get_geo_root()
+            if g_root:
+                g_root_str = self.list_to_str(g_root)
+                self.geo_root_lineedit.setText(g_root_str)
+
+    def auto_set_joint_root(self):
+        if not self.joint_root_lineedit.text():
+            j_root = fu.get_joint_root()
+            if j_root:
+                j_root_str = self.list_to_str(j_root)
+                self.joint_root_lineedit.setText(j_root_str)
 
     def get_rig_root():
         return
