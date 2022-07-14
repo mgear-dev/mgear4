@@ -70,7 +70,11 @@ def get_geo_grp():
 def get_geo_root():
     geo_grp = get_geo_grp()
     if geo_grp:
-        return geo_grp.members()
+        memb = geo_grp.members()
+        if memb:
+            return memb
+        else:
+            pm.displayWarning("Geo_grp is empty. Please set geo root manually")
     else:
         pm.displayWarning(
             "Not Geo_grp available, please set geo roots manually"

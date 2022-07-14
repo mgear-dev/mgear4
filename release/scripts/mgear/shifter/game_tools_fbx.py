@@ -1,3 +1,4 @@
+import os
 import maya.cmds as cmds
 import pymel.core as pm
 from mgear.core import pyqt
@@ -266,7 +267,13 @@ class FBXExport(MayaQWidgetDockableMixin, QtWidgets.QDialog):
             self.export_skeletal_mesh
         )
 
+        self.file_name_lineedit.textChanged.connect(self.normalize_name)
+
     # slots
+
+    def normalize_name(self):
+        name = string.removeInvalidCharacter2(self.file_name_lineedit.text())
+        self.file_name_lineedit.setText(name)
 
     def populate_fbx_versions_combobox(self, combobox):
         fbx_versions = pfbx.get_fbx_versions()
@@ -283,6 +290,7 @@ class FBXExport(MayaQWidgetDockableMixin, QtWidgets.QDialog):
     def export_skeletal_mesh(self):
         self.auto_set_geo_root()
         self.auto_set_joint_root()
+        self.auto_file_path()
 
     # Helper methods
 
@@ -300,7 +308,6 @@ class FBXExport(MayaQWidgetDockableMixin, QtWidgets.QDialog):
             for e in element_list[1:]:
                 str_list = "{},{}".format(str_list, e.name())
 
-        print(str_list)
         return str_list
 
     def auto_set_geo_root(self):
@@ -316,6 +323,21 @@ class FBXExport(MayaQWidgetDockableMixin, QtWidgets.QDialog):
             if j_root:
                 j_root_str = self.list_to_str(j_root)
                 self.joint_root_lineedit.setText(j_root_str)
+
+    def auto_file_path(self):
+        if (
+            not self.file_path_lineedit.text()
+            or not self.file_name_lineedit.text()
+        ):
+            file_path = pm.fileDialog2(fileMode=0, fileFilter="FBX(*.fbx)")
+            if file_path:
+                dir_name = os.path.dirname(file_path[0])
+                file_name = os.path.splitext(os.path.basename(file_path[0]))[0]
+
+                self.file_path_lineedit.setText(
+                    string.normalize_path(dir_name)
+                )
+                self.file_name_lineedit.setText(file_name)
 
     def get_rig_root():
         return

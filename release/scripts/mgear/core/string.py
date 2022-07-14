@@ -83,6 +83,16 @@ def removeInvalidCharacter(string):
     return re.sub("[^A-Za-z0-9]", "", str(string))
 
 
+def removeInvalidCharacter2(string):
+    """Remove all invalid character. Incluede "_" and "."as valid character.
+
+    :param string string: A string to normalize.
+    :return string: Normalized string.
+
+    """
+    return re.sub("[^A-Za-z0-9_.]", "", str(string))
+
+
 def replaceSharpWithPadding(string, index):
     """Replace a list of # symbol with properly padded index.
 
