@@ -1851,10 +1851,16 @@ class IkFkTransfer(AbstractAnimationTransfer):
 
     def getChangeRollAttrName(self):
         # type: () -> str
-        return "{}.{}".format(
+        at_name = self.switchedAttrShortName.replace("blend", "roll")
+        at = "{}.{}".format(
             self.getHostName(),
             self.switchedAttrShortName.replace("blend", "roll"),
+            at_name
         )
+        if pm.objExists(at):
+            return at
+        else:
+            return self.ikCtrl[0].attr(at_name)
 
     def changeAttrToBoundValue(self):
         # type: () -> None
