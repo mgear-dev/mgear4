@@ -933,6 +933,19 @@ def set_default_value(node, attribute):
         pass
 
 
+def change_default_value(attributes, defaultValue):
+    """Change the default value of the attr
+
+    Args:
+        attributes (list or str or pynode): attributes to change the default val
+        defaultValue (numeric value): defaul value. Only numeric values are valid
+    """
+    if not isinstance(attributes, list):
+        attributes = [attributes]
+    for at in attributes:
+        pm.addAttr(at, e=True, defaultValue=defaultValue)
+
+
 def reset_selected_channels_value(objects=None, attributes=None):
     """Reset the the selected channels if not attribute is provided
 
