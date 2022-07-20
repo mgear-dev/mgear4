@@ -292,6 +292,36 @@ class FBXExport(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.auto_set_joint_root()
         self.auto_file_path()
 
+        # retrieve export config
+        geo = self.geo_root_lineedit.text().split(",")
+        jnt_root = self.joint_root_lineedit.text().split(",")
+        up_axis = self.up_axis_combobox.currentText()
+        file_type = self.file_type_combobox.currentText()
+        fbx_version = self.fbx_version_combobox.currentText()
+        remove_namespace = self.remove_namespace_checkbox.isChecked()
+        scene_clean = self.clean_scene_checkbox.isChecked()
+        file_name = self.file_name_lineedit.text()
+        file_path = self.file_path_lineedit.text()
+        skinning = self.skinning_checkbox.isChecked()
+        blendshapes = self.blendshapes_checkbox.isChecked()
+
+        path = string.normalize_path(
+            os.path.join(file_path, file_name + ".fbx")
+        )
+
+        fu.export_skeletal_mesh(
+            jnt_root,
+            geo,
+            path,
+            up_axis=up_axis,
+            file_type=file_type,
+            fbx_version=fbx_version,
+            remove_namespace=remove_namespace,
+            scene_clean=scene_clean,
+            skinning=skinning,
+            blendshapes=blendshapes,
+        )
+
     # Helper methods
 
     def list_to_str(self, element_list):

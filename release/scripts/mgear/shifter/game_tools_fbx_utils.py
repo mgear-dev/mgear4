@@ -1,5 +1,6 @@
 import pymel.core as pm
 import sys
+import os
 
 # from mgear.vendor.Qt import QtWidgets
 # from mgear.vendor.Qt import QtCore
@@ -17,6 +18,10 @@ def export_skeletal_mesh(jnt_root, mesh_root, path, **kwargs):
 
     # export settings config
     pfbx.FBXResetExport()
+
+    # set configuration
+    if "up_axis" in kwargs.keys():
+        pfbx.FBXExportUpAxis(kwargs["up_axis"])
 
     # select elements
     pm.select([jnt_root, mesh_root])

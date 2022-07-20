@@ -308,26 +308,41 @@ if not pm.pluginInfo("fbxmaya", q=True, loaded=True):
 
 
 def _py_fbx(mel_cmd, *args, **kwargs):
+    """Format python command to MEL
 
-    arg_string = ""
-    kwargs_string = ""
+    NOTe: be carefull with the use of "" and '' for str
+
+    Args:
+        mel_cmd (str): Mel Command
+        *args: Command Arguments
+        **kwargs: KW arguments
+
+    Returns:
+        str: the result of the command execution
+    """
+    arg_string = ''
+    kwargs_string = ''
     for a in args:
         if not isinstance(a, str):
             a = str(a)
-        arg_string += " {}".format(a)
+        arg_string += ' {}'.format(a)
 
     for ka in kwargs.items():
-        if ka[0] != "q":
+        if ka[0] != 'q':
             if isinstance(ka[1], str):
-                argu = string.normalize_path('"{}"'.format(ka[1]))
+                argu = '"{}"'.format(string.normalize_path(ka[1]))
             else:
                 argu = ka[1]
-            kwargs_string += " -{} {}".format(ka[0], argu)
+            if isinstance(argu, bool):
+                if ka[1]:
+                    kwargs_string += ' -{} {}'.format(ka[0], str(argu).lower())
+            else:
+                kwargs_string += ' -{} "{}"'.format(ka[0], argu)
         else:
-            kwargs_string += " -q"
+            kwargs_string += ' -q'
 
-    mel_format_cmd = "{}{}{};".format(mel_cmd, kwargs_string, arg_string)
-
+    mel_format_cmd = '{}{}{};'.format(mel_cmd, kwargs_string, arg_string)
+    print(mel_format_cmd)
     return maya.mel.eval(mel_format_cmd)
 
 
