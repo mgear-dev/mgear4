@@ -12,8 +12,6 @@ Introduction
 
 Animbits is a animation commont library with tools and functions for the animators.
 
-
-
 Modules
 -------
 
@@ -25,3 +23,9 @@ Modules
    mgear.animbits.softTweaks
 
 
+.. toctree::
+   :maxdepth: 2
+
+   mgear/mgear.animbits
+   mgear/mgear.animbits.menu
+   mgear/mgear.animbits.softTweaks

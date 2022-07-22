@@ -353,7 +353,7 @@ Release Log
 	* Rigbits: RBF Manager: support for non-control objects  [mgear#228]
 
 2.5.24
------
+------
 **New Features**
 	* mGear: IO curves [mgear#76]
 	* Rigbits: RBF Manager [mgear#183]

@@ -24,5 +24,10 @@ Modules
    :toctree: generated
 
    mgear.synoptic
-   mgear.synoptic.utils
-   mgear.synoptic.widgets
+
+.. toctree::
+   :maxdepth: 2
+
+   mgear/mgear.synoptic
+   mgear/mgear.synoptic.utils
+   mgear/mgear.synoptic.widgets

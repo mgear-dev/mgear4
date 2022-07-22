@@ -23,3 +23,9 @@ Modules
    mgear.simpleRig
    mgear.simpleRig.menu
    mgear.simpleRig.simpleRigTool
+
+.. toctree::
+   :maxdepth: 2
+   mgear/mgear.simpleRig
+   mgear/mgear.simpleRig.menu
+   mgear/mgear.simpleRig.simpleRigTool

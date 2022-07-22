@@ -11,9 +11,11 @@ To install mGear on your computer:
 1) Download the latest mGear release from here_.
 2) Unzip it
 3) Copy the content of the mGear **release** folder to your maya/modules folder:
+
  a) Windows: \Users\<username>\Documents\Maya\modules
  b) Linux: ~/maya/modules
  c) Mac OS X: ~/maya/modules
+ 
 4) Start Maya
 
 You should now have an mGear menu in Maya.

@@ -74,7 +74,7 @@ FIRST THINGS TO KNOW About mGear
 
 	12) You can set up hotkeys to do some of the frequent mGear actions. mGear → Utilities → Create mGear hotkeys. This adds a bunch of actions in the Hotkey Editor. Then it is up to you to map them. I map "Build From Selection" to F7. And "Settings" to F6. Hitting F6 opens the module settings of the rig component I have selected.
 
-	13) **Control Icons:** When the rig is built, you can tweak or replace your control icons, and click "Extr. Ctl". This stands for "Extract Control" and it saves the icons inside the guide. The next time you build the script, it will use your custom icons. To reset to the default, you can simply delete the icons from inside the |guide|controllers_org group. You can also import icons from another character or another file. They are based on name. If names don't match, they won't be used.
+	13) **Control Icons:** When the rig is built, you can tweak or replace your control icons, and click "Extr. Ctl". This stands for "Extract Control" and it saves the icons inside the guide. The next time you build the script, it will use your custom icons. To reset to the default, you can simply delete the icons from inside the guide|controllers_org group. You can also import icons from another character or another file. They are based on name. If names don't match, they won't be used.
 
 	14) Saving your Skinning
 
@@ -148,6 +148,7 @@ Shifter build scripts will be kept under a separate "build" directory, and track
 
 * [ ] FIRST: Design the pipeline. The rigs will be built from guides. Figure out how to save this as a template asset that can easily be reused and iterated on.
 * [ ] Maybe write this as a Google Doc or a Wiki doc.
+
 The best way to install mGear is by putting it in a directory that can be accessed by your artists, and then pointed to by using the Maya environment variable MAYA_MODULE_PATH = /your/directory/here/foo
 
 If you are creating custom modules, you should store them in a separate directory of your choosing, and then point to it in your Maya.env by using MGEAR_SHIFTER_COMPONENT_PATH = /your/directory/here/foo
