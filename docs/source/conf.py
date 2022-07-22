@@ -12,15 +12,17 @@
 # All configuration values have a default; values that are commented out
 # serve to show the default.
 
-import sys
 import os
+import sys
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 # sys.path.insert(0, os.path.abspath('.'))
 # sys.path.insert(0, os.path.abspath('C:\\datawork\\repo\\mgear\\scripts'))
-sys.path.insert(0, os.path.abspath('../release/scripts'))
+# sys.path.insert(0, os.path.abspath('./../../release/scripts'))
+sys.path.append(os.path.abspath('./../../release/scripts'))
+
 # -- General configuration ------------------------------------------------
 
 # If your documentation needs a minimal Sphinx version, state it here.
@@ -49,7 +51,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'mGear: Rigging Framework'
-copyright = u'2011-2018, Jeremie Passerin, Miquel Campos, 2018-2021 The mGear Dev Team'
+copyright = u'2011-2022, Jeremie Passerin, Miquel Campos, 2018-2022 The mGear Dev Team'
 author = u'The mGear Dev Team'
 
 # The version info for the project you're documenting, acts as replacement for
@@ -66,7 +68,7 @@ release = u'4.0.3'
 #
 # This is also used if you do content translation via gettext catalogs.
 # Usually you set "language" from the command line for these cases.
-language = None
+language = 'en'
 
 # There are two options for replacing |today|: either, you set today to some
 # non-false value, then it is used:
@@ -77,6 +79,9 @@ language = None
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 exclude_patterns = []
+
+# Mock imports
+autodoc_mock_imports = ["maya", "pymel", "Qt", "PySide", "PySide2"]
 
 # The reST default role (used for this markup: `text`) to use for all
 # documents.
