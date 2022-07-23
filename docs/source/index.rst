@@ -29,6 +29,7 @@ Welcome to mGear: Rigging Framework for Autodesk Maya
    framework
    solvers
    animbitsUserDocumentation
+   rigbitsUserDocumentation
    crankUserDocumentation
    shifterUserDocumentation
    shifterComponentReference
@@ -37,7 +38,6 @@ Welcome to mGear: Rigging Framework for Autodesk Maya
    FAQ
    releaseLog
    license
-
 
 Indices and tables
 ==================

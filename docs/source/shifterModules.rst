@@ -16,7 +16,6 @@ Shifter can be use in a wide variety of projects. Animated feature films, video 
 Shifter have been build on top of mGear framework and can co-exist with other rigging systems inside mGear framework. In other words, if Shifter's paradigm doesn't fit your rigging needs, you can create another rigging system using the same mGear base modules.
 
 
-
 Modules
 --------
 
@@ -24,9 +23,11 @@ Modules
    :toctree: generated
 
    mgear.shifter
-   mgear.shifter.guide
-   mgear.shifter.gui
-   mgear.shifter.component
-   mgear.shifter.component.guide
 
+.. toctree::
+   :maxdepth: 2
 
+   mgear/mgear.shifter
+   mgear/mgear.shifter.guide
+   mgear/mgear.shifter.component
+   mgear/mgear.shifter.component.guide

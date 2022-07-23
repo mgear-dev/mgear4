@@ -11,9 +11,9 @@ Framework
 	simpleRigModules
 	synopticModules
 
+
 .. toctree::
 	:maxdepth: 0
 	:hidden:
 
 	modulesList
-

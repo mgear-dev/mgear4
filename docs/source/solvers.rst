@@ -283,7 +283,7 @@ Spring dynamic solver based in goal position.
 
 
 mgear_squashStretch_attr
--------------------
+------------------------
 
 .. image:: images/solvers/mgear_squashStretch_node.png
     :align: center

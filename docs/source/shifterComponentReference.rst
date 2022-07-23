@@ -1,4 +1,5 @@
 .. _shifter-component-reference:
+
 Shifter Component Reference
 ###########################
 
