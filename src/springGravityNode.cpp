@@ -40,7 +40,7 @@ Date:       2016 / 10 / 10
 /////////////////////////////////////////////////
 // GLOBAL
 /////////////////////////////////////////////////
-MTypeId		mgear_springGravityNode::id(0xF011FEC1);
+MTypeId		mgear_springGravityNode::id(0x0011FECF);
 
 //Static variables
 
