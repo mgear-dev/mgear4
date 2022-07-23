@@ -944,6 +944,7 @@ def change_default_value(attributes, defaultValue):
         attributes = [attributes]
     for at in attributes:
         pm.addAttr(at, e=True, defaultValue=defaultValue)
+        pm.setAttr(at, defaultValue)
 
 
 def reset_selected_channels_value(objects=None, attributes=None):
