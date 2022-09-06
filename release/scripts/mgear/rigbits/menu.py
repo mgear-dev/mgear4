@@ -33,6 +33,7 @@ def install():
         ("SDK Manager (BETA)", str_SDK_manager_ui),
         ("-----", None),
         ("Space Jumper", str_spaceJump),
+        ("Space Manager", str_space_manager),
         ("Interpolated Transform", str_createInterpolateTransform),
         (None, connect_submenu),
         ("-----", None),
@@ -188,6 +189,11 @@ SDK_manager_ui.show()
 str_spaceJump = """
 from mgear import rigbits
 rigbits.spaceJump()
+"""
+
+str_space_manager = """
+from mgear.rigbits.space_manager import spaceManagerUtils
+spacemanager = spaceManagerUtils.SpaceManager()
 """
 
 str_createInterpolateTransform = """
