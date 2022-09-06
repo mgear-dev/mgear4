@@ -65,13 +65,13 @@ def create_constraints(dataSet):
         constraintName = driven + "_spaceSwitch_" + constraintType
         constraint = ""
         if constraintType == "parentConstraint":
-            constraint = cmds.parentConstraint(drivers, driven, name = constraintName, mo = keepOffsetBool)
+            constraint = cmds.parentConstraint(drivers, driven, name = constraintName, maintainOffset = keepOffsetBool)
         elif constraintType == "pointConstraint":
-            constraint = cmds.pointConstraint(drivers, driven, name = constraintName, mo = keepOffsetBool)
+            constraint = cmds.pointConstraint(drivers, driven, name = constraintName, maintainOffset = keepOffsetBool)
         elif constraintType == "orientConstraint":
-            constraint = cmds.orientConstraint(drivers, driven, name = constraintName, mo = keepOffsetBool)
+            constraint = cmds.orientConstraint(drivers, driven, name = constraintName, maintainOffset = keepOffsetBool)
         elif constraintType == "scaleConstraint":
-            constraint = cmds.scaleConstraint(drivers, driven, name = constraintName, mo = keepOffsetBool)
+            constraint = cmds.scaleConstraint(drivers, driven, name = constraintName, maintainOffset = keepOffsetBool)
         # getting rid of redundant list structure coming from cmds
         constraint = constraint[0]
 
