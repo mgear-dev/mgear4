@@ -397,7 +397,12 @@ def rig(
         low_pos = 1  # Y
 
     # upper ctl
-    p = upRest_target_crv.getCVs(space="world")[15]
+    # rest index in R side is 14
+    if side == "R":
+        rest_idx = 14
+    else:
+        rest_idx = 15
+    p = upRest_target_crv.getCVs(space="world")[rest_idx]
     ut = transform.setMatrixPosition(datatypes.Matrix(), p)
     npo = primitive.addTransform(over_npo, setName("upBlink_npo"), ut)
 
@@ -421,7 +426,7 @@ def rig(
     blink_driver = primitive.addTransform(up_ctl, setName("blink_drv"), ut)
 
     # lowe ctl
-    p_low = lowRest_target_crv.getCVs(space="world")[15]
+    p_low = lowRest_target_crv.getCVs(space="world")[rest_idx]
     p[low_pos] = p_low[low_pos]
     lt = transform.setMatrixPosition(ut, p)
     npo = primitive.addTransform(over_npo, setName("lowBlink_npo"), lt)
