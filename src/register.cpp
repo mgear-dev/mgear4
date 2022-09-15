@@ -134,6 +134,8 @@ PLUGIN_EXPORT MStatus uninitializePlugin( MObject obj)
 		if (!status) {status.perror("deregisterNode() failed."); return status;}
 	status = plugin.deregisterNode(mgear_springNode::id);
 		if (!status) { status.perror("deregisterNode() failed."); return status; }
+	status = plugin.deregisterNode(mgear_springGravityNode::id);
+		if (!status) { status.perror("deregisterNode() failed."); return status; }
 	status = plugin.deregisterNode(mgear_linearInterpolate3DvectorNode::id);
 		if (!status) { status.perror("deregisterNode() failed."); return status; }
 	status = plugin.deregisterNode(mgear_add10scalarNode::id);
