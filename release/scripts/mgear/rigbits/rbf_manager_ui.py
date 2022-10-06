@@ -1535,7 +1535,14 @@ class RBFManagerUI(MayaQWidgetDockableMixin, QtWidgets.QMainWindow):
         mrDriverAttrs = mrRbfNodes[0].getDriverNodeAttributes()
         driverControl = aRbfNode.getDriverControlAttr()
         driverControl = pm.PyNode(driverControl)
+        # Sanity check: make sure mirror attributes are set up properly
+        for targetInfo in setupTargetInfo_dict.items():
+            driven = targetInfo[0]
+            ctrl = driven.name().replace("_driven", "_ctl")
+            for attr in ["invTx", "invTy", "invTz", "invRx", "invRy", "invRz"]:
+                pm.setAttr(driven + "." + attr, pm.getAttr(ctrl + "." + attr))
         for index in range(poseIndices):
+            # Apply mirror pose to control
             aRbfNode.recallDriverPose(index)
             anim_utils.mirrorPose(flip=False, nodes=[driverControl])
             mrData = []
@@ -1544,10 +1551,9 @@ class RBFManagerUI(MayaQWidgetDockableMixin, QtWidgets.QMainWindow):
                                                              dstValues[0]))
             for entry in mrData:
                 anim_utils.applyMirror(nameSpace, entry)
-
             poseInputs = rbf_node.getMultipleAttrs(mrDriverNode, mrDriverAttrs)
             for mrRbfNode in mrRbfNodes:
-                poseValues = mrRbfNode.getPoseValues(resetDriven=True)
+                poseValues = mrRbfNode.getPoseValues(resetDriven=False)
                 mrRbfNode.addPose(poseInput=poseInputs,
                                   poseValue=poseValues,
                                   posesIndex=index)
@@ -1555,7 +1561,9 @@ class RBFManagerUI(MayaQWidgetDockableMixin, QtWidgets.QMainWindow):
         [v.setToggleRBFAttr(1) for v in mrRbfNodes]
         setupName, rbfType = self.getSelectedSetup()
         self.refreshRbfSetupList(setToSelection=setupName)
-        mc.select(cl=True)
+        for mrRbfNode in mrRbfNodes:
+            rbf_node.resetDrivenNodes(str(mrRbfNode))
+        pm.select(cl=True)
 
     def hideMenuBar(self, x, y):
         """rules to hide/show the menubar when hide is enabled
