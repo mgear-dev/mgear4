@@ -85,6 +85,9 @@ from .six import PY2
 # reload(rbf_io)
 # reload(rbf_node)
 
+# from mgear.rigbits import rbf_manager_ui
+# rbf_ui = rbf_manager_ui.show()
+
 # =============================================================================
 # Constants
 # =============================================================================
@@ -799,6 +802,86 @@ class RBFManagerUI(MayaQWidgetDockableMixin, QtWidgets.QMainWindow):
             rbfNode.forceEvaluation()
         self.refreshAllTables()
 
+    def editPoseValues(self):
+        """Edit an existing pose based on the values in the table
+        Returns:
+            None
+        """
+        rbfNodes = self.currentRBFSetupNodes
+        if not rbfNodes:
+            return
+        driverRow = self.driverPoseTableWidget.currentRow() # A number
+        drivenWidget = self.rbfTabWidget.currentWidget()
+        drivenTableWidget = getattr(drivenWidget, "tableWidget")
+        drivenRow = drivenTableWidget.currentRow()
+        if drivenRow != driverRow or drivenRow == -1:
+            genericWarning(self, "Select Pose # to be Edited.")
+            return
+        driverNode = rbfNodes[0].getDriverNode()[0]
+        driverAttrs = rbfNodes[0].getDriverNodeAttributes()
+        poseInputs = rbf_node.getMultipleAttrs(driverNode, driverAttrs)
+        # print("poseInputs: " + str(poseInputs))
+        # print("RBF nodes: " + str(rbfNodes))
+        nColumns = drivenTableWidget.columnCount()
+        entryWidgets = [drivenTableWidget.cellWidget(drivenRow, c) for c in range(nColumns)]
+        newValues = [float(w.text()) for w in entryWidgets]
+        # print("values: " + str(newValues))
+        rbfNode = getattr(drivenWidget, "rbfNode")
+        rbfNodes = [rbfNode]
+        for rbfNode in rbfNodes:
+            print(f"rbfNode: {rbfNode}")
+            print(f"poseInputs: {poseInputs}")
+            print(f"New pose values: {newValues}")
+            print(f"poseIndex: {drivenRow}")
+            rbfNode.addPose(poseInput=poseInputs,
+                            poseValue=newValues,
+                            posesIndex=drivenRow)
+            rbfNode.forceEvaluation()
+        self.refreshAllTables()
+
+
+    def updateAllFromTables(self):
+        """Update every pose
+
+        Args:
+            rbfNode (RBFNode): node for query
+            weightInfo (dict): to pull information from, since we have it
+        """
+        rbfNodes = self.currentRBFSetupNodes
+        if not rbfNodes:
+            return
+        for w in self.rbfTabWidget.count():
+            drivenWidget = self.rbfTabWidget.widget(w)
+            drivenTableWidget = getattr(drivenWidget, "tableWidget")
+        drivenRow = drivenTableWidget.currentRow()
+        driverNode = rbfNodes[0].getDriverNode()[0]
+        driverAttrs = rbfNodes[0].getDriverNodeAttributes()
+        poseInputs = rbf_node.getMultipleAttrs(driverNode, driverAttrs)
+        # print("poseInputs: " + str(poseInputs))
+        # print("RBF nodes: " + str(rbfNodes))
+        nColumns = drivenTableWidget.columnCount()
+        entryWidgets = [drivenTableWidget.cellWidget(drivenRow, c) for c in range(nColumns)]
+        newValues = [float(w.text()) for w in entryWidgets]
+        # print("values: " + str(newValues))
+        rbfNode = getattr(drivenWidget, "rbfNode")
+        rbfNodes = [rbfNode]
+        for rbfNode in rbfNodes:
+            # poseValues = rbfNode.getPoseValues()
+            # print("Old pose values: " + str(poseValues))
+            # print("New pose values: " + str(newValues))
+            print("rbfNode: " + str(rbfNode))
+            print("poseInputs: " + str(poseInputs))
+            print("New pose values: " + str(newValues))
+            print("poseIndex: " + str(drivenRow))
+            rbfNode.addPose(poseInput=poseInputs,
+                            poseValue=newValues,
+                            posesIndex=drivenRow)
+            rbfNode.forceEvaluation()
+        self.refreshAllTables()
+
+
+
+
     def addPose(self):
         """Add pose to rbf nodes in setup. Additional index on all nodes
 
@@ -1350,6 +1433,7 @@ class RBFManagerUI(MayaQWidgetDockableMixin, QtWidgets.QMainWindow):
             enable (bool, optional): to disable vs not
         """
         self.editPoseButton.setEnabled(enable)
+        self.editPoseValuesButton.setEnabled(enable)
         self.deletePoseButton.setEnabled(enable)
 
     def setDriverControlOnSetup(self, controlName):
@@ -1404,6 +1488,8 @@ class RBFManagerUI(MayaQWidgetDockableMixin, QtWidgets.QMainWindow):
         Returns:
             n/a: nada
         """
+        # sceneFilePath = mc.file(sn=True, q=True)
+        # startDir = os.path.dirname(sceneFilePath)
         filePath = rbf_io.fileDialog(mode=1)
         if filePath is None:
             return
@@ -1430,6 +1516,8 @@ class RBFManagerUI(MayaQWidgetDockableMixin, QtWidgets.QMainWindow):
             nodesToExport = self.currentRBFSetupNodes
 
         nodesToExport = [n.name for n in nodesToExport]
+        # sceneFilePath = mc.file(sn=True, q=True)
+        # startDir = os.path.dirname(sceneFilePath)
         filePath = rbf_io.fileDialog(mode=0)
         if filePath is None:
             return
@@ -1647,6 +1735,7 @@ class RBFManagerUI(MayaQWidgetDockableMixin, QtWidgets.QMainWindow):
 
         self.addPoseButton.clicked.connect(self.addPose)
         self.editPoseButton.clicked.connect(self.editPose)
+        self.editPoseValuesButton.clicked.connect(self.editPoseValues)
         self.deletePoseButton.clicked.connect(self.deletePose)
         partialObj = partial(self.setSetupDriverControl, self.controlLineEdit)
         self.setControlButton.clicked.connect(partialObj)
@@ -1858,15 +1947,20 @@ class RBFManagerUI(MayaQWidgetDockableMixin, QtWidgets.QMainWindow):
         EditPoseButton = QtWidgets.QPushButton("Edit Pose")
         EditPoseButton.setToolTip("Recall pose, adjust controls and Edit.")
         EditPoseButton.setFixedHeight(self.genericWidgetHight)
+        EditPoseValuesButton = QtWidgets.QPushButton("Edit Pose Values")
+        EditPoseValuesButton.setToolTip("Set pose based on values in table")
+        EditPoseValuesButton.setFixedHeight(self.genericWidgetHight)
         deletePoseButton = QtWidgets.QPushButton("Delete Pose")
         deletePoseButton.setToolTip("Recall pose, then Delete")
         deletePoseButton.setFixedHeight(self.genericWidgetHight)
         optionsLayout.addWidget(addPoseButton)
         optionsLayout.addWidget(EditPoseButton)
+        optionsLayout.addWidget(EditPoseValuesButton)
         optionsLayout.addWidget(deletePoseButton)
         return (optionsLayout,
                 addPoseButton,
                 EditPoseButton,
+                EditPoseValuesButton,
                 deletePoseButton)
 
     def createMenuBar(self, hideMenuBar=False):
@@ -1970,8 +2064,10 @@ class RBFManagerUI(MayaQWidgetDockableMixin, QtWidgets.QMainWindow):
         (optionsLayout,
          self.addPoseButton,
          self.editPoseButton,
+         self.editPoseValuesButton,
          self.deletePoseButton) = self.createOptionsButtonsWidget()
         self.editPoseButton.setEnabled(False)
+        self.editPoseValuesButton.setEnabled(False)
         self.deletePoseButton.setEnabled(False)
         centralWidgetLayout.addWidget(HLine())
         centralWidgetLayout.addLayout(optionsLayout)
