@@ -50,6 +50,11 @@ def addAttribute(node,
     Returns:
         str: The long name of the new attribute
     """
+    if isinstance(node, str):
+        try:
+            node = pm.PyNode(node)
+        except:
+            pm.displayError("{} doesn't exist or is not unique".format(node))
     if node.hasAttr(longName):
         mgear.log("Attribute already exists", mgear.sev_error)
         return

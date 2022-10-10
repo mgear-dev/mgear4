@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>459</width>
-    <height>838</height>
+    <width>493</width>
+    <height>894</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -907,7 +907,7 @@
            <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Collected data will be stored in the root joint of the rig, if exist.&lt;/p&gt;&lt;p&gt;The root joint is the first joint created in the rig. Not necessary to be called &amp;quot;root&amp;quot;&lt;/p&gt;&lt;p&gt;If a path is provided the data will be also stored on an external JSON file&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
           </property>
           <property name="text">
-           <string>Collect Data</string>
+           <string>Collect Data on External File</string>
           </property>
          </widget>
         </item>
@@ -927,6 +927,41 @@
            <widget class="QPushButton" name="dataCollectorPath_pushButton">
             <property name="text">
              <string>...</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </item>
+       </layout>
+      </item>
+      <item row="1" column="0">
+       <layout class="QVBoxLayout" name="verticalLayout_6">
+        <item>
+         <widget class="QCheckBox" name="dataCollectorEmbbeded_checkBox">
+          <property name="toolTip">
+           <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Collected data will be stored in the root joint of the rig, if exist.&lt;/p&gt;&lt;p&gt;The root joint is the first joint created in the rig. Not necessary to be called &amp;quot;root&amp;quot;&lt;/p&gt;&lt;p&gt;If a path is provided the data will be also stored on an external JSON file&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+          </property>
+          <property name="text">
+           <string>Collect Data Embbed on Root or custom joint (Warning: FBX Ascii format is not supported)</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <layout class="QHBoxLayout" name="horizontalLayout_4">
+          <item>
+           <widget class="QLabel" name="dataCollectorEmbbeded_label">
+            <property name="text">
+             <string>Custom Joint</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QLineEdit" name="dataCollectorCustomJoint_lineEdit"/>
+          </item>
+          <item>
+           <widget class="QPushButton" name="dataCollectorPathEmbbeded_pushButton">
+            <property name="text">
+             <string>&lt;&lt;&lt;</string>
             </property>
            </widget>
           </item>

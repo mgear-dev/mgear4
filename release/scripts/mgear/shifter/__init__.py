@@ -610,10 +610,10 @@ class Rig(object):
         for c, comp in self.customStepDic["mgearRun"].components.items():
             self.build_data["Components"].append(comp.build_data)
 
-        if self.options["data_collector"]:
+        if self.options["data_collector_embedded"]:
             self.add_collected_data_to_root_jnt()
-            if self.options["data_collector_path"]:
-                self.data_collector_output(self.options["data_collector_path"])
+        if self.options["data_collector"]:
+            self.data_collector_output(self.options["data_collector_path"])
 
         return self.build_data
 
@@ -634,22 +634,23 @@ class Rig(object):
         f.close()
         file_path = None
 
-    def add_collected_data_to_root_jnt(self):
+    def add_collected_data_to_root_jnt(self, root_jnt=None):
         """Add collected data to root joint
         Root joint is the first joint generated in the rig.
         """
-        root_jnt = None
-        for c in self.componentsIndex:
-            comp = self.customStepDic["mgearRun"].components[c]
-            if not root_jnt and comp.jointList:
-                root_jnt = comp.jointList[0]
-                attribute.addAttribute(
-                    root_jnt,
-                    "collected_data",
-                    "string",
-                    str(json.dumps(self.build_data)),
-                )
-                break
+        if not root_jnt:
+            for c in self.componentsIndex:
+                comp = self.customStepDic["mgearRun"].components[c]
+                if not root_jnt and comp.jointList:
+                    root_jnt = comp.jointList[0]
+                    break
+        if root_jnt:
+            attribute.addAttribute(
+                root_jnt,
+                "collected_data",
+                "string",
+                str(json.dumps(self.build_data)),
+            )
 
     def addCtl(self, parent, name, m, color, iconShape, **kwargs):
         """Create the control and apply the shape, if this is alrealdy stored
