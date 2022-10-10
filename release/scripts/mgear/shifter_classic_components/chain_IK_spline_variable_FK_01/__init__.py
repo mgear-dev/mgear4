@@ -231,6 +231,8 @@ class Component(component.Main):
             u = i / (self.settings["fkNb"] - 1.0)
             if i == 0:  # we add extra 10% to the first position
                 u = (1.0 / (self.settings["fkNb"] - 1.0)) / 10
+            if u == 1.0:
+                u = 0.99
 
             cns = applyop.pathCns(
                 self.div_cns[i], self.slv_crv, False, u, True)

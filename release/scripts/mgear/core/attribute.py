@@ -93,6 +93,73 @@ def addAttribute(node,
     return node.attr(longName)
 
 
+def addVector3Attribute(node,
+                        longName,
+                        value=False,
+                        keyable=True,
+                        readable=True,
+                        storable=True,
+                        writable=True,
+                        niceName=None,
+                        shortName=None,
+                        childLabels=["X", "Y", "Z"],
+                        usedAsColor=False,
+                        attributeType="float3"):
+    """
+    Add a vector3 attribute to a node
+
+    Arguments:
+        node (dagNode): The object to add the new attribute.
+        longName (str): The attribute name.
+        value (list of flotat): The default value in a list for RGB.
+            exp [1.0, 0.99, 0.13].
+        keyable (bool): Set if the attribute is keyable or not. (optional)
+        readable (bool): Set if the attribute is readable or not. (optional)
+        storable (bool): Set if the attribute is storable or not. (optional)
+        writable (bool): Set if the attribute is writable or not. (optional)
+        niceName (str): The attribute nice name. (optional)
+        shortName (str): The attribute short name. (optional)
+
+    Returns:
+        str: The long name of the new attribute
+
+    """
+    if node.hasAttr(longName):
+        mgear.log("Attribute already exists", mgear.sev_error)
+        return
+
+    data = {}
+
+    data["attributeType"] = attributeType
+    if shortName is not None:
+        data["shortName"] = shortName
+    if niceName is not None:
+        data["niceName"] = niceName
+
+    data["usedAsColor"] = usedAsColor
+    data["keyable"] = keyable
+    data["readable"] = readable
+    data["storable"] = storable
+    data["writable"] = writable
+
+    # child nested attr
+    dataChild = {}
+    dataChild["attributeType"] = 'float'
+    dataChild["parent"] = longName
+
+    node.addAttr(longName, **data)
+    node.addAttr(longName + childLabels[0], **dataChild)
+    node.addAttr(longName + childLabels[1], **dataChild)
+    node.addAttr(longName + childLabels[2], **dataChild)
+
+    if value:
+        node.setAttr(longName + childLabels[0], value[0])
+        node.setAttr(longName + childLabels[1], value[1])
+        node.setAttr(longName + childLabels[2], value[2])
+
+    return node.attr(longName)
+
+
 def addColorAttribute(node,
                       longName,
                       value=False,
@@ -121,40 +188,17 @@ def addColorAttribute(node,
         str: The long name of the new attribute
 
     """
-    if node.hasAttr(longName):
-        mgear.log("Attribute already exists", mgear.sev_error)
-        return
-
-    data = {}
-
-    data["attributeType"] = "float3"
-    if shortName is not None:
-        data["shortName"] = shortName
-    if niceName is not None:
-        data["niceName"] = niceName
-
-    data["usedAsColor"] = True
-    data["keyable"] = keyable
-    data["readable"] = readable
-    data["storable"] = storable
-    data["writable"] = writable
-
-    # child nested attr
-    dataChild = {}
-    dataChild["attributeType"] = 'float'
-    dataChild["parent"] = longName
-
-    node.addAttr(longName, **data)
-    node.addAttr(longName + "_r", **dataChild)
-    node.addAttr(longName + "_g", **dataChild)
-    node.addAttr(longName + "_b", **dataChild)
-
-    if value:
-        node.setAttr(longName + "_r", value[0])
-        node.setAttr(longName + "_g", value[1])
-        node.setAttr(longName + "_b", value[2])
-
-    return node.attr(longName)
+    return addVector3Attribute(node,
+                               longName,
+                               value=value,
+                               keyable=keyable,
+                               readable=readable,
+                               storable=storable,
+                               writable=writable,
+                               niceName=niceName,
+                               shortName=shortName,
+                               childLabels=["_r", "_g", "_b"],
+                               usedAsColor=True)
 
 
 def addEnumAttribute(node,
