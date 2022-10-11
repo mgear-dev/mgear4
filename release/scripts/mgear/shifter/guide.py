@@ -328,6 +328,11 @@ class Rig(Main):
         self.pDataCollector = self.addParam("data_collector", "bool", False)
         self.pDataCollectorPath = self.addParam(
             "data_collector_path", "string", "")
+        self.pDataCollectorEmbedded = self.addParam("data_collector_embedded",
+                                                    "bool",
+                                                    False)
+        self.pDataCollectorEmbeddedCustomJoint = self.addParam(
+            "data_collector_embedded_custom_joint", "string", "")
 
         # --------------------------------------------------
         # Colors
