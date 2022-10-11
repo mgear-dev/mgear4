@@ -611,7 +611,8 @@ class Rig(object):
             self.build_data["Components"].append(comp.build_data)
 
         if self.options["data_collector_embedded"]:
-            self.add_collected_data_to_root_jnt()
+            root_jnt = self.get_root_jnt_embbeded()
+            self.add_collected_data_to_root_jnt(root_jnt=root_jnt)
         if self.options["data_collector"]:
             self.data_collector_output(self.options["data_collector_path"])
 
@@ -651,6 +652,20 @@ class Rig(object):
                 "string",
                 str(json.dumps(self.build_data)),
             )
+
+    def get_root_jnt_embbeded(self):
+        """ Get the root joint to embbed the data
+
+        Returns:
+            pyNode: Joint
+        """
+        j_name = self.options["data_collector_embedded_custom_joint"]
+        if j_name:
+            try:
+                return pm.PyNode(j_name)
+            except pm.MayaNodeError:
+                pm.displayError(
+                    "{} doesn't exist or is not unique".format(j_name))
 
     def addCtl(self, parent, name, m, color, iconShape, **kwargs):
         """Create the control and apply the shape, if this is alrealdy stored

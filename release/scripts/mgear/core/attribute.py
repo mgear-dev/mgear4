@@ -53,7 +53,7 @@ def addAttribute(node,
     if isinstance(node, str):
         try:
             node = pm.PyNode(node)
-        except:
+        except pm.MayaNodeError:
             pm.displayError("{} doesn't exist or is not unique".format(node))
     if node.hasAttr(longName):
         mgear.log("Attribute already exists", mgear.sev_error)

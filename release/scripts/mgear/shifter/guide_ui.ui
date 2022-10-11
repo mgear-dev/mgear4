@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>493</width>
+    <width>505</width>
     <height>894</height>
    </rect>
   </property>
@@ -942,7 +942,7 @@
            <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Collected data will be stored in the root joint of the rig, if exist.&lt;/p&gt;&lt;p&gt;The root joint is the first joint created in the rig. Not necessary to be called &amp;quot;root&amp;quot;&lt;/p&gt;&lt;p&gt;If a path is provided the data will be also stored on an external JSON file&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
           </property>
           <property name="text">
-           <string>Collect Data Embbed on Root or custom joint (Warning: FBX Ascii format is not supported)</string>
+           <string>Collect Data Embbeded on Root or custom joint (Warning: FBX Ascii format is not supported)</string>
           </property>
          </widget>
         </item>

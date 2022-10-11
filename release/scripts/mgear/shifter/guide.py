@@ -1522,6 +1522,11 @@ class GuideSettings(MayaQWidgetDockableMixin, QtWidgets.QDialog, HelperSlots):
         self.guideSettingsTab.dataCollectorPath_lineEdit.setText(
             self.root.attr("data_collector_path").get())
         self.populateCheck(
+            self.guideSettingsTab.dataCollectorEmbbeded_checkBox,
+            "data_collector_embedded")
+        self.guideSettingsTab.dataCollectorCustomJoint_lineEdit.setText(
+            self.root.attr("data_collector_embedded_custom_joint").get())
+        self.populateCheck(
             self.guideSettingsTab.jointRig_checkBox, "joint_rig")
         self.populateCheck(
             self.guideSettingsTab.force_uniScale_checkBox, "force_uniScale")
@@ -1707,6 +1712,14 @@ class GuideSettings(MayaQWidgetDockableMixin, QtWidgets.QDialog, HelperSlots):
             partial(self.updateLineEditPath,
                     tap.dataCollectorPath_lineEdit,
                     "data_collector_path"))
+        tap.dataCollectorEmbbeded_checkBox.stateChanged.connect(
+            partial(self.updateCheck,
+                    tap.dataCollectorEmbbeded_checkBox,
+                    "data_collector_embedded"))
+        tap.dataCollectorCustomJoint_lineEdit.editingFinished.connect(
+            partial(self.updateLineEditPath,
+                    tap.dataCollectorCustomJoint_lineEdit,
+                    "data_collector_embedded_custom_joint"))
         tap.jointRig_checkBox.stateChanged.connect(
             partial(self.updateCheck,
                     tap.jointRig_checkBox,
@@ -1735,6 +1748,8 @@ class GuideSettings(MayaQWidgetDockableMixin, QtWidgets.QDialog, HelperSlots):
             self.skinLoad)
         tap.dataCollectorPath_pushButton.clicked.connect(
             self.data_collector_path)
+        tap.dataCollectorPathEmbbeded_pushButton.clicked.connect(
+            self.data_collector_pathEmbbeded)
         tap.rigTabs_listWidget.installEventFilter(self)
 
         # colors connections
@@ -2121,11 +2136,31 @@ class GuideSettings(MayaQWidgetDockableMixin, QtWidgets.QDialog, HelperSlots):
         return filePath
 
     def data_collector_path(self, *args):
+        """Set the path to external file in json format containing the
+        collected data
+
+        Args:
+            *args: Description
+        """
         filePath = self._data_collector_path()
 
         if filePath:
             self.root.attr("data_collector_path").set(filePath)
             self.guideSettingsTab.dataCollectorPath_lineEdit.setText(filePath)
+
+    def data_collector_pathEmbbeded(self, *args):
+        """ Set the joint whre the data will be embbded
+
+        Args:
+            *args: Description
+        """
+        oSel = pm.selected()
+        if oSel and oSel[0].type() == "joint":
+            j_name = oSel[0].name()
+            self.root.attr("data_collector_embedded_custom_joint").set(j_name)
+            self.guideSettingsTab.dataCollectorCustomJoint_lineEdit.setText(j_name)
+        else:
+            pm.displayWarning("Nothing selected or selection is not joint type")
 
     def addCustomStep(self, pre=True, *args):
         """Add a new custom step
