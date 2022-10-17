@@ -50,7 +50,11 @@ def blendshape_foc(deformed_obj):
         else:
             deformers.append(h)
     if blendShape_node:
-        pm.reorderDeformers(*deformers, blendShape_node, meshShape)
+        # add blendshape node deformer
+        deformers.append(blendShape_node)
+        # last add the mesh shape
+        deformers.append(meshShape)
+        pm.reorderDeformers(*deformers)
 
 
 def connectWithBlendshape(mesh, bst, wgt=1.0, ffoc=False):
