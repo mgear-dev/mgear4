@@ -540,6 +540,6 @@ class Ui_Form(object):
         self.dataCollectorPath_pushButton.setText(gqt.fakeTranslate("Form", "...", None, -1))
         self.dataCollectorEmbbeded_checkBox.setToolTip(gqt.fakeTranslate("Form", "<html><head/><body><p>Collected data will be stored in the root joint of the rig, if exist.</p><p>The root joint is the first joint created in the rig. Not necessary to be called &quot;root&quot;</p><p>If a path is provided the data will be also stored on an external JSON file</p></body></html>", None, -1))
         self.dataCollectorEmbbeded_checkBox.setText(gqt.fakeTranslate("Form", "Collect Data Embbeded on Root or custom joint (Warning: FBX Ascii format is not supported)", None, -1))
-        self.dataCollectorEmbbeded_label.setText(gqt.fakeTranslate("Form", "Custom Joint", None, -1))
+        self.dataCollectorEmbbeded_label.setText(gqt.fakeTranslate("Form", "Custom Joint or Transform", None, -1))
         self.dataCollectorPathEmbbeded_pushButton.setText(gqt.fakeTranslate("Form", "<<<", None, -1))
 

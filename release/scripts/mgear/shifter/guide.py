@@ -2155,12 +2155,13 @@ class GuideSettings(MayaQWidgetDockableMixin, QtWidgets.QDialog, HelperSlots):
             *args: Description
         """
         oSel = pm.selected()
-        if oSel and oSel[0].type() == "joint":
+        if oSel and oSel[0].type() in ["joint", "transform"]:
             j_name = oSel[0].name()
             self.root.attr("data_collector_embedded_custom_joint").set(j_name)
             self.guideSettingsTab.dataCollectorCustomJoint_lineEdit.setText(j_name)
         else:
-            pm.displayWarning("Nothing selected or selection is not joint type")
+            pm.displayWarning(
+                "Nothing selected or selection is not joint or Transform type")
 
     def addCustomStep(self, pre=True, *args):
         """Add a new custom step

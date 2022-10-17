@@ -951,7 +951,7 @@
           <item>
            <widget class="QLabel" name="dataCollectorEmbbeded_label">
             <property name="text">
-             <string>Custom Joint</string>
+             <string>Custom Joint or Transform</string>
             </property>
            </widget>
           </item>
