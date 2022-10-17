@@ -1582,7 +1582,9 @@ class Main(object):
                 for i, attr in enumerate(cns_attr):
                     pm.setAttr(attr, 1.0)
 
-    def connectRef(self, refArray, cns_obj, upVAttr=None, init_refNames=False):
+    def connectRef(
+        self, refArray, cns_obj, upVAttr=None, init_refNames=False, st=None
+    ):
         """Connect the cns_obj to a multiple object using parentConstraint.
 
         Args:
@@ -1634,7 +1636,11 @@ class Main(object):
                     else:
                         ref.append(self.rig.findRelative(ref_name))
                 ref.append(cns_obj)
-                cns_node = pm.parentConstraint(*ref, maintainOffset=True)
+                if not st:
+                    st = "none"
+                cns_node = pm.parentConstraint(
+                    *ref, maintainOffset=True, st=st
+                )
                 cns_attr = pm.parentConstraint(
                     cns_node, query=True, weightAliasList=True
                 )
