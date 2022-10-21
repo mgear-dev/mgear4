@@ -41,12 +41,31 @@ class Component(component.Main):
         self.ik_ctl = []
         # tOld = False
         self.previusTag = self.parentCtlTag
+        axis_ori = ["xy", "xz", "yx", "yz"][self.settings["ctlOrientation"]]
         for i, t in enumerate(transform.getChainTransform2(self.guide.apos,
                                                            self.normal,
-                                                           self.negate)):
+                                                           self.negate,
+                                                           axis=axis_ori)):
 
             ik_npo = primitive.addTransform(
                 self.root, self.getName("ik%s_npo" % i), t)
+
+            # check orientation to define w, h and d + the offser
+            w_size = self.size * 0.1
+            h_size = self.size * 0.1
+            d_size = self.size * 0.1
+            # check first axis
+            if axis_ori[0] == "-":
+                first_axis = axis_ori[1]
+            else:
+                first_axis = axis_ori[0]
+            # set ro offset
+            if first_axis == "x":
+                ro_vec = datatypes.Vector([0, 0, 1.5708])
+            elif first_axis == "y":
+                ro_vec = datatypes.Vector([0, 0, 0])
+            elif first_axis == "z":
+                ro_vec = datatypes.Vector([1.5708, 0, 0])
 
             ik_ctl = self.addCtl(
                 ik_npo,
@@ -57,7 +76,7 @@ class Component(component.Main):
                 w=self.size * .15,
                 h=self.size * .15,
                 d=self.size * .15,
-                ro=datatypes.Vector([0, 0, 1.5708]),
+                ro=ro_vec,
                 tp=self.previusTag,
                 mirrorConf=self.mirror_conf)
 

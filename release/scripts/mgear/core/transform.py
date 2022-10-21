@@ -93,9 +93,21 @@ def getTransformLookingAt(pos, lookat, normal, axis="xy", negate=False):
         Y = a
         X = b
         Z = -c
+    elif axis == "y-x":
+        Y = a
+        X = -b
+        Z = -c
     elif axis == "yz":
         Y = a
         Z = b
+        X = c
+    elif axis == "-yz":
+        Y = -a
+        Z = b
+        X = c
+    elif axis == "y-z":
+        Y = a
+        Z = -b
         X = c
     elif axis == "zx":
         Z = a
@@ -132,7 +144,7 @@ def getTransformLookingAt(pos, lookat, normal, axis="xy", negate=False):
     return m
 
 
-def getChainTransform(positions, normal, negate=False):
+def getChainTransform(positions, normal, negate=False, axis="xz"):
     """Get a tranformation list from a positions list and normal.
 
     Arguments:
@@ -159,13 +171,13 @@ def getChainTransform(positions, normal, negate=False):
             normal = vector.getTransposedVector(
                 normal, [v0, v1], [v1, v2])
 
-        t = getTransformLookingAt(v1, v2, normal, "xz", negate)
+        t = getTransformLookingAt(v1, v2, normal, axis, negate)
         transforms.append(t)
 
     return transforms
 
 
-def getChainTransform2(positions, normal, negate=False):
+def getChainTransform2(positions, normal, negate=False, axis="xz"):
     """Get a tranformation list from a positions list and normal.
 
     Note:
@@ -204,9 +216,9 @@ def getChainTransform2(positions, normal, negate=False):
                 normal, [v0, v1], [v1, v2])
 
         if i == len(positions) - 1:
-            t = getTransformLookingAt(v1, v0, normal, "-xz", negate)
+            t = getTransformLookingAt(v1, v0, normal, "-{}".format(axis), negate)
         else:
-            t = getTransformLookingAt(v1, v2, normal, "xz", negate)
+            t = getTransformLookingAt(v1, v2, normal, axis, negate)
         transforms.append(t)
 
     return transforms

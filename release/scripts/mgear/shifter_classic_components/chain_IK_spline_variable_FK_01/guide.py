@@ -14,7 +14,7 @@ from . import settingsUI as sui
 AUTHOR = "anima inc."
 URL = "www.studioanima.co.jp"
 EMAIL = ""
-VERSION = [1, 0, 0]
+VERSION = [1, 1, 0]
 TYPE = "chain_IK_spline_variable_FK_01"
 NAME = "chain"
 DESCRIPTION = "IK chain with a spline driven joints. And variable number of \
@@ -67,6 +67,10 @@ class Guide(guide.ComponentGuide):
         self.pMaxStretch = self.addParam("maxstretch", "double", 1, 1)
         self.pMaxSquash = self.addParam("maxsquash", "double", 1, 0, 1)
         self.pSoftness = self.addParam("softness", "double", 0, 0, 1)
+
+        self.pIKSolver = self.addEnumParam(
+            "ctlOrientation", ["xy", "xz", "yx", "yz", "y-z"], 1
+        )
 
         self.pUseIndex = self.addParam("useIndex", "bool", False)
         self.pParentJointIndex = self.addParam(
