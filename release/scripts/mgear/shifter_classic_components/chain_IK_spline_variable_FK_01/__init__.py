@@ -41,7 +41,7 @@ class Component(component.Main):
         self.ik_ctl = []
         # tOld = False
         self.previusTag = self.parentCtlTag
-        axis_ori = ["xy", "xz", "yx", "yz", "zx", "zy"][self.settings["ctlOrientation"]]
+        axis_ori = ["xz", "yz", "zx"][self.settings["ctlOrientation"]]
         for i, t in enumerate(transform.getChainTransform2(self.guide.apos,
                                                            self.normal,
                                                            self.negate,
@@ -68,7 +68,7 @@ class Component(component.Main):
             elif first_axis == "y":
                 ro_vec = datatypes.Vector([0, 0, 0])
                 self.front_axis = 1
-                self.up_axis = 0
+                self.up_axis = 2
                 self.ref_twist_vec = datatypes.Vector(1.0, 0, 0)
             elif first_axis == "z":
                 ro_vec = datatypes.Vector([1.5708, 0, 0])

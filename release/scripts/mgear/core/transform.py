@@ -108,7 +108,7 @@ def getTransformLookingAt(pos, lookat, normal, axis="xy", negate=False):
     elif axis == "-yz":
         Y = -a
         Z = b
-        X = c
+        X = -c
     elif axis == "y-z":
         Y = a
         Z = -b
