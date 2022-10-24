@@ -41,7 +41,7 @@ class Component(component.Main):
         self.ik_ctl = []
         # tOld = False
         self.previusTag = self.parentCtlTag
-        axis_ori = ["xy", "xz", "yx", "yz"][self.settings["ctlOrientation"]]
+        axis_ori = ["xy", "xz", "yx", "yz", "zx", "zy"][self.settings["ctlOrientation"]]
         for i, t in enumerate(transform.getChainTransform2(self.guide.apos,
                                                            self.normal,
                                                            self.negate,
@@ -62,10 +62,19 @@ class Component(component.Main):
             # set ro offset
             if first_axis == "x":
                 ro_vec = datatypes.Vector([0, 0, 1.5708])
+                self.front_axis = 0
+                self.up_axis = 2
+                self.ref_twist_vec = datatypes.Vector(1.0, 0, 0)
             elif first_axis == "y":
                 ro_vec = datatypes.Vector([0, 0, 0])
+                self.front_axis = 1
+                self.up_axis = 0
+                self.ref_twist_vec = datatypes.Vector(1.0, 0, 0)
             elif first_axis == "z":
                 ro_vec = datatypes.Vector([1.5708, 0, 0])
+                self.front_axis = 2
+                self.up_axis = 0
+                self.ref_twist_vec = datatypes.Vector(1.0, 0, 0)
 
             ik_ctl = self.addCtl(
                 ik_npo,
@@ -188,7 +197,7 @@ class Component(component.Main):
                 parent_twistRef, self.getName("%s_pos_ref" % i), t)
 
             ref_twist.setTranslation(
-                datatypes.Vector(1.0, 0, 0), space="preTransform")
+                self.ref_twist_vec, space="preTransform")
 
             self.twister.append(twister)
             self.ref_twist.append(ref_twist)
@@ -256,8 +265,8 @@ class Component(component.Main):
             cns = applyop.pathCns(
                 self.div_cns[i], self.slv_crv, False, u, True)
 
-            cns.setAttr("frontAxis", 0)  # front axis is 'X'
-            cns.setAttr("upAxis", 2)  # front axis is 'Z'
+            cns.setAttr("frontAxis", self.front_axis)  # front axis
+            cns.setAttr("upAxis", self.up_axis)  # front axis
 
             # Roll
             intMatrix = applyop.gear_intmatrix_op(

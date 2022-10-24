@@ -69,7 +69,7 @@ class Guide(guide.ComponentGuide):
         self.pSoftness = self.addParam("softness", "double", 0, 0, 1)
 
         self.pIKSolver = self.addEnumParam(
-            "ctlOrientation", ["xy", "xz", "yx", "yz", "y-z"], 1
+            "ctlOrientation", ["xy", "xz", "yx", "yz", "zx", "zy"], 1
         )
 
         self.pUseIndex = self.addParam("useIndex", "bool", False)
