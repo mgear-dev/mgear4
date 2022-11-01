@@ -512,12 +512,14 @@ class Main(object):
         self.addToGroup(jnt, "deformers")
 
         if guide_relative:
-            at = attribute.addAttribute(jnt, "guide_relative", "string")
-            at.set(guide_relative)
+            if not jnt.hasAttr("guide_relative"):
+                attribute.addAttribute(jnt, "guide_relative", "string")
+            jnt.guide_relative.set(guide_relative)
 
         if data_contracts:
-            at = attribute.addAttribute(jnt, "data_contracts", "string")
-            at.set(data_contracts)
+            if not jnt.hasAttr("data_contracts"):
+                attribute.addAttribute(jnt, "data_contracts", "string")
+            jnt.data_contracts.set(data_contracts)
 
         return jnt
 
