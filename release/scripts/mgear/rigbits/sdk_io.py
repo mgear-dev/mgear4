@@ -227,7 +227,7 @@ def getSDKInfo(animNode):
     """
     sdkInfo_dict = {}
     sdkKey_Info = []
-    numberOfKeys = len(pm.listAttr("{0}.ktv".format(animNode), multi=True)) / 3
+    numberOfKeys = int(len(pm.listAttr("{0}.ktv".format(animNode), multi=True)) / 3)
     itt_list = pm.keyTangent(animNode, itt=True, q=True)
     ott_list = pm.keyTangent(animNode, ott=True, q=True)
     # maya doesnt return value if there is only one key frame set.
@@ -508,11 +508,14 @@ def createSDKFromDict(sdkInfo_dict):
     animKeys = sdkInfo_dict["keys"]
     for index in range(0, len(animKeys)):
         frameValue = animKeys[index]
+        # Note: fixed is not supported by setKeyframe. we swap it to linear
+        it = "linear" if frameValue[2] == "fixed" else frameValue[2]
+        ot = "linear" if frameValue[3] == "fixed" else frameValue[3]
         pm.setKeyframe(sdkNode,
                        float=frameValue[0],
                        value=frameValue[1],
-                       itt=frameValue[2],
-                       ott=frameValue[3])
+                       itt=it,
+                       ott=ot)
 
     sdkNode.setAttr("preInfinity", sdkInfo_dict["preInfinity"])
     sdkNode.setAttr("postInfinity", sdkInfo_dict["postInfinity"])
