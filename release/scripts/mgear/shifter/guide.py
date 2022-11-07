@@ -442,11 +442,16 @@ class Rig(Main):
         """Set the guide hierarchy from selection."""
         selection = pm.ls(selection=True)
         if not selection:
-            mgear.log(
-                "Select one or more guide root or a guide model",
-                mgear.sev_error)
-            self.valid = False
-            return False
+            selection = pm.ls("guide")
+            if not selection:
+                mgear.log(
+                    "Not guide found or selected.\n"
+                    + "Select one or more guide root or a guide model",
+                    mgear.sev_error,
+                )
+                return
+                self.valid = False
+                return False
 
         for node in selection:
             self.setFromHierarchy(node, node.hasAttr("ismodel"))

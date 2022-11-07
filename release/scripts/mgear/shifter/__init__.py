@@ -232,7 +232,7 @@ class Rig(object):
             selection = pm.ls("guide")
             if not selection:
                 mgear.log(
-                    "Not guide found or selected.\n "
+                    "Not guide found or selected.\n"
                     + "Select one or more guide root or a guide model",
                     mgear.sev_error,
                 )
