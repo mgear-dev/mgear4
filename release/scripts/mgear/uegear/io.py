@@ -12,176 +12,14 @@ import os
 import maya.cmds as cmds
 
 from mgear.core import pyFBX
-from mgear.uegear import utils, log
+from mgear.uegear import utils, log, tag
 
 logger = log.uegear_logger
 
 __ASSETIO_VERSION__ = '0.0.0'
 
 SETUP_PIVOT_LOC_NAME = 'loc_origin'
-TAG_ATTR_NAME = 'ueGearAssetTag'
 
-# ======================================================================================================================
-# TAGS
-# ======================================================================================================================
-
-
-class TagTypes(object):
-	"""
-	Class that holds all available tag types.
-	"""
-
-	Skeleton = 'skeleton'
-	StaticMesh = 'staticmesh'
-	SkeletalMesh = 'skeletalmesh'
-	Camera = 'camera'
-	Alembic = 'alembic'
-	MetahumanBody = 'metahumanbody'
-	MetahumanFace = 'metahumanface'
-
-
-def auto_tag(node=None, remove=False):
-	"""
-	Automatically tags given (or current selected nodes) so ueGear exporter can identify how to export the specific
-	nodes.
-
-	:param str or list(str) or None node: node/s to tag.
-	:param bool remove: if True tag will be removed.
-	"""
-
-	nodes = utils.force_list(node or cmds.ls(sl=True))
-
-	for node in nodes:
-		found_skin_clusters = utils.get_skin_clusters_for_node(node)
-		if found_skin_clusters and cmds.objectType(node) == 'joint':
-			remove_tag(node) if remove else apply_tag(node, attribute_value=TagTypes.SkeletalMesh)
-		else:
-			shapes = cmds.listRelatives(node, shapes=True)
-			if not shapes:
-				continue
-			first_shape = utils.get_first_in_list(shapes)
-			if not first_shape:
-				continue
-			object_type = cmds.objectType(first_shape)
-			if object_type == 'mesh':
-				found_skin_clusters = utils.get_skin_clusters_for_node(first_shape)
-				if found_skin_clusters:
-					remove_tag(node) if remove else apply_tag(node, attribute_value=TagTypes.Skeleton)
-				else:
-					remove_tag(node) if remove else apply_tag(node, attribute_value=TagTypes.StaticMesh)
-			elif object_type == 'camera':
-				remove_tag(node) if remove else apply_tag(node, attribute_value=TagTypes.Camera)
-
-
-def apply_tag(node=None, attribute_name=TAG_ATTR_NAME, attribute_value=''):
-	"""
-	Creates a new tag attribute with given value into given node/s (or selected nodes).
-
-	:param str or list(str) or None node: nodes to apply tag to.
-	:param str attribute_name: tag attribute value to use. By default, TAG_ATTR_NAME will be used.
-	:param str attribute_value: value to set tag to.
-	"""
-
-	nodes = utils.force_list(node or cmds.ls(sl=True))
-	attribute_value = str(attribute_value)
-	for node in nodes:
-		if not cmds.attributeQuery(attribute_name, node=node, exists=True):
-			cmds.addAttr(node, longName=attribute_name, dataType='string')
-		cmds.setAttr('{}.{}'.format(node, attribute_name), attribute_value, type='string')
-		if attribute_value:
-			logger.info('Tagged "{}.{}" as {}.'.format(node, attribute_name, attribute_value))
-		else:
-			logger.info('Tagged "{}.{}" as empty.'.format(node, attribute_name))
-
-
-def remove_tag(node=None, attribute_name=''):
-
-	nodes = utils.force_list(node or cmds.ls(sl=True))
-	for node in nodes:
-		if cmds.attributeQuery(attribute_name, node=node, exists=True):
-			cmds.deleteAttr('{}.{}'.format(node, attribute_name))
-			logger.info('Removed attribute {} from "{}"'.format(node, attribute_name))
-
-
-def apply_alembic_tag(node=None, remove=False):
-	"""
-	Applies alembic tag to given node/s (or selected nodes).
-
-	:param str or list(str) or None node: node/s to tag.
-	:param bool remove: if True tag will be removed.
-	"""
-
-	remove_tag(node=node) if remove else apply_tag(node=node, attribute_value=TagTypes.Alembic)
-
-
-def find_tagged_nodes(tag_name=TAG_ATTR_NAME, nodes=None):
-	"""
-	Returns a list with all nodes that are tagged with the given tag name and has a value set.
-
-	:param str tag_name: name of the tag to search. By default, TAG_ATTR_NAME will be used.
-	:param str or list(str) or None nodes: list of nodes to find tags of, if not given all nodes in the scene will be
-		checked.
-	:return: list of found tagged nodes.
-	:rtype: list(str)
-	"""
-
-	found_tagged_nodes = list()
-	nodes = utils.force_list(nodes or cmds.ls())
-	for node in nodes:
-		if not cmds.attributeQuery(tag_name, node=node, exists=True):
-			continue
-		if not cmds.getAttr('{}.{}'.format(node, TAG_ATTR_NAME)):
-			continue
-		found_tagged_nodes.append(node)
-
-	return found_tagged_nodes
-
-
-def find_tagged_selected_nodes(tag_name):
-	"""
-	Returns a list with all selected nodes that are tagged with the given tag name and has a value set.
-
-	:param str tag_name: name of the tag to search. By default, TAG_ATTR_NAME will be used.
-	:return: list of found tagged nodes.
-	:rtype: list(str)
-	"""
-
-	return find_tagged_nodes(nodes=cmds.ls(sl=True))
-
-
-def find_tagged_node_attributes(tag_name=TAG_ATTR_NAME, nodes=None):
-	"""
-	Returns a list with all node attributes that are tagged with the given tag name and has a value set.
-
-	:param str tag_name: name of the tag to search. By default, TAG_ATTR_NAME will be used.
-	:param str or list(str) or None nodes: list of nodes to find tags of, if not given all nodes in the scene will be
-		checked.
-	:return: list of found tagged nodes.
-	:rtype: list(str)
-	"""
-
-	found_tagged_node_attributes = list()
-	nodes = utils.force_list(nodes or cmds.ls())
-	for node in nodes:
-		if not cmds.attributeQuery(tag_name, node=node, exists=True):
-			continue
-		if not cmds.getAttr('{}.{}'.format(node, TAG_ATTR_NAME)):
-			continue
-		found_tagged_node_attributes.append('{}.{}'.format(node, TAG_ATTR_NAME))
-
-	return found_tagged_node_attributes
-
-
-def find_tagged_selected_node_attributes(tag_name):
-	"""
-	Returns a list with all selected node attributes that are tagged with the given tag name and has a value set.
-
-	:param str tag_name: name of the tag to search. By default, TAG_ATTR_NAME will be used.
-	:return: list of found tagged nodes.
-	:rtype: list(str)
-	"""
-
-	return find_tagged_node_attributes(nodes=cmds.ls(sl=True))
 
 # ======================================================================================================================
 # SKELETAL MESHES
@@ -214,7 +52,7 @@ def export_skeleton(file_path='', skeleton_name='', skeleton_list='', output_fil
 @utils.timer
 @utils.viewport_off
 @utils.keep_selection_decorator
-def export_assets(tag_name=TAG_ATTR_NAME, nodes=None, check_assets=True):
+def export_assets(tag_name=tag.TAG_ASSET_TYPE_ATTR_NAME, nodes=None, check_assets=True):
 
 	if check_assets:
 		check_scene(tag_name=tag_name, nodes=nodes)
@@ -222,7 +60,7 @@ def export_assets(tag_name=TAG_ATTR_NAME, nodes=None, check_assets=True):
 	objects_map = dict()
 	tags = set()
 
-	tagged_node_attributes = find_tagged_node_attributes(tag_name=tag_name, nodes=nodes)
+	tagged_node_attributes = tag.find_tagged_node_attributes(tag_name=tag_name, nodes=nodes)
 	for tagged_node_attribute in tagged_node_attributes:
 		tags.add(cmds.getAttr(tagged_node_attribute))
 	tags = list(tags)
@@ -259,7 +97,7 @@ def export_assets(tag_name=TAG_ATTR_NAME, nodes=None, check_assets=True):
 		logger.error('Was not possible to create export output directory: "{}"'.format(output_path))
 		return False
 
-	static_meshes = objects_map.get(TagTypes.StaticMesh, list())
+	static_meshes = objects_map.get(tag.TagTypes.StaticMesh, list())
 	if static_meshes:
 		for static_mesh in static_meshes:
 			cmds.select(static_mesh)
@@ -288,16 +126,16 @@ def export_assets(tag_name=TAG_ATTR_NAME, nodes=None, check_assets=True):
 				pyFBX.FBXExportInputConnections(v=False)
 				pyFBX.FBXExport(f=export_path, s=True)
 				logger.info('\nExported {}'.format(export_path))
-		group_name = utils.get_first_in_list(cmds.listRelatives(objects_map[TagTypes.StaticMesh][0], p=True)) or ''
+		group_name = utils.get_first_in_list(cmds.listRelatives(objects_map[tag.TagTypes.StaticMesh][0], p=True)) or ''
 		category = utils.get_first_in_list(cmds.listRelatives(group_name, p=True)) or ''
 		if ':' in group_name:
 			group_name = group_name.split(':')[-1]
 		export_assets_json(
 			source_file=maya_file_path, file_path=output_path, output_file=group_name, file_type='fbx',
-			version=version_string, category=category, group_name=group_name, tag_name=TagTypes.StaticMesh,
+			version=version_string, category=category, group_name=group_name, tag_name=tag.TagTypes.StaticMesh,
 			nodes=static_meshes, start_frame=start_frame, end_frame=end_frame, is_shot=is_shot)
 
-	for camera in objects_map.get(TagTypes.Camera, list()):
+	for camera in objects_map.get(tag.TagTypes.Camera, list()):
 		camera_shape = utils.get_first_in_list(cmds.listRelatives(camera, shapes=True))
 		if not camera_shape:
 			logger.warning('Impossible to export camera: {} because it has no shapes')
@@ -329,15 +167,15 @@ def export_assets(tag_name=TAG_ATTR_NAME, nodes=None, check_assets=True):
 		}
 		export_assets_json(
 			source_file=maya_file_path, file_path=output_path, output_file=output_file.replace('.fbx', ''),
-			file_type='fbx', version=version_string, tag_name=TagTypes.Camera, nodes=[camera], start_frame=start_frame,
+			file_type='fbx', version=version_string, tag_name=tag.TagTypes.Camera, nodes=[camera], start_frame=start_frame,
 			end_frame=end_frame, is_shot=is_shot, scene_string=scene_string, shot_string=shot_string,
 			custom_params=custom_params)
 		logger.info('\nExported {}'.format(export_path))
 
-	for joint in objects_map.get(TagTypes.Skeleton, list()):
+	for joint in objects_map.get(tag.TagTypes.Skeleton, list()):
 		pass
 
-	for alembic in objects_map.get(TagTypes.Alembic, list()):
+	for alembic in objects_map.get(tag.TagTypes.Alembic, list()):
 		pass
 
 	logger.info('Asset export process completed successfully!')
@@ -345,7 +183,7 @@ def export_assets(tag_name=TAG_ATTR_NAME, nodes=None, check_assets=True):
 	return True
 
 
-def export_selected_assets(tag_name=TAG_ATTR_NAME, check_assets=True):
+def export_selected_assets(tag_name=tag.TAG_ASSET_TYPE_ATTR_NAME, check_assets=True):
 
 	return export_assets(tag_name=tag_name, nodes=cmds.ls(sl=True), check_assets=check_assets)
 
@@ -450,11 +288,11 @@ def export_layout_json(nodes=None, output_path=None):
 # ======================================================================================================================
 
 
-def check_scene(tag_name=TAG_ATTR_NAME, nodes=None):
+def check_scene(tag_name=tag.TAG_ASSET_TYPE_ATTR_NAME, nodes=None):
 	"""
 	Checks scene for correct setup for Unreal export.
 
-	:param str tag_name: name of the tag to check for. By default, TAG_ATTR_NAME will be used.
+	:param str tag_name: name of the tag to check for. By default, TAG_ASSET_TYPE_ATTR_NAME will be used.
 	:param str or list(str) or None nodes: list of nodes to check, if not given all nodes in the scene will be checked.
 	:return: True if the scene check was successful; False otherwise.
 	:rtype: bool
@@ -468,7 +306,7 @@ def check_scene(tag_name=TAG_ATTR_NAME, nodes=None):
 		logger.error('Please place this Maya file under either and assets or scenes folder')
 		return False
 
-	tagged_nodes_attributes_list = find_tagged_node_attributes(tag_name=tag_name, nodes=nodes)
+	tagged_nodes_attributes_list = tag.find_tagged_node_attributes(tag_name=tag_name, nodes=nodes)
 	if not tagged_nodes_attributes_list:
 		logger.warning('No objects tagged for ueGear to export.')
 		return False
@@ -485,7 +323,7 @@ def check_scene(tag_name=TAG_ATTR_NAME, nodes=None):
 		tagged_node = tagged_node_attribute.replace('.{}'.format(tag_name), '')
 		objects_map[str(cmds.getAttr(tagged_node_attribute))].append(tagged_node)
 
-	for static_mesh in objects_map.get(TagTypes.StaticMesh, list()):
+	for static_mesh in objects_map.get(tag.TagTypes.StaticMesh, list()):
 		instances = utils.get_instances(static_mesh)
 		if instances:
 			logger.warning(
@@ -517,7 +355,7 @@ def check_scene(tag_name=TAG_ATTR_NAME, nodes=None):
 				'env/warehouse/<static_mesh>. Please fix: "{}"'.format(static_mesh))
 			continue
 
-	for joint in objects_map.get(TagTypes.Skeleton, list()):
+	for joint in objects_map.get(tag.TagTypes.Skeleton, list()):
 		if not cmds.objectType(joint) == 'joint':
 			logger.error('Skeleton tags must be on a joint. Please fix: "{}"'.format(joint))
 			continue
@@ -543,7 +381,7 @@ def check_scene(tag_name=TAG_ATTR_NAME, nodes=None):
 					'them, for example: env/warehouse/<static_mesh>. Please fix: "{}"'.format(skeletal_mesh))
 				continue
 
-	for camera in objects_map.get(TagTypes.Camera, list()):
+	for camera in objects_map.get(tag.TagTypes.Camera, list()):
 		first_shape = utils.get_first_in_list(cmds.listRelatives(camera, shapes=True)) or None
 		if not first_shape or not cmds.objectType(first_shape) == 'camera':
 			logger.error('Camera tags should be on the actual camera object. Please fix: "{}"'.format(camera))
