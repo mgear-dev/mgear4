@@ -247,7 +247,7 @@ def findComponentChildren3(node, name, sideIndex):
     """
     children = []
     for item in cmds.listRelatives(node.name(), allDescendents=True,
-                                   fullPath=True, type="transform"):
+                                   fullPath=True, type="transform") or []:
         checkName = item.split("|")[-1]
         in_name = "_".join([name, sideIndex])
 
