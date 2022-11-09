@@ -18,11 +18,7 @@ import pymel.core as pm
 import maya.cmds as cmds
 
 from mgear.core import pyFBX
-from mgear.uegear import log, utils, io
-
-import importlib
-importlib.reload(pyFBX)
-
+from mgear.uegear import log, utils, tag, io
 
 logger = log.uegear_logger
 
@@ -142,6 +138,38 @@ class UeGearBridge(object):
         return response
 
     # ==================================================================================================================
+    # ASSETS
+    # ==================================================================================================================
+
+    def import_selected_assets_from_unreal(self):
+        """
+        Import current selected Content Browser Unreal assets into the Maya scene.
+        """
+
+        temp_folder = tempfile.gettempdir()
+        asset_fbx_files = self.execute(
+            'export_selected_assets', parameters={'directory': temp_folder}).get('ReturnValue', list())
+        for asset_file in asset_fbx_files:
+            fbx_file, json_file = asset_file.split(';')
+            if not fbx_file or not os.path.isfile(fbx_file):
+                continue
+            imported_nodes = utils.import_fbx(fbx_file)
+            asset_data = utils.read_json_file(json_file)
+            transform_nodes = cmds.ls(imported_nodes, type='transform')
+            for transform_node in transform_nodes:
+                asset_type = asset_data.get('type', '')
+                asset_name = asset_data.get('name', '')
+                asset_path = asset_data.get('path', '')
+                if asset_type:
+                    tag.apply_tag(transform_node, tag.TAG_ASSET_TYPE_ATTR_NAME, asset_type)
+                else:
+                    tag.auto_tag(transform_node)
+                if asset_name:
+                    tag.apply_tag(transform_node, tag.TAG_ASSET_NAME_ATTR_NAME, asset_name)
+                if asset_path:
+                    tag.apply_tag(transform_node, tag.TAG_ASSET_PATH_ATTR_NAME, asset_path)
+
+    # ==================================================================================================================
     # TRANSFORM COMMANDS
     # ==================================================================================================================
 
@@ -171,7 +199,7 @@ class UeGearBridge(object):
                 selected_node.setRotationOrder(old_rotation_orders[i], True)
 
     # ==================================================================================================================
-    # MESHES COMMANDS
+    # STATIC MESHES
     # ==================================================================================================================
 
     def update_static_mesh(self, export_options=None):
