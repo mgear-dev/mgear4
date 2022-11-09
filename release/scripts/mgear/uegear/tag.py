@@ -14,6 +14,8 @@ from mgear.uegear import utils, log
 logger = log.uegear_logger
 
 TAG_ASSET_TYPE_ATTR_NAME = 'ueGearAssetType'
+TAG_ASSET_NAME_ATTR_NAME = 'ueGearAssetName'
+TAG_ASSET_PATH_ATTR_NAME = 'ueGearAssetPath'
 
 
 class TagTypes(object):
@@ -28,6 +30,7 @@ class TagTypes(object):
 	Alembic = 'alembic'
 	MetahumanBody = 'metahumanbody'
 	MetahumanFace = 'metahumanface'
+	Sequence = 'sequence'
 
 
 def auto_tag(node=None, remove=False):
@@ -99,7 +102,7 @@ def remove_tag(node=None, attribute_name=TAG_ASSET_TYPE_ATTR_NAME):
 		if not cmds.attributeQuery(attribute_name, node=node, exists=True):
 			continue
 		cmds.deleteAttr('{}.{}'.format(node, attribute_name))
-		logger.info('Removed attribute {} from "{}"'.format(attribute_name, nod3))
+		logger.info('Removed attribute {} from "{}"'.format(attribute_name, node))
 
 
 def apply_alembic_tag(node=None, remove=False):
@@ -113,13 +116,14 @@ def apply_alembic_tag(node=None, remove=False):
 	remove_tag(node=node) if remove else apply_tag(node=node, attribute_value=TagTypes.Alembic)
 
 
-def find_tagged_nodes(tag_name=TAG_ASSET_TYPE_ATTR_NAME, nodes=None):
+def find_tagged_nodes(tag_name=TAG_ASSET_TYPE_ATTR_NAME, nodes=None, tag_value=None):
 	"""
 	Returns a list with all nodes that are tagged with the given tag name and has a value set.
 
 	:param str tag_name: name of the tag to search. By default, TAG_ATTR_NAME will be used.
 	:param str or list(str) or None nodes: list of nodes to find tags of, if not given all nodes in the scene will be
 		checked.
+	:param str tag_value: if given only tag with given value will be returned.
 	:return: list of found tagged nodes.
 	:rtype: list(str)
 	"""
@@ -129,7 +133,8 @@ def find_tagged_nodes(tag_name=TAG_ASSET_TYPE_ATTR_NAME, nodes=None):
 	for node in nodes:
 		if not cmds.attributeQuery(tag_name, node=node, exists=True):
 			continue
-		if not cmds.getAttr('{}.{}'.format(node, TAG_ASSET_TYPE_ATTR_NAME)):
+		found_tag_value = cmds.getAttr('{}.{}'.format(node, TAG_ASSET_TYPE_ATTR_NAME))
+		if not found_tag_value or tag_value is not None and found_tag_value != tag_value:
 			continue
 		found_tagged_nodes.append(node)
 
