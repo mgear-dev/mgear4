@@ -13,16 +13,26 @@ import time
 import stat
 import math
 import json
+import errno
 import platform
 from functools import wraps
+from collections import OrderedDict
 
 import maya.mel as mel
 import maya.cmds as cmds
 import maya.api.OpenMaya as OpenMaya
 
+from mgear.core import pyFBX
 from mgear.uegear import log
 
 logger = log.uegear_logger
+
+if sys.version_info[0] == 2:
+	string_types = basestring,
+	text_type = unicode
+else:
+	string_types = str,
+	text_type = str
 
 SEPARATOR = '/'
 BAD_SEPARATOR = '\\'
@@ -35,6 +45,9 @@ WEB_PREFIX = 'https://'
 # we use one separator depending if we are working on Windows (nt) or other operative system
 NATIVE_SEPARATOR = (SEPARATOR, BAD_SEPARATOR)[os.name == 'nt']
 
+PARENT_SEPARATOR = '|'
+NAMESPACE_SEPARATOR = ':'
+
 
 class Platform(object):
 	"""
@@ -44,6 +57,107 @@ class Platform(object):
 	Windows = 'Windows'
 	Linux = 'Linux'
 	Mac = 'MacOS'
+
+
+def timer(f):
+	"""
+	Function decorator that gets the elapsed time with a more descriptive output.
+
+	:param callable f: decorated function
+	"""
+
+	@wraps(f)
+	def wrapper(*args, **kwargs):
+		start_time = time.time()
+		res = f(*args, **kwargs)
+		function_name = f.func_name if is_python2() else f.__name__
+		logger.info('<{}> Elapsed time : {}'.format(function_name, time.time() - start_time))
+		return res
+	return wrapper
+
+
+def keep_selection_decorator(fn):
+	"""
+	Function decorator that makes sure that original selection is keep after executing the wrapped function.
+
+	:param callable fn: decorated function.
+	"""
+
+	@wraps(fn)
+	def wrapper(*args, **kwargs):
+		try:
+			tmp_selection = cmds.ls(sl=True, l=True)
+			result = None
+			try:
+				result = fn(*args, **kwargs)
+			except Exception:
+				raise
+			finally:
+				cmds.select(tmp_selection)
+			return result
+		except Exception:
+			raise
+	return wrapper
+
+
+def keep_namespace_decorator(fn):
+	"""
+	Function decorator that restores the active namespace after execution.
+
+	:param callable fn: decorated function.
+	"""
+
+	@wraps(fn)
+	def wrapper(*args, **kwargs):
+		try:
+			original_namespace = cmds.namespaceInfo(cur=True)
+			result = None
+			try:
+				result = fn(*args, **kwargs)
+			except Exception:
+				raise
+			finally:
+				cmds.namespace(set=':')
+				cmds.namespace(set=original_namespace)
+			return result
+		except Exception:
+			raise
+	return wrapper
+
+
+def viewport_off(fn):
+	"""
+	Function decorator that turns off Maya display while the function is being executed.
+
+	:param callable fn: decorated function.
+	"""
+
+	@wraps(fn)
+	def wrapper(*args, **kwargs):
+		parallel = False
+		maya_version = mel.eval("$mayaVersion = `getApplicationVersionAsFloat`")
+		if maya_version >= 2016:
+			if 'parallel' in cmds.evaluationManager(q=True, mode=True):
+				cmds.evaluationManager(mode='off')
+				parallel = True
+				logger.debug('Turning off Parallel evaluation...')
+		# turn $gMainPane Off and hide the time slider (this is the important part):
+		mel.eval('paneLayout -e -manage false $gMainPane')
+		cmds.refresh(suspend=True)
+		mel.eval('setTimeSliderVisible 0;')
+
+		try:
+			return fn(*args, **kwargs)
+		finally:
+			cmds.refresh(suspend=False)
+			mel.eval('setTimeSliderVisible 1;')
+			if parallel:
+				cmds.evaluationManager(mode='parallel')
+				logger.debug('Turning on Parallel evaluation...')
+			mel.eval('paneLayout -e -manage true $gMainPane')
+			cmds.refresh()
+
+	return wrapper
 
 
 def is_python2():
@@ -120,6 +234,17 @@ def is_windows():
 
 	current_platform = get_platform()
 	return current_platform == Platform.Windows
+
+
+def is_string(s):
+	"""
+	Returns True if the given object has None type or False otherwise.
+
+	:param s: object
+	:return: bool
+	"""
+
+	return isinstance(s, string_types)
 
 
 def force_list(var):
@@ -253,6 +378,33 @@ def get_permission(directory):
 		return False
 
 
+def ensure_folder_exists(directory, permissions=None, placeholder=False):
+	"""
+	Function that ensures the given folder exists.
+
+	:param str directory: absolute folder path we want to ensure that exists.
+	:param int permissions: permission to give to the newly created folder.
+	:param bool placeholder: whether to create a placeholder file within the created folder. Useful when
+		dealing with version control systems that need a file to detect a new folder.
+	"""
+
+	permissions = permissions or 0o775
+	if not os.path.exists(directory):
+		try:
+			os.makedirs(directory, permissions)
+			if placeholder:
+				place_path = os.path.join(directory, 'placeholder')
+				if not os.path.exists(place_path):
+					with open(place_path, 'wt') as fh:
+						fh.write('Automatically generated placeholder file')
+						fh.write("The reason why this file exists is due to source control system's which do not "
+								 "handle empty folders.")
+		except OSError as exc:
+			if exc.errno != errno.EEXIST:
+				logger.error('Unknown error occurred while making paths: {}'.format(directory), exc_info=True)
+				raise
+
+
 def touch_path(path, remove=False):
 	"""
 	Function that makes sure the file or directory is valid to use. This will mark files as writable, and validate the
@@ -328,6 +480,32 @@ def clean_path(path):
 		path = path[0].upper() + path[1:]
 
 	return path
+
+
+def read_json_file(filename, maintain_order=False):
+	"""
+	Returns data from JSON file.
+
+	:param str filename: name of JSON file we want to read data from.
+	:param bool maintain_order: whether to maintain the order of the returned dictionary or not.
+	:return: data readed from JSON file as dictionary.
+	:return: dict
+	"""
+
+	if os.stat(filename).st_size == 0:
+		return None
+	else:
+		try:
+			with open(filename, 'r') as json_file:
+				if maintain_order:
+					data = json.load(json_file, object_pairs_hook=OrderedDict)
+				else:
+					data = json.load(json_file)
+		except Exception as err:
+			logger.warning('Could not read {0}'.format(filename))
+			raise err
+
+	return data
 
 
 def write_to_json_file(data, filename, **kwargs):
@@ -581,77 +759,118 @@ def get_frame_rate():
 	return 1
 
 
-def timer(f):
+def save_modified_scene():
 	"""
-	Function decorator that gets the elapsed time with a more descriptive output.
-
-	:param callable f: decorated function
+	Saves current Maya scene if the scene is modified.
 	"""
 
-	@wraps(f)
-	def wrapper(*args, **kwargs):
-		start_time = time.time()
-		res = f(*args, **kwargs)
-		function_name = f.func_name if is_python2() else f.__name__
-		logger.info('<{}> Elapsed time : {}'.format(function_name, time.time() - start_time))
-		return res
-	return wrapper
+	file_check_state = cmds.file(query=True, modified=True)
+	if file_check_state:
+		cmds.file(save=True)
 
 
-def keep_selection_decorator(fn):
+def get_basename(node, remove_namespace=True, remove_attribute=False):
 	"""
-	Function decorator that makes sure that original selection is keep after executing the wrapped function.
+	Get the base name in a hierarchy name (a|b|c -> returns c).
 
-	:param callable fn: decorated function.
-	"""
-
-	@wraps(fn)
-	def wrapper(*args, **kwargs):
-		try:
-			tmp_selection = cmds.ls(sl=True, l=True)
-			result = None
-			try:
-				result = fn(*args, **kwargs)
-			except Exception:
-				raise
-			finally:
-				cmds.select(tmp_selection)
-			return result
-		except Exception:
-			raise
-	return wrapper
-
-
-def viewport_off(fn):
-	"""
-	Function decorator that turns off Maya display while the function is being executed.
-
-	:param callable fn: decorated function.
+	:param str or pm.PyNode node: name to get base name from.
+	:param bool remove_namespace: whether to remove or not namespace from the base name.
+	:param bool remove_attribute: whether to remove or not attribute from the base name.
+	:return: base name of the given node name.
+	:rtype: str
 	"""
 
-	@wraps(fn)
-	def wrapper(*args, **kwargs):
-		parallel = False
-		maya_version = mel.eval("$mayaVersion = `getApplicationVersionAsFloat`")
-		if maya_version >= 2016:
-			if 'parallel' in cmds.evaluationManager(q=True, mode=True):
-				cmds.evaluationManager(mode='off')
-				parallel = True
-				logger.debug('Turning off Parallel evaluation...')
-		# turn $gMainPane Off and hide the time slider (this is the important part):
-		mel.eval('paneLayout -e -manage false $gMainPane')
-		cmds.refresh(suspend=True)
-		mel.eval('setTimeSliderVisible 0;')
+	node_name = node if is_string(node) else node.longName()
+	split_name = node_name.split(PARENT_SEPARATOR)
+	base_name = split_name[-1]
 
-		try:
-			return fn(*args, **kwargs)
-		finally:
-			cmds.refresh(suspend=False)
-			mel.eval('setTimeSliderVisible 1;')
-			if parallel:
-				cmds.evaluationManager(mode='parallel')
-				logger.debug('Turning on Parallel evaluation...')
-			mel.eval('paneLayout -e -manage true $gMainPane')
-			cmds.refresh()
+	if remove_attribute:
+		base_name_split = base_name.split('.')
+		base_name = base_name_split[0]
 
-	return wrapper
+	if remove_namespace:
+		split_base_name = base_name.split(NAMESPACE_SEPARATOR)
+		return split_base_name[-1]
+
+	return base_name
+
+
+def set_namespace(namespace_name):
+	"""
+	Create/set the current namespace to a given value.
+
+	:param str namespace_name: The namespace we wish to set as current.
+	"""
+
+	cmds.namespace(set=':')
+	if not namespace_name or not is_string(namespace_name):
+		logger.warning('{} is not a valid name for a namespace.'.format(namespace_name))
+		return
+
+	if not cmds.namespace(exists=namespace_name):
+		cmds.namespace(addNamespace=namespace_name)
+	cmds.namespace(set=namespace_name)
+
+
+def move_node_to_namespace(node, namespace_name):
+	"""
+	Rename a given object to place it under a given namespace.
+
+	:param PyNode node: A given object we want to place under a namespace.
+	:param str namespace_name: The namespace we want to attempt to the object under.
+	"""
+
+	try:
+		node_name = get_basename(node)
+		node.rename(':{}:{}'.format(namespace_name, node_name)) if namespace_name else node.rename('{}'.format(node_name))
+	except Exception:
+		pass
+
+
+def load_fbx_plugin(version_string=None):
+	"""
+	Loads FBX plugin.
+
+	:param str version_string: FBX plugin string version.
+	:return: True if FBX plugin was loaded successfully; False otherwise.
+	:rtype: bool
+	"""
+
+	cmds.loadPlugin('fbxmaya.mll', quiet=True)
+	if version_string:
+		plugin_is_loaded = cmds.pluginInfo('fbxmaya.mll', q=True, v=True) == version_string
+	else:
+		plugin_is_loaded = cmds.pluginInfo('fbxmaya.mll', q=True, l=True)
+
+	assert plugin_is_loaded
+
+
+@keep_namespace_decorator
+def import_fbx(fbx_path, import_namespace=None):
+	"""
+	Import a given FBX file. If it contains several animation clips it will only import the last.
+
+	:param str fbx_path: A path to a given FBX file.
+	:param str import_namespace: If the imported data should be organized under a namespace.
+	:return: A list of all imported files. If an import namespace was given it will only return the new subset of nodes.
+	:rtype: list[str]
+	"""
+
+	if not os.path.exists(fbx_path):
+		raise 'File not found at: {}'.format(fbx_path)
+	formatted_path = os.path.normpath(fbx_path).replace('\\', '/')
+	set_namespace(':')
+	original_node_list = set(cmds.ls('*'))
+	pyFBX.FBXImportMode(v="add")
+	pyFBX.FBXImportShapes(v=True)
+	pyFBX.FBXImportSkins(v=True)
+	pyFBX.FBXImportCacheFile(v=True)
+	pyFBX.FBXImportGenerateLog(v=False)
+	pyFBX.FBXImport(f=formatted_path, t=-1)
+	imported_node_list = set(cmds.ls('*'))
+	return_list = list(imported_node_list-original_node_list)
+	if import_namespace:
+		for x in return_list:
+			move_node_to_namespace(x, import_namespace)
+
+	return return_list
