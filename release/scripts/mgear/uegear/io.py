@@ -22,161 +22,77 @@ SETUP_PIVOT_LOC_NAME = 'loc_origin'
 
 
 # ======================================================================================================================
-# SKELETAL MESHES
-# ======================================================================================================================
-
-
-def export_skeleton(file_path='', skeleton_name='', skeleton_list='', output_file=''):
-
-	logger.info('Writing out ueGear Skeleton JSON file...')
-
-	data = {
-		'version': __ASSETIO_VERSION__,
-		'data': [
-			{
-				'outputFile': output_file,
-				'joints': skeleton_list
-			}
-		]
-	}
-	out_file_path = '{}{}.json'.format(file_path, output_file)
-
-	return utils.write_to_json_file(data, out_file_path, sort_keys=False)
-
-
-# ======================================================================================================================
 # ASSETS
 # ======================================================================================================================
+
+def get_exportable_assets(tag_name=tag.TAG_ASSET_TYPE_ATTR_NAME, nodes=None, asset_type=None):
+	"""
+	Returns a dictionary with all exportable assets stored based on tag asset type.
+
+	:param str tag_name: name of the tag that exporter should use to check the asset type to export.
+	:param list(str) nodes: list of nodes to check, if not given all scene nodes will be taken into consideration.
+	:param str asset_type: optional asset type to look for.
+	:return: assets map dictionary.
+	:rtype: dict
+	"""
+
+	tags = set()
+	objects_map = dict()
+
+	tagged_node_attributes = tag.find_tagged_node_attributes(tag_name=tag_name, nodes=nodes)
+	for tagged_node_attribute in tagged_node_attributes:
+		tag_found = cmds.getAttr(tagged_node_attribute)
+		if not tag_found or (asset_type and tag_found != asset_type):
+			continue
+		tags.add(tag_found)
+	tags = list(tags)
+
+	for found_tag in tags:
+		objects_map.setdefault(str(found_tag), list())
+
+	for tagged_node_attribute in tagged_node_attributes:
+		tag_found = cmds.getAttr(tagged_node_attribute)
+		if not tag_found or (asset_type and tag_found != asset_type):
+			continue
+		tagged_node = tagged_node_attribute.replace('.{}'.format(tag_name), '')
+		objects_map[tag_found].append(tagged_node)
+
+	return objects_map
 
 
 @utils.timer
 @utils.viewport_off
 @utils.keep_selection_decorator
 def export_assets(tag_name=tag.TAG_ASSET_TYPE_ATTR_NAME, nodes=None, check_assets=True):
+	"""
+	Exports nodes as assets based on the current tagged values.
+
+	:param str tag_name: name of the tag that exporter should use to check the asset type to export.
+	:param list(str) nodes: list of nodes to export, if not given all scene nodes will be taken into consideration.
+	:param bool check_assets: whether a check scene should be done before exporting the assets.
+	:return: True if the export operation was successful; False otherwise.
+	:rtype: bool
+	"""
 
 	if check_assets:
 		check_scene(tag_name=tag_name, nodes=nodes)
 
-	objects_map = dict()
-	tags = set()
+	utils.save_modified_scene()
 
-	tagged_node_attributes = tag.find_tagged_node_attributes(tag_name=tag_name, nodes=nodes)
-	for tagged_node_attribute in tagged_node_attributes:
-		tags.add(cmds.getAttr(tagged_node_attribute))
-	tags = list(tags)
-
-	for tag in tags:
-		objects_map.setdefault(str(tag), list())
-
-	for tagged_node_attribute in tagged_node_attributes:
-		tagged_node = tagged_node_attribute.replace('.{}'.format(tag_name), '')
-		objects_map[cmds.getAttr(tagged_node_attribute)].append(tagged_node)
-
-	maya_file_path = cmds.file(query=True, sceneName=True)
-	maya_file_name = os.path.basename(maya_file_path)
-	output_path = os.path.join(os.path.dirname(maya_file_path), 'output')
-	version_string = maya_file_name.split('_')[-1].split('.')[0]
-	group_name = ''
-	category = ''
-	variant_override = ''
-	scene_string = '' if 'assets' in maya_file_path else maya_file_path.split('/')[-3]
-	shot_string = '' if 'assets' in maya_file_path else maya_file_path.split('/')[-2]
-	is_shot = False if 'assets' in maya_file_path else True
-
-	file_check_state = cmds.file(query=True, modified=True)
-	if file_check_state:
-		cmds.file(save=True)
-
-	maya_file_path = cmds.file(query=True, sceneName=True)
-	start_frame = int(cmds.playbackOptions(q=1, min=1))
-	end_frame = int(cmds.playbackOptions(q=1, max=1))
-
-	if not os.path.isdir(output_path):
-		os.makedirs(output_path)
-	if not os.path.isdir(output_path):
-		logger.error('Was not possible to create export output directory: "{}"'.format(output_path))
+	objects_map = get_exportable_assets(tag_name, nodes=nodes)
+	if not objects_map:
+		logger.warnign('No assets to export found!')
 		return False
 
 	static_meshes = objects_map.get(tag.TagTypes.StaticMesh, list())
-	if static_meshes:
-		for static_mesh in static_meshes:
-			cmds.select(static_mesh)
-			output_file = '{}.fbx'.format(static_mesh.replace(':', '_'))
-			export_path = utils.clean_path(os.path.join(output_path, output_file))
-			if not is_shot:
-				pyFBX.FBXExportBakeComplexStart(v=True)
-				pyFBX.FBXExportBakeComplexEnd(v=True)
-				pyFBX.FBXExportFileVersion(v='FBX201400')
-				pyFBX.FBXExportConstraints(v=False)
-				pyFBX.FBXExportApplyConstantKeyReducer(v=False)
-				pyFBX.FBXExportAxisConversionMethod('none')
-				pyFBX.FBXExportCameras(v=False)
-				pyFBX.FBXExportInAscii(v=True)
-				pyFBX.FBXExportSkeletonDefinitions(v=True)
-				pyFBX.FBXExportEmbeddedTextures(v=False)
-				pyFBX.FBXExportAnimationOnly(v=False)
-				pyFBX.FBXExportBakeComplexAnimation(v=True)
-				pyFBX.FBXExportBakeComplexStep(v=True)
-				pyFBX.FBXExportShapes(v=True)
-				pyFBX.FBXExportSkins(v=True)
-				pyFBX.FBXExportSmoothingGroups(v=True)
-				pyFBX.FBXExportSmoothMesh(v=False)
-				pyFBX.FBXExportTangents(v=False)
-				pyFBX.FBXExportTriangulate(v=True)
-				pyFBX.FBXExportInputConnections(v=False)
-				pyFBX.FBXExport(f=export_path, s=True)
-				logger.info('\nExported {}'.format(export_path))
-		group_name = utils.get_first_in_list(cmds.listRelatives(objects_map[tag.TagTypes.StaticMesh][0], p=True)) or ''
-		category = utils.get_first_in_list(cmds.listRelatives(group_name, p=True)) or ''
-		if ':' in group_name:
-			group_name = group_name.split(':')[-1]
-		export_assets_json(
-			source_file=maya_file_path, file_path=output_path, output_file=group_name, file_type='fbx',
-			version=version_string, category=category, group_name=group_name, tag_name=tag.TagTypes.StaticMesh,
-			nodes=static_meshes, start_frame=start_frame, end_frame=end_frame, is_shot=is_shot)
+	export_static_meshes(tag_name=tag_name, nodes=static_meshes, check_assets=False)
 
-	for camera in objects_map.get(tag.TagTypes.Camera, list()):
-		camera_shape = utils.get_first_in_list(cmds.listRelatives(camera, shapes=True))
-		if not camera_shape:
-			logger.warning('Impossible to export camera: {} because it has no shapes')
-			continue
+	cameras = objects_map.get(tag.TagTypes.Camera, list())
+	export_cameras(tag_name=tag_name, nodes=cameras, check_assets=False)
 
-		cmds.select(camera)
-		output_file = '{}.fbx'.format(camera.replace(':', '_'))
-		export_path = utils.clean_path(os.path.join(output_path, output_file))
-		pyFBX.FBXExportCameras(v=True)
-		pyFBX.FBXExportFileVersion(v='FBX201400')
-		pyFBX.FBXExportBakeComplexAnimation(v=True)
-		pyFBX.FBXExportBakeComplexStart(v=start_frame)
-		pyFBX.FBXExportBakeComplexEnd(v=end_frame)
-		pyFBX.FBXExportBakeComplexStep(v=True)
-		pyFBX.FBXExportInputConnections(v=0)
-		pyFBX.FBXExport(f=export_path, s=True)
+	skeletons = objects_map.get(tag.TagTypes.Skeleton, list())
 
-		custom_params = {
-			'aspectratio' : cmds.camera(camera_shape, q=True, aspectRatio=True),
-			'cameraScale' : cmds.camera(camera_shape, q=True, cameraScale=True),
-			'clippingPlanes' : cmds.camera(camera_shape, q=True, clippingPlanes=True),
-			'farClipPlane' : cmds.camera(camera_shape, q=True, farClipPlane=True),
-			'nearClipPlane' : cmds.camera(camera_shape, q=True, nearClipPlane=True),
-			'focalLength' : cmds.camera(camera_shape, q=True, focalLength=True),
-			'fStop' : cmds.camera(camera_shape, q=True, fStop=True),
-			'horizontalFilmAperture' : cmds.camera(camera_shape, q=True, horizontalFilmAperture=True) * 25.4,
-			'verticalFilmAperture' : cmds.camera(camera_shape, q=True, verticalFilmAperture=True) * 25.4,
-			'lensSqueezeRatio' : cmds.camera(camera_shape, q=True, lensSqueezeRatio=True)
-		}
-		export_assets_json(
-			source_file=maya_file_path, file_path=output_path, output_file=output_file.replace('.fbx', ''),
-			file_type='fbx', version=version_string, tag_name=tag.TagTypes.Camera, nodes=[camera], start_frame=start_frame,
-			end_frame=end_frame, is_shot=is_shot, scene_string=scene_string, shot_string=shot_string,
-			custom_params=custom_params)
-		logger.info('\nExported {}'.format(export_path))
-
-	for joint in objects_map.get(tag.TagTypes.Skeleton, list()):
-		pass
-
-	for alembic in objects_map.get(tag.TagTypes.Alembic, list()):
-		pass
+	alembics = objects_map.get(tag.TagTypes.Alembic, list())
 
 	logger.info('Asset export process completed successfully!')
 
@@ -184,6 +100,14 @@ def export_assets(tag_name=tag.TAG_ASSET_TYPE_ATTR_NAME, nodes=None, check_asset
 
 
 def export_selected_assets(tag_name=tag.TAG_ASSET_TYPE_ATTR_NAME, check_assets=True):
+	"""
+	Exports the selected nodes as assets based on the current tagged values.
+
+	:param str tag_name: name of the tag that exporter should use to check the asset type to export.
+	:param bool check_assets: whether a check scene should be done before exporting the assets.
+	:return: True if the export operation was successful; False otherwise.
+	:rtype: bool
+	"""
 
 	return export_assets(tag_name=tag_name, nodes=cmds.ls(sl=True), check_assets=check_assets)
 
@@ -231,6 +155,186 @@ def export_assets_json(
 
 
 # ======================================================================================================================
+# STATIC MESHES
+# ======================================================================================================================
+
+@utils.timer
+@utils.viewport_off
+@utils.keep_selection_decorator
+def export_static_meshes(tag_name=tag.TAG_ASSET_TYPE_ATTR_NAME, nodes=None, check_assets=True):
+
+	static_meshes = utils.force_list(nodes or get_exportable_assets(
+		tag_name, asset_type=tag.TagTypes.StaticMesh).get(tag.TagTypes.StaticMesh, list()))
+	if not static_meshes:
+		logger.error('No static meshes to export found!')
+		return False
+
+	if check_assets:
+		result = check_scene(tag_name=tag_name, nodes=static_meshes)
+		if not result:
+			logger.warning('Scene check was not valid!')
+			return False
+
+	maya_file_path = utils.clean_path(cmds.file(query=True, sceneName=True))
+	maya_file_name = os.path.basename(maya_file_path)
+	output_path = utils.clean_path(os.path.join(os.path.dirname(maya_file_path), 'output'))
+	version_string = maya_file_name.split('_')[-1].split('.')[0]
+	is_shot = False if 'assets' in maya_file_path else True
+	start_frame = int(cmds.playbackOptions(q=1, min=1))
+	end_frame = int(cmds.playbackOptions(q=1, max=1))
+
+	if not os.path.isdir(output_path):
+		os.makedirs(output_path)
+	if not os.path.isdir(output_path):
+		logger.error('Was not possible to create export output directory: "{}"'.format(output_path))
+		return False
+
+	for static_mesh in static_meshes:
+		cmds.select(static_mesh)
+		output_file = '{}.fbx'.format(static_mesh.replace(':', '_'))
+		export_path = utils.clean_path(os.path.join(output_path, output_file))
+		if not is_shot:
+			pyFBX.FBXExportBakeComplexStart(v=True)
+			pyFBX.FBXExportBakeComplexEnd(v=True)
+			pyFBX.FBXExportFileVersion(v='FBX201400')
+			pyFBX.FBXExportConstraints(v=False)
+			pyFBX.FBXExportApplyConstantKeyReducer(v=False)
+			pyFBX.FBXExportAxisConversionMethod('none')
+			pyFBX.FBXExportCameras(v=False)
+			pyFBX.FBXExportInAscii(v=True)
+			pyFBX.FBXExportSkeletonDefinitions(v=True)
+			pyFBX.FBXExportEmbeddedTextures(v=False)
+			pyFBX.FBXExportAnimationOnly(v=False)
+			pyFBX.FBXExportBakeComplexAnimation(v=True)
+			pyFBX.FBXExportBakeComplexStep(v=True)
+			pyFBX.FBXExportShapes(v=True)
+			pyFBX.FBXExportSkins(v=True)
+			pyFBX.FBXExportSmoothingGroups(v=True)
+			pyFBX.FBXExportSmoothMesh(v=False)
+			pyFBX.FBXExportTangents(v=False)
+			pyFBX.FBXExportTriangulate(v=True)
+			pyFBX.FBXExportInputConnections(v=False)
+			pyFBX.FBXExport(f=export_path, s=True)
+			logger.info('\nExported {}'.format(export_path))
+	group_name = utils.get_first_in_list(cmds.listRelatives(nodes[0], p=True)) or ''
+	category = utils.get_first_in_list(cmds.listRelatives(group_name, p=True)) or ''
+	if ':' in group_name:
+		group_name = group_name.split(':')[-1]
+
+	export_assets_json(
+		source_file=maya_file_path, file_path=output_path, output_file=group_name, file_type='fbx',
+		version=version_string, category=category, group_name=group_name, tag_name=tag.TagTypes.StaticMesh,
+		nodes=nodes, start_frame=start_frame, end_frame=end_frame, is_shot=is_shot)
+
+	logger.info('\nStatic meshes exported {}'.format(output_path))
+
+	return True
+
+
+# ======================================================================================================================
+# SKELETAL MESHES
+# ======================================================================================================================
+
+@utils.timer
+@utils.viewport_off
+@utils.keep_selection_decorator
+def export_skeleton(file_path='', skeleton_name='', skeleton_list='', output_file=''):
+
+	logger.info('Writing out ueGear Skeleton JSON file...')
+
+	data = {
+		'version': __ASSETIO_VERSION__,
+		'data': [
+			{
+				'outputFile': output_file,
+				'joints': skeleton_list
+			}
+		]
+	}
+	out_file_path = '{}{}.json'.format(file_path, output_file)
+
+	return utils.write_to_json_file(data, out_file_path, sort_keys=False)
+
+
+# ======================================================================================================================
+# CAMERAS
+# ======================================================================================================================
+
+@utils.timer
+@utils.viewport_off
+@utils.keep_selection_decorator
+def export_cameras(tag_name=tag.TAG_ASSET_TYPE_ATTR_NAME, nodes=None, check_assets=True):
+
+	cameras = utils.force_list(nodes or get_exportable_assets(
+		tag_name, asset_type=tag.TagTypes.Camera).get(tag.TagTypes.Camera, list()))
+	if not cameras:
+		logger.error('No cameras to export found!')
+		return False
+
+	if check_assets:
+		result = check_scene(tag_name=tag_name, nodes=cameras)
+		if not result:
+			logger.warning('Scene check was not valid!')
+			return False
+
+	maya_file_path = utils.clean_path(cmds.file(query=True, sceneName=True))
+	maya_file_name = os.path.basename(maya_file_path)
+	output_path = utils.clean_path(os.path.join(os.path.dirname(maya_file_path), 'output'))
+	version_string = maya_file_name.split('_')[-1].split('.')[0]
+	scene_string = '' if 'assets' in maya_file_path else maya_file_path.split('/')[-3]
+	shot_string = '' if 'assets' in maya_file_path else maya_file_path.split('/')[-2]
+	is_shot = False if 'assets' in maya_file_path else True
+	start_frame = int(cmds.playbackOptions(q=1, min=1))
+	end_frame = int(cmds.playbackOptions(q=1, max=1))
+
+	if not os.path.isdir(output_path):
+		os.makedirs(output_path)
+	if not os.path.isdir(output_path):
+		logger.error('Was not possible to create export output directory: "{}"'.format(output_path))
+		return False
+
+	for camera in cameras:
+		camera_shape = utils.get_first_in_list(cmds.listRelatives(camera, shapes=True))
+		if not camera_shape:
+			logger.warning('Impossible to export camera: {} because it has no shapes')
+			continue
+
+		cmds.select(camera)
+		output_file = '{}.fbx'.format(camera.replace(':', '_'))
+		export_path = utils.clean_path(os.path.join(output_path, output_file))
+		pyFBX.FBXExportCameras(v=True)
+		pyFBX.FBXExportFileVersion(v='FBX201400')
+		pyFBX.FBXExportBakeComplexAnimation(v=True)
+		pyFBX.FBXExportBakeComplexStart(v=start_frame)
+		pyFBX.FBXExportBakeComplexEnd(v=end_frame)
+		pyFBX.FBXExportBakeComplexStep(v=True)
+		pyFBX.FBXExportInputConnections(v=0)
+		pyFBX.FBXExport(f=export_path, s=True)
+
+		custom_params = {
+			'aspectratio': cmds.camera(camera_shape, q=True, aspectRatio=True),
+			'cameraScale': cmds.camera(camera_shape, q=True, cameraScale=True),
+			'clippingPlanes': cmds.camera(camera_shape, q=True, clippingPlanes=True),
+			'farClipPlane': cmds.camera(camera_shape, q=True, farClipPlane=True),
+			'nearClipPlane': cmds.camera(camera_shape, q=True, nearClipPlane=True),
+			'focalLength': cmds.camera(camera_shape, q=True, focalLength=True),
+			'fStop': cmds.camera(camera_shape, q=True, fStop=True),
+			'horizontalFilmAperture': cmds.camera(camera_shape, q=True, horizontalFilmAperture=True) * 25.4,
+			'verticalFilmAperture': cmds.camera(camera_shape, q=True, verticalFilmAperture=True) * 25.4,
+			'lensSqueezeRatio': cmds.camera(camera_shape, q=True, lensSqueezeRatio=True)
+		}
+		export_assets_json(
+			source_file=maya_file_path, file_path=output_path, output_file=output_file.replace('.fbx', ''),
+			file_type='fbx', version=version_string, tag_name=tag.TagTypes.Camera, nodes=[camera], start_frame=start_frame,
+			end_frame=end_frame, is_shot=is_shot, scene_string=scene_string, shot_string=shot_string,
+			custom_params=custom_params)
+
+		logger.info('\nCamera exported {}'.format(export_path))
+
+	return True
+
+
+# ======================================================================================================================
 # LAYOUT
 # ======================================================================================================================
 
@@ -238,7 +342,7 @@ def export_assets_json(
 @utils.viewport_off
 def export_layout_json(nodes=None, output_path=None):
 
-	maya_file_path = cmds.file(query=True, sceneName=True)
+	maya_file_path = utils.clean_path(cmds.file(query=True, sceneName=True))
 	scene_file = os.path.basename(maya_file_path)
 	if not output_path or not os.path.isdir(output_path):
 		output_path = utils.clean_path(os.path.join(os.path.dirname(maya_file_path), 'output'))
