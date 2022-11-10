@@ -464,7 +464,7 @@ def mgear_dagmenu_callback(*args, **kwargs):  # @UnusedVariable
     # if second argument if not a bool then means that we are running
     # the override
     if type(args[1]) != bool:
-        sel = cmds.ls(selection=True, long=True, exactType="transform")
+        sel = cmds.ls(selection=True, long=True, type="transform")
         if sel and cmds.objExists("{}.isCtl".format(sel[0])):
             # cleans menu
             _parent_menu = parent_menu.replace('"', '')
