@@ -38,6 +38,20 @@ SRT_CHANNELS = [
 
 
 @mutils.one_undo
+def disconnect_joints():
+    return
+
+@mutils.one_undo
+def connect_joints():
+    return
+
+@mutils.one_undo
+def delete_rig_keep_joints():
+    # Should pop up confirmation dialog
+    return
+
+
+@mutils.one_undo
 def disconnect(cnxDict):
     """Disconnect the joints using the connections dictionary
 
@@ -438,7 +452,7 @@ def createAssetAssembly(filePath=None, reference=False):
 
 
 ####################################
-# Soft tweaks Manager dialog
+# Disconnect dialog
 ####################################
 
 
