@@ -147,19 +147,19 @@ class UeGearBridge(object):
         """
 
         temp_folder = tempfile.gettempdir()
-        asset_fbx_files = self.execute(
+        asset_export_datas = self.execute(
             'export_selected_assets', parameters={'directory': temp_folder}).get('ReturnValue', list())
-        for asset_file in asset_fbx_files:
-            fbx_file, json_file = asset_file.split(';')
+
+        for asset_export_data in asset_export_datas:
+            fbx_file = asset_export_data.get('fbx_file', None)
             if not fbx_file or not os.path.isfile(fbx_file):
                 continue
             imported_nodes = utils.import_fbx(fbx_file)
-            asset_data = utils.read_json_file(json_file)
             transform_nodes = cmds.ls(imported_nodes, type='transform')
             for transform_node in transform_nodes:
-                asset_type = asset_data.get('type', '')
-                asset_name = asset_data.get('name', '')
-                asset_path = asset_data.get('path', '')
+                asset_type = asset_export_data.get('asset_type', '')
+                asset_name = asset_export_data.get('name', '')
+                asset_path = asset_export_data.get('path', '')
                 if asset_type:
                     tag.apply_tag(transform_node, tag.TAG_ASSET_TYPE_ATTR_NAME, asset_type)
                 else:
