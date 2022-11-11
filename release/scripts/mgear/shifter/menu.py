@@ -37,8 +37,8 @@ def install():
         ("-----", None),
         ("Plebes...", str_plebes),
         ("-----", None),
+        (None, game_submenu),
         (None, mocap_submenu),
-        ("Game Tools Disconnect", str_openGameTools),
         ("-----", None),
         ("Update Guide", str_updateGuide, "mgear_loader.svg"),
         ("-----", None),
@@ -124,6 +124,23 @@ def mocap_submenu(parent_menu_id):
     mgear.menu.install("Mocap", commands, parent_menu_id)
 
 
+def game_submenu(parent_menu_id):
+    """Create the game tools submenu
+
+    Args:
+        parent_menu_id (str): Parent menu. i.e: "MayaWindow|mGear|menuItem355"
+    """
+    commands = (
+        ("Disconnect Joints", str_game_disconnet),
+        ("Connect Joints", str_game_connect),
+        ("Delete Rig + Keep Joints", str_game_delete_rig),
+        ("-----", None),
+        ("Game Tool Disconnect + Assembly IO", str_openGameAssemblyTool),
+    )
+
+    mgear.menu.install("Game Tools", commands, parent_menu_id)
+
+
 def guide_template_samples_submenu(parent_menu_id):
     """Create the guide sample templates submenu
 
@@ -206,7 +223,22 @@ from mgear.shifter import afg_tools_ui
 afg_tools_ui.show()
 """
 
-str_openGameTools = """
+str_game_disconnet = """
+from mgear.shifter import game_tools_disconnect
+game_tools_disconnect.disconnect_joints()
+"""
+
+str_game_connect = """
+from mgear.shifter import game_tools_disconnect
+game_tools_disconnect.connect_joints_from_matrixConstraint()
+"""
+
+str_game_delete_rig = """
+from mgear.shifter import game_tools_disconnect
+game_tools_disconnect.delete_rig_keep_joints()
+"""
+
+str_openGameAssemblyTool = """
 from mgear.shifter import game_tools_disconnect
 game_tools_disconnect.openGameToolsDisconnect()
 """

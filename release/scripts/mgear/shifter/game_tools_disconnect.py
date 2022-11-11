@@ -5,9 +5,11 @@ import sys
 from functools import partial
 import traceback
 import os.path
+import ast
 
 import mgear.core.utils as mutils
 from mgear.core import string
+from mgear.core import attribute
 
 import mgear.shifter.game_tools_disconnect_ui as gtUI
 
@@ -36,21 +38,87 @@ SRT_CHANNELS = [
     "shear",
 ]
 
+DRIVEN_JOINT_ATTR = "drivenJoint"
+DRIVER_ATTRS = "driverAttrs"
+
+#######################################################
+# standalone disconnect commands
+
 
 @mutils.one_undo
 def disconnect_joints():
-    return
+    # get deformer joints from set
+    grps = get_deformers_sets()
+    for g in grps:
+        cnx, mcons_nodes = get_connections(g.members(), embed_info=True)
+        # disconnect (input and output connections from mgear_matrixConstraint)
+        disconnect(cnx)
+        pm.displayInfo(
+            "Joint from group {} has been disconnected".format(g.name())
+        )
+
 
 @mutils.one_undo
-def connect_joints():
-    return
+def connect_joints_from_matrixConstraint():
+    # Note: not using message connection in case the rig and the joint are not
+    # keep in the same scene
+    for mcon in pm.ls(type="mgear_matrixConstraint"):
+        if mcon.hasAttr(DRIVEN_JOINT_ATTR) and mcon.getAttr(DRIVEN_JOINT_ATTR):
+            jnt_name = mcon.getAttr(DRIVEN_JOINT_ATTR)
+            if pm.objExists(jnt_name):
+                jnt = pm.PyNode(jnt_name)
+                driver_attrs = ast.literal_eval(mcon.getAttr(DRIVER_ATTRS))
+                connect_joint(mcon, jnt, driver_attrs)
+
 
 @mutils.one_undo
 def delete_rig_keep_joints():
     # Should pop up confirmation dialog
-    return
+    button_pressed = QtWidgets.QMessageBox.question(
+        pyqt.maya_main_window(), "Warning", "Delete Rigs in the scene?"
+    )
+    if button_pressed == QtWidgets.QMessageBox.Yes:
+        disconnect_joints()
+        for rig_root in get_rig_root_from_set():
+            rig_name = rig_root.name()
+            jnt_org = rig_root.jnt_vis.listConnections(type="transform")[0]
+            pm.parent(jnt_org.getChildren(), world=True)
+            pm.delete(rig_root.rigGroups.listConnections(type="objectSet"))
+            pm.delete(rig_root)
+
+            pm.displayInfo("{} deleted.".format(rig_name))
+    else:
+        pm.displayInfo("Cancelled")
 
 
+def get_deformers_sets():
+    grps = pm.ls("*_deformers_grp", type="objectSet")
+    return grps
+
+
+def get_rig_root_from_set():
+    # check message cnx
+    roots = []
+    for grp in get_deformers_sets():
+        rig_root = grp.message.listConnections(type="transform")[0]
+        roots.append(rig_root)
+    return roots
+
+
+def connect_joint(matrixConstraint, joint, driver_attrs):
+    for e, chn in enumerate(SRT_CHANNELS):
+        if driver_attrs[e]:
+            pm.connectAttr(driver_attrs[e], joint.attr(chn))
+    pm.connectAttr(
+        joint.parentInverseMatrix[0],
+        matrixConstraint.drivenParentInverseMatrix,
+    )
+
+
+#######################################################
+
+# TODO: check if drivenJoint attr is in matrix contraint node and add it if
+# it is missing
 @mutils.one_undo
 def disconnect(cnxDict):
     """Disconnect the joints using the connections dictionary
@@ -144,22 +212,38 @@ def connectCns(cnxDict, nsRig=None, nsSkin=None):
             pm.scaleConstraint(oTrans, oJnt, mo=True)
 
 
-def exportConnections(source=None, filePath=None, disc=False):
-    """Export connection to a json file wiht .jnn extension
+def get_connections(source=None, embed_info=False):
+    """Get source joint connections
 
     Args:
         source (list, optional): List of Joints
-        filePath (None, optional): Directory path to save the file
-        disc (bool, optional): If True, will disconnect the joints.
 
     Returns:
-        set: Decompose matrix nodes. We need to return the decompose
-            matrix nodes to track it at export time.
+        dict: joint connections dictionary
     """
+
+    def embed_driven_joint_data(mcons_node, joint, attrs_list_checked):
+        """embed driven joint name
+
+        Args:
+            mcons_node (pyNode): mgear_matrixConstraint
+            joint (PyNode): Joint
+        """
+        if not mcons_node.hasAttr(DRIVEN_JOINT_ATTR):
+            attribute.addAttribute(
+                mcons_node, DRIVEN_JOINT_ATTR, "string", value=joint.name()
+            )
+            attribute.addAttribute(
+                mcons_node,
+                DRIVER_ATTRS,
+                "string",
+                value=str(attrs_list_checked),
+            )
+
     connections = {}
     connections["joints"] = []
     connections["attrs"] = []
-    dm_nodes = []
+    mcons_nodes = []
     if not source:
         source = pm.selected()
     for x in source:
@@ -183,14 +267,35 @@ def exportConnections(source=None, filePath=None, disc=False):
             attrs_list.append(parentInv_attr)
 
             attrs_list_checked = []
+            mtx_cons = None
             for at in attrs_list:
                 if at:
                     attrs_list_checked.append(at[0].name())
-                    dm_nodes.append(at[0].node())
+                    mcons_nodes.append(at[0].node())
+                    if not mtx_cons:
+                        mtx_cons = at[0].node()
                 else:
                     attrs_list_checked.append(None)
+            if mtx_cons and embed_info:
+                embed_driven_joint_data(mtx_cons, x, attrs_list_checked)
 
             connections["attrs"].append(attrs_list_checked)
+    return connections, mcons_nodes
+
+
+def exportConnections(source=None, filePath=None, disc=False):
+    """Export connection to a json file wiht .jnn extension
+
+    Args:
+        source (list, optional): List of Joints
+        filePath (None, optional): Directory path to save the file
+        disc (bool, optional): If True, will disconnect the joints.
+
+    Returns:
+        set: Decompose matrix nodes. We need to return the decompose
+            matrix nodes to track it at export time.
+    """
+    connections, mcons_nodes = get_connections(source)
 
     data_string = json.dumps(connections, indent=4, sort_keys=True)
     if not filePath:
@@ -210,7 +315,7 @@ def exportConnections(source=None, filePath=None, disc=False):
         if disc:
             disconnect(connections)
     # we need to return the decompose matrix nodes to track it at export time.
-    return set(dm_nodes)
+    return set(mcons_nodes)
 
 
 def importConnections(filePath=None, nsRig=None, nsSkin=None, useMtx=True):
