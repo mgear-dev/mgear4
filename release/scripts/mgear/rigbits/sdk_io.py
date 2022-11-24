@@ -80,6 +80,7 @@ def _exportData(data, filePath):
 # pymel Convenience
 # ==============================================================================
 
+
 def getPynodes(nodes):
     """Conevenience function to allow uses to pass in strings, but convert to
     pynodes if not already.
@@ -102,6 +103,7 @@ def getPynodes(nodes):
 # sdk functions
 # ==============================================================================
 
+
 def getSDKDestination(animNodeOutputPlug):
     """Get the final destination of the sdk node, skips blendweighted
     and conversion node to get the transform node.
@@ -114,18 +116,19 @@ def getSDKDestination(animNodeOutputPlug):
         list: name of the node, and attr
     """
     connectionTypes = [SDK_UTILITY_TYPE[0], "transform"]
-    targetDrivenAttr = pm.listConnections(animNodeOutputPlug,
-                                          source=False,
-                                          destination=True,
-                                          plugs=True,
-                                          type=connectionTypes,
-                                          scn=True)
+    targetDrivenAttr = pm.listConnections(
+        animNodeOutputPlug,
+        source=False,
+        destination=True,
+        plugs=True,
+        type=connectionTypes,
+        scn=True,
+    )
     if pm.nodeType(targetDrivenAttr[0].nodeName()) == "blendWeighted":
         blendNodeOutAttr = targetDrivenAttr[0].node().attr("output")
-        targetDrivenAttr = pm.listConnections(blendNodeOutAttr,
-                                              destination=True,
-                                              plugs=True,
-                                              scn=True)
+        targetDrivenAttr = pm.listConnections(
+            blendNodeOutAttr, destination=True, plugs=True, scn=True
+        )
 
     drivenNode, drivenAttr = targetDrivenAttr[0].split(".")
     return drivenNode, drivenAttr
@@ -144,19 +147,26 @@ def getMultiDriverSDKs(driven, sourceDriverFilter=None):
     """
     sdkDrivers = []
     for sdkUtility in SDK_UTILITY_TYPE:
-        blend_NodePair = pm.listConnections(driven,
-                                            source=True,
-                                            type=sdkUtility,
-                                            exactType=True,
-                                            plugs=True,
-                                            connections=True,
-                                            sourceFirst=True,
-                                            scn=True) or []
+        blend_NodePair = (
+            pm.listConnections(
+                driven,
+                source=True,
+                type=sdkUtility,
+                exactType=True,
+                plugs=True,
+                connections=True,
+                sourceFirst=True,
+                scn=True,
+            )
+            or []
+        )
 
         if not blend_NodePair:
             continue
         for pairs in blend_NodePair:
-            sdkPairs = getConnectedSDKs(pairs[0].nodeName(), sourceDriverFilter=sourceDriverFilter)
+            sdkPairs = getConnectedSDKs(
+                pairs[0].nodeName(), sourceDriverFilter=sourceDriverFilter
+            )
             for sPair in sdkPairs:
                 sdkDrivers.append([sPair[0], pairs[1]])
     return sdkDrivers
@@ -179,14 +189,19 @@ def getConnectedSDKs(driven, curvesOfType=[], sourceDriverFilter=None):
     if not curvesOfType:
         curvesOfType = SDK_ANIMCURVES_TYPE
     for animCurve in curvesOfType:
-        animCurveNodes = pm.listConnections(driven,
-                                            source=True,
-                                            type=animCurve,
-                                            exactType=True,
-                                            plugs=True,
-                                            connections=True,
-                                            sourceFirst=True,
-                                            scn=True) or []
+        animCurveNodes = (
+            pm.listConnections(
+                driven,
+                source=True,
+                type=animCurve,
+                exactType=True,
+                plugs=True,
+                connections=True,
+                sourceFirst=True,
+                scn=True,
+            )
+            or []
+        )
 
         # If the filter is given, filter out only nodes driven by
         # transforms inside sourceDriverFilter
@@ -194,12 +209,13 @@ def getConnectedSDKs(driven, curvesOfType=[], sourceDriverFilter=None):
             filteredSDKNodes = []
             for driver_plug, anim_plug in animCurveNodes:
                 # Getting the connected Driver Transform nodes
-                connectedDrivers = pm.listConnections(driver_plug.node(),
-                                                      source=True,
-                                                      type="transform",
-                                                      exactType=True,
-                                                      scn=True
-                                                      )
+                connectedDrivers = pm.listConnections(
+                    driver_plug.node(),
+                    source=True,
+                    type="transform",
+                    exactType=True,
+                    scn=True,
+                )
                 # If any are found, add them to filteredSDKNodes
                 # if the node name is in sourceDriverFilter
                 if connectedDrivers:
@@ -227,7 +243,9 @@ def getSDKInfo(animNode):
     """
     sdkInfo_dict = {}
     sdkKey_Info = []
-    numberOfKeys = int(len(pm.listAttr("{0}.ktv".format(animNode), multi=True)) / 3)
+    numberOfKeys = int(
+        len(pm.listAttr("{0}.ktv".format(animNode), multi=True)) / 3
+    )
     itt_list = pm.keyTangent(animNode, itt=True, q=True)
     ott_list = pm.keyTangent(animNode, ott=True, q=True)
     # maya doesnt return value if there is only one key frame set.
@@ -238,10 +256,9 @@ def getSDKInfo(animNode):
 
     for index in range(0, numberOfKeys):
         value = pm.getAttr("{0}.keyTimeValue[{1}]".format(animNode, index))
-        absoluteValue = pm.keyframe(animNode,
-                                    q=True,
-                                    valueChange=True,
-                                    index=index)[0]
+        absoluteValue = pm.keyframe(
+            animNode, q=True, valueChange=True, index=index
+        )[0]
         keyData = [value[0], absoluteValue, itt_list[index], ott_list[index]]
         sdkKey_Info.append(keyData)
     sdkInfo_dict["keys"] = sdkKey_Info
@@ -251,10 +268,9 @@ def getSDKInfo(animNode):
     sdkInfo_dict["weightedTangents"] = animNode.getAttr("weightedTangents")
 
     animNodeInputPlug = "{0}.input".format(animNode.nodeName())
-    sourceDriverAttr = pm.listConnections(animNodeInputPlug,
-                                          source=True,
-                                          plugs=True,
-                                          scn=True)[0]
+    sourceDriverAttr = pm.listConnections(
+        animNodeInputPlug, source=True, plugs=True, scn=True
+    )[0]
     driverNode, driverAttr = sourceDriverAttr.split(".")
     sdkInfo_dict["driverNode"] = driverNode
     sdkInfo_dict["driverAttr"] = driverAttr
@@ -300,8 +316,12 @@ def removeSDKs(node, attributes=[], sourceDriverFilter=None):
     # if no attrs provided, assume all
     if not attributes:
         attributes = pm.listAttr(node, connectable=True)
-    sourceSDKInfo = getConnectedSDKs(node, sourceDriverFilter=sourceDriverFilter)
-    sourceSDKInfo.extend(getMultiDriverSDKs(node, sourceDriverFilter=sourceDriverFilter))
+    sourceSDKInfo = getConnectedSDKs(
+        node, sourceDriverFilter=sourceDriverFilter
+    )
+    sourceSDKInfo.extend(
+        getMultiDriverSDKs(node, sourceDriverFilter=sourceDriverFilter)
+    )
     for source, dest in sourceSDKInfo:
         if dest.plugAttr(longName=True) not in attributes:
             continue
@@ -309,11 +329,13 @@ def removeSDKs(node, attributes=[], sourceDriverFilter=None):
     pm.delete(toDelete)
 
 
-def copySDKsToNode(sourceDriven,
-                   targetDriver,
-                   targetDriven,
-                   sourceAttributes=[],
-                   sourceDriverFilter=None):
+def copySDKsToNode(
+    sourceDriven,
+    targetDriver,
+    targetDriven,
+    sourceAttributes=[],
+    sourceDriverFilter=None,
+):
     """Duplicates sdk nodes from the source drive, to any designated target
     driver/driven
 
@@ -329,9 +351,9 @@ def copySDKsToNode(sourceDriven,
     Returns:
         TYPE: n/a
     """
-    sourceDriven, targetDriver, targetDriven = getPynodes([sourceDriven,
-                                                           targetDriver,
-                                                           targetDriven])
+    sourceDriven, targetDriver, targetDriven = getPynodes(
+        [sourceDriven, targetDriver, targetDriven]
+    )
     if sourceDriven == targetDriven:
         pm.warning("You cannot copy SDKs to the same name.")
         return
@@ -343,29 +365,35 @@ def copySDKsToNode(sourceDriven,
     sourceSDKInfo = getConnectedSDKs(sourceDriven, sourceDriverFilter=None)
     sourceSDKInfo.extend(getMultiDriverSDKs(sourceDriven, sourceDriverFilter))
 
-
     for source, dest in sourceSDKInfo:
         if dest.plugAttr(longName=True) not in sourceAttributes:
             continue
 
-        sourceDriverAttr = pm.listConnections("{0}.input".format(
-                                              source.nodeName()),
-                                              source=True,
-                                              plugs=True,
-                                              scn=True)[0]
+        sourceDriverAttr = pm.listConnections(
+            "{0}.input".format(source.nodeName()),
+            source=True,
+            plugs=True,
+            scn=True,
+        )[0]
 
-        duplicateCurve = pm.duplicate(source, name="{0}_{1}".format(
-                                      targetDriven.name(),
-                                      dest.attrName(longName=True)))[0]
+        duplicateCurve = pm.duplicate(
+            source,
+            name="{0}_{1}".format(
+                targetDriven.name(), dest.attrName(longName=True)
+            ),
+        )[0]
 
-        pm.connectAttr("{0}.{1}".format(
-                       targetDriver,
-                       sourceDriverAttr.attrName(longName=True)),
-                       "{0}.input".format(duplicateCurve))
+        pm.connectAttr(
+            "{0}.{1}".format(
+                targetDriver, sourceDriverAttr.attrName(longName=True)
+            ),
+            "{0}.input".format(duplicateCurve),
+        )
 
         # drivenNode, drivenAttr = getSDKDestination(duplicateCurve.output)
-        drivenAttrPlug = "{0}.{1}".format(targetDriven,
-                                          dest.name(includeNode=False))
+        drivenAttrPlug = "{0}.{1}".format(
+            targetDriven, dest.name(includeNode=False)
+        )
         if pm.listConnections(drivenAttrPlug):
             targetAttrPlug = getBlendNodes(drivenAttrPlug)
         else:
@@ -417,11 +445,13 @@ def invertKeyValues(newKeyNode, invertDriver=True, invertDriven=True):
             timeValue = frameValue[0]
             value = frameValue[1]
 
-        pm.setKeyframe(newKeyNode,
-                       float=timeValue,
-                       value=value,
-                       itt=frameValue[2],
-                       ott=frameValue[3])
+        pm.setKeyframe(
+            newKeyNode,
+            float=timeValue,
+            value=value,
+            itt=frameValue[2],
+            ott=frameValue[3],
+        )
 
 
 def mirrorSDKkeys(node, attributes=[], invertDriver=True, invertDriven=True):
@@ -444,9 +474,9 @@ def mirrorSDKkeys(node, attributes=[], invertDriver=True, invertDriven=True):
         if dest.plugAttr(longName=True) not in attributes:
             continue
         animCurve = source.node()
-        invertKeyValues(animCurve,
-                        invertDriver=invertDriver,
-                        invertDriven=invertDriven)
+        invertKeyValues(
+            animCurve, invertDriver=invertDriver, invertDriven=invertDriven
+        )
 
 
 def getBlendNodes(attrPlug):
@@ -488,15 +518,21 @@ def createSDKFromDict(sdkInfo_dict):
     Returns:
         PyNode: created sdk node
     """
-    sdkName = "{0}_{1}".format(sdkInfo_dict["drivenNode"],
-                               sdkInfo_dict["drivenAttr"])
+    sdkName = "{0}_{1}".format(
+        sdkInfo_dict["drivenNode"], sdkInfo_dict["drivenAttr"]
+    )
     sdkNode = pm.createNode(sdkInfo_dict["type"], name=sdkName, ss=True)
-    pm.connectAttr("{0}.{1}".format(sdkInfo_dict["driverNode"],
-                   sdkInfo_dict["driverAttr"]),
-                   "{0}.input".format(sdkNode), f=True)
+    pm.connectAttr(
+        "{0}.{1}".format(
+            sdkInfo_dict["driverNode"], sdkInfo_dict["driverAttr"]
+        ),
+        "{0}.input".format(sdkNode),
+        f=True,
+    )
 
-    drivenAttrPlug = "{0}.{1}".format(sdkInfo_dict["drivenNode"],
-                                      sdkInfo_dict["drivenAttr"])
+    drivenAttrPlug = "{0}.{1}".format(
+        sdkInfo_dict["drivenNode"], sdkInfo_dict["drivenAttr"]
+    )
 
     if pm.listConnections(drivenAttrPlug):
         targetAttrPlug = getBlendNodes(drivenAttrPlug)
@@ -511,11 +547,9 @@ def createSDKFromDict(sdkInfo_dict):
         # Note: fixed is not supported by setKeyframe. we swap it to linear
         it = "linear" if frameValue[2] == "fixed" else frameValue[2]
         ot = "linear" if frameValue[3] == "fixed" else frameValue[3]
-        pm.setKeyframe(sdkNode,
-                       float=frameValue[0],
-                       value=frameValue[1],
-                       itt=it,
-                       ott=ot)
+        pm.setKeyframe(
+            sdkNode, float=frameValue[0], value=frameValue[1], itt=it, ott=ot
+        )
 
     sdkNode.setAttr("preInfinity", sdkInfo_dict["preInfinity"])
     sdkNode.setAttr("postInfinity", sdkInfo_dict["postInfinity"])
