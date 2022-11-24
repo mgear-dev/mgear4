@@ -25,7 +25,7 @@ sev_verbose = 16
 sev_comment = 32
 
 # gear version
-VERSION = [4, 0, 16]
+VERSION = [4, 0, 17]
 
 self = sys.modules[__name__]
 self.menu_id = None
