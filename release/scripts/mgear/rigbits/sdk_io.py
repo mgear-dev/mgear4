@@ -545,6 +545,10 @@ def createSDKFromDict(sdkInfo_dict):
     for index in range(0, len(animKeys)):
         frameValue = animKeys[index]
         # Note: fixed is not supported by setKeyframe. we swap it to linear
+        pm.displayWarning(
+            "SDK fixed interpolation is not supported by setKeyframe."
+            " We swap it to linear"
+        )
         it = "linear" if frameValue[2] == "fixed" else frameValue[2]
         ot = "linear" if frameValue[3] == "fixed" else frameValue[3]
         pm.setKeyframe(
