@@ -20,6 +20,8 @@ from maya.app.general.mayaMixin import MayaQWidgetDockableMixin
 from mgear.core import pyqt, attribute, icon, node, primitive, applyop, skin
 from mgear.vendor.Qt import QtCore, QtWidgets, QtGui
 from pymel.core import datatypes
+from pymel import versions
+from maya import cmds
 
 from mgear.core import string
 
@@ -153,6 +155,11 @@ def _createSoftModTweak(baseCtl,
     sm[0].addAttr("ctlRoot", at='message', m=False)
     sm[0].addAttr("ctlBase", at='message', m=False)
     sm[0].addAttr("ctlTweak", at='message', m=False)
+
+    # fix issue with Maya 2022 and later for falloffAroundSelection
+    if versions.current() >= 20220000:
+        sm[0].falloffAroundSelection.set(0)
+
     pm.connectAttr(baseCtl.getParent().attr("message"), sm[0].attr("ctlRoot"))
     pm.connectAttr(baseCtl.attr("message"), sm[0].attr("ctlBase"))
     pm.connectAttr(tweakCtl.attr("message"), sm[0].attr("ctlTweak"))
@@ -319,23 +326,21 @@ def _neutra_geomMatrix(softmod):
 
 
 # add or remove obj from softmod
-def _addRemoveSoftMode(softMods, targets=[], add=True):
+def _addRemoveSoftMode(softMods, targets=[], rm=True):
     if isinstance(softMods, string_types):
         softMods = pm.PyNode(softMods)
     if not isinstance(softMods, list):
         softMods = [softMods]
-    for softMod in softMods:
-        softSet = pm.listConnections(softMod, type='objectSet')
-        if softSet:
-            if isinstance(targets, string_types):
-                targets = pm.PyNode(targets)
-            if not isinstance(targets, list):
-                targets = [targets]
 
-            if add:
-                pm.sets(softSet[0], add=targets)
-            else:
-                pm.sets(softSet[0], rm=targets)
+    if isinstance(targets, string_types):
+        targets = pm.PyNode(targets)
+    if not isinstance(targets, list):
+        targets = [targets]
+
+    for softMod in softMods:
+        for t in targets:
+            cmds.deformer(softMod.name(), rm=rm, e=True, g=t.name())
+            # print("Added softtweak for: {}".format(t.name()))
 
         _neutra_geomMatrix(softMod)
 
@@ -348,7 +353,7 @@ def addToSoftMod(softMods, targets=[]):
 
 
 def removeSoftMod(softMods, targets=[]):
-    _addRemoveSoftMode(softMods, targets, False)
+    _addRemoveSoftMode(softMods, targets, True)
 
 # list soft modeTweaks in the scene
 
@@ -672,15 +677,15 @@ class softTweakManager(MayaQWidgetDockableMixin, QtWidgets.QDialog):
     def refreshList(self):
         self._refreshList()
 
-    def _addRemoveObj(self, add=True):
+    def _addRemoveObj(self, rm=False):
         softMods = self._getSelectedListIndexes()
-        _addRemoveSoftMode(softMods, pm.selected(), add)
+        _addRemoveSoftMode(softMods, pm.selected(), rm)
 
     def addObj(self):
         self._addRemoveObj()
 
     def removeObj(self):
-        self._addRemoveObj(False)
+        self._addRemoveObj(True)
 
     def _populate_object(self, lEdit, oType=True):
         if oType:
