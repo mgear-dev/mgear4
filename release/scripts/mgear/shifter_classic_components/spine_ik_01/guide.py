@@ -83,6 +83,10 @@ class Guide(guide.ComponentGuide):
         self.pParentJointIndex = self.addParam(
             "parentJointIndex", "long", -1, None, None)
 
+        self.pIKSolver = self.addEnumParam(
+            "ctlOrientation", ["yx", "xy", "zx"], 0
+        )
+
     def get_divisions(self):
         """ Returns correct segments divisions """
 
@@ -166,6 +170,10 @@ class componentSettings(MayaQWidgetDockableMixin, guide.componentMainSettings):
         self.populateCheck(self.settingsTab.centralTangent_checkBox,
                            "centralTangent")
 
+        self.settingsTab.ctlOri_comboBox.setCurrentIndex(
+            self.root.attr("ctlOrientation").get()
+        )
+
     def create_componentLayout(self):
 
         self.settings_layout = QtWidgets.QVBoxLayout()
@@ -222,6 +230,14 @@ class componentSettings(MayaQWidgetDockableMixin, guide.componentMainSettings):
                     "centralTangent"))
         self.settingsTab.squashStretchProfile_pushButton.clicked.connect(
             self.setProfile)
+
+        self.settingsTab.ctlOri_comboBox.currentIndexChanged.connect(
+            partial(
+                self.updateComboBox,
+                self.settingsTab.ctlOri_comboBox,
+                "ctlOrientation",
+            )
+        )
 
     def dockCloseEventTriggered(self):
         pyqt.deleteInstances(self, MayaQDockWidget)

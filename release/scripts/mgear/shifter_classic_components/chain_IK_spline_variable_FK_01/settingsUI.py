@@ -1,10 +1,19 @@
+# -*- coding: utf-8 -*-
+
+# Form implementation generated from reading ui file 'C:/datawork/repo/mgear4/release/scripts/mgear/shifter_classic_components/chain_IK_spline_variable_FK_01/settingsUI.ui'
+#
+# Created: Tue Nov 29 10:59:41 2022
+#      by: pyside2-uic  running on PySide2 2.0.0~alpha0
+#
+# WARNING! All changes made in this file will be lost!
+
 import mgear.core.pyqt as gqt
 QtGui, QtCore, QtWidgets, wrapInstance = gqt.qt_import()
 
 class Ui_Form(object):
     def setupUi(self, Form):
         Form.setObjectName("Form")
-        Form.resize(272, 232)
+        Form.resize(406, 440)
         self.verticalLayout = QtWidgets.QVBoxLayout(Form)
         self.verticalLayout.setObjectName("verticalLayout")
         self.groupBox_3 = QtWidgets.QGroupBox(Form)
@@ -63,22 +72,6 @@ class Ui_Form(object):
         self.position_spinBox.setObjectName("position_spinBox")
         self.horizontalLayout_4.addWidget(self.position_spinBox)
         self.formLayout.setLayout(1, QtWidgets.QFormLayout.FieldRole, self.horizontalLayout_4)
-        self.softness_label_3 = QtWidgets.QLabel(Form)
-        self.softness_label_3.setObjectName("softness_label_3")
-        self.formLayout.setWidget(2, QtWidgets.QFormLayout.LabelRole, self.softness_label_3)
-        self.horizontalLayout_5 = QtWidgets.QHBoxLayout()
-        self.horizontalLayout_5.setObjectName("horizontalLayout_5")
-        self.lockOri_slider = QtWidgets.QSlider(Form)
-        self.lockOri_slider.setMinimumSize(QtCore.QSize(0, 15))
-        self.lockOri_slider.setMaximum(100)
-        self.lockOri_slider.setOrientation(QtCore.Qt.Horizontal)
-        self.lockOri_slider.setObjectName("lockOri_slider")
-        self.horizontalLayout_5.addWidget(self.lockOri_slider)
-        self.lockOri_spinBox = QtWidgets.QSpinBox(Form)
-        self.lockOri_spinBox.setMaximum(100)
-        self.lockOri_spinBox.setObjectName("lockOri_spinBox")
-        self.horizontalLayout_5.addWidget(self.lockOri_spinBox)
-        self.formLayout.setLayout(2, QtWidgets.QFormLayout.FieldRole, self.horizontalLayout_5)
         self.maxStretch_label = QtWidgets.QLabel(Form)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.MinimumExpanding, QtWidgets.QSizePolicy.MinimumExpanding)
         sizePolicy.setHorizontalStretch(0)
@@ -86,7 +79,7 @@ class Ui_Form(object):
         sizePolicy.setHeightForWidth(self.maxStretch_label.sizePolicy().hasHeightForWidth())
         self.maxStretch_label.setSizePolicy(sizePolicy)
         self.maxStretch_label.setObjectName("maxStretch_label")
-        self.formLayout.setWidget(3, QtWidgets.QFormLayout.LabelRole, self.maxStretch_label)
+        self.formLayout.setWidget(2, QtWidgets.QFormLayout.LabelRole, self.maxStretch_label)
         self.maxStretch_spinBox = QtWidgets.QDoubleSpinBox(Form)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.MinimumExpanding, QtWidgets.QSizePolicy.Fixed)
         sizePolicy.setHorizontalStretch(0)
@@ -97,7 +90,7 @@ class Ui_Form(object):
         self.maxStretch_spinBox.setSingleStep(0.1)
         self.maxStretch_spinBox.setProperty("value", 1.0)
         self.maxStretch_spinBox.setObjectName("maxStretch_spinBox")
-        self.formLayout.setWidget(3, QtWidgets.QFormLayout.FieldRole, self.maxStretch_spinBox)
+        self.formLayout.setWidget(2, QtWidgets.QFormLayout.FieldRole, self.maxStretch_spinBox)
         self.maxSquash_label = QtWidgets.QLabel(Form)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.MinimumExpanding, QtWidgets.QSizePolicy.MinimumExpanding)
         sizePolicy.setHorizontalStretch(0)
@@ -105,7 +98,7 @@ class Ui_Form(object):
         sizePolicy.setHeightForWidth(self.maxSquash_label.sizePolicy().hasHeightForWidth())
         self.maxSquash_label.setSizePolicy(sizePolicy)
         self.maxSquash_label.setObjectName("maxSquash_label")
-        self.formLayout.setWidget(4, QtWidgets.QFormLayout.LabelRole, self.maxSquash_label)
+        self.formLayout.setWidget(3, QtWidgets.QFormLayout.LabelRole, self.maxSquash_label)
         self.maxSquash_spinBox = QtWidgets.QDoubleSpinBox(Form)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.MinimumExpanding, QtWidgets.QSizePolicy.Fixed)
         sizePolicy.setHorizontalStretch(0)
@@ -117,8 +110,19 @@ class Ui_Form(object):
         self.maxSquash_spinBox.setSingleStep(0.1)
         self.maxSquash_spinBox.setProperty("value", 1.0)
         self.maxSquash_spinBox.setObjectName("maxSquash_spinBox")
-        self.formLayout.setWidget(4, QtWidgets.QFormLayout.FieldRole, self.maxSquash_spinBox)
+        self.formLayout.setWidget(3, QtWidgets.QFormLayout.FieldRole, self.maxSquash_spinBox)
+        self.ctlOri_comboBox = QtWidgets.QComboBox(Form)
+        self.ctlOri_comboBox.setObjectName("ctlOri_comboBox")
+        self.ctlOri_comboBox.addItem("")
+        self.ctlOri_comboBox.addItem("")
+        self.ctlOri_comboBox.addItem("")
+        self.formLayout.setWidget(4, QtWidgets.QFormLayout.FieldRole, self.ctlOri_comboBox)
+        self.ctlOri_label = QtWidgets.QLabel(Form)
+        self.ctlOri_label.setObjectName("ctlOri_label")
+        self.formLayout.setWidget(4, QtWidgets.QFormLayout.LabelRole, self.ctlOri_label)
         self.verticalLayout.addLayout(self.formLayout)
+        spacerItem = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
+        self.verticalLayout.addItem(spacerItem)
 
         self.retranslateUi(Form)
         QtCore.QMetaObject.connectSlotsByName(Form)
@@ -129,7 +133,10 @@ class Ui_Form(object):
         self.fkNb_label.setText(gqt.fakeTranslate("Form", "FK Ctl Number", None, -1))
         self.softness_label.setText(gqt.fakeTranslate("Form", "Softness", None, -1))
         self.softness_label_2.setText(gqt.fakeTranslate("Form", "Position", None, -1))
-        self.softness_label_3.setText(gqt.fakeTranslate("Form", "Lock Orient", None, -1))
         self.maxStretch_label.setText(gqt.fakeTranslate("Form", "Max Stretch", None, -1))
         self.maxSquash_label.setText(gqt.fakeTranslate("Form", "Max Squash", None, -1))
+        self.ctlOri_comboBox.setItemText(0, gqt.fakeTranslate("Form", "XZ", None, -1))
+        self.ctlOri_comboBox.setItemText(1, gqt.fakeTranslate("Form", "YZ", None, -1))
+        self.ctlOri_comboBox.setItemText(2, gqt.fakeTranslate("Form", "ZX", None, -1))
+        self.ctlOri_label.setText(gqt.fakeTranslate("Form", "CTL Orientation", None, -1))
 

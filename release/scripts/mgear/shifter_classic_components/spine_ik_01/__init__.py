@@ -36,11 +36,46 @@ class Component(component.Main):
                 j.drawStyle.set(2)
 
         # Ik Controlers ------------------------------------
+        axis_ori = ["yx", "x-y", "zx"][self.settings["ctlOrientation"]]
         t = transform.getTransformLookingAt(self.guide.apos[0],
                                             self.guide.apos[1],
                                             self.guide.blades["blade"].z * -1,
-                                            "yx",
+                                            axis_ori,
                                             self.negate)
+
+        # check first axis
+        if axis_ori[0] == "-":
+            first_axis = axis_ori[1]
+        else:
+            first_axis = axis_ori[0]
+        # set ro offset
+        if first_axis == "x":
+            ro_vec = datatypes.Vector([0, 0, 1.5708])
+            self.front_axis = 0
+            self.up_axis = 1
+            self.ref_twist_vec = datatypes.Vector(-1.0, 0, 0)
+            self.dist_attr = "tx"
+            self.autoBend_ro_axis = "rx"
+            self.ikAutoRot_X = "rz"
+            self.ikAutoRot_Y = "ry"
+        elif first_axis == "y":
+            ro_vec = datatypes.Vector([0, 0, 0])
+            self.front_axis = 1
+            self.up_axis = 0
+            self.ref_twist_vec = datatypes.Vector(1.0, 0, 0.0)
+            self.dist_attr = "ty"
+            self.autoBend_ro_axis = "ry"
+            self.ikAutoRot_X = "rz"
+            self.ikAutoRot_Y = "rx"
+        elif first_axis == "z":
+            ro_vec = datatypes.Vector([1.5708, 0, 0])
+            self.front_axis = 2
+            self.up_axis = 0
+            self.ref_twist_vec = datatypes.Vector(1.0, 0, 0)
+            self.dist_attr = "tz"
+            self.autoBend_ro_axis = "rz"
+            self.ikAutoRot_X = "ry"
+            self.ikAutoRot_Y = "rx"
 
         self.ik0_npo = primitive.addTransform(
             self.root, self.getName("ik0_npo"), t)
@@ -51,11 +86,12 @@ class Component(component.Main):
                                    self.color_ik,
                                    "compas",
                                    w=self.size,
+                                   ro=ro_vec,
                                    tp=self.parentCtlTag)
 
         attribute.setKeyableAttributes(self.ik0_ctl, self.tr_params)
         attribute.setRotOrder(self.ik0_ctl, "ZXY")
-        attribute.setInvertMirror(self.ik0_ctl, ["tx", "ry", "rz"])
+        attribute.setInvertMirror(self.ik0_ctl, ["tx", self.autoBend_ro_axis, "rz"])
 
         t = transform.setMatrixPosition(t, self.guide.apos[1])
         if self.settings["autoBend"]:
@@ -69,12 +105,13 @@ class Component(component.Main):
                                             "square",
                                             w=self.size,
                                             d=.3 * self.size,
+                                            ro=ro_vec,
                                             tp=self.parentCtlTag)
 
             attribute.setKeyableAttributes(self.autoBend_ctl,
-                                           ["tx", "ty", "tz", "ry"])
+                                           ["tx", "ty", "tz", self.autoBend_ro_axis])
 
-            attribute.setInvertMirror(self.autoBend_ctl, ["tx", "ry"])
+            attribute.setInvertMirror(self.autoBend_ctl, ["tx", self.autoBend_ro_axis])
 
             self.ik1_npo = primitive.addTransform(
                 self.autoBendChain[0], self.getName("ik1_npo"), t)
@@ -88,6 +125,7 @@ class Component(component.Main):
                                        self.color_ik,
                                        "compas",
                                        w=self.size,
+                                       ro=ro_vec,
                                        tp=self.autoBend_ctl)
         else:
             t = transform.setMatrixPosition(t, self.guide.apos[1])
@@ -99,11 +137,12 @@ class Component(component.Main):
                                        self.color_ik,
                                        "compas",
                                        w=self.size,
+                                       ro=ro_vec,
                                        tp=self.ik0_ctl)
 
         attribute.setKeyableAttributes(self.ik1_ctl, self.tr_params)
         attribute.setRotOrder(self.ik1_ctl, "ZXY")
-        attribute.setInvertMirror(self.ik1_ctl, ["tx", "ry", "rz"])
+        attribute.setInvertMirror(self.ik1_ctl, ["tx", self.autoBend_ro_axis, "rz"])
 
         # Tangent controllers -------------------------------
         if self.settings["centralTangent"]:
@@ -185,6 +224,7 @@ class Component(component.Main):
                                         self.color_ik,
                                         "sphere",
                                         w=self.size * .2,
+                                        ro=ro_vec,
                                         tp=self.ik0_ctl)
 
             attribute.setKeyableAttributes(self.tan0_ctl, self.t_params)
@@ -204,6 +244,7 @@ class Component(component.Main):
                                         self.color_ik,
                                         "sphere",
                                         w=self.size * .2,
+                                        ro=ro_vec,
                                         tp=self.ik1_ctl)
 
             attribute.setKeyableAttributes(self.tan1_ctl, self.t_params)
@@ -289,6 +330,7 @@ class Component(component.Main):
                                      w=self.size,
                                      h=self.size * .05,
                                      d=self.size,
+                                     ro=ro_vec,
                                      tp=self.preiviousCtlTag)
 
                 attribute.setKeyableAttributes(self.fk_ctl)
@@ -322,7 +364,7 @@ class Component(component.Main):
             ref_twist = primitive.addTransform(
                 parent_twistRef, self.getName("%s_pos_ref" % i), t)
             ref_twist.setTranslation(
-                datatypes.Vector(1.0, 0, 0), space="preTransform")
+                self.ref_twist_vec, space="preTransform")
 
             self.twister.append(twister)
             self.ref_twist.append(ref_twist)
@@ -437,8 +479,26 @@ class Component(component.Main):
                 [self.autoBendChain[0].ry, self.autoBendChain[0].rz],
                 [self.sideBend_att, self.frontBend_att])
 
-            mul_node.outputX >> self.ik1autoRot_lvl.rz
-            mul_node.outputY >> self.ik1autoRot_lvl.rx
+            # mul_node.outputX >> self.ik1autoRot_lvl.rz
+            # mul_node.outputY >> self.ik1autoRot_lvl.rx
+
+            # invert when ikAutoRot is ry
+            if self.ikAutoRot_X == "ry":
+                invert_rot_X = -1
+            else:
+                invert_rot_X = 1
+            # invert when ikAutoRot is ry
+            if self.ikAutoRot_Y == "ry":
+                invert_rot_Y = -1
+            else:
+                invert_rot_Y = 1
+
+            mul_node2 = node.createMulNode(
+                [mul_node.outputX, mul_node.outputY],
+                [invert_rot_X, invert_rot_Y])
+
+            mul_node2.outputX >> self.ik1autoRot_lvl.attr(self.ikAutoRot_X)
+            mul_node2.outputY >> self.ik1autoRot_lvl.attr(self.ikAutoRot_Y)
 
             self.ikHandleAutoBend = primitive.addIkHandle(
                 self.autoBend_ctl,
@@ -460,22 +520,22 @@ class Component(component.Main):
 
         # tan0
         mul_node = node.createMulNode(self.tan0_att,
-                                      self.tan0_npo.getAttr("ty"))
+                                      self.tan0_npo.getAttr(self.dist_attr))
 
         res_node = node.createMulNode(mul_node + ".outputX",
                                       div_node + ".outputX")
 
         pm.connectAttr(res_node + ".outputX",
-                       self.tan0_npo.attr("ty"))
+                       self.tan0_npo.attr(self.dist_attr))
 
         # tan1
         mul_node = node.createMulNode(self.tan1_att,
-                                      self.tan1_npo.getAttr("ty"))
+                                      self.tan1_npo.getAttr(self.dist_attr))
 
         res_node = node.createMulNode(mul_node + ".outputX",
                                       div_node + ".outputX")
 
-        pm.connectAttr(res_node + ".outputX", self.tan1_npo.attr("ty"))
+        pm.connectAttr(res_node + ".outputX", self.tan1_npo.attr(self.dist_attr))
 
         # Tangent Mid --------------------------------------
         if self.settings["centralTangent"]:
@@ -515,8 +575,8 @@ class Component(component.Main):
 
             cns = applyop.pathCns(
                 self.div_cns[i], self.slv_crv, False, u, True)
-            cns.setAttr("frontAxis", 1)  # front axis is 'Y'
-            cns.setAttr("upAxis", 0)  # front axis is 'X'
+            cns.setAttr("frontAxis", self.front_axis)  # front axis
+            cns.setAttr("upAxis", self.up_axis)  # up axis
 
             # Roll
             intMatrix = applyop.gear_intmatrix_op(

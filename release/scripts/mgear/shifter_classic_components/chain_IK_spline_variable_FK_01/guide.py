@@ -144,6 +144,10 @@ class componentSettings(MayaQWidgetDockableMixin, guide.componentMainSettings):
         self.settingsTab.maxSquash_spinBox.setValue(
             self.root.attr("maxsquash").get())
 
+        self.settingsTab.ctlOri_comboBox.setCurrentIndex(
+            self.root.attr("ctlOrientation").get()
+        )
+
     def create_componentLayout(self):
 
         self.settings_layout = QtWidgets.QVBoxLayout()
@@ -186,6 +190,14 @@ class componentSettings(MayaQWidgetDockableMixin, guide.componentMainSettings):
             partial(self.updateSpinBox,
                     self.settingsTab.maxSquash_spinBox,
                     "maxsquash"))
+
+        self.settingsTab.ctlOri_comboBox.currentIndexChanged.connect(
+            partial(
+                self.updateComboBox,
+                self.settingsTab.ctlOri_comboBox,
+                "ctlOrientation",
+            )
+        )
 
     def dockCloseEventTriggered(self):
         pyqt.deleteInstances(self, MayaQDockWidget)

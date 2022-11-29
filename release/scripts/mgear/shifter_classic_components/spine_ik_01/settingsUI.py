@@ -1,28 +1,11 @@
-# MGEAR is under the terms of the MIT License
+# -*- coding: utf-8 -*-
 
-# Copyright (c) 2016 Jeremie Passerin, Miquel Campos
-
-# Permission is hereby granted, free of charge, to any person obtaining a copy
-# of this software and associated documentation files (the "Software"), to deal
-# in the Software without restriction, including without limitation the rights
-# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-# copies of the Software, and to permit persons to whom the Software is
-# furnished to do so, subject to the following conditions:
-
-# The above copyright notice and this permission notice shall be included in all
-# copies or substantial portions of the Software.
-
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-# SOFTWARE.
-
-# Author:     Jeremie Passerin      geerem@hotmail.com  www.jeremiepasserin.com
-# Author:     Miquel Campos         hello@miquel-campos.com  www.miquel-campos.com
-# Date:       2016 / 10 / 10
+# Form implementation generated from reading ui file 'C:/datawork/repo/mgear4/release/scripts/mgear/shifter_classic_components/spine_ik_01/settingsUI.ui'
+#
+# Created: Tue Nov 29 10:22:41 2022
+#      by: pyside2-uic  running on PySide2 2.0.0~alpha0
+#
+# WARNING! All changes made in this file will be lost!
 
 import mgear.core.pyqt as gqt
 QtGui, QtCore, QtWidgets, wrapInstance = gqt.qt_import()
@@ -30,7 +13,7 @@ QtGui, QtCore, QtWidgets, wrapInstance = gqt.qt_import()
 class Ui_Form(object):
     def setupUi(self, Form):
         Form.setObjectName("Form")
-        Form.resize(259, 227)
+        Form.resize(309, 607)
         self.gridLayout = QtWidgets.QGridLayout(Form)
         self.gridLayout.setObjectName("gridLayout")
         self.groupBox = QtWidgets.QGroupBox(Form)
@@ -139,7 +122,7 @@ class Ui_Form(object):
         sizePolicy.setHeightForWidth(self.division_spinBox.sizePolicy().hasHeightForWidth())
         self.division_spinBox.setSizePolicy(sizePolicy)
         self.division_spinBox.setMinimum(3)
-        self.division_spinBox.setProperty("value", 2)
+        self.division_spinBox.setProperty("value", 3)
         self.division_spinBox.setObjectName("division_spinBox")
         self.formLayout.setWidget(5, QtWidgets.QFormLayout.FieldRole, self.division_spinBox)
         self.autoBend_checkBox = QtWidgets.QCheckBox(self.groupBox)
@@ -156,7 +139,18 @@ class Ui_Form(object):
         self.centralTangent_label = QtWidgets.QLabel(self.groupBox)
         self.centralTangent_label.setObjectName("centralTangent_label")
         self.formLayout.setWidget(7, QtWidgets.QFormLayout.LabelRole, self.centralTangent_label)
+        self.ctlOri_label = QtWidgets.QLabel(self.groupBox)
+        self.ctlOri_label.setObjectName("ctlOri_label")
+        self.formLayout.setWidget(8, QtWidgets.QFormLayout.LabelRole, self.ctlOri_label)
+        self.ctlOri_comboBox = QtWidgets.QComboBox(self.groupBox)
+        self.ctlOri_comboBox.setObjectName("ctlOri_comboBox")
+        self.ctlOri_comboBox.addItem("")
+        self.ctlOri_comboBox.addItem("")
+        self.ctlOri_comboBox.addItem("")
+        self.formLayout.setWidget(8, QtWidgets.QFormLayout.FieldRole, self.ctlOri_comboBox)
         self.verticalLayout.addLayout(self.formLayout)
+        spacerItem = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
+        self.verticalLayout.addItem(spacerItem)
         self.squashStretchProfile_pushButton = QtWidgets.QPushButton(self.groupBox)
         self.squashStretchProfile_pushButton.setObjectName("squashStretchProfile_pushButton")
         self.verticalLayout.addWidget(self.squashStretchProfile_pushButton)
@@ -183,5 +177,9 @@ class Ui_Form(object):
         self.divisions_label.setText(gqt.fakeTranslate("Form", "Divisions", None, -1))
         self.autoBend_label.setText(gqt.fakeTranslate("Form", "Auto Bend Control", None, -1))
         self.centralTangent_label.setText(gqt.fakeTranslate("Form", "Central Tangent", None, -1))
+        self.ctlOri_label.setText(gqt.fakeTranslate("Form", "CTL Orientation", None, -1))
+        self.ctlOri_comboBox.setItemText(0, gqt.fakeTranslate("Form", "YX", None, -1))
+        self.ctlOri_comboBox.setItemText(1, gqt.fakeTranslate("Form", "XY", None, -1))
+        self.ctlOri_comboBox.setItemText(2, gqt.fakeTranslate("Form", "ZX", None, -1))
         self.squashStretchProfile_pushButton.setText(gqt.fakeTranslate("Form", "Squash and Stretch Profile", None, -1))
 

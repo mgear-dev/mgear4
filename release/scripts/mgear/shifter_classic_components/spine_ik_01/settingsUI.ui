@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>259</width>
-    <height>265</height>
+    <width>309</width>
+    <height>607</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -244,7 +244,46 @@
             </property>
            </widget>
           </item>
+          <item row="8" column="0">
+           <widget class="QLabel" name="ctlOri_label">
+            <property name="text">
+             <string>CTL Orientation</string>
+            </property>
+           </widget>
+          </item>
+          <item row="8" column="1">
+           <widget class="QComboBox" name="ctlOri_comboBox">
+            <item>
+             <property name="text">
+              <string>YX</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>XY</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>ZX</string>
+             </property>
+            </item>
+           </widget>
+          </item>
          </layout>
+        </item>
+        <item>
+         <spacer name="verticalSpacer">
+          <property name="orientation">
+           <enum>Qt::Vertical</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>20</width>
+            <height>40</height>
+           </size>
+          </property>
+         </spacer>
         </item>
         <item>
          <widget class="QPushButton" name="squashStretchProfile_pushButton">
