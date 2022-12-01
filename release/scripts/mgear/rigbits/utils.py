@@ -24,6 +24,39 @@ def createHotkeys(*args):
     Args:
         *args: Maya's dummy
     """
+    # smart export
+    rCmd = '''
+from mgear.core import skin
+from mgear.shifter import io
+from mgear.shifter import guide_manager
+import pymel.core as pm
+
+sel = pm.selected()
+if sel:
+    sel = sel[0]
+    if sel.hasAttr("ismodel") or sel.hasAttr("isGearGuide"):
+        pm.displayInfo("Export Guide Template")
+        io.export_guide_template(None, None)
+    elif sel.hasAttr("isCtl"):
+        pm.displayInfo("Extract Controls")
+        guide_manager.extract_controls()
+    else:
+        shapes = sel.getShapes()
+        if shapes and shapes[0].type() in ["nurbsCurve", "mesh", "nurbsSurface"] and skin.getSkinCluster(sel):
+            pm.displayInfo("Export Json Skin Pack")
+            skin.exportJsonSkinPack()
+        else:
+            pm.displayInfo("Export Selected")
+            multipleFilters = "Maya ASCII (*.ma);;Maya Binary (*.mb);;FBX (*.fbx);;All Files (*.*)"
+            filePath = pm.fileDialog2(fileFilter=multipleFilters)
+            if filePath:
+                if isinstance(filePath, list):
+                    filePath = filePath[0]
+                pm.exportSelected(filePath)
+
+'''
+    createRunTimeCommand("mGear_smartExport", rCmd, ann="")
+
     # duplicate sym
     rCmd = '''
 import pymel.core as pm
