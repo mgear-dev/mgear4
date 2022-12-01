@@ -1,4 +1,3 @@
-
 import sys
 
 from mgear.core import pyqt
@@ -28,7 +27,8 @@ def draw_comp(comp_type, parent=None, showUI=True):
     if parent:
         if not parent.hasAttr("isGearGuide") and not parent.hasAttr("ismodel"):
             pm.displayWarning(
-                "{}: is not valid Shifter guide elemenet".format(parent))
+                "{}: is not valid Shifter guide elemenet".format(parent)
+            )
             return
 
     guide.drawNewComponent(parent, comp_type, showUI)
@@ -49,8 +49,9 @@ def duplicate(sym, *args):
         guide = shifter.guide.Rig()
         guide.duplicate(root, sym)
     else:
-        mgear.log("Select one component root to edit properties",
-                  mgear.sev_error)
+        mgear.log(
+            "Select one component root to edit properties", mgear.sev_error
+        )
 
 
 def build_from_selection(*args):
@@ -78,8 +79,7 @@ def inspect_settings(tabIdx=0, *args):
     if oSel:
         root = oSel[0]
     else:
-        pm.displayWarning(
-            "please select one object from the componenet guide")
+        pm.displayWarning("please select one object from the componenet guide")
         return
 
     comp_type = False
@@ -109,8 +109,7 @@ def inspect_settings(tabIdx=0, *args):
         return wind
 
     else:
-        pm.displayError(
-            "The selected object is not part of component guide")
+        pm.displayError("The selected object is not part of component guide")
 
 
 def extract_controls(*args):
@@ -130,20 +129,31 @@ def extract_controls(*args):
         cGrp = False
         mgear.log(
             "Not controller group in the scene or the group is not unique",
-            mgear.sev_error)
+            mgear.sev_error,
+        )
     for x in oSel:
-        try:
-            old = pm.PyNode(cGrp.name() + "|"
-                            + x.name().split("|")[-1] + "_controlBuffer")
-            pm.delete(old)
-        except TypeError:
-            pass
-        new = pm.duplicate(x)[0]
-        pm.parent(new, cGrp, a=True)
-        pm.rename(new, x.name() + "_controlBuffer")
-        toDel = new.getChildren(type="transform")
-        pm.delete(toDel)
-        try:
-            pm.sets("rig_controllers_grp", remove=new)
-        except TypeError:
-            pass
+        if x.hasAttr("isCtl"):
+            try:
+                old = pm.PyNode(
+                    cGrp.name()
+                    + "|"
+                    + x.name().split("|")[-1]
+                    + "_controlBuffer"
+                )
+                pm.delete(old)
+            except TypeError:
+                pass
+            new = pm.duplicate(x)[0]
+            pm.parent(new, cGrp, a=True)
+            pm.rename(new, x.name() + "_controlBuffer")
+            toDel = new.getChildren(type="transform")
+            pm.delete(toDel)
+            try:
+                for s in x.instObjGroups[0].listConnections(type="objectSet"):
+                    pm.sets(s, remove=new)
+            except TypeError:
+                pass
+        else:
+            pm.displayWarning(
+                "{}: Is not a valid mGear control".format(x.name())
+            )
