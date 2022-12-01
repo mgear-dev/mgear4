@@ -15,6 +15,8 @@ import pymel.core as pm
 # mGear
 import mgear
 from mgear.shifter import io
+from mgear.core import skin
+from mgear.rigbits import rbf_io
 
 # mel override procs
 MEL_OVERRIDE_CMD = r"""
@@ -103,8 +105,17 @@ def mgear_file_drop_action(theFile):
         int: always return 1, to accept the drop action
     """
     if theFile.endswith(".sgt"):
-        print("mGear Guide file: {}".format(theFile))
+        print("Import mGear Guide file: {}".format(theFile))
         guide_file_prompt(theFile)
+    elif theFile.endswith(skin.PACK_EXT):
+        print("Import mGear Skin Pack file: {}".format(theFile))
+        skin.importSkinPack(theFile)
+    elif theFile.endswith(skin.FILE_EXT) or theFile.endswith(skin.FILE_JSON_EXT):
+        print("Import mGear Skin  file: {}".format(theFile))
+        skin.importSkin(theFile)
+    elif theFile.endswith(rbf_io.RBF_FILE_EXTENSION):
+        print("Import mGear RBF config file: {}".format(theFile))
+        rbf_io.importRBFs(theFile)
     else:
         mel.eval('performFileImportAction("{}");'.format(theFile))
     return 1
