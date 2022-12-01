@@ -82,7 +82,9 @@ def delete_rig_keep_joints():
         for rig_root in get_rig_root_from_set():
             rig_name = rig_root.name()
             jnt_org = rig_root.jnt_vis.listConnections(type="transform")[0]
-            pm.parent(jnt_org.getChildren(), world=True)
+            joints = jnt_org.getChildren()
+            if joints:
+                pm.parent(joints, world=True)
             pm.delete(rig_root.rigGroups.listConnections(type="objectSet"))
             pm.delete(rig_root)
 
