@@ -1,4 +1,3 @@
-
 """
 dagmenu mGear module contains all the logic to override Maya's right
 click dag menu.
@@ -85,15 +84,12 @@ def _get_controls(switch_control, blend_attr, comp_ctl_list=None):
     # replaced by get_ik_fk_controls_by_role in anim_utils module
 
     # first find controls from the ui host control
-    ik_fk_controls = get_ik_fk_controls(switch_control,
-                                        blend_attr,
-                                        comp_ctl_list)
+    ik_fk_controls = get_ik_fk_controls(
+        switch_control, blend_attr, comp_ctl_list
+    )
 
     # organise ik controls
-    ik_controls = {"ik_control": None,
-                   "pole_vector": None,
-                   "ik_rot": None
-                   }
+    ik_controls = {"ik_control": None, "pole_vector": None, "ik_rot": None}
 
     # removes namespace from controls and order them in something usable
     # by the ikFkMatch function
@@ -126,8 +122,9 @@ def _is_valid_rig_root(node):
     """
     short_name = node.split("|")[-1]
     long_name = cmds.ls(node, l=True)[0]
-    return not (any(["controllers_org" in long_name,
-                     "controlBuffer" in short_name]))
+    return not (
+        any(["controllers_org" in long_name, "controlBuffer" in short_name])
+    )
 
 
 def _list_rig_roots():
@@ -135,8 +132,11 @@ def _list_rig_roots():
     Return all the rig roots in the scene
     Returns: [str,]
     """
-    return [n.split(".")[0] for n in cmds.ls("*.is_rig", r=True, l=True)
-            if _is_valid_rig_root(n.split(".")[0])]
+    return [
+        n.split(".")[0]
+        for n in cmds.ls("*.is_rig", r=True, l=True)
+        if _is_valid_rig_root(n.split(".")[0])
+    ]
 
 
 def _find_rig_root(node):
@@ -156,7 +156,7 @@ def _find_rig_root(node):
 
 
 def __range_switch_callback(*args):
-    """ Wrapper function to call mGears range fk/ik switch function
+    """Wrapper function to call mGears range fk/ik switch function
 
     Args:
         list: callback from menuItem
@@ -181,9 +181,7 @@ def __range_switch_callback(*args):
     # ik_controls, fk_controls = _get_controls(switch_control, blend_attr)
     # search criteria to find all the components sharing the blend
     criteria = blend_attr.replace("_blend", "") + "_id*_ctl_cnx"
-    component_ctl = cmds.listAttr(switch_control,
-                                  ud=True,
-                                  string=criteria)
+    component_ctl = cmds.listAttr(switch_control, ud=True, string=criteria)
     if component_ctl:
         ik_list = []
         ikRot_list = []
@@ -193,7 +191,8 @@ def __range_switch_callback(*args):
         for com_list in component_ctl:
             # set the initial val for the blend attr in each iteration
             ik_controls, fk_controls = get_ik_fk_controls_by_role(
-                switch_control, com_list)
+                switch_control, com_list
+            )
             ik_list.append(ik_controls["ik_control"])
             if ik_controls["ik_rot"]:
                 ikRot_list.append(ik_controls["ik_rot"])
@@ -201,17 +200,19 @@ def __range_switch_callback(*args):
             fk_list = fk_list + fk_controls
 
         # calls the ui
-        range_switch.showUI(model=root,
-                            ikfk_attr=blend_attr,
-                            uihost=stripNamespace(switch_control),
-                            fks=fk_list,
-                            ik=ik_list,
-                            upv=upv_list,
-                            ikRot=ikRot_list)
+        range_switch.showUI(
+            model=root,
+            ikfk_attr=blend_attr,
+            uihost=stripNamespace(switch_control),
+            fks=fk_list,
+            ik=ik_list,
+            upv=upv_list,
+            ikRot=ikRot_list,
+        )
 
 
 def __reset_attributes_callback(*args):
-    """ Wrapper function to call mGears resetTransform function
+    """Wrapper function to call mGears resetTransform function
 
     Args:
         list: callback from menuItem
@@ -231,7 +232,7 @@ def __reset_attributes_callback(*args):
 
 
 def __select_host_callback(*args):
-    """ Wrapper function to call mGears select host
+    """Wrapper function to call mGears select host
 
     Args:
         list: callback from menuItem
@@ -241,7 +242,7 @@ def __select_host_callback(*args):
 
 
 def __select_nodes_callback(*args):
-    """ Wrapper function to call Maya select command
+    """Wrapper function to call Maya select command
 
     Args:
         list: callback from menuItem
@@ -251,7 +252,7 @@ def __select_nodes_callback(*args):
 
 
 def __switch_fkik_callback(*args):
-    """ Wrapper function to call mGears switch fk/ik snap function
+    """Wrapper function to call mGears switch fk/ik snap function
 
     Args:
         list: callback from menuItem
@@ -266,9 +267,7 @@ def __switch_fkik_callback(*args):
 
     # search criteria to find all the components sharing the blend
     criteria = blend_attr.replace("_blend", "") + "_id*_ctl_cnx"
-    component_ctl = cmds.listAttr(switch_control,
-                                  ud=True,
-                                  string=criteria)
+    component_ctl = cmds.listAttr(switch_control, ud=True, string=criteria)
     blend_fullname = "{}.{}".format(switch_control, blend_attr)
     for i, comp_ctl_list in enumerate(component_ctl):
         # we need to need to set the original blend value for each ik/fk match
@@ -277,32 +276,33 @@ def __switch_fkik_callback(*args):
         else:
             cmds.setAttr(blend_fullname, init_val)
 
-        ik_controls, fk_controls = get_ik_fk_controls_by_role(switch_control,
-                                                              comp_ctl_list)
+        ik_controls, fk_controls = get_ik_fk_controls_by_role(
+            switch_control, comp_ctl_list
+        )
 
         # runs switch
-        ikFkMatch_with_namespace(namespace=namespace,
-                                 ikfk_attr=blend_attr,
-                                 ui_host=switch_control,
-                                 fks=fk_controls,
-                                 ik=ik_controls["ik_control"],
-                                 upv=ik_controls["pole_vector"],
-                                 ik_rot=ik_controls["ik_rot"],
-                                 key=keyframe,
-                                 ik_controls=ik_controls)
+        ikFkMatch_with_namespace(
+            namespace=namespace,
+            ikfk_attr=blend_attr,
+            ui_host=switch_control,
+            fks=fk_controls,
+            ik=ik_controls["ik_control"],
+            upv=ik_controls["pole_vector"],
+            ik_rot=ik_controls["ik_rot"],
+            key=keyframe,
+            ik_controls=ik_controls,
+        )
 
 
 def __switch_parent_callback(*args):
-    """ Wrapper function to call mGears change space function
+    """Wrapper function to call mGears change space function
 
     Args:
         list: callback from menuItem
     """
 
     # creates a map for non logical components controls
-    control_map = {"elbow": "mid",
-                   "rot": "orbit",
-                   "knee": "mid"}
+    control_map = {"elbow": "mid", "rot": "orbit", "knee": "mid"}
 
     # switch_control = args[0].split("|")[-1].split(":")[-1]
     switch_control = args[0].split("|")[-1]
@@ -321,9 +321,7 @@ def __switch_parent_callback(*args):
         attr_name = "_".join(attr_split_name[:-1])
     # search criteria to find all the components sharing the name
     criteria = attr_name + "_id*_ctl_cnx"
-    component_ctl = cmds.listAttr(switch_control,
-                                  ud=True,
-                                  string=criteria)
+    component_ctl = cmds.listAttr(switch_control, ud=True, string=criteria)
 
     target_control_list = []
     for comp_ctl_list in component_ctl:
@@ -335,8 +333,10 @@ def __switch_parent_callback(*args):
             if ctl.ctl_role.get() == search_token:
                 target_control = ctl.stripNamespace()
                 break
-            elif (search_token in control_map.keys()
-                  and ctl.ctl_role.get() == control_map[search_token]):
+            elif (
+                search_token in control_map.keys()
+                and ctl.ctl_role.get() == control_map[search_token]
+            ):
                 target_control = ctl.stripNamespace()
                 break
 
@@ -369,9 +369,9 @@ def __switch_parent_callback(*args):
             root = cmds.ls("{}.is_rig".format(current_parent))[0]
         else:
             try:
-                current_parent = cmds.listRelatives(current_parent,
-                                                    fullPath=True,
-                                                    parent=True)[0]
+                current_parent = cmds.listRelatives(
+                    current_parent, fullPath=True, parent=True
+                )[0]
             except TypeError:
                 break
 
@@ -379,33 +379,34 @@ def __switch_parent_callback(*args):
         pm.displayInfo("Not root or target control list for space transfer")
         return
 
-    autokey = cmds.listConnections("{}.{}".format(switch_control, switch_attr),
-                                   type="animCurve")
+    autokey = cmds.listConnections(
+        "{}.{}".format(switch_control, switch_attr), type="animCurve"
+    )
 
     if autokey:
         for target_control in target_control_list:
-            cmds.setKeyframe("{}:{}".format(
-                namespace_value, target_control), "{}.{}"
-                .format(switch_control, switch_attr),
-                time=(cmds.currentTime(query=True) - 1.0))
+            cmds.setKeyframe(
+                "{}:{}".format(namespace_value, target_control),
+                "{}.{}".format(switch_control, switch_attr),
+                time=(cmds.currentTime(query=True) - 1.0),
+            )
 
     # triggers switch
-    changeSpace(root,
-                switch_control,
-                switch_attr,
-                switch_idx,
-                target_control_list)
+    changeSpace(
+        root, switch_control, switch_attr, switch_idx, target_control_list
+    )
 
     if autokey:
         for target_control in target_control_list:
-            cmds.setKeyframe("{}:{}".format(
-                namespace_value, target_control), "{}.{}"
-                .format(switch_control, switch_attr),
-                time=(cmds.currentTime(query=True)))
+            cmds.setKeyframe(
+                "{}:{}".format(namespace_value, target_control),
+                "{}.{}".format(switch_control, switch_attr),
+                time=(cmds.currentTime(query=True)),
+            )
 
 
 def get_option_var_state():
-    """ Gets dag menu option variable
+    """Gets dag menu option variable
 
     Maya's optionVar command installs a variable that is kept on Maya's
     settings so that you can use it on future sessions.
@@ -437,22 +438,25 @@ def get_option_var_state():
 
 
 def install():
-    """ Installs dag menu option
-    """
+    """Installs dag menu option"""
 
     # get state
     state = get_option_var_state()
 
     cmds.setParent(mgear.menu_id, menu=True)
-    cmds.menuItem("mgear_dagmenu_menuitem", label="mGear Viewport Menu ",
-                  command=run, checkBox=state)
+    cmds.menuItem(
+        "mgear_dagmenu_menuitem",
+        label="mGear Viewport Menu ",
+        command=run,
+        checkBox=state,
+    )
     cmds.menuItem(divider=True)
 
     run(state)
 
 
 def mgear_dagmenu_callback(*args, **kwargs):  # @UnusedVariable
-    """ Triggers dag menu display
+    """Triggers dag menu display
 
     If selection is ends with **_ctl** then display mGear's contextual menu.
     Else display Maya's standard right click dag menu
@@ -474,7 +478,7 @@ def mgear_dagmenu_callback(*args, **kwargs):  # @UnusedVariable
         sel = cmds.ls(selection=True, long=True, type="transform")
         if sel and cmds.objExists("{}.isCtl".format(sel[0])):
             # cleans menu
-            _parent_menu = parent_menu.replace('"', '')
+            _parent_menu = parent_menu.replace('"', "")
             cmds.menu(_parent_menu, edit=True, deleteAllItems=True)
 
             # fills menu
@@ -482,7 +486,7 @@ def mgear_dagmenu_callback(*args, **kwargs):  # @UnusedVariable
 
         elif sel and cmds.objExists("{}.isGearGuide".format(sel[0])):
             # cleans menu
-            _parent_menu = parent_menu.replace('"', '')
+            _parent_menu = parent_menu.replace('"', "")
             cmds.menu(_parent_menu, edit=True, deleteAllItems=True)
 
             # fills menu
@@ -504,35 +508,60 @@ def mgear_dagmenu_guide_fill(parent_menu, current_guide_locator):
 
     # gets current selection to use later on
     _current_selection = cmds.ls(selection=True)
-    cmds.menuItem(parent=parent_menu, label="Settings",
-                  command=partial(guide_manager.inspect_settings, 0),
-                  image="mgear_sliders.svg")
+    cmds.menuItem(
+        parent=parent_menu,
+        label="Settings",
+        command=partial(guide_manager.inspect_settings, 0),
+        image="mgear_sliders.svg",
+    )
     cmds.menuItem(parent=parent_menu, divider=True)
-    cmds.menuItem(parent=parent_menu, label="Build From Selection",
-                  command=guide_manager.build_from_selection,
-                  image="mgear_play.svg")
+    cmds.menuItem(
+        parent=parent_menu,
+        label="Build From Selection",
+        command=guide_manager.build_from_selection,
+        image="mgear_play.svg",
+    )
     cmds.menuItem(parent=parent_menu, divider=True)
-    cmds.menuItem(parent=parent_menu, label="Duplicate",
-                  command=partial(guide_manager.duplicate, False),
-                  image="mgear_copy.svg")
-    cmds.menuItem(parent=parent_menu, label="Duplicate Symme",
-                  command=partial(guide_manager.duplicate, True),
-                  image="mgear_duplicate_sym.svg")
+    cmds.menuItem(
+        parent=parent_menu,
+        label="Duplicate",
+        command=partial(guide_manager.duplicate, False),
+        image="mgear_copy.svg",
+    )
+    cmds.menuItem(
+        parent=parent_menu,
+        label="Duplicate Symme",
+        command=partial(guide_manager.duplicate, True),
+        image="mgear_duplicate_sym.svg",
+    )
     cmds.menuItem(parent=parent_menu, divider=True)
-    cmds.menuItem(parent=parent_menu, label="Guide Manager",
-                  command=guide_manager_gui.show_guide_manager,
-                  image="mgear_list.svg")
+    cmds.menuItem(
+        parent=parent_menu,
+        label="Guide Manager",
+        command=guide_manager_gui.show_guide_manager,
+        image="mgear_list.svg",
+    )
     cmds.menuItem(parent=parent_menu, divider=True)
-    cmds.menuItem(parent=parent_menu, label="Export Guide From Selection",
-                  command=partial(io.export_guide_template, None, None),
-                  image="mgear_log-out.svg")
+    cmds.menuItem(
+        parent=parent_menu,
+        label="Export Guide From Selection",
+        command=partial(io.export_guide_template, None, None),
+        image="mgear_log-out.svg",
+    )
     cmds.menuItem(parent=parent_menu, divider=True)
-    cmds.menuItem(parent=parent_menu, label="Update Guide",
-                  command=guide_template.updateGuide,
-                  image="mgear_loader.svg")
-    cmds.menuItem(parent=parent_menu, label="Reload Components",
-                  command=shifter.reloadComponents,
-                  image="mgear_refresh-cw.svg")
+    cmds.menuItem(
+        parent=parent_menu,
+        label="Update Guide",
+        command=guide_template.updateGuide,
+        image="mgear_loader.svg",
+    )
+    cmds.menuItem(
+        parent=parent_menu,
+        label="Reload Components",
+        command=shifter.reloadComponents,
+        image="mgear_refresh-cw.svg",
+    )
+
 
 def mgear_dagmenu_fill(parent_menu, current_control):
     """Fill the given menu with mGear's custom animation menu
@@ -548,9 +577,11 @@ def mgear_dagmenu_fill(parent_menu, current_control):
     # get child controls
     child_controls = []
     for ctl in _current_selection:
-        [child_controls.append(x)
-         for x in get_all_tag_children(ctl)
-         if x not in child_controls]
+        [
+            child_controls.append(x)
+            for x in get_all_tag_children(ctl)
+            if x not in child_controls
+        ]
         # [child_controls.append(x)
         #  for x in get_all_tag_children(cmds.ls(cmds.listConnections(ctl),
         #                                        type="controller"))
@@ -559,35 +590,44 @@ def mgear_dagmenu_fill(parent_menu, current_control):
     child_controls.append(current_control)
 
     # handles ik fk blend attributes
-    for attr in cmds.listAttr(current_control,
-                              userDefined=True,
-                              keyable=True) or []:
-        if (not attr.endswith("_blend")
-            or cmds.addAttr("{}.{}".format(current_control, attr),
-                            query=True, usedAsProxy=True)):
+    for attr in (
+        cmds.listAttr(current_control, userDefined=True, keyable=True) or []
+    ):
+        if not attr.endswith("_blend") or cmds.addAttr(
+            "{}.{}".format(current_control, attr), query=True, usedAsProxy=True
+        ):
             continue
         # found attribute so get current state
         current_state = cmds.getAttr("{}.{}".format(current_control, attr))
-        states = {0: "Fk",
-                  1: "Ik"}
+        states = {0: "Fk", 1: "Ik"}
 
-        rvs_state = states[int(not(current_state))]
+        rvs_state = states[int(not (current_state))]
 
-        cmds.menuItem(parent=parent_menu, label="Switch {} to {}"
-                      .format(attr.split("_blend")[0], rvs_state),
-                      command=partial(__switch_fkik_callback, current_control,
-                                      False, attr),
-                      image="kinReroot.png")
+        cmds.menuItem(
+            parent=parent_menu,
+            label="Switch {} to {}".format(attr.split("_blend")[0], rvs_state),
+            command=partial(
+                __switch_fkik_callback, current_control, False, attr
+            ),
+            image="kinReroot.png",
+        )
 
-        cmds.menuItem(parent=parent_menu, label="Switch {} to {} + Key"
-                      .format(attr.split("_blend")[0], rvs_state),
-                      command=partial(__switch_fkik_callback, current_control,
-                                      True, attr),
-                      image="character.svg")
+        cmds.menuItem(
+            parent=parent_menu,
+            label="Switch {} to {} + Key".format(
+                attr.split("_blend")[0], rvs_state
+            ),
+            command=partial(
+                __switch_fkik_callback, current_control, True, attr
+            ),
+            image="character.svg",
+        )
 
-        cmds.menuItem(parent=parent_menu, label="Range switch",
-                      command=partial(__range_switch_callback, current_control,
-                                      attr))
+        cmds.menuItem(
+            parent=parent_menu,
+            label="Range switch",
+            command=partial(__range_switch_callback, current_control, attr),
+        )
 
         # divider
         cmds.menuItem(parent=parent_menu, divider=True)
@@ -595,28 +635,38 @@ def mgear_dagmenu_fill(parent_menu, current_control):
     # check is given control is an mGear control
     if cmds.objExists("{}.uiHost".format(current_control)):
         # select ui host
-        cmds.menuItem(parent=parent_menu, label="Select host",
-                      command=partial(__select_host_callback, current_control),
-                      image="hotkeySetSettings.png")
+        cmds.menuItem(
+            parent=parent_menu,
+            label="Select host",
+            command=partial(__select_host_callback, current_control),
+            image="hotkeySetSettings.png",
+        )
 
     # select all function
-    cmds.menuItem(parent=parent_menu, label="Select child controls",
-                  command=partial(__select_nodes_callback, child_controls),
-                  image="dagNode.svg")
+    cmds.menuItem(
+        parent=parent_menu,
+        label="Select child controls",
+        command=partial(__select_nodes_callback, child_controls),
+        image="dagNode.svg",
+    )
 
     # divider
     cmds.menuItem(parent=parent_menu, divider=True)
 
     # reset selected
-    cmds.menuItem(parent=parent_menu, label="Reset",
-                  command=partial(reset_all_keyable_attributes,
-                                  _current_selection),
-                  image="holder.svg")
+    cmds.menuItem(
+        parent=parent_menu,
+        label="Reset",
+        command=partial(reset_all_keyable_attributes, _current_selection),
+        image="holder.svg",
+    )
 
     # reset all below
-    cmds.menuItem(parent=parent_menu, label="Reset all below",
-                  command=partial(reset_all_keyable_attributes,
-                                  child_controls))
+    cmds.menuItem(
+        parent=parent_menu,
+        label="Reset all below",
+        command=partial(reset_all_keyable_attributes, child_controls),
+    )
 
     # add transform resets
     k_attrs = cmds.listAttr(current_control, keyable=True)
@@ -626,49 +676,66 @@ def mgear_dagmenu_fill(parent_menu, current_control):
             icon = "{}_M.png".format(attr)
             if attr == "translate":
                 icon = "move_M.png"
-            cmds.menuItem(parent=parent_menu, label="Reset {}".format(attr),
-                          command=partial(__reset_attributes_callback,
-                                          _current_selection, attr),
-                          image=icon)
+            cmds.menuItem(
+                parent=parent_menu,
+                label="Reset {}".format(attr),
+                command=partial(
+                    __reset_attributes_callback, _current_selection, attr
+                ),
+                image=icon,
+            )
 
     # divider
     cmds.menuItem(parent=parent_menu, divider=True)
 
     # add mirror
-    cmds.menuItem(parent=parent_menu, label="Mirror",
-                  command=partial(__mirror_flip_pose_callback,
-                                  _current_selection,
-                                  False),
-                  image="redrawPaintEffects.png")
-    cmds.menuItem(parent=parent_menu, label="Mirror all below",
-                  command=partial(__mirror_flip_pose_callback,
-                                  child_controls,
-                                  False))
+    cmds.menuItem(
+        parent=parent_menu,
+        label="Mirror",
+        command=partial(
+            __mirror_flip_pose_callback, _current_selection, False
+        ),
+        image="redrawPaintEffects.png",
+    )
+    cmds.menuItem(
+        parent=parent_menu,
+        label="Mirror all below",
+        command=partial(__mirror_flip_pose_callback, child_controls, False),
+    )
 
     # add flip
-    cmds.menuItem(parent=parent_menu, label="Flip",
-                  command=partial(__mirror_flip_pose_callback,
-                                  _current_selection,
-                                  True),
-                  image="redo.png")
-    cmds.menuItem(parent=parent_menu, label="Flip all below",
-                  command=partial(__mirror_flip_pose_callback,
-                                  child_controls,
-                                  True))
+    cmds.menuItem(
+        parent=parent_menu,
+        label="Flip",
+        command=partial(__mirror_flip_pose_callback, _current_selection, True),
+        image="redo.png",
+    )
+    cmds.menuItem(
+        parent=parent_menu,
+        label="Flip all below",
+        command=partial(__mirror_flip_pose_callback, child_controls, True),
+    )
 
     # divider
     cmds.menuItem(parent=parent_menu, divider=True)
 
     # rotate order
-    if (cmds.getAttr("{}.rotateOrder".format(current_control), channelBox=True)
+    if (
+        cmds.getAttr("{}.rotateOrder".format(current_control), channelBox=True)
         or cmds.getAttr("{}.rotateOrder".format(current_control), keyable=True)
-        and not cmds.getAttr("{}.rotateOrder".format(current_control),
-                             lock=True)):
-        _current_r_order = cmds.getAttr("{}.rotateOrder"
-                                        .format(current_control))
-        _rot_men = cmds.menuItem(parent=parent_menu,
-                                 subMenu=True, tearOff=False,
-                                 label="Rotate Order switch")
+        and not cmds.getAttr(
+            "{}.rotateOrder".format(current_control), lock=True
+        )
+    ):
+        _current_r_order = cmds.getAttr(
+            "{}.rotateOrder".format(current_control)
+        )
+        _rot_men = cmds.menuItem(
+            parent=parent_menu,
+            subMenu=True,
+            tearOff=False,
+            label="Rotate Order switch",
+        )
         cmds.radioMenuItemCollection(parent=_rot_men)
         orders = ("xyz", "yzx", "zxy", "xzy", "yxz", "zyx")
         for idx, order in enumerate(orders):
@@ -676,34 +743,50 @@ def mgear_dagmenu_fill(parent_menu, current_control):
                 state = True
             else:
                 state = False
-            cmds.menuItem(parent=_rot_men, label=order, radioButton=state,
-                          command=partial(__change_rotate_order_callback,
-                                          current_control, order))
+            cmds.menuItem(
+                parent=_rot_men,
+                label=order,
+                radioButton=state,
+                command=partial(
+                    __change_rotate_order_callback, current_control, order
+                ),
+            )
 
     # divider
     cmds.menuItem(parent=parent_menu, divider=True)
 
     # handles constrains attributes (constrain switches)
-    for attr in cmds.listAttr(current_control,
-                              userDefined=True,
-                              keyable=True) or []:
+    for attr in (
+        cmds.listAttr(current_control, userDefined=True, keyable=True) or []
+    ):
 
         # filters switch reference attributes
-        if (cmds.addAttr("{}.{}".format(current_control, attr),
-                         query=True, usedAsProxy=True)
-                or not attr.endswith("ref")
-                and not attr.endswith("Ref")):
+        if (
+            cmds.addAttr(
+                "{}.{}".format(current_control, attr),
+                query=True,
+                usedAsProxy=True,
+            )
+            or not attr.endswith("ref")
+            and not attr.endswith("Ref")
+        ):
             continue
 
-        part, ctl = (attr.split("_")[0],
-                     attr.split("_")[-1].split("Ref")[0].split("ref")[0])
-        _p_switch_menu = cmds.menuItem(parent=parent_menu, subMenu=True,
-                                       tearOff=False, label="Parent {} {}"
-                                       .format(part, ctl),
-                                       image="dynamicConstraint.svg")
+        part, ctl = (
+            attr.split("_")[0],
+            attr.split("_")[-1].split("Ref")[0].split("ref")[0],
+        )
+        _p_switch_menu = cmds.menuItem(
+            parent=parent_menu,
+            subMenu=True,
+            tearOff=False,
+            label="Parent {} {}".format(part, ctl),
+            image="dynamicConstraint.svg",
+        )
         cmds.radioMenuItemCollection(parent=_p_switch_menu)
-        k_values = cmds.addAttr("{}.{}".format(current_control, attr),
-                                query=True, enumName=True).split(":")
+        k_values = cmds.addAttr(
+            "{}.{}".format(current_control, attr), query=True, enumName=True
+        ).split(":")
         current_state = cmds.getAttr("{}.{}".format(current_control, attr))
 
         for idx, k_val in enumerate(k_values):
@@ -711,25 +794,36 @@ def mgear_dagmenu_fill(parent_menu, current_control):
                 state = True
             else:
                 state = False
-            cmds.menuItem(parent=_p_switch_menu, label=k_val,
-                          radioButton=state,
-                          command=partial(__switch_parent_callback,
-                                          current_control, attr, idx, k_val))
+            cmds.menuItem(
+                parent=_p_switch_menu,
+                label=k_val,
+                radioButton=state,
+                command=partial(
+                    __switch_parent_callback, current_control, attr, idx, k_val
+                ),
+            )
 
     # divider
     cmds.menuItem(parent=parent_menu, divider=True)
 
     # select all rig controls
-    selection_set = cmds.ls(cmds.listConnections(current_control),
-                            type="objectSet")
+    selection_set = cmds.ls(
+        cmds.listConnections(current_control), type="objectSet"
+    )
     all_rig_controls = cmds.sets(selection_set, query=True)
-    cmds.menuItem(parent=parent_menu, label="Select all controls",
-                  command=partial(__select_nodes_callback, all_rig_controls))
+    cmds.menuItem(
+        parent=parent_menu,
+        label="Select all controls",
+        command=partial(__select_nodes_callback, all_rig_controls),
+    )
 
     # key all below function
-    cmds.menuItem(parent=parent_menu, label="Keyframe child controls",
-                  command=partial(__keyframe_nodes_callback, child_controls),
-                  image="setKeyframe.png")
+    cmds.menuItem(
+        parent=parent_menu,
+        label="Keyframe child controls",
+        command=partial(__keyframe_nodes_callback, child_controls),
+        image="setKeyframe.png",
+    )
 
 
 def mgear_dagmenu_toggle(state):
@@ -757,8 +851,13 @@ def mgear_dagmenu_toggle(state):
                 # Maya's dag menu post command has the parent menu in it
                 parent_menu = menu_cmd.split(" ")[-1]
                 # Override dag menu with custom command call
-                cmds.menu(maya_menu, edit=True, postMenuCommand=partial(
-                          mgear_dagmenu_callback, parent_menu))
+                cmds.menu(
+                    maya_menu,
+                    edit=True,
+                    postMenuCommand=partial(
+                        mgear_dagmenu_callback, parent_menu
+                    ),
+                )
 
         # If state is set to False then put back Maya's dag menu
         # This is tricky because Maya's default menu command is a MEL call
@@ -778,13 +877,17 @@ def mgear_dagmenu_toggle(state):
                 # we set the old mel command
                 # don't edit any space or syntax here as this is what Maya
                 # expects
-                mel.eval('menu -edit -postMenuCommand '
-                         '"buildObjectMenuItemsNow '
-                         + parent_menu.replace('"', '') + '"' + maya_menu)
+                mel.eval(
+                    "menu -edit -postMenuCommand "
+                    '"buildObjectMenuItemsNow '
+                    + parent_menu.replace('"', "")
+                    + '"'
+                    + maya_menu
+                )
 
 
 def run(*args, **kwargs):  # @UnusedVariable
-    """ Menu run execution
+    """Menu run execution
 
     Args:
         *args: Variable length argument list.
