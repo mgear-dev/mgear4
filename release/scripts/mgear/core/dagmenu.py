@@ -29,6 +29,13 @@ from mgear.core.anim_utils import changeSpace
 from mgear.core.anim_utils import getNamespace
 from mgear.core.anim_utils import stripNamespace
 
+
+from mgear import shifter
+from mgear.shifter import guide_manager
+from mgear.shifter import guide_manager_gui
+from mgear.shifter import io
+from mgear.shifter import guide_template
+
 from .six import string_types
 
 
@@ -472,12 +479,60 @@ def mgear_dagmenu_callback(*args, **kwargs):  # @UnusedVariable
 
             # fills menu
             mgear_dagmenu_fill(_parent_menu, sel[0])
+
+        elif sel and cmds.objExists("{}.isGearGuide".format(sel[0])):
+            # cleans menu
+            _parent_menu = parent_menu.replace('"', '')
+            cmds.menu(_parent_menu, edit=True, deleteAllItems=True)
+
+            # fills menu
+            mgear_dagmenu_guide_fill(_parent_menu, sel[0])
         else:
             mel.eval("buildObjectMenuItemsNow " + parent_menu)
 
     # always return parent menu path
     return parent_menu
 
+
+def mgear_dagmenu_guide_fill(parent_menu, current_guide_locator):
+    """Fill the given menu with mGear's custom guide menu
+
+    Args:
+        parent_menu(str): Parent Menu path name
+        current_guide_locator(str): current selected mGear guide locator
+    """
+
+    # gets current selection to use later on
+    _current_selection = cmds.ls(selection=True)
+    cmds.menuItem(parent=parent_menu, label="Settings",
+                  command=partial(guide_manager.inspect_settings, 0),
+                  image="mgear_sliders.svg")
+    cmds.menuItem(parent=parent_menu, divider=True)
+    cmds.menuItem(parent=parent_menu, label="Build From Selection",
+                  command=guide_manager.build_from_selection,
+                  image="mgear_play.svg")
+    cmds.menuItem(parent=parent_menu, divider=True)
+    cmds.menuItem(parent=parent_menu, label="Duplicate",
+                  command=partial(guide_manager.duplicate, False),
+                  image="mgear_copy.svg")
+    cmds.menuItem(parent=parent_menu, label="Duplicate Symme",
+                  command=partial(guide_manager.duplicate, True),
+                  image="mgear_duplicate_sym.svg")
+    cmds.menuItem(parent=parent_menu, divider=True)
+    cmds.menuItem(parent=parent_menu, label="Guide Manager",
+                  command=guide_manager_gui.show_guide_manager,
+                  image="mgear_list.svg")
+    cmds.menuItem(parent=parent_menu, divider=True)
+    cmds.menuItem(parent=parent_menu, label="Export Guide From Selection",
+                  command=partial(io.export_guide_template, None, None),
+                  image="mgear_log-out.svg")
+    cmds.menuItem(parent=parent_menu, divider=True)
+    cmds.menuItem(parent=parent_menu, label="Update Guide",
+                  command=guide_template.updateGuide,
+                  image="mgear_loader.svg")
+    cmds.menuItem(parent=parent_menu, label="Reload Components",
+                  command=shifter.reloadComponents,
+                  image="mgear_refresh-cw.svg")
 
 def mgear_dagmenu_fill(parent_menu, current_control):
     """Fill the given menu with mGear's custom animation menu
