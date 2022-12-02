@@ -42,7 +42,7 @@ def get_weights(deformer):
                 weights[i] for i in range(weights.length())
             ]
             dataDic["_deformed_index"].append(dagPath.fullPathName())
-    except RuntimeError:
+    except:
         # Fallback to Maya cmds if Open Maya deformerSet and getWeights Fail
         # Since Maya 2022 with new Component tags system this 2 method are not
         # working because deformer Set are not used anymore
@@ -88,7 +88,7 @@ def set_weights(deformer, dataWeights):
                 weights.set(dw[x], int(x))
 
             deformer.__apimfn__().setWeight(dagPath, components, weights)
-    except RuntimeError:
+    except:
         # Fallback to Maya cmds if Open Maya deformerSet and getWeights Fail
         # Since Maya 2022 with new Component tags system this 2 method are not
         # working because deformer Set are not used anymore
