@@ -18,6 +18,7 @@ import mgear
 # UTILS
 ##########################################################
 
+
 def as_pynode(obj):
     """Check and convert a given string to Pynode
 
@@ -33,8 +34,11 @@ def as_pynode(obj):
         obj = pm.PyNode(obj)
 
     if not isinstance(obj, pm.PyNode):
-        raise TypeError("{} is type {} not str, unicode or PyNode".format(
-            str(obj), type(obj)))
+        raise TypeError(
+            "{} is type {} not str, unicode or PyNode".format(
+                str(obj), type(obj)
+            )
+        )
 
     return obj
 
@@ -51,9 +55,9 @@ def is_odd(num):
     return num % 2
 
 
-def gatherCustomModuleDirectories(envvarkey,
-                                  defaultModulePath,
-                                  component=False):
+def gatherCustomModuleDirectories(
+    envvarkey, defaultModulePath, component=False
+):
     """returns component directory
 
     Arguments:
@@ -72,8 +76,9 @@ def gatherCustomModuleDirectories(envvarkey,
     for dp in defaultModulePath:
         if not os.path.exists(dp):
             message = "= GEAR RIG SYSTEM ====== notify:"
-            message += "\n  default module directory is not " \
-                       "found at {}".format(dp)
+            message += (
+                "\n  default module directory is not " "found at {}".format(dp)
+            )
             message += "\n\n check your mGear installation"
             message += " or call your system administrator."
             message += "\n"
@@ -92,10 +97,14 @@ def gatherCustomModuleDirectories(envvarkey,
             init_py_path = os.path.join(path, "__init__.py")
             if not os.path.exists(init_py_path):
                 message = "= GEAR RIG SYSTEM ====== notify:"
-                message += "\n  __init__.py for custom component not " \
-                           "found {}".format(init_py_path)
-                message += "\n\n check your module definition file or " \
-                           "environment variable 'MGEAR_COMPONENTS_PATH'"
+                message += (
+                    "\n  __init__.py for custom component not "
+                    "found {}".format(init_py_path)
+                )
+                message += (
+                    "\n\n check your module definition file or "
+                    "environment variable 'MGEAR_COMPONENTS_PATH'"
+                )
                 message += " or call your system administrator."
                 message += "\n"
                 mgear.log(message, mgear.sev_error)
@@ -124,17 +133,17 @@ def getModuleBasePath(directories, moduleName):
     else:
         moduleBasePath = ""
         message = "= GEAR RIG SYSTEM ======"
-        message += "component base directory not found " \
-                   " for {}".format(moduleName)
+        message += "component base directory not found " " for {}".format(
+            moduleName
+        )
         mgear.log(message, mgear.sev_error)
 
     return moduleBasePath
 
 
-def importFromStandardOrCustomDirectories(directories,
-                                          defaultFormatter,
-                                          customFormatter,
-                                          moduleName):
+def importFromStandardOrCustomDirectories(
+    directories, defaultFormatter, customFormatter, moduleName
+):
     """Return imported module
 
     Arguments:
@@ -176,22 +185,33 @@ def viewport_off(func):
     type: (function) -> function
 
     """
+
     @wraps(func)
     def wrap(*args, **kwargs):
         # type: (*str, **str) -> None
 
-        # Turn $gMainPane Off:
-        gMainPane = mel.eval('global string $gMainPane; $temp = $gMainPane;')
-        cmds.paneLayout(gMainPane, edit=True, manage=False)
-
         try:
+            # Turn $gMainPane Off:
+            gMainPane = mel.eval(
+                "global string $gMainPane; $temp = $gMainPane;"
+            )
+            cmds.paneLayout(gMainPane, edit=True, manage=False)
+
+            try:
+                return func(*args, **kwargs)
+
+            except Exception as e:
+                raise e
+
+            finally:
+                cmds.paneLayout(gMainPane, edit=True, manage=True)
+
+        except RuntimeError:
+            pm.displayWarning(
+                "Turning off viewport has failed."
+                " Coninuing with active viewport"
+            )
             return func(*args, **kwargs)
-
-        except Exception as e:
-            raise e
-
-        finally:
-            cmds.paneLayout(gMainPane, edit=True, manage=True)
 
     return wrap
 
@@ -202,6 +222,7 @@ def one_undo(func):
     type: (function) -> function
 
     """
+
     @wraps(func)
     def wrap(*args, **kwargs):
         # type: (*str, **str) -> None
@@ -220,8 +241,8 @@ def one_undo(func):
 
 
 def timeFunc(func):
-    """Use as a property to time any desired function
-    """
+    """Use as a property to time any desired function"""
+
     @wraps(func)
     def wrap(*args, **kwargs):
         start = timeit.default_timer()
@@ -234,10 +255,16 @@ def timeFunc(func):
         finally:
             end = timeit.default_timer()
             timeConsumed = end - start
-            print(("{} time elapsed running {}".format(timeConsumed,
-                                                       func.__name__)))
+            print(
+                (
+                    "{} time elapsed running {}".format(
+                        timeConsumed, func.__name__
+                    )
+                )
+            )
 
     return wrap
+
 
 # -----------------------------------------------------------------------------
 # selection Decorators
