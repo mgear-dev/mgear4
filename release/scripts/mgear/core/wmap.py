@@ -94,16 +94,17 @@ def set_weights(deformer, dataWeights):
         # working because deformer Set are not used anymore
         def_objs = deformer.outputGeometry.listConnections()
         for mesh in def_objs:
-            weights = dataWeights[mesh.fullPathName()]
-            VertexNb = cmds.polyEvaluate(mesh.name(), v=1) - 1
-            idx = dataWeights["_deformed_index"].index(mesh.fullPathName())
-            cmds.setAttr(
-                "{0}.weightList[{1}].weights[0:{2}]".format(
-                    deformer.name(), idx, VertexNb
-                ),
-                *weights,
-                size=len(weights)
-            )
+            if mesh.fullPathName() in dataWeights.keys():
+                weights = dataWeights[mesh.fullPathName()]
+                VertexNb = cmds.polyEvaluate(mesh.name(), v=1) - 1
+                idx = dataWeights["_deformed_index"].index(mesh.fullPathName())
+                cmds.setAttr(
+                    "{0}.weightList[{1}].weights[0:{2}]".format(
+                        deformer.name(), idx, VertexNb
+                    ),
+                    *weights,
+                    size=len(weights)
+                )
 
 
 def export_weights(deformer, filePath):
