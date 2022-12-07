@@ -258,6 +258,59 @@ class UeGearBridge(object):
     # LAYOUT COMMANDS
     # ==================================================================================================================
 
+    def import_layout_from_unreal(self):
+
+        temp_folder = tempfile.gettempdir()
+        temp_assets_folder = utils.clean_path(os.path.join(temp_folder, 'uegear_temp_assets'))
+        if os.path.isdir(temp_assets_folder):
+            utils.safe_delete_folder(temp_assets_folder)
+        utils.ensure_folder_exists(temp_assets_folder)
+        result = self.execute('export_maya_layout', parameters={'directory': temp_assets_folder}).get('ReturnValue', '')
+        if result and os.path.isfile(result):
+            layout_data = utils.read_json_file(result)
+            if layout_data:
+                for actor_data in layout_data:
+                    fbx_file = actor_data.get('assetExportPath', None)
+                    if not fbx_file or not os.path.isfile(fbx_file):
+                        continue
+                    imported_nodes = utils.import_fbx(fbx_file)
+                    transform_nodes = cmds.ls(imported_nodes, type='transform')
+                    transform_node = utils.get_first_in_list(transform_nodes)
+                    if not transform_node:
+                        continue
+                    for transform_node in transform_nodes:
+                        asset_guid = actor_data.get('guid', '')
+                        asset_type = actor_data.get('assetType', '')
+                        asset_name = actor_data.get('assetName', '')
+                        asset_path = actor_data.get('assetPath', '')
+                        actor_name = actor_data['name']
+                        translation = actor_data['translation']
+                        rotation = actor_data['rotation']
+                        scale = actor_data['scale']
+                        tag.apply_tag(transform_node, tag.TAG_ASSET_GUID_ATTR_NAME, asset_guid)
+                        if asset_type:
+                            tag.apply_tag(transform_node, tag.TAG_ASSET_TYPE_ATTR_NAME, asset_type)
+                        else:
+                            tag.auto_tag(transform_node)
+                        tag.apply_tag(transform_node, tag.TAG_ASSET_NAME_ATTR_NAME, asset_name)
+                        tag.apply_tag(transform_node, tag.TAG_ASSET_PATH_ATTR_NAME, asset_path)
+                        tag.apply_tag(transform_node, tag.TAG_ACTOR_NAME_ATTR_NAME, actor_name)
+                    transform_node = cmds.rename(transform_node, actor_name)
+                    cmds.setAttr(transform_node + '.translateX', translation[0])
+                    cmds.setAttr(transform_node + '.translateY', translation[2])
+                    cmds.setAttr(transform_node + '.translateZ', translation[1])
+                    cmds.rotate(rotation[0], -rotation[2], rotation[1] * -1, transform_node, r=True)
+                    # cmds.setAttr(transform_node + '.rotateX', rotation[0])
+                    # cmds.setAttr(transform_node + '.rotateY', rotation[2])
+                    # cmds.setAttr(transform_node + '.rotateZ', rotation[1]*-1)
+                    cmds.setAttr(transform_node + '.scaleX', scale[0])
+                    cmds.setAttr(transform_node + '.scaleY', scale[2])
+                    cmds.setAttr(transform_node + '.scaleZ', scale[1])
+
+        utils.safe_delete_folder(temp_assets_folder)
+
+        return True
+
     def export_layout(self, nodes=None):
 
         nodes = utils.force_list(nodes or cmds.ls(sl=True))
