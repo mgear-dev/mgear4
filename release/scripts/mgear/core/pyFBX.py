@@ -328,21 +328,25 @@ def _py_fbx(mel_cmd, *args, **kwargs):
         arg_string += ' {}'.format(a)
 
     for ka in kwargs.items():
+
         if ka[0] != 'q':
             if isinstance(ka[1], str):
-                argu = '"{}"'.format(string.normalize_path(ka[1]))
+                argu = '{}'.format(string.normalize_path(ka[1]))
             else:
                 argu = ka[1]
+
             if isinstance(argu, bool):
-                if ka[1]:
+                if ka[1] is not None:
                     kwargs_string += ' -{} {}'.format(ka[0], str(argu).lower())
+            elif isinstance(argu, int):
+                kwargs_string += ' -{} {}'.format(ka[0], argu)
             else:
                 kwargs_string += ' -{} "{}"'.format(ka[0], argu)
         else:
             kwargs_string += ' -q'
 
     mel_format_cmd = '{}{}{};'.format(mel_cmd, kwargs_string, arg_string)
-    print(mel_format_cmd)
+    # print(mel_format_cmd)
     return maya.mel.eval(mel_format_cmd)
 
 
