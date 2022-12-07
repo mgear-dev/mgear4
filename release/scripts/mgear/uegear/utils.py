@@ -14,6 +14,7 @@ import stat
 import math
 import json
 import errno
+import shutil
 import platform
 from functools import wraps
 from collections import OrderedDict
@@ -325,6 +326,42 @@ def safe_delete_file(file_path):
 		pass
 
 
+def safe_delete_folder(folder_name, directory=None):
+	"""
+	Deletes the folder by name in the given directory.
+
+	:param folder_name: str, name of the folder to delete.
+	:param directory: str, the directory path where the folder is stored.
+	:return: Full path of the delete folder.
+	:rtype: str or None
+	"""
+
+	def delete_read_only_error(action, name, exc):
+		"""
+		Helper to delete read only files
+		"""
+
+		get_permission(name)
+		action(name)
+
+	if directory:
+		folder_name = clean_file_string(folder_name)
+		full_path = join_path(directory, folder_name)
+	else:
+		folder_dir = os.path.dirname(folder_name)
+		clean_folder_name = clean_file_string(os.path.basename(folder_name))
+		full_path = join_path(folder_dir, clean_folder_name)
+	if not full_path or not os.path.isdir(full_path):
+		return None
+
+	try:
+		shutil.rmtree(full_path, onerror=delete_read_only_error)
+	except Exception as exc:
+		logger.warning('Could not remove children of path "{}" | {}'.format(full_path, exc))
+
+	return full_path
+
+
 def get_permission(directory):
 	"""
 	Returns the current permission level for the given directory.
@@ -480,6 +517,43 @@ def clean_path(path):
 		path = path[0].upper() + path[1:]
 
 	return path
+
+
+def clean_file_string(string):
+	"""
+	Replaces all / and \\ characters by _.
+
+	:param str string: string to clean.
+	:return: cleaned string.
+	:rtype: str
+	"""
+
+	if string == '/':
+		return '_'
+
+	string = string.replace('\\', '_')
+
+	return string
+
+
+def join_path(*args):
+	"""
+	Appends given directories.
+
+	:return: combined directory path
+	:rtype: str
+	"""
+
+	if not args:
+		return None
+
+	if len(args) == 1:
+		return args[0]
+
+	paths_to_join = [clean_path(str(path)) for path in args]
+	joined_path = clean_path(os.sep.join(paths_to_join))
+
+	return joined_path
 
 
 def read_json_file(filename, maintain_order=False):
@@ -874,3 +948,20 @@ def import_fbx(fbx_path, import_namespace=None):
 			move_node_to_namespace(x, import_namespace)
 
 	return return_list
+
+
+def convert_unreal_transforms_into_maya_transforms(translation, rotation, scale):
+	"""
+	Converts given Unreal transforms into Maya transforms.
+
+	:param list(float, float, float) translation:
+	:param list(float, float, float) rotation:
+	:param list(float, float, float) scale:
+	:return: Maya transforms.
+	:rtype: tuple(list(float, float, float), list(Float, float, flaot), list(float, float, float))
+	"""
+
+	unreal_translation = translation or [0.0, 0.0, 0.0]
+	unreal_rotation = rotation or [0.0, 0.0, 0.0]
+	unreal_scale = scale or [1.0, 1.0, 1.0]
+
