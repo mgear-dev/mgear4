@@ -13,9 +13,11 @@ from mgear.uegear import utils, log
 
 logger = log.uegear_logger
 
+TAG_ASSET_GUID_ATTR_NAME = 'ueGearAssetGuid'
 TAG_ASSET_TYPE_ATTR_NAME = 'ueGearAssetType'
 TAG_ASSET_NAME_ATTR_NAME = 'ueGearAssetName'
 TAG_ASSET_PATH_ATTR_NAME = 'ueGearAssetPath'
+TAG_ACTOR_NAME_ATTR_NAME = 'ueGearActorName'
 
 
 class TagTypes(object):
