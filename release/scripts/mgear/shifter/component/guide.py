@@ -26,6 +26,12 @@ from . import joint_names_ui as jnui
 from mgear.vendor.Qt import QtWidgets, QtCore
 from mgear.anim_picker.gui import MAYA_OVERRIDE_COLOR
 
+
+JOINT_NAME_DESCRIPTION = "jointNamesDescription"
+JOINT_NAME_DESCRIPTION_CUSTOM = JOINT_NAME_DESCRIPTION + "_custom"
+CTL_NAME_DESCRIPTION = "ctlNamesDescription"
+CTL_NAME_DESCRIPTION_CUSTOM = CTL_NAME_DESCRIPTION + "_custom"
+
 ##########################################################
 # COMPONENT GUIDE
 ##########################################################
@@ -73,6 +79,7 @@ class ComponentGuide(guide.Main):
     connectors = []
     compatible = []
     joint_names_description = []
+    ctl_names_description = []
     ctl_grp = ""
 
     # ====================================================
@@ -167,11 +174,18 @@ class ComponentGuide(guide.Main):
         self.pJointNames = self.addParam("joint_names", "string", "")
         if self.joint_names_description:
             self.pJointNamesDescription = self.addParam(
-                "jointNamesDescription", "string",
+                JOINT_NAME_DESCRIPTION, "string",
                 str(self.joint_names_description))
             self.pJointNamesDescription_custom = self.addParam(
-                "jointNamesDescription_custom", "string",
+                JOINT_NAME_DESCRIPTION_CUSTOM, "string",
                 str(self.joint_names_description))
+        if self.ctl_names_description:
+            self.pCtlNamesDescription = self.addParam(
+                CTL_NAME_DESCRIPTION, "string",
+                str(self.ctl_names_description))
+            self.pCtlNamesDescription_custom = self.addParam(
+                CTL_NAME_DESCRIPTION_CUSTOM, "string",
+                str(self.ctl_names_description))
         self.pJointRotOffX = self.addParam(
             "joint_rot_offset_x", "double", 0.0, -360.0, 360.0)
         self.pJointRotOffY = self.addParam(
@@ -1000,33 +1014,24 @@ class mainSettingsTab(QtWidgets.QDialog, msui.Ui_Form):
         self.setupUi(self)
 
 
-class jointNameDescriptor(QtWidgets.QDialog):
+class NameDescriptor(QtWidgets.QDialog):
 
     def __init__(self, parent=None):
-        super(jointNameDescriptor, self).__init__()
+        super(NameDescriptor, self).__init__()
 
-        self.root = pm.selected()[0]
-        self.d_names = self.root.attr("jointNamesDescription").get()
-        self.d_names = ast.literal_eval(self.d_names)
-        self.d_custom_names = self.root.attr("jointNamesDescription_custom").get()
-        self.d_custom_names = ast.literal_eval(self.d_custom_names)
-
-        self.setWindowTitle("joint NameDescriptor")
         self.setMinimumWidth(200)
         self.descriptors_lineEdit = []
         self.descriptors_label = []
         self.descriptors_layout = []
         self.main_layout = QtWidgets.QVBoxLayout(self)
 
-        self.create_widgets()
-        self.create_layouts()
 
     def create_descriptor(self, descriptor, d_custom):
         """Create descriptor widgets
 
         Args:
-            descriptor (str): Name of the joint descriptor
-            d_custom (str): Custom name of the joint descriptor when modified
+            descriptor (str): Name of the object descriptor
+            d_custom (str): Custom name of the object descriptor when modified
                 by the user
         """
         # widgets
@@ -1080,7 +1085,43 @@ class jointNameDescriptor(QtWidgets.QDialog):
             d.setText(d_name)
             descriptors_attr_val.append(d_name)
             self.root.attr(
-                "jointNamesDescription_custom").set(str(descriptors_attr_val))
+                self.descriptor_name_custom).set(str(descriptors_attr_val))
+
+
+class jointNameDescriptor(NameDescriptor):
+
+    def __init__(self, parent=None):
+        super(jointNameDescriptor, self).__init__()
+
+        self.root = pm.selected()[0]
+        self.d_names = self.root.attr(JOINT_NAME_DESCRIPTION).get()
+        self.d_names = ast.literal_eval(self.d_names)
+        self.descriptor_name_custom = JOINT_NAME_DESCRIPTION_CUSTOM
+        self.d_custom_names = self.root.attr(self.descriptor_name_custom).get()
+        self.d_custom_names = ast.literal_eval(self.d_custom_names)
+
+        self.setWindowTitle("joint Name Descriptor")
+
+        self.create_widgets()
+        self.create_layouts()
+
+
+class CtlNameDescriptor(NameDescriptor):
+
+    def __init__(self, parent=None):
+        super(CtlNameDescriptor, self).__init__()
+
+        self.root = pm.selected()[0]
+        self.d_names = self.root.attr(CTL_NAME_DESCRIPTION).get()
+        self.d_names = ast.literal_eval(self.d_names)
+        self.descriptor_name_custom = CTL_NAME_DESCRIPTION_CUSTOM
+        self.d_custom_names = self.root.attr(self.descriptor_name_custom).get()
+        self.d_custom_names = ast.literal_eval(self.d_custom_names)
+
+        self.setWindowTitle("CTL Name Descriptor")
+
+        self.create_widgets()
+        self.create_layouts()
 
 
 class componentMainSettings(QtWidgets.QDialog, guide.helperSlots):
@@ -1093,8 +1134,10 @@ class componentMainSettings(QtWidgets.QDialog, guide.helperSlots):
         self.root = pm.selected()[0]
 
         self.mainSettingsTab = mainSettingsTab()
-        if self.root.hasAttr("jointNamesDescription"):
+        if self.root.hasAttr(JOINT_NAME_DESCRIPTION):
             self.jointNameDescriptor = jointNameDescriptor()
+        if self.root.hasAttr(CTL_NAME_DESCRIPTION):
+            self.CtlNameDescriptor = CtlNameDescriptor()
 
         self.create_controls()
         self.populate_controls()
@@ -1196,9 +1239,16 @@ class componentMainSettings(QtWidgets.QDialog, guide.helperSlots):
         self.refresh_controls()
 
         # joint names tab
-        if self.root.hasAttr("jointNamesDescription"):
+        if self.root.hasAttr(JOINT_NAME_DESCRIPTION):
             self.tabs.insertTab(
                 2, self.jointNameDescriptor, "Joints Description Names")
+            ctl_tab = 3
+        else:
+            ctl_tab = 2
+        # ctl names tab
+        if self.root.hasAttr(CTL_NAME_DESCRIPTION):
+            self.tabs.insertTab(
+                ctl_tab, self.CtlNameDescriptor, "Ctl Description Names")
 
     def refresh_controls(self):
         joint_names = [name.strip() for name in
