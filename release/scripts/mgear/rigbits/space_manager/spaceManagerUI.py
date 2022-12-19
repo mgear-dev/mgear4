@@ -1,26 +1,10 @@
-import sys
-from PySide2 import QtCore
-from PySide2 import QtWidgets
-from PySide2 import QtGui
-from shiboken2 import wrapInstance
-import mgear.core.pyqt as gqt
-import maya.OpenMayaUI as omui
+from mgear.vendor.Qt import QtCore, QtWidgets, QtGui
+
 import maya.cmds as cmds
 
 
-def maya_main_window():
-    """
-    Return the Maya main window widget as a Python object
-    """
-    main_window_ptr = omui.MQtUtil.mainWindow()
-    if sys.version_info.major >= 3:
-        return wrapInstance(int(main_window_ptr), QtWidgets.QWidget)
-    else:
-        return wrapInstance(long(main_window_ptr), QtWidgets.QWidget)
-
-
 class SpaceManagerDialog(QtWidgets.QDialog):
-    def __init__(self, parent=maya_main_window()):
+    def __init__(self, parent=None):
         super(SpaceManagerDialog, self).__init__(parent)
 
         self.setWindowTitle("Space Manager")
@@ -105,7 +89,7 @@ class SpaceManagerDialog(QtWidgets.QDialog):
         for target in cmds.ls(selection=True):
             selected.append(str(target))
         selected = ", ".join(selected)  # adds comma between each list item
-        if not column in protected:
+        if column not in protected:
             item.setText(selected)
         else:
             print("Protected cells cannot be edited.")
@@ -116,7 +100,7 @@ class SpaceManagerDialog(QtWidgets.QDialog):
         protected = [2, 3, 6]
         hasDefault = [4, 5, 7]
         isDropDown = [2, 6]
-        if not column in protected:
+        if column not in protected:
             item.setText("")
         if column in hasDefault:
             item.setText("default")

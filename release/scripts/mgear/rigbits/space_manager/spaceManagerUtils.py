@@ -1,9 +1,6 @@
-import spaceManagerUI as sui
-import mgear.core.pyqt as pyqt
+from . import spaceManagerUI as sui
+from mgear.vendor.Qt import QtCore, QtWidgets, QtGui
 
-_, QtCore, QtWidgets, _ = pyqt.qt_import()
-import mgear.core.primitive as primitive
-import PySide2.QtGui as QtGui
 from functools import partial
 import maya.cmds as cmds
 import string
@@ -122,7 +119,7 @@ def create_constraints(dataSet):
             # if there are not enough menu names, fill the rest using driver names
             if not len(menuNames.split(":")) == len(drivers):
                 # creating list of needed driver names to append the custom names with
-                extensions = drivers[(len(menuNames.split(":")) - 1) : -1]
+                extensions = drivers[(len(menuNames.split(":")) - 1): -1]
                 # unicode extensions need to be added one by one to avoid ugly formatting
                 for x in extensions:
                     menuNames = menuNames + ":" + x
@@ -191,7 +188,7 @@ def patch_data(data):
     for dictionary in data:
         if not sorted(dictionary.keys()) == sorted(supportedKeys.keys()):
             for key in supportedKeys.keys():
-                if not key in dictionary.keys():
+                if key not in dictionary.keys():
                     print(
                         "{0} key was patched to imported smd data".format(key)
                     )
@@ -232,14 +229,6 @@ class SpaceManager:
             data["menuType"] = []
             data["UIhost"] = []
 
-            itemsTab1 = []
-            itemsTab2 = []
-            itemsTab3 = []
-            itemsTab4 = []
-            itemsTab5 = []
-            itemsTab6 = []
-            itemsTab7 = []
-            itemsTab8 = []
             # driven
             if self.ui.spaceTable.item(i, 0):
                 data["driven"] = self.ui.spaceTable.item(i, 0).text()
@@ -588,7 +577,7 @@ class SpaceManager:
             obj = json.load(read_file)
         data = json.dumps(obj, indent=4)
         # printing imported data for user to see
-        if debug == True:
+        if debug:
             print(data)
         self.show_data_on_table(obj)
 

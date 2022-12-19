@@ -8,8 +8,7 @@ menuID = "Rigbits"
 
 
 def install():
-    """Install Rigbits submenu
-    """
+    """Install Rigbits submenu"""
     pm.setParent(mgear.menu_id, menu=True)
     pm.menuItem(divider=True)
     commands = (
@@ -32,8 +31,9 @@ def install():
         ("RBF Manager", str_rbf_manager_ui),
         ("SDK Manager (BETA)", str_SDK_manager_ui),
         ("-----", None),
-        ("Space Jumper", str_spaceJump),
         ("Space Manager", str_space_manager),
+        ("-----", None),
+        ("Space Jumper", str_spaceJump),
         ("Interpolated Transform", str_createInterpolateTransform),
         (None, connect_submenu),
         ("-----", None),
@@ -49,7 +49,7 @@ def install():
         ("Proxy Slicer Parenting", str_proxySlicer_parent),
         ("-----", None),
         ("Bake Spring nodes", str_bakeSprings),
-        ("Clear Baked Spring nodes", str_clearSprings)
+        ("Clear Baked Spring nodes", str_clearSprings),
     )
 
     mgear.menu.install(menuID, commands, image="mgear_rigbits.svg")
@@ -65,8 +65,7 @@ def connect_submenu(parent_menu_id):
         ("Connect SRT", str_connect_SRT),
         ("Connect S", str_connect_S),
         ("Connect R", str_connect_R),
-        ("Connect T", str_connect_T)
-
+        ("Connect T", str_connect_T),
     )
 
     mgear.menu.install("Connect Local SRT", commands, parent_menu_id)
@@ -82,7 +81,7 @@ def gimmick_submenu(parent_menu_id):
         ("Add Joint", str_addJnt),
         ("-----", None),
         ("Add Blended Joint", str_addBlendedJoint),
-        ("Add Support Joint", str_addSupportJoint)
+        ("Add Support Joint", str_addSupportJoint),
     )
 
     mgear.menu.install("Gimmick Joints", commands, parent_menu_id)
@@ -97,19 +96,27 @@ def _ctl_submenu(parent_menu_id, name, cCtl=False):
         pCtl (bool, optional): If True, the new control will be child
                                of selected
     """
-    ctls = ["Square",
-            "Circle",
-            "Cube",
-            "Diamond",
-            "Sphere",
-            "Cross Arrow",
-            "Pyramid",
-            "Cube With Peak"]
+    ctls = [
+        "Square",
+        "Circle",
+        "Cube",
+        "Diamond",
+        "Sphere",
+        "Cross Arrow",
+        "Pyramid",
+        "Cube With Peak",
+    ]
     commands = []
     for c in ctls:
         cm = string.removeInvalidCharacter(c).lower()
-        commands.append([c, "from mgear import rigbits\nrigbits.createCTL('{0}', {1})".format(cm,
-                                                                                              str(cCtl))])
+        commands.append(
+            [
+                c,
+                "from mgear import rigbits\nrigbits.createCTL('{0}', {1})".format(
+                    cm, str(cCtl)
+                ),
+            ]
+        )
     mgear.menu.install(name, commands, parent_menu_id)
 
 
@@ -132,8 +139,7 @@ def cCtl_sub(parent_menu_id):
 
 
 def install_utils_menu(m):
-    """Install rigbit utils submenu
-    """
+    """Install rigbit utils submenu"""
     pm.setParent(m, menu=True)
     pm.menuItem(divider=True)
     pm.menuItem(label="Create mGear Hotkeys", command=str_createHotkeys)
@@ -185,16 +191,16 @@ str_SDK_manager_ui = """
 from mgear.rigbits.sdk_manager import SDK_manager_ui
 SDK_manager_ui.show()
 """
+str_space_manager = """
+from mgear.rigbits.space_manager import spaceManagerUtils
+spacemanager = spaceManagerUtils.SpaceManager()
+"""
 
 str_spaceJump = """
 from mgear import rigbits
 rigbits.spaceJump()
 """
 
-str_space_manager = """
-from mgear.rigbits.space_manager import spaceManagerUtils
-spacemanager = spaceManagerUtils.SpaceManager()
-"""
 
 str_createInterpolateTransform = """
 from mgear import rigbits
