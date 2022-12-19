@@ -1,5 +1,5 @@
 """Component Control 01 module"""
-
+import ast
 from mgear.shifter import component
 
 from mgear.core import attribute, transform, primitive
@@ -32,10 +32,12 @@ class Component(component.Main):
         self.ik_cns = primitive.addTransform(
             self.root, self.getName("ik_cns"), t
         )
-
+        ctl_name = ast.literal_eval(
+            self.settings["ctlNamesDescription_custom"]
+        )[0]
         self.ctl = self.addCtl(
             self.ik_cns,
-            "ctl",
+            ctl_name,
             t,
             self.color_ik,
             self.settings["icon"],
