@@ -297,9 +297,14 @@ class Component(component.Main):
         )
 
         # tws_ref
-        t = transform.getRotationFromAxis(
-            datatypes.Vector(0, -1, 0), self.normal, "xz", self.negate
-        )
+        if self.up_axis == "y":
+            t = transform.getRotationFromAxis(
+                datatypes.Vector(0, -1, 0), self.normal, "xz", self.negate
+            )
+        else:
+            t = transform.getRotationFromAxis(
+                datatypes.Vector(0, 0, -1), self.normal, "xz", self.negate
+            )
         t = transform.setMatrixPosition(t, self.guide.pos["ankle"])
 
         # addind an npo parent transform to fix flip in Maya 2018.2
@@ -774,10 +779,10 @@ class Component(component.Main):
 
         applyop.oriCns(ori_ref, self.tws0_loc, maintainOffset=True)
 
-        self.tws0_loc.setAttr("sx", 0.001)
-        self.tws2_loc.setAttr("sx", 0.001)
+        self.tws0_loc.setAttr("sx", 0.000001)
+        self.tws2_loc.setAttr("sx", 0.000001)
 
-        add_node = node.createAddNode(self.roundness_att, 0.0)
+        add_node = node.createAddNode(self.roundness_att, 0.000001)
         pm.connectAttr(add_node + ".output", self.tws1_rot.attr("sx"))
 
         # Volume -------------------------------------------

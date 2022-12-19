@@ -1001,10 +1001,10 @@ class Component(component.Main):
         attribute.setRotOrder(self.tws2_rot, "XYZ")
         pm.connectAttr(dm_node + ".outputRotate", self.tws2_rot + ".rotate")
 
-        self.tws0_rot.setAttr("sx", 0.001)
-        self.tws2_rot.setAttr("sx", 0.001)
+        self.tws0_rot.setAttr("sx", 0.000001)
+        self.tws2_rot.setAttr("sx", 0.000001)
 
-        add_node = node.createAddNode(self.roundness_att, 0.0)
+        add_node = node.createAddNode(self.roundness_att, 0.000001)
         pm.connectAttr(add_node + ".output", self.tws1_rot.attr("sx"))
 
         pm.connectAttr(self.armpit_roll_att, self.tws0_rot + ".rotateX")
