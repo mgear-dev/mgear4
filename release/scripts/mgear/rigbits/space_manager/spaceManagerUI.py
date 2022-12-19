@@ -18,19 +18,21 @@ def maya_main_window():
     else:
         return wrapInstance(long(main_window_ptr), QtWidgets.QWidget)
 
-class SpaceManagerDialog(QtWidgets.QDialog):
 
+class SpaceManagerDialog(QtWidgets.QDialog):
     def __init__(self, parent=maya_main_window()):
         super(SpaceManagerDialog, self).__init__(parent)
 
         self.setWindowTitle("Space Manager")
         self.setMinimumWidth(1000)
-        self.setWindowFlags(self.windowFlags() ^ QtCore.Qt.WindowContextHelpButtonHint)
+        self.setWindowFlags(
+            self.windowFlags() ^ QtCore.Qt.WindowContextHelpButtonHint
+        )
         self.create_widgets()
         self.create_layouts()
 
     def create_widgets(self):
-        #creating widget contents
+        # creating widget contents
         self.addDrivenBtn = QtWidgets.QPushButton("Add driven")
         self.addBothBtn = QtWidgets.QPushButton("Add Driven and Drivers")
         self.addUIhostBtn = QtWidgets.QPushButton("Add UIhost")
@@ -43,21 +45,39 @@ class SpaceManagerDialog(QtWidgets.QDialog):
         self.spaceTable.setColumnCount(8)
         header_view = self.spaceTable.horizontalHeader()
         # setting header to stretch according to text and frame
-        header_view.setSectionResizeMode(0,QtWidgets.QHeaderView.Interactive)
+        header_view.setSectionResizeMode(0, QtWidgets.QHeaderView.Interactive)
         header_view.setSectionResizeMode(1, QtWidgets.QHeaderView.Interactive)
-        header_view.setSectionResizeMode(2, QtWidgets.QHeaderView.ResizeToContents)
-        header_view.setSectionResizeMode(3, QtWidgets.QHeaderView.ResizeToContents)
-        header_view.setSectionResizeMode(4, QtWidgets.QHeaderView.ResizeToContents)
-        header_view.setSectionResizeMode(5, QtWidgets.QHeaderView.ResizeToContents)
+        header_view.setSectionResizeMode(
+            2, QtWidgets.QHeaderView.ResizeToContents
+        )
+        header_view.setSectionResizeMode(
+            3, QtWidgets.QHeaderView.ResizeToContents
+        )
+        header_view.setSectionResizeMode(
+            4, QtWidgets.QHeaderView.ResizeToContents
+        )
+        header_view.setSectionResizeMode(
+            5, QtWidgets.QHeaderView.ResizeToContents
+        )
         header_view.setSectionResizeMode(6, QtWidgets.QHeaderView.Stretch)
         header_view.setSectionResizeMode(7, QtWidgets.QHeaderView.Stretch)
         # the default size only affects interactive views in this case
         header_view.setDefaultSectionSize(200)
-        self.spaceTable.setHorizontalHeaderLabels(["Driven","Drivers","Constraint Type","Maintain Offset",
-                                                   "Top Menu Name","Sub Menu Names","Menu Type","Custom UIhost"])
+        self.spaceTable.setHorizontalHeaderLabels(
+            [
+                "Driven",
+                "Drivers",
+                "Constraint Type",
+                "Maintain Offset",
+                "Top Menu Name",
+                "Sub Menu Names",
+                "Menu Type",
+                "Custom UIhost",
+            ]
+        )
 
     def create_layouts(self):
-        #creating layouts, adding content to layouts
+        # creating layouts, adding content to layouts
         main_layout = QtWidgets.QVBoxLayout(self)
         editing_buttons_layout = QtWidgets.QHBoxLayout(self)
         editing_buttons_layout.addWidget(self.addDrivenBtn)
@@ -79,8 +99,8 @@ class SpaceManagerDialog(QtWidgets.QDialog):
 
     def set_selections_as_item(self):
         item = self.spaceTable.currentItem()
-        column= self.spaceTable.currentColumn()
-        protected = [2,3,6]
+        column = self.spaceTable.currentColumn()
+        protected = [2, 3, 6]
         selected = []
         for target in cmds.ls(selection=True):
             selected.append(str(target))
@@ -94,8 +114,8 @@ class SpaceManagerDialog(QtWidgets.QDialog):
         item = self.spaceTable.currentItem()
         column = self.spaceTable.currentColumn()
         protected = [2, 3, 6]
-        hasDefault = [4,5,7]
-        isDropDown = [2,6]
+        hasDefault = [4, 5, 7]
+        isDropDown = [2, 6]
         if not column in protected:
             item.setText("")
         if column in hasDefault:
@@ -109,6 +129,6 @@ class SpaceManagerDialog(QtWidgets.QDialog):
 
     def contextMenuEvent(self, pos):
         menu = QtWidgets.QMenu(title="add current selection")
-        menu.addAction("Add Selected",self.set_selections_as_item)
+        menu.addAction("Add Selected", self.set_selections_as_item)
         menu.addAction("Reset Selected", self.reset_selected_item)
         menu.exec_(QtGui.QCursor.pos())
