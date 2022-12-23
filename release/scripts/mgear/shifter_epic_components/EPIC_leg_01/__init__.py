@@ -601,7 +601,7 @@ class Component(component.Main):
         ref_names = ["Auto", "ikFoot"]
         if self.settings["upvrefarray"]:
             ref_names = ref_names + self.get_valid_alias_list(
-                self.settings["ikrefarray"].split(",")
+                self.settings["upvrefarray"].split(",")
             )
         self.upvref_att = self.addAnimEnumParam(
             "upvref", "UpV Ref", 0, ref_names
@@ -698,9 +698,10 @@ class Component(component.Main):
             "ikSCsolver",
         )
         pm.pointConstraint(self.ik_ctl, self.ikHandleUpvRef)
-        pm.parentConstraint(
-            self.legChainUpvRef[0], self.ik_ctl, self.upv_cns, mo=True
-        )
+        self.relatives_map_upv = {
+            "Auto": self.legChainUpvRef[0],
+            "Foot": self.ik_ctl,
+        }
 
         # Visibilities -------------------------------------
         # shape.dispGeometry
