@@ -66,6 +66,10 @@ class Main(object):
         self.side = self.settings["comp_side"]
         self.index = self.settings["comp_index"]
 
+        # Init relative ref mapping for custom IK spaces
+        self.relatives_map_upv = {}
+        self.relatives_map = {}
+
         # --------------------------------------------------
         # Shortcut to useful settings
         self.size = self.guide.size
@@ -1585,7 +1589,12 @@ class Main(object):
                     pm.setAttr(attr, 1.0)
 
     def connectRef(
-        self, refArray, cns_obj, upVAttr=None, init_refNames=False, st=None
+        self,
+        refArray,
+        cns_obj,
+        upVAttr=None,
+        init_refNames=False,
+        st=None,
     ):
         """Connect the cns_obj to a multiple object using parentConstraint.
 
@@ -1593,8 +1602,15 @@ class Main(object):
             refArray (list of dagNode): List of driver objects
             cns_obj (dagNode): The driven object.
             upVAttr (bool): Set if the ref Array is for IK or Up vector
+            init_refNames (bool, optional): Nice name for the references menu
+            st (None, optional): skipTranslate
         """
         if refArray:
+            if upVAttr:
+                relatives_map = self.relatives_map_upv
+            else:
+                relatives_map = self.relatives_map
+
             if upVAttr and not init_refNames:
                 # we only can perform name validation if the init_refnames are
                 # provided in a separated list. This check ensures backwards
@@ -1607,7 +1623,7 @@ class Main(object):
                 # return if the not ref_names list
                 return
             elif len(ref_names) == 1:
-                ref = self.rig.findRelative(ref_names[0])
+                ref = self.rig.findRelative(ref_names[0], relatives_map)
                 pm.parent(cns_obj, ref)
             else:
                 ref = []
@@ -1617,7 +1633,9 @@ class Main(object):
                     # this is needed because parent constraining  doesn't handle
                     # scaling and the maintain offset will not work properly
                     if cns_obj.sy.get() < 0:
-                        original_trans = self.rig.findRelative(ref_name)
+                        original_trans = self.rig.findRelative(
+                            ref_name, relatives_map
+                        )
                         ref_trans_name = (
                             cns_obj.getName()
                             + "_"
@@ -1636,7 +1654,9 @@ class Main(object):
                             transform.matchWorldTransform(cns_obj, ref_trans)
                         ref.append(ref_trans)
                     else:
-                        ref.append(self.rig.findRelative(ref_name))
+                        ref.append(
+                            self.rig.findRelative(ref_name, relatives_map)
+                        )
                 ref.append(cns_obj)
                 if not st:
                     st = "none"

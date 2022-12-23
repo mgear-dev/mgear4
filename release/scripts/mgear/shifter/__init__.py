@@ -66,17 +66,18 @@ def log_window():
             margin_v = 5
             margin_h = 5
             pm.formLayout(
-                form, e=True,
+                form,
+                e=True,
                 attachForm=[
-                    (reporter, 'top', margin_v),
-                    (reporter, 'right', margin_h),
-                    (reporter, 'left', margin_h),
-                    (btn_close, 'bottom', margin_v),
-                    (btn_close, 'right', margin_h),
-                    (btn_close, 'left', margin_h),
+                    (reporter, "top", margin_v),
+                    (reporter, "right", margin_h),
+                    (reporter, "left", margin_h),
+                    (btn_close, "bottom", margin_v),
+                    (btn_close, "right", margin_h),
+                    (btn_close, "left", margin_h),
                 ],
                 attachControl=[
-                    (reporter, 'bottom', margin_v, btn_close),
+                    (reporter, "bottom", margin_v, btn_close),
                 ],
             )
 
@@ -654,7 +655,7 @@ class Rig(object):
             )
 
     def get_root_jnt_embbeded(self):
-        """ Get the root joint to embbed the data
+        """Get the root joint to embbed the data
 
         Returns:
             pyNode: Joint
@@ -665,7 +666,8 @@ class Rig(object):
                 return pm.PyNode(j_name)
             except pm.MayaNodeError:
                 pm.displayError(
-                    "{} doesn't exist or is not unique".format(j_name))
+                    "{} doesn't exist or is not unique".format(j_name)
+                )
 
     def addCtl(self, parent, name, m, color, iconShape, **kwargs):
         """Create the control and apply the shape, if this is alrealdy stored
@@ -828,18 +830,24 @@ class Rig(object):
         if names:
             return names[1]
 
-    def findRelative(self, guideName):
+    def findRelative(self, guideName, relatives_map={}):
         """Return the objects in the rig matching the guide object.
 
         Args:
             guideName (str): Name of the guide object.
+            relatives_map (dict, optional): Custom relative mapping to
+                    point any object in a component. For example used to point
+                    Auto in upvector reference.
 
         Returns:
-           transform: The relative object
+            transform: The relative object
 
         """
         if guideName is None:
             return self.global_ctl
+
+        if guideName in relatives_map.keys():
+            return relatives_map[guideName]
 
         comp_name = self.getComponentName(guideName)
         relative_name = self.getRelativeName(guideName)

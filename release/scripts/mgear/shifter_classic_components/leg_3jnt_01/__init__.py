@@ -805,7 +805,10 @@ class Component(component.Main):
             "ikSCsolver",
         )
         pm.pointConstraint(self.ik_ctl, self.ikHandleUpvRef)
-        pm.parentConstraint(self.legChainUpvRef[0], self.upv_cns, mo=True)
+        # pm.parentConstraint(self.legChainUpvRef[0], self.upv_cns, mo=True)
+        self.relatives_map_upv = {
+            "Auto": self.legChainUpvRef[0],
+        }
 
         # mid joints ================================================
         for xjnt, midJ in zip(
