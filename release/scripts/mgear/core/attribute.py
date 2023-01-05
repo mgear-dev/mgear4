@@ -637,8 +637,7 @@ def connect_add_dynamic_pivot(pivots, driven):
 
     Args:
         pivot (dagNode list): pivot translation
-        driven (dagNode): Driven object
-        offset (list): Description
+        driven (dagNode list): Driven object
     """
     if not isinstance(pivots, list):
         pivots = [pivots]
@@ -646,9 +645,11 @@ def connect_add_dynamic_pivot(pivots, driven):
     node.attr("operation").set(1)
     for i, p in enumerate(pivots):
         pm.connectAttr(p.t, node + ".input3D[%s]" % str(i))
-
-    pm.connectAttr(node + ".output3D", driven.rotatePivot)
-    pm.connectAttr(node + ".output3D", driven.scalePivot)
+    if not isinstance(driven, list):
+        driven = [driven]
+    for d in driven:
+        pm.connectAttr(node + ".output3D", d.rotatePivot)
+        pm.connectAttr(node + ".output3D", d.scalePivot)
 
 
 def connect_dynamic_pivot(pivot, driven):
