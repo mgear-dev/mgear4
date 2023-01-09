@@ -326,6 +326,43 @@ def safe_delete_file(file_path):
 		pass
 
 
+def create_folder(name, directory=None):
+	"""
+	Creates a new folder on the given path and with the given name.
+
+	:param str name: name of the new directory.
+	:param str directory: path to the new directory.
+	:return: folder name with path or False if the folder creation failed.
+	:rtype: str or bool
+	"""
+
+	full_path = False
+
+	if directory is None:
+		full_path = name
+
+	if not name:
+		full_path = directory
+
+	if name and directory:
+		full_path = join_path(directory, name)
+
+	if not full_path:
+		return False
+
+	if os.path.isdir(full_path):
+		return full_path
+
+	try:
+		os.makedirs(full_path)
+	except Exception:
+		return False
+
+	get_permission(full_path)
+
+	return full_path
+
+
 def safe_delete_folder(folder_name, directory=None):
 	"""
 	Deletes the folder by name in the given directory.
@@ -651,11 +688,11 @@ def get_transforms_for_mesh_node(node):
 	:rtype: tuple(list(float, float, float), list(float, float, float), list(float, float, float))
 	"""
 
-	first_shape = get_first_in_list(cmds.listRelatives(node, shapes=True))
+	first_shape = get_first_in_list(cmds.listRelatives(node, shapes=True, fullPath=True))
 	if not first_shape or cmds.objectType(first_shape) != 'mesh':
 		return list(), list(), list()
 
-	first_shape = get_first_in_list(cmds.listRelatives(node, shapes=True, f=True))
+	first_shape = get_first_in_list(cmds.listRelatives(node, shapes=True, fullPath=True))
 	if not first_shape == '{}Shape'.format(node):
 		if not cmds.referenceQuery(node, isNodeReferenced=True):
 			cmds.rename(first_shape, '{}Shape'.format(node))
@@ -948,20 +985,3 @@ def import_fbx(fbx_path, import_namespace=None):
 			move_node_to_namespace(x, import_namespace)
 
 	return return_list
-
-
-def convert_unreal_transforms_into_maya_transforms(translation, rotation, scale):
-	"""
-	Converts given Unreal transforms into Maya transforms.
-
-	:param list(float, float, float) translation:
-	:param list(float, float, float) rotation:
-	:param list(float, float, float) scale:
-	:return: Maya transforms.
-	:rtype: tuple(list(float, float, float), list(Float, float, flaot), list(float, float, float))
-	"""
-
-	unreal_translation = translation or [0.0, 0.0, 0.0]
-	unreal_rotation = rotation or [0.0, 0.0, 0.0]
-	unreal_scale = scale or [1.0, 1.0, 1.0]
-

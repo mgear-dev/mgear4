@@ -18,7 +18,7 @@ import pymel.core as pm
 import maya.cmds as cmds
 
 from mgear.core import pyFBX
-from mgear.uegear import log, utils, tag, io
+from mgear.uegear import log, utils, tag, io, ioutils
 
 logger = log.uegear_logger
 
@@ -169,6 +169,85 @@ class UeGearBridge(object):
                 if asset_path:
                     tag.apply_tag(transform_node, tag.TAG_ASSET_PATH_ATTR_NAME, asset_path)
 
+    def export_selected_assets_to_unreal(self, export_directory=None, export_in_original_path=True):
+        """
+        Exports current selected assets in Maya scene into Unreal Engine Content Browser.
+        """
+
+        temp_folder = tempfile.gettempdir()
+
+        nodes_to_export = cmds.ls(sl=True, long=True)
+        objects_map = io.exportable_assets(nodes=nodes_to_export)
+        if not objects_map:
+            return False
+
+        static_meshes = objects_map.get(tag.TagTypes.StaticMesh, list())
+        if not static_meshes:
+            logger.warning('No static meshes to update')
+            return False
+
+        content_path = self.execute('project_content_directory').get('ReturnValue', '')
+        if not content_path or not os.path.isdir(content_path):
+            logger.warning('Was not possible to retrieve current Unreal project content path')
+            return False
+
+        for static_mesh in static_meshes:
+            asset_path = tag.tag_values(tag_name=tag.TAG_ASSET_PATH_ATTR_NAME, nodes=[static_mesh])
+            asset_path = asset_path[0] if asset_path else ''
+            asset_exists = self.execute(
+                'does_asset_exist', parameters={'asset_path': asset_path}).get('ReturnValue', False)
+            if not asset_exists:
+                logger.warning('Asset "{}" does not exists within current Unreal Project!'.format(asset_path))
+                continue
+
+            asset_file_name = os.path.basename(asset_path).split('.')[0]
+            uasset_file_name = asset_file_name + '.uasset'
+            content_uasset_path = utils.join_path(content_path, os.path.dirname(asset_path).replace('/Game/', '/'), uasset_file_name)
+            if not os.path.isfile(content_uasset_path):
+                logger.warning('.uasset file was not found: "{}"'.format(content_uasset_path))
+                continue
+
+            export_file_name = '{}.fbx'.format(asset_file_name)
+            if not export_directory and export_in_original_path:
+                asset_export_path = self.execute(
+                    'asset_export_path', parameters={'asset_path': asset_path}).get('ReturnValue', '')
+                export_file_name = '{}.fbx'.format(os.path.basename(asset_export_path).split('.')[0])
+            else:
+                if not export_directory:
+                    asset_export_path = utils.join_path(temp_folder, export_file_name)
+                else:
+                    asset_export_path = utils.join_path(export_directory, export_file_name)
+
+            if export_directory or export_in_original_path:
+                asset_export_directory = os.path.dirname(asset_export_path)
+                if not os.path.isdir(asset_export_directory):
+                    logger.info('Export directory does not exist, trying to create it: {}'.format(asset_export_directory))
+                    result = utils.create_folder(asset_export_directory)
+                    if not result:
+                        logger.warning(
+                            'Was not possible to create original export path: "{}" | temp folder will be used instead...'.format(
+                                asset_export_directory))
+                        asset_export_path = utils.join_path(temp_folder, '{}.fbx'.format(asset_file_name))
+            asset_export_directory = os.path.dirname(asset_export_path)
+
+            fbx_file_path = ioutils.export_static_mesh(asset_export_directory, static_mesh, file_name=export_file_name)
+            if not os.path.isfile(fbx_file_path):
+                logger.warning('Something went wrong while exporting asset FBX file: "{}"'.format(fbx_file_path))
+                continue
+
+            import_options = {'destination_name': asset_file_name, 'replace_existing': True, 'save': False}
+            result = self.execute(
+                'import_static_mesh', parameters={
+                    'fbx_file': fbx_file_path,
+                    'import_path': os.path.dirname(content_uasset_path),
+                    'import_options': str(import_options)
+                }).get('ReturnValue', False)
+            if not result:
+                logger.warning('Was not possible to export asset: {}'.format(static_mesh))
+                continue
+
+        return True
+
     # ==================================================================================================================
     # TRANSFORM COMMANDS
     # ==================================================================================================================
@@ -238,13 +317,11 @@ class UeGearBridge(object):
         except Exception as exc:
             logger.error('Something went wrong while exporting static mesh: {}'.format(traceback.format_exc()))
         finally:
-
             try:
                 pass
             except Exception as exc:
                 logger.error('Something went wrong while importing static mesh into Unreal: {}'.format(
                     traceback.format_exc()))
-
             try:
                 utils.get_permission(fbx_temp_file_path)
             except Exception:
@@ -258,14 +335,15 @@ class UeGearBridge(object):
     # LAYOUT COMMANDS
     # ==================================================================================================================
 
-    def import_layout_from_unreal(self):
+    def import_layout_from_unreal(self, export_assets=True):
 
         temp_folder = tempfile.gettempdir()
         temp_assets_folder = utils.clean_path(os.path.join(temp_folder, 'uegear_temp_assets'))
         if os.path.isdir(temp_assets_folder):
             utils.safe_delete_folder(temp_assets_folder)
         utils.ensure_folder_exists(temp_assets_folder)
-        result = self.execute('export_maya_layout', parameters={'directory': temp_assets_folder}).get('ReturnValue', '')
+        result = self.execute('export_maya_layout', parameters={
+            'directory': temp_assets_folder, 'export_assets': export_assets}).get('ReturnValue', '')
         if result and os.path.isfile(result):
             layout_data = utils.read_json_file(result)
             if layout_data:
@@ -311,9 +389,17 @@ class UeGearBridge(object):
 
         return True
 
-    def export_layout(self, nodes=None):
+    def export_layout_to_unreal(self, nodes=None):
+        """
+        Export nodes into a ueGear layout file and imports that layout into current opened Unreal level.
 
-        nodes = utils.force_list(nodes or cmds.ls(sl=True))
+        :param str or list(str) or None nodes: list of nodes to include into the layout file. If not given, all current
+            selected nodes will be added.
+        :return: True if the export layout to Unreal operation was successful; False otherwise.
+        :rtype: bool
+        """
+
+        nodes = utils.force_list(nodes or cmds.ls(sl=True, long=True))
         if not nodes:
             logger.warning('No layout nodes selected to export')
             return False

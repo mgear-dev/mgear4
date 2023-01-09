@@ -44,14 +44,14 @@ def auto_tag(node=None, remove=False):
 	:param bool remove: if True tag will be removed.
 	"""
 
-	nodes = utils.force_list(node or cmds.ls(sl=True))
+	nodes = utils.force_list(node or cmds.ls(sl=True, long=True))
 
 	for node in nodes:
 		found_skin_clusters = utils.get_skin_clusters_for_node(node)
 		if found_skin_clusters and cmds.objectType(node) == 'joint':
 			remove_tag(node) if remove else apply_tag(node, attribute_value=TagTypes.SkeletalMesh)
 		else:
-			shapes = cmds.listRelatives(node, shapes=True)
+			shapes = cmds.listRelatives(node, fullPath=True, shapes=True)
 			if not shapes:
 				continue
 			first_shape = utils.get_first_in_list(shapes)
@@ -167,13 +167,13 @@ def find_tagged_node_attributes(tag_name=TAG_ASSET_TYPE_ATTR_NAME, nodes=None):
 	"""
 
 	found_tagged_node_attributes = list()
-	nodes = utils.force_list(nodes or cmds.ls())
+	nodes = utils.force_list(nodes or cmds.ls(long=True))
 	for node in nodes:
 		if not cmds.attributeQuery(tag_name, node=node, exists=True):
 			continue
-		if not cmds.getAttr('{}.{}'.format(node, TAG_ASSET_TYPE_ATTR_NAME)):
+		if not cmds.getAttr('{}.{}'.format(node, tag_name)):
 			continue
-		found_tagged_node_attributes.append('{}.{}'.format(node, TAG_ASSET_TYPE_ATTR_NAME))
+		found_tagged_node_attributes.append('{}.{}'.format(node, tag_name))
 
 	return found_tagged_node_attributes
 
@@ -188,3 +188,24 @@ def find_tagged_selected_node_attributes(tag_name):
 	"""
 
 	return find_tagged_node_attributes(nodes=cmds.ls(sl=True))
+
+
+def tag_values(tag_name=TAG_ASSET_TYPE_ATTR_NAME, nodes=None):
+	"""
+	Returns a list with all node attribute values that are tagged with the given tag name.
+
+	:param str tag_name:name of the tag to search value of.
+	:param str or list(str) nodes: list of nodes to find tags of, if not given all nodes in the scene will be checked.
+	:return: list of tagged node values.
+	:rtype: list(object)
+	"""
+
+	found_tag_values = list()
+	nodes = utils.force_list(nodes or cmds.ls(long=True))
+	for node in nodes:
+		if not cmds.attributeQuery(tag_name, node=node, exists=True):
+			found_tag_values.append(None)
+			continue
+		found_tag_values.append(cmds.getAttr('{}.{}'.format(node, tag_name)))
+
+	return found_tag_values
