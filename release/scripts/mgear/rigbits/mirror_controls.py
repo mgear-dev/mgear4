@@ -102,6 +102,12 @@ def mirror_pairs(pairs):
         # Replace shape
         mgear.rigbits.replaceShape(source_copy, [target])
 
+        # get lineWidth and set it to the mirrored control
+        # this needs to be done after the replaceShape otherwise it doesn't work
+        targetLineWidth = mgear.core.curve.get_line_width(source)
+        if targetLineWidth:
+            mgear.core.curve.set_line_width(target, targetLineWidth)
+
         # Clean up
         pc.delete(grp)
         pc.delete(source_copy)

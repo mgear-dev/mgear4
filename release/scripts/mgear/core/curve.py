@@ -322,6 +322,31 @@ def set_color(node, color):
             shp.overrideRGBColors.set(1)
             shp.overrideColorRGB.set(color[0], color[1], color[2])
 
+def get_line_width(node):
+    """Get the line width from shape node
+
+    Args:
+        node (TYPE): shape
+
+    Returns:
+        TYPE: Description
+    """
+    shp = node.getShape()
+    if shp:
+        return shp.lineWidth.get()
+
+@utils.one_undo
+def set_line_width(node, width):
+    """Set the line width in the Icons.
+
+    Arguments:
+        node(dagNode): The object
+        width (float): The line width.
+
+    """
+    for shp in node.listRelatives(shapes=True):
+        shp.lineWidth.set(width)
+
 
 # ========================================
 # Curves IO ==============================
