@@ -95,7 +95,7 @@ def createCurveFromOrderedEdges(edgeLoop,
                                 name,
                                 parent=None,
                                 degree=3):
-    """Create a curve for a edgeloop ordering the list from starting vertex
+    """Create a curve for a edge loop ordering the list from starting vertex
 
     Arguments:
         edgeLoop (list ): List of edges
@@ -225,7 +225,7 @@ def getCurveParamAtPosition(crv, position):
         crv (curve): The  source curve to get the parameter.
 
     Returns:
-        list: paramenter and curve length
+        list: parameter and curve length
     """
     point = om.MPoint(position[0], position[1], position[2])
 
@@ -252,10 +252,10 @@ def getCurveParamAtPosition(crv, position):
 
 def findLenghtFromParam(crv, param):
     """
-    Find lengtht from a curve parameter
+    Find length from a curve parameter
 
     Arguments:
-        param (float): The parameter to get the legth
+        param (float): The parameter to get the length
         crv (curve): The source curve.
 
     Returns:
@@ -265,7 +265,7 @@ def findLenghtFromParam(crv, param):
         .. code-block:: python
 
             oParam, oLength = cur.getCurveParamAtPosition(upRope, cv)
-            uLength = cur.findLenghtFromParam(upRope, oParam)
+            uLength = cur.findLengthFromParam(upRope, oParam)
             u = uLength / oLength
 
     """
@@ -384,7 +384,7 @@ def collect_curve_shapes(crv, rplStr=["", ""]):
 
 
 def collect_selected_curve_data(objs=None, rplStr=["", ""]):
-    """Generate a dictionary descriving the curve data from selected objs
+    """Generate a dictionary describing the curve data from selected objs
 
     Args:
         objs (None, optional): Optionally a list of object can be provided
@@ -396,9 +396,9 @@ def collect_selected_curve_data(objs=None, rplStr=["", ""]):
 
 
 def collect_curve_data(objs, rplStr=["", ""]):
-    """Generate a dictionary descriving the curve data
+    """Generate a dictionary describing the curve data
 
-    Suport multiple objects
+    Support multiple objects
 
     Args:
         objs (dagNode): Curve object to store
@@ -464,7 +464,7 @@ def crv_parenting(data, crv, rplStr=["", ""], model=None):
     crv = crv.replace(rplStr[0], rplStr[1])
     parents = pm.ls(crv_parent)
     # this will try to find the correct parent by checking the top node
-    # in situations where the name is reapet in many places under same
+    # in situations where the name is repeat in many places under same
     # hierarchy this method will fail.
     if len(parents) > 1 and model:
         for p in parents:
@@ -627,7 +627,7 @@ def update_curve_from_data(data, rplStr=["", ""]):
             if shapes:
                 cnx = shapes[0].listConnections(plugs=True, c=True)
                 cnx = [[c[1], c[0].shortName()] for c in cnx]
-                # Disconnect the conexion before delete the old shapes
+                # Disconnect the connexion before delete the old shapes
                 for s in shapes:
                     for c in s.listConnections(plugs=True, c=True):
                         pm.disconnectAttr(c[0])
@@ -789,7 +789,7 @@ def keep_point_0_cnx_state(func):
 
 # -----------------------------------------------------------------------------
 
-# add lock lenght attr
+# add lock length attr
 
 
 def lock_length(crv, lock=True):
@@ -808,11 +808,11 @@ def average_curve(crv,
                   avg_scl=False,
                   avg_rot=False):
     """Average the shape, rotation and scale of the curve
-    bettwen n number of curves
+    between n number of curves
 
     Args:
         crv (dagNode): curve to average shape
-        shapes ([dagNode]]): imput curves to average the shapes
+        shapes ([dagNode]]): input curves to average the shapes
         average (int, optional): Number of curves to use on the average
         avg_shape (bool, optional): if True will interpolate curve shape
         avg_scl (bool, optional): if True will interpolate curve scale
@@ -892,7 +892,7 @@ def rebuild_curve(crvs, spans):
 
 
 # smooth curve.
-# Lockt lenght needs to be off for smooth correctly
+# Lock length needs to be off for smooth correctly
 @utils.one_undo
 @keep_lock_length_state
 @keep_point_0_cnx_state
@@ -901,21 +901,21 @@ def smooth_curve(crvs, smooth_factor=1):
     mel.eval("modifySelectedCurves smooth {} 0;".format(str(smooth_factor)))
 
 # straight curve.
-# Need to unlock/diconect first point to work.
+# Need to unlock/disconnect first point to work.
 # also no length lock
 
 
 @utils.one_undo
 @keep_lock_length_state
 @keep_point_0_cnx_state
-def straighten_curve(crvs, straighteness=.1, keep_lenght=1):
+def straighten_curve(crvs, straightness=.1, keep_length=1):
 
     mel.eval(
-        "modifySelectedCurves straighten {0} {1};".format(str(straighteness)),
-        str(keep_lenght))
+        "modifySelectedCurves straighten {0} {1};".format(str(straightness)),
+        str(keep_length))
 
 # Curl curve.
-# Need to unlock/diconect first point to work.
+# Need to unlock/disconnect first point to work.
 # also no length lock
 
 
