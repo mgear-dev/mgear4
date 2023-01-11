@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>505</width>
-    <height>894</height>
+    <height>917</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -69,13 +69,6 @@
         </property>
        </widget>
       </item>
-      <item row="1" column="0">
-       <widget class="QCheckBox" name="force_uniScale_checkBox">
-        <property name="text">
-         <string>Force uniform scaling in all joints by connection all axis to Z axis</string>
-        </property>
-       </widget>
-      </item>
       <item row="2" column="0">
        <widget class="QCheckBox" name="connect_joints_checkBox">
         <property name="toolTip">
@@ -83,6 +76,23 @@
         </property>
         <property name="text">
          <string>Connect to existing joints. NOTE: Joints need to have freezed rotations values.</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="0">
+       <widget class="QCheckBox" name="force_uniScale_checkBox">
+        <property name="text">
+         <string>Force uniform scaling in all joints by connection all axis to Z axis</string>
+        </property>
+       </widget>
+      </item>
+      <item row="3" column="0">
+       <widget class="QCheckBox" name="force_SSC_joints_checkBox">
+        <property name="toolTip">
+         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;WARNING: Only works in Maya 2020 or later&lt;/span&gt;&lt;/p&gt;&lt;p&gt;Use SSC (Segment Scale Compensation) NOTE: UE5 supports SSC, but Unity doesn't &lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+        </property>
+        <property name="text">
+         <string>Use SSC (Segment Scale Compensation) NOTE: UE5 supports SSC, but Unity doesn't </string>
         </property>
        </widget>
       </item>

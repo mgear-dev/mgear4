@@ -111,10 +111,22 @@ def connect_joint(matrixConstraint, joint, driver_attrs):
     for e, chn in enumerate(SRT_CHANNELS):
         if driver_attrs[e]:
             pm.connectAttr(driver_attrs[e], joint.attr(chn))
-    pm.connectAttr(
-        joint.parentInverseMatrix[0],
-        matrixConstraint.drivenParentInverseMatrix,
-    )
+    # we try directly instead of checking the message connection for
+    # backwards compatibility
+    try:
+        pm.connectAttr(
+            joint.parentInverseMatrix[0],
+            matrixConstraint.drivenParentInverseMatrix,
+        )
+    except RuntimeError:
+        if matrixConstraint.hasAttr("pickMatrix_input"):
+            pMtx = pm.listConnections(matrixConstraint.pickMatrix_input)
+            if pMtx:
+                pMtx_node = pMtx[0]
+                pm.connectAttr(
+                    joint.parentMatrix[0],
+                    pMtx_node.inputMatrix,
+                )
 
 
 #######################################################
@@ -142,6 +154,10 @@ def disconnect(cnxDict):
                 pm.disconnectAttr(
                     oJnt.parentInverseMatrix[0], cnxDict["attrs"][i][13]
                 )
+            if cnxDict["attrs"][i][14]:
+                pm.disconnectAttr(
+                    oJnt.parentMatrix[0], cnxDict["attrs"][i][14]
+                )
 
 
 def connect(cnxDict, nsRig=None, nsSkin=None):
@@ -152,6 +168,23 @@ def connect(cnxDict, nsRig=None, nsSkin=None):
         nsRig (string, optional): rig namespace
         nsSkin (None, optional): model namespace
     """
+
+    def connect_with_ns(attr, plug, nsRig):
+        # connect with namespace
+        if plug:
+            if nsRig:
+                pm.connectAttr(
+                    attr,
+                    nsRig + ":" + plug,
+                    f=True,
+                )
+            else:
+                pm.connectAttr(
+                    attr,
+                    plug,
+                    f=True,
+                )
+
     for i, jnt in enumerate(cnxDict["joints"]):
         # try:
         if nsSkin:
@@ -168,22 +201,10 @@ def connect(cnxDict, nsRig=None, nsSkin=None):
                 else:
                     pm.connectAttr(cnxDict["attrs"][i][e], plug, f=True)
 
-        if cnxDict["attrs"][i][13]:
-            if nsRig:
-                pm.connectAttr(
-                    oJnt.parentInverseMatrix[0],
-                    nsRig + ":" + cnxDict["attrs"][i][13],
-                    f=True,
-                )
-            else:
-                pm.connectAttr(
-                    oJnt.parentInverseMatrix[0],
-                    cnxDict["attrs"][i][13],
-                    f=True,
-                )
-
-        # except Exception:
-        # pm.displayError("{} is not found in the scene".format(jnt))
+        connect_with_ns(
+            oJnt.parentInverseMatrix[0], cnxDict["attrs"][i][13], nsRig
+        )
+        connect_with_ns(oJnt.parentMatrix[0], cnxDict["attrs"][i][14], nsRig)
 
 
 def connectCns(cnxDict, nsRig=None, nsSkin=None):
@@ -267,6 +288,11 @@ def get_connections(source=None, embed_info=False):
                 x.parentInverseMatrix[0], d=True, p=True
             )
             attrs_list.append(parentInv_attr)
+
+            parentMtx_attr = pm.listConnections(
+                x.parentMatrix[0], d=True, p=True
+            )
+            attrs_list.append(parentMtx_attr)
 
             attrs_list_checked = []
             mtx_cons = None
@@ -603,7 +629,7 @@ class GameToolsDisconnect(MayaQWidgetDockableMixin, QtWidgets.QDialog):
 
     def keyPressEvent(self, event):
         if not event.key() == QtCore.Qt.Key_Escape:
-            super(gameTools, self).keyPressEvent(event)
+            super(GameToolsDisconnect, self).keyPressEvent(event)
 
     def gameTools_window(self):
         """Game tools window"""

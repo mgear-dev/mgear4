@@ -361,6 +361,10 @@ class Main(object):
             dagNode: The newly created joint.
 
         """
+        # force SSC override
+        if self.options["force_SSC"]:
+            segComp = True
+
         if not rot_off:
             rot_off = [
                 self.settings["joint_rot_offset_x"],
@@ -409,7 +413,9 @@ class Main(object):
             # for example Mehahuman twist joint already have connections
             if not jnt.translate.listConnections(d=False):
                 # Disconnect inversScale for better preformance
-                if isinstance(self.active_jnt, pm.nodetypes.Joint):
+                if not segComp and isinstance(
+                    self.active_jnt, pm.nodetypes.Joint
+                ):
                     try:
                         pm.disconnectAttr(
                             self.active_jnt.scale, jnt.inverseScale
@@ -440,8 +446,12 @@ class Main(object):
                         rot_off = rot_off
 
                 if driver:
+                    if segComp:
+                        shear_cnx = False
+                    else:
+                        shear_cnx = True
                     cns_m = applyop.gear_matrix_cns(
-                        driver, jnt, rot_off=rot_off
+                        driver, jnt, rot_off=rot_off, connect_shear=shear_cnx
                     )
 
                     # invert negative scaling in Joints. We only inver Z axis,

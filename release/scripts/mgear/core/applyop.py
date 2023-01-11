@@ -14,6 +14,7 @@ Operators are any node that connected to other nodes creates a rig behaviour::
 #############################################
 import pymel.core as pm
 from pymel.core import datatypes
+from pymel import versions
 
 import maya.api.OpenMaya as om
 from .six import string_types
@@ -288,7 +289,8 @@ def gear_matrix_cns(in_obj,
                     connect_srt='srt',
                     rot_off=[0, 0, 0],
                     rot_mult=[1, 1, 1],
-                    scl_mult=[1, 1, 1]):
+                    scl_mult=[1, 1, 1],
+                    connect_shear=True):
     """Create and connect matrix constraint node
 
     Args:
@@ -298,11 +300,13 @@ def gear_matrix_cns(in_obj,
         rot_off (list, optional): rotation offset for XYZ
         rot_mult (list, optional): rotation multiplier for XYZ
         scl_mult (list, optional): scale multiplier for XYZ
+        connect_shear (bool, optional): If True will connect shear attr
 
     Returns:
         PyNode: The matrix constraint node
     """
     node = pm.createNode("mgear_matrixConstraint")
+    pm.addAttr(node, ln="pickMatrix_input", at="message", m=1)
     if isinstance(in_obj, pm.PyNode) and in_obj.type() == "matrix":
         pm.connectAttr(
             in_obj, node + ".driverMatrix", force=True)
@@ -324,8 +328,23 @@ def gear_matrix_cns(in_obj,
     node.scaleMultZ.set(scl_mult[2])
 
     if out_obj:
-        pm.connectAttr(out_obj + ".parentInverseMatrix[0]",
-                       node + ".drivenParentInverseMatrix", force=True)
+        if not connect_shear and versions.current() > 20190301:
+            # if we dont connect shear we should pick matrix
+            # without scale and shear
+            pmtx = pm.nt.PickMatrix()
+            # we use message connection to find later if pickMatrix was used
+            pmtx.message >> node.pickMatrix_input
+            pmtx.useScale.set(0)
+            pmtx.useShear.set(0)
+            pm.connectAttr(out_obj + ".parentMatrix[0]",
+                           pmtx.imat)
+            imtx = pm.nt.InverseMatrix()
+            pmtx.tmat >> imtx.imat
+            pm.connectAttr(imtx.omat,
+                           node + ".drivenParentInverseMatrix", force=True)
+        else:
+            pm.connectAttr(out_obj + ".parentInverseMatrix[0]",
+                           node + ".drivenParentInverseMatrix", force=True)
 
         # calculate rest pose
         # we use the  outputDriverOffsetMatrix to have in account the offset
@@ -347,8 +366,9 @@ def gear_matrix_cns(in_obj,
         if 's' in connect_srt:
             pm.connectAttr(node.scale,
                            out_obj.attr("scale"), f=True)
-            pm.connectAttr(node.shear,
-                           out_obj.attr("shear"), f=True)
+            if connect_shear:
+                pm.connectAttr(node.shear,
+                               out_obj.attr("shear"), f=True)
 
     return node
 
