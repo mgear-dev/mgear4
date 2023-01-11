@@ -3,6 +3,8 @@ import re
 import traceback
 from functools import partial
 
+from .six import PY2
+
 # Maya imports
 from maya import cmds
 import pymel.core as pm
@@ -2339,7 +2341,12 @@ class SpineIkFkTransfer(AbstractAnimationTransfer):
         pm.cutKey(fkControls, at=channels, time=(startFrame, endFrame))
         pm.cutKey(ikControls, at=channels, time=(startFrame, endFrame))
 
-        for frame, matchDict in matchMatrix_dict.iteritems():
+        if PY2:
+            dic_items = matchMatrix_dict.iteritems
+        else:
+            dic_items = matchMatrix_dict.items
+
+        for frame, matchDict in dic_items():
             pm.currentTime(frame)
             transferFunc(fkControls, ikControls, matchMatrix_dict=matchDict)
 
