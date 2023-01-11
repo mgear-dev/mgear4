@@ -46,13 +46,11 @@ tag.remove_all_tags()
 """
 
 str_import_selected_assets_from_unreal = """
-from mgear.uegear import bridge
-uegear_bridge = bridge.UeGearBridge()
-uegear_bridge.import_selected_assets_from_unreal()
+from mgear.uegear import commands
+commands.import_selected_assets_from_unreal()
 """
 
 str_export_selected_assets_to_unreal = """
-from mgear.uegear import bridge
-uegear_bridge = bridge.UeGearBridge()
-uegear_bridge.export_selected_assets_to_unreal()
+from mgear.uegear import commands
+commands.export_selected_assets_to_unreal()
 """

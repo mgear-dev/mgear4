@@ -82,7 +82,7 @@ def export_selected_assets_to_unreal(export_directory=None, export_in_original_p
 	nodes_to_export = cmds.ls(sl=True, long=True)
 	objects_map = io.exportable_assets(nodes=nodes_to_export)
 	if not objects_map:
-		logger.warning('No exportable assets found in nodes to export: "{}". Make sure assets are tagged'.format(nodes_to_export))
+		logger.warning('No exportable assets found in nodes to export: "{}". Make sure assets are tagged.'.format(nodes_to_export))
 		return False
 
 	# retrieve the static meshes nodes to export as assets into Unreal Engine
