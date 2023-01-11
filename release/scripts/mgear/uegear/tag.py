@@ -18,6 +18,13 @@ TAG_ASSET_TYPE_ATTR_NAME = 'ueGearAssetType'
 TAG_ASSET_NAME_ATTR_NAME = 'ueGearAssetName'
 TAG_ASSET_PATH_ATTR_NAME = 'ueGearAssetPath'
 TAG_ACTOR_NAME_ATTR_NAME = 'ueGearActorName'
+ALL_TAGS_ATTR_NAMES = [
+	TAG_ASSET_GUID_ATTR_NAME,
+	TAG_ASSET_TYPE_ATTR_NAME,
+	TAG_ASSET_NAME_ATTR_NAME,
+	TAG_ASSET_PATH_ATTR_NAME,
+	TAG_ACTOR_NAME_ATTR_NAME
+]
 
 
 class TagTypes(object):
@@ -105,6 +112,19 @@ def remove_tag(node=None, attribute_name=TAG_ASSET_TYPE_ATTR_NAME):
 			continue
 		cmds.deleteAttr('{}.{}'.format(node, attribute_name))
 		logger.info('Removed attribute {} from "{}"'.format(attribute_name, node))
+
+
+def remove_all_tags(node=None):
+	"""
+	Removes all ueGear tags from the given node.
+
+	:param str or list(str) or None node: nodes to remove tags from.
+	"""
+
+	nodes = utils.force_list(node or cmds.ls(sl=True))
+
+	for attribute_name in ALL_TAGS_ATTR_NAMES:
+		remove_tag(nodes, attribute_name=attribute_name)
 
 
 def apply_alembic_tag(node=None, remove=False):
