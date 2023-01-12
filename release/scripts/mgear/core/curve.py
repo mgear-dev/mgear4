@@ -349,11 +349,13 @@ def collect_curve_shapes(crv, rplStr=["", ""]):
         form = c_form.key
         form_id = c_form.index
         pnts = [[cv.x, cv.y, cv.z] for cv in shape.getCVs(space="object")]
+        lineWidth = shape.lineWidth.get()
         shapesDict[shape.name()] = {"points": pnts,
                                     "degree": degree,
                                     "form": form,
                                     "form_id": form_id,
-                                    "knots": knots}
+                                    "knots": knots,
+                                    "line_width": lineWidth}
 
     return shapesDict, shapes_names
 
@@ -394,31 +396,32 @@ def collect_curve_data(objs, rplStr=["", ""]):
     if not isinstance(objs, list):
         objs = [objs]
 
-    curves_dict = {}
-    curves_dict["curves_names"] = []
+    crvDict = {}
+    crvDict["curves_names"] = []
 
     for x in objs:
-        crv_name = x.name().replace(rplStr[0], rplStr[1])
-        curves_dict["curves_names"].append(crv_name)
-        if x.getParent():
-            crv_parent = x.getParent().name().replace(rplStr[0], rplStr[1])
+        crvName = x.name().replace(rplStr[0], rplStr[1])
+        crvParent = x.getParent()
+        crvMatrix = x.getMatrix(worldSpace=True)
+        crvTransform = crvMatrix.get()
+        crvInfo, shapesName = collect_curve_shapes(x, rplStr)
+        
+        if crvParent:
+            crvParent = crvParent.name()
+            crvParent.replace(rplStr[0], rplStr[1])
         else:
-            crv_parent = None
+            crvParent = None
 
-        m = x.getMatrix(worldSpace=True)
-        crv_transform = m.get()
+        crvDict["curves_names"].append(crvName)
+        curveDict = {"shapes_names": shapesName,
+                     "crv_parent": crvParent,
+                     "crv_transform": crvTransform,
+                     "crv_color": get_color(x),
+                     "shapes": crvInfo,
+                     }
 
-        curveDict = {"shapes_names": [],
-                     "crv_parent": crv_parent,
-                     "crv_transform": crv_transform,
-                     "crv_color": get_color(x)}
-
-        shps, shps_n = collect_curve_shapes(x, rplStr)
-        curveDict["shapes"] = shps
-        curveDict["shapes_names"] = shps_n
-        curves_dict[crv_name] = curveDict
-
-    return curves_dict
+        crvDict[crvName] = curveDict
+    return crvDict
 
 
 def crv_parenting(data, crv, rplStr=["", ""], model=None):
@@ -511,6 +514,7 @@ def create_curve_from_data_by_name(crv,
         points = shp_dict[sh]["points"]
         form = shp_dict[sh]["form"]
         degree = shp_dict[sh]["degree"]
+        lineWidth = shp_dict[sh]["line_width"]
         if "knots" in shp_dict[sh]:
             knots = shp_dict[sh]["knots"]
         else:
@@ -528,6 +532,8 @@ def create_curve_from_data_by_name(crv,
                        degree=degree,
                        knot=knots)
         set_color(obj, color)
+        set_thickness(obj, lineWidth)
+        
         # handle multiple shapes in the same transform
         if not first_shape:
             first_shape = obj
@@ -613,6 +619,7 @@ def update_curve_from_data(data, rplStr=["", ""]):
             points = shp_dict[sh]["points"]
             form = shp_dict[sh]["form"]
             degree = shp_dict[sh]["degree"]
+            lineWidth = shp_dict[sh]["line_width"]
             knots = list(range(len(points) + degree - 1))
             if form != "open":
                 close = True
@@ -626,6 +633,8 @@ def update_curve_from_data(data, rplStr=["", ""]):
                            degree=degree,
                            knot=knots)
             set_color(obj, color)
+            set_thickness(obj, lineWidth)
+            
             for extra_shp in obj.listRelatives(shapes=True):
                 # Restore shapes connections
                 for c in cnx:
