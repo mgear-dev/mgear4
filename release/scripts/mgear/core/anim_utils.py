@@ -1191,25 +1191,53 @@ def spine_FKToIK(fkControls, ikControls, matchMatrix_dict=None):
 ##################################################
 
 
+def getMirrorTarget(nameSpace, node):
+    """Find target control to apply mirroring.
+
+    Args:
+        nameSpace (str): Namespace
+        node (PyNode): Node to mirror
+
+    Returns:
+        PyNode: Mirror target
+    """
+
+    if isSideElement(node.name()):
+        nameParts = stripNamespace(node.name()).split("|")[-1]
+        nameParts = swapSideLabel(nameParts)
+        nameTarget = ":".join([nameSpace, nameParts])
+        return getNode(nameTarget)
+    else:
+        # Center controls mirror onto self
+        return node
+
 def mirrorPose(flip=False, nodes=None):
     """Summary
 
     Args:
-        flip (bool, optiona): Set the function behaviout to flip
+        flip (bool, options): Set the function behaviour to flip
         nodes (None,  [PyNode]): Controls to mirro/flip the pose
     """
     if nodes is None:
         nodes = pm.selected()
 
+    if not nodes:
+        return
+
     pm.undoInfo(ock=1)
     try:
         nameSpace = False
-        if nodes:
-            nameSpace = getNamespace(nodes[0])
+        nameSpace = getNamespace(nodes[0])
 
         mirrorEntries = []
         for oSel in nodes:
-            mirrorEntries.extend(gatherMirrorData(nameSpace, oSel, flip))
+            target = getMirrorTarget(nameSpace, oSel)
+            mirrorEntries.extend(calculateMirrorData(oSel, target))
+
+            # To flip a pose, do mirroring both ways.
+            if target not in nodes and flip:
+                mirrorEntries.extend(calculateMirrorData(target, oSel))
+
 
         for dat in mirrorEntries:
             applyMirror(nameSpace, dat)
@@ -1231,7 +1259,7 @@ def mirrorPose(flip=False, nodes=None):
 
 
 def applyMirror(nameSpace, mirrorEntry):
-    """Apply mirro pose
+    """Apply mirror pose
 
     Args:
         nameSpace (str): Namespace
@@ -1260,32 +1288,7 @@ def applyMirror(nameSpace, mirrorEntry):
         )
 
 
-def gatherMirrorData(nameSpace, node, flip):
-    """Get the data to mirror
-
-    Args:
-        nameSpace (str): Namespace
-        node (PyNode): No
-        flip (TYPE): flip option
-
-    Returns:
-        [dict[str]: The mirror data
-    """
-    if isSideNode(node):
-
-        # nameParts = stripNamespace(node.name()).split("|")[-1]
-        nameParts = swapSideLabelNode(node)
-        nameTarget = ":".join([nameSpace, nameParts])
-
-        oTarget = getNode(nameTarget)
-
-        return calculateMirrorData(node, oTarget, flip=flip)
-
-    else:
-        return calculateMirrorData(node, node, flip=False)
-
-
-def calculateMirrorData(srcNode, targetNode, flip=False):
+def calculateMirrorData(srcNode, targetNode):
     """Calculate the mirror data
 
     Args:
@@ -1301,22 +1304,14 @@ def calculateMirrorData(srcNode, targetNode, flip=False):
     # mirror attribute of source
     for attrName in listAttrForMirror(srcNode):
 
-        # whether does attribute "invTx" exists when attrName is "tx"
-        invCheckName = getInvertCheckButtonAttrName(attrName)
+        # Apply "Invert Mirror" check boxes
+        invCheck = getInvertCheckButtonAttrName(attrName)
         if not pm.attributeQuery(
             invCheckName, node=srcNode, shortName=True, exists=True
         ):
-
-            # if not exists, straight
-            inv = 1
-
+            inv = -1
         else:
-            # if exists, check its value
-            invAttr = srcNode.attr(invCheckName)
-            if invAttr.get():
-                inv = -1
-            else:
-                inv = 1
+            inv = 1
 
         # if attr name is side specified, record inverted attr name
         if isSideElement(attrName):
@@ -1324,20 +1319,9 @@ def calculateMirrorData(srcNode, targetNode, flip=False):
         else:
             invAttrName = attrName
 
-        # if flip enabled record self also
-        if flip:
-            flipVal = targetNode.attr(attrName).get()
-            results.append(
-                {"target": srcNode, "attr": invAttrName, "val": flipVal * inv}
-            )
-
-        results.append(
-            {
-                "target": targetNode,
-                "attr": invAttrName,
-                "val": srcNode.attr(attrName).get() * inv,
-            }
-        )
+        results.append({"target": targetNode,
+                        "attr": invAttrName,
+                        "val": srcNode.attr(attrName).get() * inv})
     return results
 
 
