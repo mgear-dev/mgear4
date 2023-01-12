@@ -519,7 +519,6 @@ def create_curve_from_data_by_name(
         points = shp_dict[sh]["points"]
         form = shp_dict[sh]["form"]
         degree = shp_dict[sh]["degree"]
-        lineWidth = shp_dict[sh]["line_width"]
         if "knots" in shp_dict[sh]:
             knots = shp_dict[sh]["knots"]
         else:
@@ -539,7 +538,10 @@ def create_curve_from_data_by_name(
             knot=knots,
         )
         set_color(obj, color)
-        set_thickness(obj, lineWidth)
+        # check for backwards compatibility
+        if "line_width" in shp_dict[sh].keys():
+            lineWidth = shp_dict[sh]["line_width"]
+            set_thickness(obj, lineWidth)
 
         # handle multiple shapes in the same transform
         if not first_shape:
@@ -627,7 +629,6 @@ def update_curve_from_data(data, rplStr=["", ""]):
             points = shp_dict[sh]["points"]
             form = shp_dict[sh]["form"]
             degree = shp_dict[sh]["degree"]
-            lineWidth = shp_dict[sh]["line_width"]
             knots = list(range(len(points) + degree - 1))
             if form != "open":
                 close = True
@@ -643,7 +644,10 @@ def update_curve_from_data(data, rplStr=["", ""]):
                 knot=knots,
             )
             set_color(obj, color)
-            set_thickness(obj, lineWidth)
+            # check for backwards compatibility
+            if "line_width" in shp_dict[sh].keys():
+                lineWidth = shp_dict[sh]["line_width"]
+                set_thickness(obj, lineWidth)
 
             for extra_shp in obj.listRelatives(shapes=True):
                 # Restore shapes connections
