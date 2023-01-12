@@ -756,7 +756,7 @@ def createRBFFromInfo(weightNodeInfo_dict):
         driverControlPoseInfo = weightInfo.pop(rbf_node.DRIVER_POSES_INFO_ATTR,
                                                {})
 
-        if not mc.objExists(drivenControlName):
+        if drivenControlName is not None and not mc.objExists(drivenControlName):
             skipped_nodes.append(drivenControlName)
             continue
 
