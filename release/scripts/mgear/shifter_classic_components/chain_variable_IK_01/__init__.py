@@ -1,4 +1,3 @@
-"""Component chain FK spline 01 module"""
 
 import pymel.core as pm
 from pymel.core import datatypes
