@@ -54,12 +54,9 @@ def addCnsCurve(parent, name, centers, degree=1):
     return node
 
 
-def addCurve(parent,
-             name,
-             points,
-             close=False,
-             degree=3,
-             m=datatypes.Matrix()):
+def addCurve(
+    parent, name, points, close=False, degree=3, m=datatypes.Matrix()
+):
     """Create a NurbsCurve with a single subcurve.
 
     Arguments:
@@ -90,11 +87,9 @@ def addCurve(parent,
     return node
 
 
-def createCurveFromOrderedEdges(edgeLoop,
-                                startVertex,
-                                name,
-                                parent=None,
-                                degree=3):
+def createCurveFromOrderedEdges(
+    edgeLoop, startVertex, name, parent=None, degree=3
+):
     """Create a curve for a edgeloop ordering the list from starting vertex
 
     Arguments:
@@ -128,23 +123,21 @@ def createCurveFromOrderedEdges(edgeLoop,
 
     # return orderedEdges
     orderedVertex = [startVertex]
-    orderedVertexPos = [startVertex.getPosition(space='world')]
+    orderedVertexPos = [startVertex.getPosition(space="world")]
     for e in orderedEdges:
 
         for v in e.connectedVertices():
             if v not in orderedVertex:
                 orderedVertex.append(v)
-                orderedVertexPos.append(v.getPosition(space='world'))
+                orderedVertexPos.append(v.getPosition(space="world"))
 
     crv = addCurve(parent, name, orderedVertexPos, degree=degree)
     return crv
 
 
-def createCuveFromEdges(edgeList,
-                        name,
-                        parent=None,
-                        degree=3,
-                        sortingAxis="x"):
+def createCuveFromEdges(
+    edgeList, name, parent=None, degree=3, sortingAxis="x"
+):
     """Create curve from a edge list.
 
     Arguments:
@@ -174,10 +167,10 @@ def createCuveFromEdges(edgeList,
     for x in vList:
         vtx = pm.PyNode(x)
         for v in vtx:
-            centers.append(v.getPosition(space='world'))
+            centers.append(v.getPosition(space="world"))
             # we use index [0] to order in X axis
-            xOrder.append(v.getPosition(space='world')[axis])
-            xReOrder.append(v.getPosition(space='world')[axis])
+            xOrder.append(v.getPosition(space="world")[axis])
+            xReOrder.append(v.getPosition(space="world")[axis])
     for x in sorted(xReOrder):
         i = xOrder.index(x)
         centersOrdered.append(centers[i])
@@ -209,7 +202,7 @@ def createCurveFromCurve(srcCrv, name, nbPoints, parent=None):
         # we need to check that the param value never exceed the parL
         if p > parL:
             p = parL
-        pos = srcCrv.getPointAtParam(p, space='world')
+        pos = srcCrv.getPointAtParam(p, space="world")
         param.append(pos)
         p += increment
     crv = addCurve(parent, name, param, close=False, degree=3)
@@ -270,8 +263,9 @@ def findLenghtFromParam(crv, param):
 
     """
     node = pm.createNode("arcLengthDimension")
-    pm.connectAttr(crv.getShape().attr("worldSpace[0]"),
-                   node.attr("nurbsGeometry"))
+    pm.connectAttr(
+        crv.getShape().attr("worldSpace[0]"), node.attr("nurbsGeometry")
+    )
     node.attr("uParamValue").set(param)
     uLength = node.attr("arcLength").get()
     pm.delete(node.getParent())
@@ -279,6 +273,7 @@ def findLenghtFromParam(crv, param):
 
 
 # ========================================
+
 
 def get_color(node):
     """Get the color from shape node
@@ -297,6 +292,7 @@ def get_color(node):
             color = shp.overrideColor.get()
 
         return color
+
 
 @utils.one_undo
 def set_color(node, color):
@@ -327,6 +323,7 @@ def set_color(node, color):
 # Curves IO ==============================
 # ========================================
 
+
 def collect_curve_shapes(crv, rplStr=["", ""]):
     """Collect curve shapes data
 
@@ -350,12 +347,14 @@ def collect_curve_shapes(crv, rplStr=["", ""]):
         form_id = c_form.index
         pnts = [[cv.x, cv.y, cv.z] for cv in shape.getCVs(space="object")]
         lineWidth = shape.lineWidth.get()
-        shapesDict[shape.name()] = {"points": pnts,
-                                    "degree": degree,
-                                    "form": form,
-                                    "form_id": form_id,
-                                    "knots": knots,
-                                    "line_width": lineWidth}
+        shapesDict[shape.name()] = {
+            "points": pnts,
+            "degree": degree,
+            "form": form,
+            "form_id": form_id,
+            "knots": knots,
+            "line_width": lineWidth,
+        }
 
     return shapesDict, shapes_names
 
@@ -405,7 +404,7 @@ def collect_curve_data(objs, rplStr=["", ""]):
         crvMatrix = x.getMatrix(worldSpace=True)
         crvTransform = crvMatrix.get()
         crvInfo, shapesName = collect_curve_shapes(x, rplStr)
-        
+
         if crvParent:
             crvParent = crvParent.name()
             crvParent.replace(rplStr[0], rplStr[1])
@@ -413,12 +412,13 @@ def collect_curve_data(objs, rplStr=["", ""]):
             crvParent = None
 
         crvDict["curves_names"].append(crvName)
-        curveDict = {"shapes_names": shapesName,
-                     "crv_parent": crvParent,
-                     "crv_transform": crvTransform,
-                     "crv_color": get_color(x),
-                     "shapes": crvInfo,
-                     }
+        curveDict = {
+            "shapes_names": shapesName,
+            "crv_parent": crvParent,
+            "crv_transform": crvTransform,
+            "crv_color": get_color(x),
+            "shapes": crvInfo,
+        }
 
         crvDict[crvName] = curveDict
     return crvDict
@@ -452,11 +452,15 @@ def crv_parenting(data, crv, rplStr=["", ""], model=None):
     elif len(parents) == 1:
         crv_p = parents[0]
     else:
-        pm.displayWarning("More than one parent with the same name found for"
-                          " {}, or not top model root provided.".format(crv))
-        pm.displayWarning("This curve"
-                          "  can't be parented. Please do it manually or"
-                          " review the scene")
+        pm.displayWarning(
+            "More than one parent with the same name found for"
+            " {}, or not top model root provided.".format(crv)
+        )
+        pm.displayWarning(
+            "This curve"
+            "  can't be parented. Please do it manually or"
+            " review the scene"
+        )
     if crv_p:
         # we need to ensure that we parent is the new curve.
         crvs = pm.ls(crv)
@@ -467,16 +471,17 @@ def crv_parenting(data, crv, rplStr=["", ""], model=None):
                     break
         elif len(crvs) == 1:
             crv = crvs[0]
-        pm.parent(crv,
-                  crv_p)
+        pm.parent(crv, crv_p)
 
 
-def create_curve_from_data_by_name(crv,
-                                   data,
-                                   replaceShape=False,
-                                   rebuildHierarchy=False,
-                                   rplStr=["", ""],
-                                   model=None):
+def create_curve_from_data_by_name(
+    crv,
+    data,
+    replaceShape=False,
+    rebuildHierarchy=False,
+    rplStr=["", ""],
+    model=None,
+):
     """Build one curve from a given curve data dict
 
     Args:
@@ -526,14 +531,16 @@ def create_curve_from_data_by_name(crv,
 
         # we dont use replace in order to support multiple shapes
         nsh = crv.replace(rplStr[0], rplStr[1])
-        obj = pm.curve(name=nsh.replace("Shape", ""),
-                       point=points,
-                       periodic=close,
-                       degree=degree,
-                       knot=knots)
+        obj = pm.curve(
+            name=nsh.replace("Shape", ""),
+            point=points,
+            periodic=close,
+            degree=degree,
+            knot=knots,
+        )
         set_color(obj, color)
         set_thickness(obj, lineWidth)
-        
+
         # handle multiple shapes in the same transform
         if not first_shape:
             first_shape = obj
@@ -547,11 +554,13 @@ def create_curve_from_data_by_name(crv,
         crv_parenting(data, crv, rplStr, model)
 
 
-def create_curve_from_data(data,
-                           replaceShape=False,
-                           rebuildHierarchy=False,
-                           rplStr=["", ""],
-                           model=None):
+def create_curve_from_data(
+    data,
+    replaceShape=False,
+    rebuildHierarchy=False,
+    rplStr=["", ""],
+    model=None,
+):
     """Build the curves from a given curve data dict
 
     Hierarchy rebuild after all curves are build to avoid lost parents
@@ -565,11 +574,9 @@ def create_curve_from_data(data,
     """
 
     for crv in data["curves_names"]:
-        create_curve_from_data_by_name(crv,
-                                       data,
-                                       replaceShape,
-                                       rebuildHierarchy=False,
-                                       rplStr=rplStr)
+        create_curve_from_data_by_name(
+            crv, data, replaceShape, rebuildHierarchy=False, rplStr=rplStr
+        )
 
     # parenting
     if rebuildHierarchy:
@@ -591,10 +598,11 @@ def update_curve_from_data(data, rplStr=["", ""]):
         color = crv_dict["crv_color"]
         first_shape = pm.ls(crv.replace(rplStr[0], rplStr[1]))
         if not first_shape:
-            pm.displayWarning("Couldn't find: {}. Shape will be "
-                              "skipped, since there is nothing to "
-                              "replace".format(crv.replace(rplStr[0],
-                                                           rplStr[1])))
+            pm.displayWarning(
+                "Couldn't find: {}. Shape will be "
+                "skipped, since there is nothing to "
+                "replace".format(crv.replace(rplStr[0], rplStr[1]))
+            )
             continue
 
         if first_shape:
@@ -626,15 +634,17 @@ def update_curve_from_data(data, rplStr=["", ""]):
             else:
                 close = False
             # we dont use replace in order to support multiple shapes
-            obj = pm.curve(replace=False,
-                           name=sh.replace(rplStr[0], rplStr[1]),
-                           point=points,
-                           periodic=close,
-                           degree=degree,
-                           knot=knots)
+            obj = pm.curve(
+                replace=False,
+                name=sh.replace(rplStr[0], rplStr[1]),
+                point=points,
+                periodic=close,
+                degree=degree,
+                knot=knots,
+            )
             set_color(obj, color)
             set_thickness(obj, lineWidth)
-            
+
             for extra_shp in obj.listRelatives(shapes=True):
                 # Restore shapes connections
                 for c in cnx:
@@ -664,7 +674,8 @@ def export_curve(filePath=None, objs=None, rplStr=["", ""]):
             dialogStyle=2,
             fileMode=0,
             startingDirectory=startDir,
-            fileFilter='NURBS Curves .crv (*%s)' % ".crv")
+            fileFilter="NURBS Curves .crv (*%s)" % ".crv",
+        )
         if not filePath:
             pm.displayWarning("Invalid file path")
             return
@@ -673,7 +684,7 @@ def export_curve(filePath=None, objs=None, rplStr=["", ""]):
 
     data = collect_selected_curve_data(objs, rplStr=rplStr)
     data_string = json.dumps(data, indent=4, sort_keys=True)
-    f = open(filePath, 'w')
+    f = open(filePath, "w")
     f.write(data_string)
     f.close()
 
@@ -685,7 +696,8 @@ def _curve_from_file(filePath=None):
             dialogStyle=2,
             fileMode=1,
             startingDirectory=startDir,
-            fileFilter='NURBS Curves .crv (*%s)' % ".crv")
+            fileFilter="NURBS Curves .crv (*%s)" % ".crv",
+        )
 
     if not filePath:
         pm.displayWarning("Invalid file path")
@@ -697,14 +709,12 @@ def _curve_from_file(filePath=None):
     return configDict
 
 
-def import_curve(filePath=None,
-                 replaceShape=False,
-                 rebuildHierarchy=False,
-                 rplStr=["", ""]):
-    create_curve_from_data(_curve_from_file(filePath),
-                           replaceShape,
-                           rebuildHierarchy,
-                           rplStr)
+def import_curve(
+    filePath=None, replaceShape=False, rebuildHierarchy=False, rplStr=["", ""]
+):
+    create_curve_from_data(
+        _curve_from_file(filePath), replaceShape, rebuildHierarchy, rplStr
+    )
 
 
 def update_curve_from_file(filePath=None, rplStr=["", ""]):
@@ -715,6 +725,7 @@ def update_curve_from_file(filePath=None, rplStr=["", ""]):
 # -----------------------------------------------------------------------------
 # Curve Decorators
 # -----------------------------------------------------------------------------
+
 
 def keep_lock_length_state(func):
     @wraps(func)
@@ -771,6 +782,7 @@ def keep_point_0_cnx_state(func):
 
     return wrap
 
+
 # -----------------------------------------------------------------------------
 
 # add lock lenght attr
@@ -785,12 +797,9 @@ def lock_length(crv, lock=True):
 
 
 # average curve shape
-def average_curve(crv,
-                  shapes,
-                  average=2,
-                  avg_shape=False,
-                  avg_scl=False,
-                  avg_rot=False):
+def average_curve(
+    crv, shapes, average=2, avg_shape=False, avg_scl=False, avg_rot=False
+):
     """Average the shape, rotation and scale of the curve
     bettwen n number of curves
 
@@ -839,19 +848,22 @@ def average_curve(crv,
                 rebuild_curve(bst_temp, crv_len - 2)
                 bst_filtered = bst_filtered + bst_temp
             # the blendshape is done with curves of the same number
-            pm.blendShape(bst_filtered,
-                          crv,
-                          name="_".join([crv.name(), "blendShape"]),
-                          foc=True,
-                          w=weights)
+            pm.blendShape(
+                bst_filtered,
+                crv,
+                name="_".join([crv.name(), "blendShape"]),
+                foc=True,
+                w=weights,
+            )
             pm.delete(crv, ch=True)
             pm.delete(bst_temp)
 
             # need to lock the first point after delete history
             lock_first_point(crv)
     else:
-        pm.displayWarning("Can average the curve with more"
-                          " curves than exist")
+        pm.displayWarning(
+            "Can average the curve with more" " curves than exist"
+        )
 
 
 # rebuild curve
@@ -860,19 +872,21 @@ def average_curve(crv,
 def rebuild_curve(crvs, spans):
     for crv in crvs:
         name = crv.name()
-        pm.rebuildCurve(crv,
-                        ch=False,
-                        rpo=True,
-                        rt=0,
-                        end=1,
-                        kr=0,
-                        kcp=0,
-                        kep=1,
-                        kt=0,
-                        s=spans,
-                        d=2,
-                        tol=0.01,
-                        name=name)
+        pm.rebuildCurve(
+            crv,
+            ch=False,
+            rpo=True,
+            rt=0,
+            end=1,
+            kr=0,
+            kcp=0,
+            kep=1,
+            kt=0,
+            s=spans,
+            d=2,
+            tol=0.01,
+            name=name,
+        )
 
 
 # smooth curve.
@@ -884,6 +898,7 @@ def smooth_curve(crvs, smooth_factor=1):
 
     mel.eval("modifySelectedCurves smooth {} 0;".format(str(smooth_factor)))
 
+
 # straight curve.
 # Need to unlock/diconect first point to work.
 # also no length lock
@@ -892,22 +907,25 @@ def smooth_curve(crvs, smooth_factor=1):
 @utils.one_undo
 @keep_lock_length_state
 @keep_point_0_cnx_state
-def straighten_curve(crvs, straighteness=.1, keep_lenght=1):
+def straighten_curve(crvs, straighteness=0.1, keep_lenght=1):
 
     mel.eval(
         "modifySelectedCurves straighten {0} {1};".format(str(straighteness)),
-        str(keep_lenght))
+        str(keep_lenght),
+    )
+
 
 # Curl curve.
 # Need to unlock/diconect first point to work.
 # also no length lock
 
 
-def curl_curve(crvs, amount=.3, frequency=10):
+def curl_curve(crvs, amount=0.3, frequency=10):
 
     mel.eval(
         "modifySelectedCurves curl {0} {1};".format(str(amount)),
-        str(frequency))
+        str(frequency),
+    )
 
 
 # ========================================
@@ -924,5 +942,4 @@ def lock_first_point(crv):
     pm.connectAttr(crv.worldMatrix[0], mul_mtrx.matrixIn[0])
     pm.connectAttr(crv.worldInverseMatrix[0], mul_mtrx.matrixIn[1])
     pm.connectAttr(mul_mtrx.matrixSum, dm_node.inputMatrix)
-    pm.connectAttr(dm_node.outputTranslate,
-                   crv.getShape().controlPoints[0])
+    pm.connectAttr(dm_node.outputTranslate, crv.getShape().controlPoints[0])
