@@ -21,6 +21,20 @@ from mgear.uegear import log, utils, tag, bridge, io, ioutils
 logger = log.uegear_logger
 
 
+
+def content_project_directory():
+	"""
+	Returns the current Unreal Engine project root directory.
+
+	:return: Unreal Engine project root directory.
+	:rtype: str
+	"""
+
+	uegear_bridge = bridge.UeGearBridge()
+
+	return uegear_bridge.execute('project_content_directory').get('ReturnValue', '')
+
+
 def import_selected_assets_from_unreal():
 	"""
 	Imports current selected Content Browser Unreal assets into the Maya scene.

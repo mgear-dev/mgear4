@@ -1,11 +1,11 @@
 import os
+import timeit
+import importlib
+from functools import partial
+
 import maya.cmds as cmds
 import pymel.core as pm
-from mgear.core import pyqt
-from mgear.core import widgets
-from mgear.core import attribute
-from mgear.core import utils
-from mgear.core import string
+from maya.app.general.mayaMixin import MayaQWidgetDockableMixin
 
 # from mgear.vendor.Qt import QtWidgets
 # from mgear.vendor.Qt import QtCore
@@ -15,14 +15,17 @@ from PySide2 import QtCore
 from PySide2 import QtGui
 from PySide2 import QtWidgets
 
+from mgear.core import pyqt
+from mgear.core import widgets
+from mgear.core import attribute
+from mgear.core import utils
+from mgear.core import string
 from mgear.core import callbackManager
 from mgear.core import pyFBX as pfbx
-import timeit
-from functools import partial
-from maya.app.general.mayaMixin import MayaQWidgetDockableMixin
-import importlib
 
 from mgear.shifter import game_tools_fbx_utils as fu
+
+from mgear.uegear import bridge, commands as uegear
 
 # from . import game_tools_fbx_widgets as fw
 
@@ -46,6 +49,8 @@ class FBXExport(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.create_layout()
         self.create_connections()
 
+        self.refresh_ue_connection()
+
     def create_actions(self):
         # file actions
         self.file_export_preset_action = QtWidgets.QAction(
@@ -56,6 +61,10 @@ class FBXExport(MayaQWidgetDockableMixin, QtWidgets.QDialog):
             "Import Preset", self
         )
         self.file_import_preset_action.setIcon(pyqt.get_icon("mgear_log-in"))
+        self.refresh_uegear_connection_action = QtWidgets.QAction(
+            "Refresh Unreal Engine Connection", self
+        )
+        self.refresh_uegear_connection_action.setIcon(pyqt.get_icon("mgear_refresh-cw"))
 
     def create_widgets(self):
 
@@ -65,6 +74,8 @@ class FBXExport(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.file_menu.addAction(self.file_export_preset_action)
         self.file_menu.addSeparator()
         self.file_menu.addAction(self.file_import_preset_action)
+        self.file_menu.addSeparator()
+        self.file_menu.addAction(self.refresh_uegear_connection_action)
 
         # set source roots
         self.geo_root_label = QtWidgets.QLabel("Geo Root")
@@ -124,6 +135,14 @@ class FBXExport(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.export_animation_button.setStyleSheet(
             "QPushButton {background:rgb(150, 35, 50); }"
         )
+
+        # Unreal Engine import
+        # path and filename
+        self.ue_file_path_label = QtWidgets.QLabel("Path")
+        self.ue_file_path_lineedit = QtWidgets.QLineEdit()
+        self.ue_file_path_set_button = widgets.create_button(icon="mgear_folder")
+
+
 
     def create_layout(self):
 
@@ -219,6 +238,26 @@ class FBXExport(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         )
         self.export_anim_collap_wgt.addWidget(self.export_animation_button)
 
+        # Unreal Engine import layout
+        self.ue_import_collap_wgt = widgets.CollapsibleWidget(
+            "Unreal Engine Import"
+        )
+
+        self.ue_import_cbx = QtWidgets.QCheckBox('Enable Unreal Engine Import?')
+
+        self.ue_file_path_layout = QtWidgets.QHBoxLayout()
+        self.ue_file_path_layout.setContentsMargins(1, 1, 1, 1)
+        self.ue_file_path_layout.addWidget(self.ue_file_path_label)
+        self.ue_file_path_layout.addWidget(self.ue_file_path_lineedit)
+        self.ue_file_path_layout.addWidget(self.ue_file_path_set_button)
+
+        self.ue_path_layout = QtWidgets.QVBoxLayout()
+        self.ue_path_layout.addLayout(self.ue_file_path_layout)
+        self.ue_path_layout.addSpacing(2)
+
+        self.ue_import_collap_wgt.addWidget(self.ue_import_cbx)
+        self.ue_import_collap_wgt.addLayout(self.ue_path_layout)
+
         # Scroll Area layout
         self.base_scrollarea_wgt = QtWidgets.QWidget()
 
@@ -231,6 +270,7 @@ class FBXExport(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.scrollarea_layout.addWidget(self.set_source_collap_wgt)
         self.scrollarea_layout.addWidget(self.settings_collap_wgt)
         self.scrollarea_layout.addWidget(self.file_path_collap_wgt)
+        self.scrollarea_layout.addWidget(self.ue_import_collap_wgt)
         self.scrollarea_layout.addWidget(self.export_geo_collap_wgt)
         self.scrollarea_layout.addWidget(self.export_anim_collap_wgt)
 
@@ -248,6 +288,9 @@ class FBXExport(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.main_layout.addWidget(self.scrollarea_wgt)
 
     def create_connections(self):
+
+        self.refresh_uegear_connection_action.triggered.connect(self.refresh_ue_connection)
+
         self.geo_root_set_button.clicked.connect(
             partial(
                 self.set_line_edit_text_from_sel,
@@ -262,12 +305,14 @@ class FBXExport(MayaQWidgetDockableMixin, QtWidgets.QDialog):
                 "joint",
             )
         )
+        self.file_name_lineedit.textChanged.connect(self.normalize_name)
         self.file_path_set_button.clicked.connect(self.set_folder_path)
         self.export_skeletal_geo_button.clicked.connect(
             self.export_skeletal_mesh
         )
 
-        self.file_name_lineedit.textChanged.connect(self.normalize_name)
+        self.ue_file_path_set_button.clicked.connect(self.set_ue_folder_path)
+
 
     # slots
 
@@ -286,6 +331,20 @@ class FBXExport(MayaQWidgetDockableMixin, QtWidgets.QDialog):
             self.file_path_lineedit.setText(
                 string.normalize_path(folder_path[0])
             )
+
+    def refresh_ue_connection(self):
+        is_available = bool(uegear.content_project_directory())
+        self.ue_import_collap_wgt.setEnabled(is_available)
+        if not is_available:
+            cmds.warning('Unreal Engine Import functionality not available. Run Unreal Engine and load ueGear plugin.')
+            self.ue_import_cbx.setChecked(False)
+
+    def set_ue_folder_path(self):
+        content_folder = uegear.content_project_directory()
+        folder_path = cmds.fileDialog2(fileMode=3, startingDirectory=content_folder)
+        if folder_path:
+            self.ue_file_path_lineedit.setText(string.normalize_path(folder_path[0]))
+
 
     def export_skeletal_mesh(self):
         self.auto_set_geo_root()
@@ -321,6 +380,25 @@ class FBXExport(MayaQWidgetDockableMixin, QtWidgets.QDialog):
             skinning=skinning,
             blendshapes=blendshapes,
         )
+
+        # automatically import FBX into Unreal if necessary
+        if self.ue_import_cbx.isChecked() and os.path.isfile(path):
+            uegear_bridge = bridge.UeGearBridge()
+            import_path = self.ue_file_path_lineedit.text()
+            if not import_path or not os.path.isdir(import_path):
+                cmds.warning('Unreal Engine Import Path does not exist: "{}"'.format(import_path))
+                return
+            asset_name = os.path.splitext(os.path.basename(path))[0]
+            import_options = {'destination_name': asset_name, 'replace_existing': True, 'save': False}
+            result = uegear_bridge.execute(
+                'import_skeletal_mesh', parameters={
+                    'fbx_file': path,
+                    'import_path': import_path,
+                    'import_options': str(import_options)
+                }).get('ReturnValue', False)
+            if not result:
+                cmds.warning('Was not possible to export asset: {}. Please check Unreal Engine Output Log'.format(asset_name))
+
 
     # Helper methods
 
