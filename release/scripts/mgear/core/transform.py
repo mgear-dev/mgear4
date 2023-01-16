@@ -353,6 +353,9 @@ def setMatrixScale(m, scl=[1, 1, 1]):
     """
     tm = datatypes.TransformationMatrix(m)
     tm.setScale(scl, space="world")
+    # Ensure that shear is not propagated
+    # This can cause intermediated transform in the jnt structure
+    tm.setShear([0, 0, 0], space="world")
 
     m = datatypes.Matrix(tm)
 

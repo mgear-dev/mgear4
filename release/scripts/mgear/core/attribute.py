@@ -663,6 +663,55 @@ def connect_dynamic_pivot(pivot, driven):
     pivot.t >> driven.rotatePivot
     pivot.t >> driven.scalePivot
 
+
+def move_input_connections(source, target, type_filter=None):
+    """Move the input connections from source node to target node.
+    The connections can be filtered by type of the incoming node
+
+     exp: attribute.move_input_connections(
+                        cns_obj, cns_off, type_filter="parentConstraint"
+                    )
+
+    Args:
+        source (PyNode): node with input connection
+        target (PyNode): target to receive the input connections
+        type_filter (None, str): node type to filter connections list
+    """
+    kwargs = dict(c=True, p=True, d=False)
+    if type_filter:
+        kwargs["type"] = type_filter
+
+    inputs = source.listConnections(**kwargs)
+    for i in inputs:
+        at_name = i[0].shortName()
+        pm.disconnectAttr(i[0])
+        pm.setAttr(i[0], lock=False, keyable=True)
+        pm.connectAttr(i[1], target.attr(at_name))
+
+
+def move_output_connections(source, target, type_filter=None):
+    """Move the output connections from source node to target node.
+    The connections can be filtered by type of the outgoing node
+
+     exp: attribute.move_output_connections(
+                        cns_obj, cns_off, type_filter="parentConstraint"
+                    )
+
+    Args:
+        source (PyNode): node with output connection
+        target (PyNode): target to receive the input connections
+        type_filter (None, str): node type to filter connections list
+    """
+    kwargs = dict(c=True, p=True, s=False)
+    if type_filter:
+        kwargs["type"] = type_filter
+
+    outputs = source.listConnections(**kwargs)
+    for i in outputs:
+        at_name = i[0].shortName()
+        pm.disconnectAttr(i[0])
+        pm.connectAttr(target.attr(at_name), i[1])
+
 ##########################################################
 # PARAMETER DEFINITION
 ##########################################################

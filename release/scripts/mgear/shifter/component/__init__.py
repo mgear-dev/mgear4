@@ -1616,6 +1616,7 @@ class Main(object):
             st (None, optional): skipTranslate
         """
         if refArray:
+            mtx = cns_obj.getMatrix(worldSpace=True)
             if upVAttr:
                 relatives_map = self.relatives_map_upv
             else:
@@ -1676,6 +1677,24 @@ class Main(object):
                 cns_attr = pm.parentConstraint(
                     cns_node, query=True, weightAliasList=True
                 )
+
+                # ensure there is not offset generated with the constraint
+                # due to the precision rounding
+                if mtx != cns_obj.getMatrix(worldSpace=True):
+                    cns_off = primitive.addTransform(
+                        cns_obj.getParent(),
+                        cns_obj.name() + "_offset",
+                        m=mtx,
+                    )
+                    attribute.move_input_connections(
+                        cns_obj, cns_off, type_filter="parentConstraint"
+                    )
+                    attribute.move_output_connections(
+                        cns_obj, cns_off, type_filter="parentConstraint"
+                    )
+                    pm.parent(cns_obj, cns_off)
+                    pm.parent(cns_node, cns_off)
+                    cns_obj.setMatrix(mtx, worldSpace=True)
                 # check if the ref Array is for IK or Up vector
                 try:
                     if upVAttr:
@@ -1719,6 +1738,7 @@ class Main(object):
 
         """
         if refArray:
+            mtx = cns_obj.getMatrix(worldSpace=True)
             if init_refNames:
                 # we only can perform name validation if the init_refnames are
                 # provided in a separated list. This check ensures backwards
@@ -1752,6 +1772,24 @@ class Main(object):
                 cns_attr = pm.parentConstraint(
                     cns_node, query=True, weightAliasList=True
                 )
+
+                # ensure there is not offset generated with the constraint
+                # due to the precision rounding
+                if mtx != cns_obj.getMatrix(worldSpace=True):
+                    cns_off = primitive.addTransform(
+                        cns_obj.getParent(),
+                        cns_obj.name() + "_offset",
+                        m=mtx,
+                    )
+                    attribute.move_input_connections(
+                        cns_obj, cns_off, type_filter="parentConstraint"
+                    )
+                    attribute.move_output_connections(
+                        cns_obj, cns_off, type_filter="parentConstraint"
+                    )
+                    pm.parent(cns_obj, cns_off)
+                    pm.parent(cns_node, cns_off)
+                    cns_obj.setMatrix(mtx, worldSpace=True)
 
                 for i, attr in enumerate(cns_attr):
                     node_name = pm.createNode("condition")
