@@ -101,7 +101,7 @@ class Guide(guide.ComponentGuide):
         self.pIKTR = self.addParam("ikTR", "bool", False)
         self.pMirrorMid = self.addParam("mirrorMid", "bool", True)
         self.pMirrorIK = self.addParam("mirrorIK", "bool", True)
-        self.pleafJoints = self.addParam("leafJoints", "bool", True)
+        self.pleafJoints = self.addParam("leafJoints", "bool", False)
 
         # Divisions
         self.pDiv0 = self.addParam("div0", "long", 2, 0, None)

@@ -87,7 +87,7 @@ class Guide(guide.ComponentGuide):
         self.pUpvRefArray = self.addParam("pinrefarray", "string", "")
         self.pMaxStretch = self.addParam("maxstretch", "double", 1000, 1, None)
         self.pMirrorMid = self.addParam("mirrorMid", "bool", False)
-        self.pleafJoints = self.addParam("leafJoints", "bool", True)
+        self.pleafJoints = self.addParam("leafJoints", "bool", False)
 
         # Divisions
         self.pDiv0 = self.addParam("div0", "long", 2, 0, None)
