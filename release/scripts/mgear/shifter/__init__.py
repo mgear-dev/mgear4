@@ -716,6 +716,9 @@ class Rig(object):
             self.add_controller_tag(ctl, None)
 
         attribute.addAttribute(ctl, "isCtl", "bool", keyable=False)
+        attribute.addAttribute(
+            ctl, "ctl_role", "string", keyable=False, value="world_ctl"
+        )
 
         return ctl
 

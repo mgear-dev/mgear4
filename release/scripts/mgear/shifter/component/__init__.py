@@ -839,10 +839,14 @@ class Main(object):
         attribute.addAttribute(ctl, "uiHost", "string", keyable=False)
         ctl.addAttr("uiHost_cnx", at="message", multi=False)
         # set the control Role for complex components. If the component is
-        # of type control_01 or world_ctl the control role will default to None
-        # since is only one control the role is not needed
+        # of type control_01  the control role will default to
+        # a generic name "ctl"
+        if not name:
+            role_name = "ctl"
+        else:
+            role_name = name
         attribute.addAttribute(
-            ctl, "ctl_role", "string", keyable=False, value=name
+            ctl, "ctl_role", "string", keyable=False, value=role_name
         )
 
         # locator reference for quick guide matching
