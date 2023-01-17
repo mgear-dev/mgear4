@@ -473,15 +473,23 @@ class Main(object):
 
                     # leaf joint
                     if leaf_joint and not UniScale:
-                        jnt.disconnectAttr("scale")
-                        leaf_jnt = primitive.addJoint(
-                            jnt, "leaf_" + jnt.name(), t
-                        )
-                        leaf_jnt.attr("radius").set(1.5)
-                        leaf_jnt.attr("overrideEnabled").set(1)
-                        leaf_jnt.attr("overrideColor").set(13)
-                        leaf_jnt.rotate.set([0, 0, 0])
+                        leaf_joint_name = "leaf_" + jnt.name()
+                        if (
+                            pm.ls(leaf_joint_name)
+                            and self.options["connect_joints"]
+                        ):
+                            leaf_jnt = pm.PyNode(leaf_joint_name)
+                        else:
+                            leaf_jnt = primitive.addJoint(
+                                jnt, "leaf_" + jnt.name(), t
+                            )
+                            leaf_jnt.attr("radius").set(1.5)
+                            leaf_jnt.attr("overrideEnabled").set(1)
+                            leaf_jnt.attr("overrideColor").set(13)
+                            leaf_jnt.rotate.set([0, 0, 0])
+                        self.addToGroup(leaf_jnt, "deformers")
                         # connect scale
+                        jnt.disconnectAttr("scale")
                         pm.connectAttr(cns_m.scale, leaf_jnt.scale)
 
                 else:
