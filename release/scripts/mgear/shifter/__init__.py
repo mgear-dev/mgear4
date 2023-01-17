@@ -481,6 +481,8 @@ class Rig(object):
         # Basic set of null
         if self.options["joint_rig"]:
             self.jnt_org = primitive.addTransformFromPos(self.model, "jnt_org")
+            if self.options["force_SSC"]:
+                self.global_ctl.s >> self.jnt_org.s
             pm.connectAttr(self.jntVis_att, self.jnt_org.attr("visibility"))
 
     def processComponents(self):

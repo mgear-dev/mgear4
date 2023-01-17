@@ -447,11 +447,21 @@ class Main(object):
 
                 if driver:
                     if segComp:
-                        shear_cnx = False
+                        # if segment compensation is active we handle the scale
+                        # outside of the gear matrix contraint
+                        srt = "rt"
+                        mulmat_node = node.createMultMatrixNode(
+                            driver.worldMatrix, self.root.worldInverseMatrix
+                        )
+                        dm_node = node.createDecomposeMatrixNode(
+                            mulmat_node.matrixSum
+                        )
+                        pm.connectAttr(dm_node.outputScale, jnt.s)
+
                     else:
-                        shear_cnx = True
+                        srt = "srt"
                     cns_m = applyop.gear_matrix_cns(
-                        driver, jnt, rot_off=rot_off, connect_shear=shear_cnx
+                        driver, jnt, rot_off=rot_off, connect_srt=srt
                     )
 
                     # invert negative scaling in Joints. We only inver Z axis,
