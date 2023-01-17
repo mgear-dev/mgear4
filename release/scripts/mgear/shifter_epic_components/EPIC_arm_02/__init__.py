@@ -1879,84 +1879,39 @@ class Component(component.Main):
     def addConnection(self):
         """Add more connection definition to the set"""
 
-        self.connections["MCS_shoulder_01"] = self.connect_shoulder_01
+        self.connections["shoulder_01"] = self.connect_shoulder_01
 
     def connect_standard(self):
         """standard connection definition for the component"""
-        self.upv_ref = None
+
         if self.settings["ikTR"]:
             self.parent.addChild(self.root)
             self.connectRef(self.settings["ikrefarray"], self.ik_cns)
-            self.upv_ref = self.connectRef(
-                self.settings["upvrefarray"], self.upv_cns, True
-            )
+            self.connectRef(self.settings["upvrefarray"], self.upv_cns, True)
 
-            if self.settings["ikrefarray"]:
-                ikRotRefArray = "Auto,ik_ctl," + self.settings["ikrefarray"]
-            else:
-                ikRotRefArray = "Auto,ik_ctl"
+            init_refNames = ["lower_arm", "ik_ctl"]
             self.connectRef2(
-                ikRotRefArray,
+                self.settings["ikrefarray"],
                 self.ikRot_cns,
                 self.ikRotRef_att,
                 [self.ikRot_npo, self.ik_ctl],
                 True,
+                init_refNames,
             )
         else:
-            self.parent.addChild(self.root)
-
-            # Set the Ik Reference
-            self.connectRef(self.settings["ikrefarray"], self.ik_cns)
-            self.upv_ref = self.connectRef(
-                self.settings["upvrefarray"], self.upv_cns, True
-            )
+            self.connect_standardWithIkRef()
 
         if self.settings["pinrefarray"]:
             self.connectRef2(
-                "Auto," + self.settings["pinrefarray"],
+                self.settings["pinrefarray"],
                 self.mid_cns,
                 self.pin_att,
                 [self.ctrn_loc],
                 False,
+                ["Auto"],
             )
 
     def connect_shoulder_01(self):
         """Custom connection to be use with shoulder 01 component"""
-
-        pm.parent(self.ik_cns, self.parent_comp.root)
         self.connect_standard()
-        pm.parent(
-            self.armRollRef[0], self.ikHandleUpvRef, self.parent_comp.ctl
-        )
-
-        # when using MCS_shoulder_02 with full mirror the axis negation will
-        # break the auto upv behavior
-        if self.root.sz.get() < 0:
-            # store world space cns_ref
-            wsm = self.upv_cns.getMatrix(worldSpace=True)
-
-            # change parent offset
-            self.autoUpvSpace = primitive.addTransform(
-                self.root,
-                self.getName("autoUpvSpace"),
-                self.root.getMatrix(worldSpace=True),
-            )
-            pm.parent(self.armChainUpvRef[0], self.autoUpvSpace)
-            self.autoUpvSpace.sz.set(-1)
-            self.autoUpvSpace.ry.set(180)
-
-            # set reference
-            self.upv_cns.setMatrix(wsm, worldSpace=True)
-
-            # update contrain offset
-            pm.parentConstraint(
-                self.ikH_cns_driver,
-                self.ikH_parCns,
-                e=True,
-                maintainOffset=True,
-            )
-            if self.upv_ref:
-                for ref in self.upv_ref[:-1]:
-                    pm.parentConstraint(
-                        ref, self.ikH_parCns, e=True, maintainOffset=True
-                    )
+        pm.parent(self.rollRef[0], self.ikHandleUpvRef, self.parent_comp.ctl)

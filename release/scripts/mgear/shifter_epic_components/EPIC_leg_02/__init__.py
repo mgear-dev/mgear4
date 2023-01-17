@@ -1866,18 +1866,16 @@ class Component(component.Main):
         self.connectRef(self.settings["ikrefarray"], self.ik_cns)
         if self.settings["upvrefarray"]:
             self.connectRef(
-                "Auto,ikFoot,World_ctl," + self.settings["upvrefarray"],
-                self.upv_cns,
-                True,
+                "Auto,Foot," + self.settings["upvrefarray"], self.upv_cns, True
             )
         else:
-            self.connectRef("Auto,ikFoot", self.upv_cns, True)
+            self.connectRef("Auto,Foot", self.upv_cns, True)
 
         if self.settings["pinrefarray"]:
             self.connectRef2(
                 "Auto," + self.settings["pinrefarray"],
-                self.mid_cns_in,
+                self.mid_cns,
                 self.pin_att,
-                [self.mid_cns],
+                [self.ctrn_loc],
                 False,
             )
