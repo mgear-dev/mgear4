@@ -111,23 +111,10 @@ def connect_joint(matrixConstraint, joint, driver_attrs):
     for e, chn in enumerate(SRT_CHANNELS):
         if driver_attrs[e]:
             pm.connectAttr(driver_attrs[e], joint.attr(chn))
-    # we try directly instead of checking the message connection for
-    # backwards compatibility
-    try:
-        pm.connectAttr(
-            joint.parentInverseMatrix[0],
-            matrixConstraint.drivenParentInverseMatrix,
-        )
-    except RuntimeError:
-        if matrixConstraint.hasAttr("pickMatrix_input"):
-            pMtx = pm.listConnections(matrixConstraint.pickMatrix_input)
-            if pMtx:
-                pMtx_node = pMtx[0]
-                pm.connectAttr(
-                    joint.parentMatrix[0],
-                    pMtx_node.inputMatrix,
-                )
-
+    pm.connectAttr(
+        joint.parentInverseMatrix[0],
+        matrixConstraint.drivenParentInverseMatrix,
+    )
 
 #######################################################
 
