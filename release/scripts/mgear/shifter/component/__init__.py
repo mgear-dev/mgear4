@@ -497,6 +497,12 @@ class Main(object):
                             leaf_jnt.attr("overrideEnabled").set(1)
                             leaf_jnt.attr("overrideColor").set(13)
                             leaf_jnt.rotate.set([0, 0, 0])
+                        # create and connect message to track the leaf joint relation
+                        if not jnt.hasAttr("leaf_joint"):
+                            pm.addAttr(
+                                jnt, ln="leaf_joint", at="message", m=True
+                            )
+                        pm.connectAttr(leaf_jnt.message, jnt.leaf_joint)
                         self.addToGroup(leaf_jnt, "deformers")
                         # connect scale
                         jnt.disconnectAttr("scale")

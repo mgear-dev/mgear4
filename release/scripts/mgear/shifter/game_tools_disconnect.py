@@ -22,6 +22,8 @@ if sys.version_info[0] == 2:
 else:
     string_types = (str,)
 
+S_CHANNELS = ["scale", "scale.scaleX", "scale.scaleY", "scale.scaleZ", "shear"]
+
 SRT_CHANNELS = [
     "translate",
     "translate.translateX",
@@ -31,12 +33,7 @@ SRT_CHANNELS = [
     "rotate.rotateX",
     "rotate.rotateY",
     "rotate.rotateZ",
-    "scale",
-    "scale.scaleX",
-    "scale.scaleY",
-    "scale.scaleZ",
-    "shear",
-]
+] + S_CHANNELS
 
 DRIVEN_JOINT_ATTR = "drivenJoint"
 DRIVER_ATTRS = "driverAttrs"
@@ -108,18 +105,21 @@ def get_rig_root_from_set():
 
 
 def connect_joint(matrixConstraint, joint, driver_attrs):
+    leaf_jnt = None
     for e, chn in enumerate(SRT_CHANNELS):
         if driver_attrs[e]:
-            pm.connectAttr(driver_attrs[e], joint.attr(chn))
+            if joint.hasAttr("leaf_joint"):
+                leaf_jnt = joint.leaf_joint.listConnections()
+            if leaf_jnt and chn in S_CHANNELS:
+                pm.connectAttr(driver_attrs[e], leaf_jnt[0].attr(chn))
+            else:
+                pm.connectAttr(driver_attrs[e], joint.attr(chn))
     pm.connectAttr(
         joint.parentInverseMatrix[0],
         matrixConstraint.drivenParentInverseMatrix,
     )
 
-#######################################################
 
-# TODO: check if drivenJoint attr is in matrix contraint node and add it if
-# it is missing
 @mutils.one_undo
 def disconnect(cnxDict):
     """Disconnect the joints using the connections dictionary
@@ -132,11 +132,20 @@ def disconnect(cnxDict):
         # from other joints
         if not jnt.startswith("blend_"):
             oJnt = pm.PyNode(jnt)
+            leaf_jnt = None
+
+            if oJnt.hasAttr("leaf_joint"):
+                leaf_jnt = oJnt.leaf_joint.listConnections()
 
             for e, chn in enumerate(SRT_CHANNELS):
-                plug = oJnt.attr(chn)
-                if cnxDict["attrs"][i][e]:
-                    pm.disconnectAttr(cnxDict["attrs"][i][e], plug)
+                if leaf_jnt and chn in S_CHANNELS:
+                    plug = leaf_jnt[0].attr(chn)
+                    pm.disconnectAttr(plug)
+                else:
+                    plug = oJnt.attr(chn)
+                    if cnxDict["attrs"][i][e]:
+                        pm.disconnectAttr(cnxDict["attrs"][i][e], plug)
+
             if cnxDict["attrs"][i][13]:
                 pm.disconnectAttr(
                     oJnt.parentInverseMatrix[0], cnxDict["attrs"][i][13]
@@ -256,12 +265,18 @@ def get_connections(source=None, embed_info=False):
     mcons_nodes = []
     if not source:
         source = pm.selected()
-    for x in source:
-        if not x.name().startswith("blend_"):
-            connections["joints"].append(x.name())
+    for jnt in source:
+        leaf_jnt = None
+        if not jnt.name().startswith(("blend_", "leaf_")):
+            connections["joints"].append(jnt.name())
             attrs_list = []
+            if jnt.hasAttr("leaf_joint"):
+                leaf_jnt = jnt.leaf_joint.listConnections()
             for chn in SRT_CHANNELS:
-                at = x.attr(chn)
+                if leaf_jnt and chn in S_CHANNELS:
+                    at = leaf_jnt[0].attr(chn)
+                else:
+                    at = jnt.attr(chn)
                 at_cnx = pm.listConnections(
                     at, p=True, type="mgear_matrixConstraint"
                 )
@@ -272,12 +287,12 @@ def get_connections(source=None, embed_info=False):
                 attrs_list.append(at_cnx)
 
             parentInv_attr = pm.listConnections(
-                x.parentInverseMatrix[0], d=True, p=True
+                jnt.parentInverseMatrix[0], d=True, p=True
             )
             attrs_list.append(parentInv_attr)
 
             parentMtx_attr = pm.listConnections(
-                x.parentMatrix[0], d=True, p=True
+                jnt.parentMatrix[0], d=True, p=True
             )
             attrs_list.append(parentMtx_attr)
 
@@ -292,7 +307,7 @@ def get_connections(source=None, embed_info=False):
                 else:
                     attrs_list_checked.append(None)
             if mtx_cons and embed_info:
-                embed_driven_joint_data(mtx_cons, x, attrs_list_checked)
+                embed_driven_joint_data(mtx_cons, jnt, attrs_list_checked)
 
             connections["attrs"].append(attrs_list_checked)
     return connections, mcons_nodes
