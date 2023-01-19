@@ -1644,7 +1644,7 @@ class Component(component.Main):
         for i, div_cns in enumerate(self.div_cns):
             if i == 0 and self.settings["div0"] == 0:
                 mulmat_node = applyop.gear_mulmatrix_op(
-                    self.lowlegRollRef[0] + ".worldMatrix",
+                    self.uplegRollRef[0] + ".worldMatrix",
                     div_cns + ".parentInverseMatrix",
                 )
                 lastUpLegDiv = div_cns
