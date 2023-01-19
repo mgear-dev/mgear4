@@ -1642,7 +1642,7 @@ class Component(component.Main):
         # controler.. and we wont have this nice bendy + roll
         div_offset = int(self.extra_div / 2)
         for i, div_cns in enumerate(self.div_cns):
-            if i == 0 and self.settings["div0"] == 0:
+            if i == 0 and not self.settings["div0"]:
                 mulmat_node = applyop.gear_mulmatrix_op(
                     self.uplegRollRef[0] + ".worldMatrix",
                     div_cns + ".parentInverseMatrix",
@@ -1673,7 +1673,11 @@ class Component(component.Main):
                 lastLowLegDiv = div_cns
             dm_node = node.createDecomposeMatrixNode(mulmat_node + ".output")
             pm.connectAttr(dm_node + ".outputTranslate", div_cns + ".t")
-            pm.connectAttr(dm_node + ".outputRotate", div_cns + ".r")
+
+            if i == 0 and not self.settings["div0"]:
+                applyop.oriCns(self.bone0, div_cns, maintainOffset=True)
+            else:
+                pm.connectAttr(dm_node + ".outputRotate", div_cns + ".r")
 
             # Squash n Stretch
             o_node = applyop.gear_squashstretch2_op(
