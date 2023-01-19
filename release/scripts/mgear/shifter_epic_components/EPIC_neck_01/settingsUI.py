@@ -1,5 +1,14 @@
-import mgear.core.pyqt as gqt
-QtGui, QtCore, QtWidgets, wrapInstance = gqt.qt_import()
+# -*- coding: utf-8 -*-
+
+# Form implementation generated from reading ui file 'C:/datawork/repo/mgear4/release/scripts/mgear/shifter_epic_components/EPIC_neck_01/settingsUI.ui',
+# licensing of 'C:/datawork/repo/mgear4/release/scripts/mgear/shifter_epic_components/EPIC_neck_01/settingsUI.ui' applies.
+#
+# Created: Thu Jan 19 11:29:20 2023
+#      by: pyside2-uic  running on PySide2 5.12.5
+#
+# WARNING! All changes made in this file will be lost!
+
+from PySide2 import QtCore, QtGui, QtWidgets
 
 class Ui_Form(object):
     def setupUi(self, Form):
@@ -80,20 +89,27 @@ class Ui_Form(object):
         self.division_spinBox.setProperty("value", 3)
         self.division_spinBox.setObjectName("division_spinBox")
         self.formLayout.setWidget(3, QtWidgets.QFormLayout.FieldRole, self.division_spinBox)
+        self.tangentControls_label = QtWidgets.QLabel(self.groupBox)
+        self.tangentControls_label.setObjectName("tangentControls_label")
+        self.formLayout.setWidget(4, QtWidgets.QFormLayout.LabelRole, self.tangentControls_label)
         self.tangentControls_checkBox = QtWidgets.QCheckBox(self.groupBox)
         self.tangentControls_checkBox.setText("")
         self.tangentControls_checkBox.setObjectName("tangentControls_checkBox")
         self.formLayout.setWidget(4, QtWidgets.QFormLayout.FieldRole, self.tangentControls_checkBox)
-        self.tangentControls_label = QtWidgets.QLabel(self.groupBox)
-        self.tangentControls_label.setObjectName("tangentControls_label")
-        self.formLayout.setWidget(4, QtWidgets.QFormLayout.LabelRole, self.tangentControls_label)
+        self.IKWorldOri_label = QtWidgets.QLabel(self.groupBox)
+        self.IKWorldOri_label.setObjectName("IKWorldOri_label")
+        self.formLayout.setWidget(5, QtWidgets.QFormLayout.LabelRole, self.IKWorldOri_label)
         self.IKWorldOri_checkBox = QtWidgets.QCheckBox(self.groupBox)
         self.IKWorldOri_checkBox.setText("")
         self.IKWorldOri_checkBox.setObjectName("IKWorldOri_checkBox")
         self.formLayout.setWidget(5, QtWidgets.QFormLayout.FieldRole, self.IKWorldOri_checkBox)
-        self.IKWorldOri_label = QtWidgets.QLabel(self.groupBox)
-        self.IKWorldOri_label.setObjectName("IKWorldOri_label")
-        self.formLayout.setWidget(5, QtWidgets.QFormLayout.LabelRole, self.IKWorldOri_label)
+        self.leafJoints_label = QtWidgets.QLabel(self.groupBox)
+        self.leafJoints_label.setObjectName("leafJoints_label")
+        self.formLayout.setWidget(6, QtWidgets.QFormLayout.LabelRole, self.leafJoints_label)
+        self.leafJoints_checkBox = QtWidgets.QCheckBox(self.groupBox)
+        self.leafJoints_checkBox.setText("")
+        self.leafJoints_checkBox.setObjectName("leafJoints_checkBox")
+        self.formLayout.setWidget(6, QtWidgets.QFormLayout.FieldRole, self.leafJoints_checkBox)
         self.verticalLayout.addLayout(self.formLayout)
         self.squashStretchProfile_pushButton = QtWidgets.QPushButton(self.groupBox)
         self.squashStretchProfile_pushButton.setObjectName("squashStretchProfile_pushButton")
@@ -185,23 +201,25 @@ class Ui_Form(object):
         QtCore.QMetaObject.connectSlotsByName(Form)
 
     def retranslateUi(self, Form):
-        Form.setWindowTitle(gqt.fakeTranslate("Form", "Form", None, -1))
-        self.softness_label.setText(gqt.fakeTranslate("Form", "Softness", None, -1))
-        self.maxStretch_label.setText(gqt.fakeTranslate("Form", "Max Stretch", None, -1))
-        self.maxSquash_label.setText(gqt.fakeTranslate("Form", "Max Squash", None, -1))
-        self.divisions_label.setText(gqt.fakeTranslate("Form", "Divisions", None, -1))
-        self.tangentControls_label.setText(gqt.fakeTranslate("Form", "Tangent Controls", None, -1))
-        self.IKWorldOri_checkBox.setToolTip(gqt.fakeTranslate("Form", "If checked, the IK control will be aligned to the world space", None, -1))
-        self.IKWorldOri_label.setText(gqt.fakeTranslate("Form", "IK Ctl World Ori", None, -1))
-        self.squashStretchProfile_pushButton.setText(gqt.fakeTranslate("Form", "Squash and Stretch Profile", None, -1))
-        self.ikRefArray_groupBox.setTitle(gqt.fakeTranslate("Form", "IK Reference Array", None, -1))
-        self.chickenStyle_label.setText(gqt.fakeTranslate("Form", "Chicken style IK", None, -1))
-        self.chickenStyleIK_checkBox.setToolTip(gqt.fakeTranslate("Form", "<html><head/><body><p>If this option is <span style=\" font-weight:600;\">checked</span>. The IK reference will connect rotation and translation. This is very useful for <span style=\" font-weight:600;\">chicken</span>/birds style neck pinning.</p><p><span style=\" font-weight:600;\">Unchecked</span> will only connect the rotation. This is much more useful<span style=\" font-weight:600;\"> for human neck </span>style and other regular necks.</p></body></html>", None, -1))
-        self.ikRefArray_copyRef_pushButton.setText(gqt.fakeTranslate("Form", "Copy from Head Ref", None, -1))
-        self.ikRefArrayAdd_pushButton.setText(gqt.fakeTranslate("Form", "<<", None, -1))
-        self.ikRefArrayRemove_pushButton.setText(gqt.fakeTranslate("Form", ">>", None, -1))
-        self.upvRefArray_groupBox.setTitle(gqt.fakeTranslate("Form", "Head Reference Array", None, -1))
-        self.headRefArray_copyRef_pushButton.setText(gqt.fakeTranslate("Form", "Copy from IK Ref", None, -1))
-        self.headRefArrayAdd_pushButton.setText(gqt.fakeTranslate("Form", "<<", None, -1))
-        self.headRefArrayRemove_pushButton.setText(gqt.fakeTranslate("Form", ">>", None, -1))
+        Form.setWindowTitle(QtWidgets.QApplication.translate("Form", "Form", None, -1))
+        self.softness_label.setText(QtWidgets.QApplication.translate("Form", "Softness", None, -1))
+        self.maxStretch_label.setText(QtWidgets.QApplication.translate("Form", "Max Stretch", None, -1))
+        self.maxSquash_label.setText(QtWidgets.QApplication.translate("Form", "Max Squash", None, -1))
+        self.divisions_label.setText(QtWidgets.QApplication.translate("Form", "Divisions", None, -1))
+        self.tangentControls_label.setText(QtWidgets.QApplication.translate("Form", "Tangent Controls", None, -1))
+        self.IKWorldOri_label.setText(QtWidgets.QApplication.translate("Form", "IK Ctl World Ori", None, -1))
+        self.IKWorldOri_checkBox.setToolTip(QtWidgets.QApplication.translate("Form", "If checked, the IK control will be aligned to the world space", None, -1))
+        self.leafJoints_label.setText(QtWidgets.QApplication.translate("Form", "Leaf Joints", None, -1))
+        self.leafJoints_checkBox.setToolTip(QtWidgets.QApplication.translate("Form", "If checked, the IK control will be aligned to the world space", None, -1))
+        self.squashStretchProfile_pushButton.setText(QtWidgets.QApplication.translate("Form", "Squash and Stretch Profile", None, -1))
+        self.ikRefArray_groupBox.setTitle(QtWidgets.QApplication.translate("Form", "IK Reference Array", None, -1))
+        self.chickenStyle_label.setText(QtWidgets.QApplication.translate("Form", "Chicken style IK", None, -1))
+        self.chickenStyleIK_checkBox.setToolTip(QtWidgets.QApplication.translate("Form", "<html><head/><body><p>If this option is <span style=\" font-weight:600;\">checked</span>. The IK reference will connect rotation and translation. This is very useful for <span style=\" font-weight:600;\">chicken</span>/birds style neck pinning.</p><p><span style=\" font-weight:600;\">Unchecked</span> will only connect the rotation. This is much more useful<span style=\" font-weight:600;\"> for human neck </span>style and other regular necks.</p></body></html>", None, -1))
+        self.ikRefArray_copyRef_pushButton.setText(QtWidgets.QApplication.translate("Form", "Copy from Head Ref", None, -1))
+        self.ikRefArrayAdd_pushButton.setText(QtWidgets.QApplication.translate("Form", "<<", None, -1))
+        self.ikRefArrayRemove_pushButton.setText(QtWidgets.QApplication.translate("Form", ">>", None, -1))
+        self.upvRefArray_groupBox.setTitle(QtWidgets.QApplication.translate("Form", "Head Reference Array", None, -1))
+        self.headRefArray_copyRef_pushButton.setText(QtWidgets.QApplication.translate("Form", "Copy from IK Ref", None, -1))
+        self.headRefArrayAdd_pushButton.setText(QtWidgets.QApplication.translate("Form", "<<", None, -1))
+        self.headRefArrayRemove_pushButton.setText(QtWidgets.QApplication.translate("Form", ">>", None, -1))
 

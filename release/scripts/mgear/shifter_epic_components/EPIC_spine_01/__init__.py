@@ -402,6 +402,7 @@ class Component(component.Main):
                     "name": string.replaceSharpWithPadding(jdn_spine, i + 1),
                     "guide_relative": guide_relative,
                     "data_contracts": "Twist,Squash",
+                    "leaf_joint": self.settings["leafJoints"],
                 }
             )
 
@@ -441,6 +442,7 @@ class Component(component.Main):
                 "name": string.replaceSharpWithPadding(jdn_spine, i + 2),
                 "guide_relative": self.guide.guide_locators[-1],
                 "data_contracts": "Twist,Squash",
+                "leaf_joint": self.settings["leafJoints"],
             }
         )
 

@@ -106,6 +106,7 @@ class Guide(guide.ComponentGuide):
         self.pMaxStretch = self.addParam("maxstretch", "double", 1.5, 1)
         self.pMaxSquash = self.addParam("maxsquash", "double", 0.5, 0, 1)
         self.pSoftness = self.addParam("softness", "double", 0, 0, 1)
+        self.pleafJoints = self.addParam("leafJoints", "bool", False)
         self.pLockOriPelvis = self.addParam(
             "lock_ori_pelvis", "double", 1, 0, 1
         )
@@ -230,6 +231,7 @@ class componentSettings(MayaQWidgetDockableMixin, guide.componentMainSettings):
         self.populateCheck(
             self.settingsTab.centralTangent_checkBox, "centralTangent"
         )
+        self.populateCheck(self.settingsTab.leafJoints_checkBox, "leafJoints")
 
     def create_componentLayout(self):
 
@@ -337,6 +339,14 @@ class componentSettings(MayaQWidgetDockableMixin, guide.componentMainSettings):
         )
         self.settingsTab.squashStretchProfile_pushButton.clicked.connect(
             self.setProfile
+        )
+
+        self.settingsTab.leafJoints_checkBox.stateChanged.connect(
+            partial(
+                self.updateCheck,
+                self.settingsTab.leafJoints_checkBox,
+                "leafJoints",
+            )
         )
 
     def dockCloseEventTriggered(self):

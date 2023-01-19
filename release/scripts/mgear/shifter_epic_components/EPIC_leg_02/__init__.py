@@ -21,14 +21,14 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
-
+import ast
 import pymel.core as pm
 from pymel.core import datatypes
 
 from mgear.shifter import component
 
 from mgear.core import node, fcurve, applyop, vector, icon
-from mgear.core import attribute, transform, primitive
+from mgear.core import attribute, transform, primitive, string
 
 #############################################
 # COMPONENT
@@ -646,40 +646,58 @@ class Component(component.Main):
             )
 
             self.roll_offset.append(roll_off)
-            end_name = "foot"
+            # joint Description Name
+            jd_names = ast.literal_eval(
+                self.settings["jointNamesDescription_custom"]
+            )
+            jdn_thigh = jd_names[0]
+            jdn_calf = jd_names[1]
+            jdn_thigh_twist = jd_names[2]
+            jdn_calf_twist = jd_names[3]
+            jdn_foot = jd_names[4]
+
+            # setting the joints
             if i == 0:
                 self.jnt_pos.append(
                     {
                         "obj": roll_off,
-                        "name": "upperLeg",
+                        "name": jdn_thigh,
+                        "guide_relative": self.guide.guide_locators[0],
+                        "data_contracts": "Ik",
                         "leaf_joint": self.settings["leafJoints"],
                     }
                 )
                 current_parent = "root"
-                twist_name = "upperLeg_twist_"
-                twist_idx = 0
+                twist_name = jdn_thigh_twist
+                twist_idx = 1
+                increment = 1
             elif i == self.settings["div0"] + 1:
-                # self.jnt_pos.append([roll_off, "lowerLeg", current_parent])
                 self.jnt_pos.append(
                     {
                         "obj": roll_off,
-                        "name": "lowerLeg",
+                        "name": jdn_calf,
                         "newActiveJnt": current_parent,
+                        "guide_relative": self.guide.guide_locators[1],
+                        "data_contracts": "Ik",
                         "leaf_joint": self.settings["leafJoints"],
                     }
                 )
-                twist_name = "lowerLeg_twist_"
+                twist_name = jdn_calf_twist
                 current_parent = "knee"
-                twist_idx = 0
+                twist_idx = self.settings["div1"]
+                increment = -1
             else:
                 self.jnt_pos.append(
-                    [
-                        roll_off,
-                        twist_name + str(twist_idx).zfill(2),
-                        current_parent,
-                    ]
+                    {
+                        "obj": roll_off,
+                        "name": string.replaceSharpWithPadding(
+                            twist_name, twist_idx
+                        ),
+                        "newActiveJnt": current_parent,
+                        "data_contracts": "Twist,Squash",
+                    }
                 )
-                twist_idx += 1
+                twist_idx += increment
 
         # End reference ------------------------------------
         # To help the deformation on the ankle
@@ -714,13 +732,13 @@ class Component(component.Main):
         attribute.setKeyableAttributes(tweak_ctl)
         self.tweak_ctl.append(tweak_ctl)
 
-        # self.jnt_pos.append([tweak_ctl, 'end'])
-        # self.jnt_pos.append([tweak_ctl, end_name, current_parent])
         self.jnt_pos.append(
             {
                 "obj": self.end_ref,
-                "name": end_name,
+                "name": jdn_foot,
                 "newActiveJnt": current_parent,
+                "guide_relative": self.guide.guide_locators[2],
+                "data_contracts": "Ik",
                 "leaf_joint": self.settings["leafJoints"],
             }
         )

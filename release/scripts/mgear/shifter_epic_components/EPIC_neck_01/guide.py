@@ -96,6 +96,7 @@ class Guide(guide.ComponentGuide):
         self.pTangentControls = self.addParam("tangentControls", "bool", False)
         self.pChickenStyleIk = self.addParam("chickenStyleIK", "bool", True)
         self.pIKWorldOri = self.addParam("IKWorldOri", "bool", False)
+        self.pleafJoints = self.addParam("leafJoints", "bool", False)
 
         # FCurves
         self.pSt_profile = self.addFCurveParam(
@@ -208,6 +209,8 @@ class componentSettings(MayaQWidgetDockableMixin, guide.componentMainSettings):
         headRefArrayItems = self.root.attr("headrefarray").get().split(",")
         for item in headRefArrayItems:
             self.settingsTab.headRefArray_listWidget.addItem(item)
+
+        self.populateCheck(self.settingsTab.leafJoints_checkBox, "leafJoints")
 
     def create_componentLayout(self):
 
@@ -334,6 +337,14 @@ class componentSettings(MayaQWidgetDockableMixin, guide.componentMainSettings):
                 self.settingsTab.ikRefArray_listWidget,
                 self.settingsTab.headRefArray_listWidget,
                 "headrefarray",
+            )
+        )
+
+        self.settingsTab.leafJoints_checkBox.stateChanged.connect(
+            partial(
+                self.updateCheck,
+                self.settingsTab.leafJoints_checkBox,
+                "leafJoints",
             )
         )
 

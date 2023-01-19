@@ -281,6 +281,7 @@ class Component(component.Main):
                         ),
                         "guide_relative": guide_relative,
                         "data_contracts": "Twist,Squash",
+                        "leaf_joint": self.settings["leafJoints"],
                     }
                 )
 

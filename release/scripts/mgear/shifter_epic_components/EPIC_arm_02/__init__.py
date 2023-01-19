@@ -21,14 +21,14 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
-
+import ast
 import pymel.core as pm
 from pymel.core import datatypes
 
 from mgear.shifter import component
 
 from mgear.core import node, fcurve, applyop, vector, icon
-from mgear.core import attribute, transform, primitive
+from mgear.core import attribute, transform, primitive, string
 
 
 #############################################
@@ -689,39 +689,58 @@ class Component(component.Main):
 
             self.roll_offset.append(roll_off)
 
-            end_name = "hand"
+            # joint Description Name
+            jd_names = ast.literal_eval(
+                self.settings["jointNamesDescription_custom"]
+            )
+            jdn_upperarm = jd_names[0]
+            jdn_lowerarm = jd_names[1]
+            jdn_upperarm_twist = jd_names[2]
+            jdn_lowerarm_twist = jd_names[3]
+            jdn_hand = jd_names[4]
+
+            # setting the joints
             if i == 0:
                 self.jnt_pos.append(
                     {
                         "obj": roll_off,
-                        "name": "arm",
+                        "name": jdn_upperarm,
+                        "guide_relative": self.guide.guide_locators[0],
+                        "data_contracts": "Ik",
                         "leaf_joint": self.settings["leafJoints"],
                     }
                 )
                 current_parent = "root"
-                twist_name = "arm_twist_"
-                twist_idx = 0
+                twist_name = jdn_upperarm_twist
+                twist_idx = 1
+                increment = 1
             elif i == self.settings["div0"] + 1:
                 self.jnt_pos.append(
                     {
                         "obj": roll_off,
-                        "name": "forearm",
+                        "name": jdn_lowerarm,
                         "newActiveJnt": current_parent,
+                        "guide_relative": self.guide.guide_locators[1],
+                        "data_contracts": "Ik",
                         "leaf_joint": self.settings["leafJoints"],
                     }
                 )
-                twist_name = "forearm_twist_"
+                twist_name = jdn_lowerarm_twist
                 current_parent = "elbow"
-                twist_idx = 0
+                twist_idx = self.settings["div1"]
+                increment = -1
             else:
                 self.jnt_pos.append(
-                    [
-                        roll_off,
-                        twist_name + str(twist_idx).zfill(2),
-                        current_parent,
-                    ]
+                    {
+                        "obj": roll_off,
+                        "name": string.replaceSharpWithPadding(
+                            twist_name, twist_idx
+                        ),
+                        "newActiveJnt": current_parent,
+                        "data_contracts": "Twist,Squash",
+                    }
                 )
-                twist_idx += 1
+                twist_idx += increment
 
         # End reference ------------------------------------
         # To help the deformation on the wrist
@@ -744,8 +763,10 @@ class Component(component.Main):
         self.jnt_pos.append(
             {
                 "obj": self.end_ref,
-                "name": end_name,
+                "name": jdn_hand,
                 "newActiveJnt": current_parent,
+                "guide_relative": self.guide.guide_locators[2],
+                "data_contracts": "Ik",
                 "leaf_joint": self.settings["leafJoints"],
             }
         )
