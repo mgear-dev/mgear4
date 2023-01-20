@@ -47,6 +47,9 @@ class Component(component.Main):
 
         self.WIP = self.options["mode"]
 
+        self.blade_normal = self.guide.blades["blade"].z * -1
+        self.blade_binormal = self.guide.blades["blade"].x
+
         self.normal = self.getNormalFromPos(self.guide.apos)
         self.binormal = self.getBiNormalFromPos(self.guide.apos)
 
@@ -760,9 +763,24 @@ class Component(component.Main):
                 transform.getTransform(self.ikRot_ctl),
             )
 
+        if self.settings["use_blade"]:
+            # set the offset rotation for the hand
+            self.off_t = transform.getTransformLookingAt(
+                self.guide.pos["wrist"],
+                self.guide.pos["eff"],
+                self.blade_normal,
+                axis="xy",
+                negate=self.negate,
+            )
+            self.eff_jnt_off = primitive.addTransform(
+                self.end_ref, self.getName("eff_off"), self.off_t
+            )
+        else:
+            self.eff_jnt_off = self.end_ref
+
         self.jnt_pos.append(
             {
-                "obj": self.end_ref,
+                "obj": self.eff_jnt_off,
                 "name": jdn_hand,
                 "newActiveJnt": current_parent,
                 "guide_relative": self.guide.guide_locators[2],
@@ -904,6 +922,7 @@ class Component(component.Main):
         self.line_ref = icon.connection_display_curve(
             self.getName("visalRef"), [self.upv_ctl, self.mid_ctl]
         )
+
 
     # =====================================================
     # ATTRIBUTES
@@ -1877,6 +1896,10 @@ class Component(component.Main):
             self.volume_blenshape_mult_att,
             self.volume_blenshape_att,
         )
+
+        # recover hand offset transform
+        if self.settings["use_blade"]:
+            self.eff_jnt_off.setMatrix(self.off_t, worldSpace=True)
 
     # =====================================================
     # CONNECTOR

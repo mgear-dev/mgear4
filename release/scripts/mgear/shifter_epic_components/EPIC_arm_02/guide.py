@@ -72,6 +72,7 @@ class Guide(guide.ComponentGuide):
     def postInit(self):
         """Initialize the position for the guide"""
         self.save_transform = ["root", "elbow", "wrist", "eff"]
+        self.save_blade = ["blade"]
 
     def addObjects(self):
         """Add the Guide Root, blade and locators"""
@@ -89,6 +90,8 @@ class Guide(guide.ComponentGuide):
             "crv", [self.root, self.elbow, self.wrist, self.eff]
         )
 
+        self.blade = self.addBlade("blade", self.wrist, self.eff)
+
     def addParameters(self):
         """Add the configurations settings"""
 
@@ -102,6 +105,7 @@ class Guide(guide.ComponentGuide):
         self.pMirrorMid = self.addParam("mirrorMid", "bool", True)
         self.pMirrorIK = self.addParam("mirrorIK", "bool", True)
         self.pleafJoints = self.addParam("leafJoints", "bool", False)
+        self.pUseBlade = self.addParam("use_blade", "bool", True)
 
         # Divisions
         self.pDiv0 = self.addParam("div0", "long", 2, 0, None)
@@ -126,6 +130,11 @@ class Guide(guide.ComponentGuide):
         self.divisions = self.root.div0.get() + self.root.div1.get() + 4
         return self.divisions
 
+    def postDraw(self):
+        "Add post guide draw elements to the guide"
+        # hide blade if not in use
+        for shp in self.blade.getShapes():
+            pm.connectAttr(self.root.use_blade, shp.attr("visibility"))
 
 ##########################################################
 # Setting Page
@@ -192,6 +201,7 @@ class componentSettings(MayaQWidgetDockableMixin, guide.componentMainSettings):
         self.populateCheck(self.settingsTab.mirrorMid_checkBox, "mirrorMid")
         self.populateCheck(self.settingsTab.mirrorIK_checkBox, "mirrorIK")
         self.populateCheck(self.settingsTab.leafJoints_checkBox, "leafJoints")
+        self.populateCheck(self.settingsTab.useBlade_checkBox, "use_blade")
         self.settingsTab.div0_spinBox.setValue(self.root.attr("div0").get())
         self.settingsTab.div1_spinBox.setValue(self.root.attr("div1").get())
         ikRefArrayItems = self.root.attr("ikrefarray").get().split(",")
@@ -286,6 +296,14 @@ class componentSettings(MayaQWidgetDockableMixin, guide.componentMainSettings):
                 self.updateCheck,
                 self.settingsTab.leafJoints_checkBox,
                 "leafJoints",
+            )
+        )
+
+        self.settingsTab.useBlade_checkBox.stateChanged.connect(
+            partial(
+                self.updateCheck,
+                self.settingsTab.useBlade_checkBox,
+                "use_blade",
             )
         )
 

@@ -47,6 +47,7 @@ class Component(component.Main):
         self.WIP = self.options["mode"]
 
         self.normal = self.getNormalFromPos(self.guide.apos)
+        self.up_axis = pm.upAxis(q=True, axis=True)
 
         self.length0 = vector.getDistance(
             self.guide.apos[0], self.guide.apos[1]
@@ -732,9 +733,16 @@ class Component(component.Main):
         attribute.setKeyableAttributes(tweak_ctl)
         self.tweak_ctl.append(tweak_ctl)
 
+        # set offset orientation to mathc EPIC standard orientation
+        self.end_jnt_off = primitive.addTransform(
+            tweak_ctl, self.getName("end_off"), m
+        )
+        if self.up_axis == "z":
+            self.end_jnt_off.rz.set(-90)
+
         self.jnt_pos.append(
             {
-                "obj": self.end_ref,
+                "obj": self.end_jnt_off,
                 "name": jdn_foot,
                 "newActiveJnt": current_parent,
                 "guide_relative": self.guide.guide_locators[2],
