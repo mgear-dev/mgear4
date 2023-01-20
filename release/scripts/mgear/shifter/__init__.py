@@ -178,6 +178,8 @@ class Rig(object):
 
         self.build_data = {}
 
+        self.component_finalize = False
+
     def buildFromDict(self, conf_dict):
         log_window()
         startTime = datetime.datetime.now()
@@ -492,6 +494,7 @@ class Rig(object):
 
         # Init
         self.components_infos = {}
+        
 
         for comp in self.guide.componentsIndex:
             guide_ = self.guides[comp]
@@ -521,6 +524,8 @@ class Rig(object):
                     name + " : " + comp.fullName + " (" + comp.type + ")"
                 )
                 comp.stepMethods[i]()
+                if name == "Finalize":
+                    self.component_finalize = True
 
             if self.options["step"] >= 1 and i >= self.options["step"] - 1:
                 break
@@ -587,6 +592,13 @@ class Rig(object):
         dag_node = pm.dagPose(save=True, selection=True)
         pm.connectAttr(dag_node.message, self.model.rigPoses[0])
         print(dag_node)
+
+        # hide all DG nodes inputs in channel box -----------------------
+        # only hides if components_finalize or All steps are done
+        if self.component_finalize:
+            for c in self.model.listHistory(ac=True, f=True):
+                if c.type() != "transform":
+                    c.isHistoricallyInteresting.set(False)
 
         # Bind skin re-apply
         if self.options["importSkin"]:
