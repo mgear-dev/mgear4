@@ -5,6 +5,7 @@ import ast
 from functools import partial
 
 import maya.cmds as cmds
+
 # pyMel
 import pymel.core as pm
 from pymel.core import datatypes
@@ -69,6 +70,7 @@ class ComponentGuide(guide.Main):
         minmax (dic): Define the min and max object for multi location objects
 
     """
+
     compType = "component"  # Component type
     compName = "component"  # Component default name
     compSide = "C"
@@ -118,7 +120,7 @@ class ComponentGuide(guide.Main):
         self.apos = []  # list of global position
         self.prim = {}  # dictionary of primitive
         self.blades = {}
-        self.size = .1
+        self.size = 0.1
         # self.root_size = None
 
         # List and dictionary used to define data of the guide that
@@ -157,8 +159,8 @@ class ComponentGuide(guide.Main):
     def initialHierarchy(self):
         """Initial hierachy.
 
-         It's no more than the basic set of parameters and layout
-         needed for the setting property.
+        It's no more than the basic set of parameters and layout
+        needed for the setting property.
 
         """
         # Parameters --------------------------------------
@@ -166,42 +168,42 @@ class ComponentGuide(guide.Main):
         self.pCompType = self.addParam("comp_type", "string", self.compType)
         self.pCompName = self.addParam("comp_name", "string", self.compName)
         self.pCompSide = self.addParam("comp_side", "string", self.compSide)
-        self.pCompIndex = self.addParam(
-            "comp_index", "long", self.compIndex, 0)
+        self.pCompIndex = self.addParam("comp_index", "long", self.compIndex, 0)
         self.pConnector = self.addParam("connector", "string", "standard")
         self.pUIHost = self.addParam("ui_host", "string", "")
         self.pCtlGroup = self.addParam("ctlGrp", "string", "")
         self.pJointNames = self.addParam("joint_names", "string", "")
         if self.joint_names_description:
             self.pJointNamesDescription = self.addParam(
-                JOINT_NAME_DESCRIPTION, "string",
-                str(self.joint_names_description))
+                JOINT_NAME_DESCRIPTION, "string", str(self.joint_names_description)
+            )
             self.pJointNamesDescription_custom = self.addParam(
-                JOINT_NAME_DESCRIPTION_CUSTOM, "string",
-                str(self.joint_names_description))
+                JOINT_NAME_DESCRIPTION_CUSTOM,
+                "string",
+                str(self.joint_names_description),
+            )
         if self.ctl_names_description:
             self.pCtlNamesDescription = self.addParam(
-                CTL_NAME_DESCRIPTION, "string",
-                str(self.ctl_names_description))
+                CTL_NAME_DESCRIPTION, "string", str(self.ctl_names_description)
+            )
             self.pCtlNamesDescription_custom = self.addParam(
-                CTL_NAME_DESCRIPTION_CUSTOM, "string",
-                str(self.ctl_names_description))
+                CTL_NAME_DESCRIPTION_CUSTOM, "string", str(self.ctl_names_description)
+            )
         self.pJointRotOffX = self.addParam(
-            "joint_rot_offset_x", "double", 0.0, -360.0, 360.0)
+            "joint_rot_offset_x", "double", 0.0, -360.0, 360.0
+        )
         self.pJointRotOffY = self.addParam(
-            "joint_rot_offset_y", "double", 0.0, -360.0, 360.0)
+            "joint_rot_offset_y", "double", 0.0, -360.0, 360.0
+        )
         self.pJointRotOffZ = self.addParam(
-            "joint_rot_offset_z", "double", 0.0, -360.0, 360.0)
+            "joint_rot_offset_z", "double", 0.0, -360.0, 360.0
+        )
 
-        self.pOverrideComponentColor = self.addParam(
-            "Override_Color", "bool", False)
-        self.pOverrideUseRGBColor = self.addParam(
-            "Use_RGB_Color", "bool", False)
+        self.pOverrideComponentColor = self.addParam("Override_Color", "bool", False)
+        self.pOverrideUseRGBColor = self.addParam("Use_RGB_Color", "bool", False)
 
-        self.pOverrideColorIndexfk = self.addParam(
-            "color_fk", "long", 6, 0, 31)
-        self.pOverrideColorIndexik = self.addParam(
-            "color_ik", "long", 18, 0, 31)
+        self.pOverrideColorIndexfk = self.addParam("color_fk", "long", 6, 0, 31)
+        self.pOverrideColorIndexik = self.addParam("color_ik", "long", 18, 0, 31)
 
         self.pLColorfk = self.addColorParam("RGB_fk", [0, 0, 1])
         self.pLColorik = self.addColorParam("RGB_ik", [0, 0.25, 1])
@@ -269,8 +271,9 @@ class ComponentGuide(guide.Main):
         # ---------------------------------------------------
         # First check and set the settings
         if not self.root.hasAttr("comp_type"):
-            mgear.log("%s is not a proper guide." %
-                      self.root.longName(), mgear.sev_error)
+            mgear.log(
+                "%s is not a proper guide." % self.root.longName(), mgear.sev_error
+            )
             self.valid = False
             return
 
@@ -281,8 +284,7 @@ class ComponentGuide(guide.Main):
         for name in self.save_transform:
             if "#" in name:
                 i = 0
-                while not self.minmax[name].max > 0 or i < \
-                        self.minmax[name].max:
+                while not self.minmax[name].max > 0 or i < self.minmax[name].max:
                     localName = string.replaceSharpWithPadding(name, i)
 
                     node = dag.findChild(self.model, self.getName(localName))
@@ -298,17 +300,21 @@ class ComponentGuide(guide.Main):
                     i += 1
 
                 if i < self.minmax[name].min:
-                    mgear.log("Minimum of object requiered for "
-                              + name + " hasn't been reached!!",
-                              mgear.sev_warning)
+                    mgear.log(
+                        "Minimum of object requiered for "
+                        + name
+                        + " hasn't been reached!!",
+                        mgear.sev_warning,
+                    )
                     self.valid = False
                     continue
 
             else:
                 node = dag.findChild(self.model, self.getName(name))
                 if not node:
-                    mgear.log("Object missing : %s" % (
-                        self.getName(name)), mgear.sev_warning)
+                    mgear.log(
+                        "Object missing : %s" % (self.getName(name)), mgear.sev_warning
+                    )
                     self.valid = False
                     continue
 
@@ -321,8 +327,10 @@ class ComponentGuide(guide.Main):
         for name in self.save_blade:
             if "#" in name:
                 i = 0
-                while not self.minmax_blade[name].max > 0 or i < \
-                        self.minmax_blade[name].max:
+                while (
+                    not self.minmax_blade[name].max > 0
+                    or i < self.minmax_blade[name].max
+                ):
                     localName = string.replaceSharpWithPadding(name, i)
 
                     node = dag.findChild(self.model, self.getName(localName))
@@ -330,25 +338,29 @@ class ComponentGuide(guide.Main):
                         break
 
                     self.blades[localName] = vector.Blade(
-                        node.getMatrix(worldSpace=True))
+                        node.getMatrix(worldSpace=True)
+                    )
                     i += 1
 
                 if i < self.minmax_blade[name].min:
-                    mgear.log("Minimum of object requiered for "
-                              + localName + " hasn't been reached!!",
-                              mgear.sev_warning)
+                    mgear.log(
+                        "Minimum of object requiered for "
+                        + localName
+                        + " hasn't been reached!!",
+                        mgear.sev_warning,
+                    )
                     self.valid = False
                     continue
             else:
                 node = dag.findChild(self.model, self.getName(name))
                 if not node:
-                    mgear.log("Object missing : %s" % (
-                        self.getName(name)), mgear.sev_warning)
+                    mgear.log(
+                        "Object missing : %s" % (self.getName(name)), mgear.sev_warning
+                    )
                     self.valid = False
                     continue
 
-                self.blades[name] = vector.Blade(
-                    node.getMatrix(worldSpace=True))
+                self.blades[name] = vector.Blade(node.getMatrix(worldSpace=True))
 
         self.size = self.getSize()
 
@@ -493,8 +505,7 @@ class ComponentGuide(guide.Main):
                     for i in range(self.sections_number):
                         newPosition = offVec + newPosition
                         localName = string.replaceSharpWithPadding(name, i)
-                        self.tra[localName] = transform.getTransformFromPos(
-                            newPosition)
+                        self.tra[localName] = transform.getTransformFromPos(newPosition)
         return True
 
     # ====================================================
@@ -524,13 +535,13 @@ class ComponentGuide(guide.Main):
             return False
         for name, paramDef in self.paramDefs.items():
             if paramDef.valueType == "string":
-                self.setParamDefValue(
-                    name, string.convertRLName(self.values[name]))
+                self.setParamDefValue(name, string.convertRLName(self.values[name]))
         for name, t in self.tra.items():
             self.tra[name] = transform.getSymmetricalTransform(t)
         for name, blade in self.blades.items():
             self.blades[name] = vector.Blade(
-                transform.getSymmetricalTransform(blade.transform))
+                transform.getSymmetricalTransform(blade.transform)
+            )
 
         return True
 
@@ -567,8 +578,7 @@ class ComponentGuide(guide.Main):
         # objList = dag.findComponentChildren(self.parent,
         #                                     oldName, oldSideIndex)
         # NOTE: Experimenta  using findComponentChildren3
-        objList = dag.findComponentChildren3(
-            self.parent, oldName, oldSideIndex)
+        objList = dag.findComponentChildren3(self.parent, oldName, oldSideIndex)
         newSideIndex = newSide + str(self.values["comp_index"])
         objList.append(self.parent)
         for obj in objList:
@@ -600,11 +610,11 @@ class ComponentGuide(guide.Main):
 
         """
         if "root" not in self.tra.keys():
-            self.tra["root"] = transform.getTransformFromPos(
-                datatypes.Vector(0, 0, 0))
+            self.tra["root"] = transform.getTransformFromPos(datatypes.Vector(0, 0, 0))
 
-        self.root = icon.guideRootIcon(self.parent, self.getName(
-            "root"), color=13, m=self.tra["root"])
+        self.root = icon.guideRootIcon(
+            self.parent, self.getName("root"), color=13, m=self.tra["root"]
+        )
 
         # Add Parameters from parameter definition list.
         for scriptName in self.paramNames:
@@ -613,7 +623,7 @@ class ComponentGuide(guide.Main):
 
         return self.root
 
-    def add_ref_axis(self, loc, vis_attr=None, inverted=False, width=.5):
+    def add_ref_axis(self, loc, vis_attr=None, inverted=False, width=0.5):
         """Add a visual reference axis to a locator or root of the guide
 
         Shifter guides usually only take in consideration the position of the
@@ -631,10 +641,9 @@ class ComponentGuide(guide.Main):
                 the visual ref
             inverted (bool, optional): if we need to negate the attr
         """
-        axis = icon.axis(loc,
-                         self.getName("axis"),
-                         width=width,
-                         m=loc.getMatrix(worldSpace=True))
+        axis = icon.axis(
+            loc, self.getName("axis"), width=width, m=loc.getMatrix(worldSpace=True)
+        )
         pm.parent(axis, world=True)
         pm.makeIdentity(axis, apply=True, t=False, r=False, s=True, n=0)
         if vis_attr and inverted:
@@ -650,7 +659,7 @@ class ComponentGuide(guide.Main):
             loc.addChild(shp, add=True, shape=True)
         pm.delete(axis)
 
-    def add_ref_joint(self, loc, vis_attr=None, width=.5):
+    def add_ref_joint(self, loc, vis_attr=None, width=0.5):
         """Add a visual reference joint to a locator or root of the guide
 
         Args:
@@ -659,20 +668,19 @@ class ComponentGuide(guide.Main):
                 the visual ref. Should be a list [attr1, attr2]
             width (float, optional): icon width
         """
-        add_ref_joint = icon.sphere(loc,
-                                    self.getName("joint"),
-                                    width=width,
-                                    color=[0, 1, 0],
-                                    m=loc.getMatrix(worldSpace=True))
+        add_ref_joint = icon.sphere(
+            loc,
+            self.getName("joint"),
+            width=width,
+            color=[0, 1, 0],
+            m=loc.getMatrix(worldSpace=True),
+        )
         pm.parent(add_ref_joint, world=True)
-        pm.makeIdentity(add_ref_joint, apply=True,
-                        t=False, r=False, s=True, n=0)
+        pm.makeIdentity(add_ref_joint, apply=True, t=False, r=False, s=True, n=0)
 
         for shp in add_ref_joint.getShapes():
             if vis_attr:
-                node.createMulNode(vis_attr[0],
-                                   vis_attr[1],
-                                   shp.attr("visibility"))
+                node.createMulNode(vis_attr[0], vis_attr[1], shp.attr("visibility"))
             shp.isHistoricallyInteresting.set(False)
 
             loc.addChild(shp, add=True, shape=True)
@@ -700,10 +708,12 @@ class ComponentGuide(guide.Main):
             # this functionality is not implemented. The actual design from
             # softimage Gear should be review to fit in Maya.
             loc = self.prim[name].create(
-                parent, self.getName(name), self.tra[name], color=17)
+                parent, self.getName(name), self.tra[name], color=17
+            )
         else:
-            loc = icon.guideLocatorIcon(parent, self.getName(
-                name), color=17, m=self.tra[name])
+            loc = icon.guideLocatorIcon(
+                parent, self.getName(name), color=17, m=self.tra[name]
+            )
 
         return loc
 
@@ -729,7 +739,8 @@ class ComponentGuide(guide.Main):
         if "#" not in name:
             mgear.log(
                 "You need to put a '#' in the name of multiple location.",
-                mgear.sev_error)
+                mgear.sev_error,
+            )
             return False
 
         locs = []
@@ -739,8 +750,9 @@ class ComponentGuide(guide.Main):
             if localName not in self.tra.keys():
                 break
 
-            loc = icon.guideLocatorIcon(parent, self.getName(
-                localName), color=17, m=self.tra[localName])
+            loc = icon.guideLocatorIcon(
+                parent, self.getName(localName), color=17, m=self.tra[localName]
+            )
             locs.append(loc)
             if updateParent:
                 parent = loc
@@ -765,32 +777,58 @@ class ComponentGuide(guide.Main):
         """
         if name not in self.blades.keys():
             self.blades[name] = vector.Blade(
-                transform.getTransformFromPos(datatypes.Vector(0, 0, 0)))
+                transform.getTransformFromPos(datatypes.Vector(0, 0, 0))
+            )
             offset = False
         else:
             offset = True
 
-        blade = icon.guideBladeIcon(parent=parentPos, name=self.getName(
-            name), lenX=.5, color=[0, 0, 1], m=self.blades[name].transform)
-        aim_cns = applyop.aimCns(blade, parentDir, axis="xy", wupType=2,
-                                 wupVector=[0, 1, 0], wupObject=self.root,
-                                 maintainOffset=offset)
+        blade = icon.guideBladeIcon(
+            parent=parentPos,
+            name=self.getName(name),
+            lenX=0.5,
+            color=[0, 0, 1],
+            m=self.blades[name].transform,
+        )
+        aim_cns = applyop.aimCns(
+            blade,
+            parentDir,
+            axis="xy",
+            wupType=2,
+            wupVector=[0, 1, 0],
+            wupObject=self.root,
+            maintainOffset=offset,
+        )
         pnt_cns = pm.pointConstraint(parentPos, blade)
 
         aim_cns.isHistoricallyInteresting.set(False)
         pnt_cns.isHistoricallyInteresting.set(False)
 
         offsetAttr = attribute.addAttribute(
-            blade, "bladeRollOffset", "float", aim_cns.attr("offsetX").get())
+            blade, "bladeRollOffset", "float", aim_cns.attr("offsetX").get()
+        )
         pm.connectAttr(offsetAttr, aim_cns.attr("offsetX"))
         scaleAttr = attribute.addAttribute(
-            blade, "bladeScale", "float", 1, minValue=0.1, maxValue=100)
+            blade, "bladeScale", "float", 1, minValue=0.1, maxValue=100
+        )
         for axis in "xyz":
             pm.connectAttr(scaleAttr, blade.attr("s{}".format(axis)))
-        attribute.lockAttribute(blade, attributes=["tx", "ty", "tz",
-                                                   "rx", "ry", "rz",
-                                                   "sx", "sy", "sz",
-                                                   "v", "ro"])
+        attribute.lockAttribute(
+            blade,
+            attributes=[
+                "tx",
+                "ty",
+                "tz",
+                "rx",
+                "ry",
+                "rz",
+                "sx",
+                "sy",
+                "sz",
+                "v",
+                "ro",
+            ],
+        )
 
         return blade
 
@@ -809,9 +847,7 @@ class ComponentGuide(guide.Main):
             dagNode: The newly creted curve.
 
         """
-        return icon.connection_display_curve(self.getName(name),
-                                             centers,
-                                             degree)
+        return icon.connection_display_curve(self.getName(name), centers, degree)
 
     # ====================================================
     # MISC
@@ -830,11 +866,12 @@ class ComponentGuide(guide.Main):
         if includeShapes:
             children = pm.listRelatives(model, ad=True)
         else:
-            children = pm.listRelatives(model, ad=True, typ='transform')
+            children = pm.listRelatives(model, ad=True, typ="transform")
         pm.select(children)
         for child in pm.ls(self.fullName + "_*", selection=True):
-            objects[child[child.index(
-                self.fullName + "_") + len(self.fullName + "_"):]] = child
+            objects[
+                child[child.index(self.fullName + "_") + len(self.fullName + "_") :]
+            ] = child
 
         return objects
 
@@ -851,11 +888,17 @@ class ComponentGuide(guide.Main):
         """
         objects = {}
         if includeShapes:
-            children = [pm.PyNode(x) for x in cmds.listRelatives(
-                model.longName(), ad=True, fullPath=True)]
+            children = [
+                pm.PyNode(x)
+                for x in cmds.listRelatives(model.longName(), ad=True, fullPath=True)
+            ]
         else:
-            children = [pm.PyNode(x) for x in cmds.listRelatives(
-                model.longName(), ad=True, typ='transform', fullPath=True)]
+            children = [
+                pm.PyNode(x)
+                for x in cmds.listRelatives(
+                    model.longName(), ad=True, typ="transform", fullPath=True
+                )
+            ]
         for child in children:
             cName = child.longName()
             if cName.startswith(self.fullName):
@@ -880,8 +923,9 @@ class ComponentGuide(guide.Main):
 
         for child in cmds.ls(self.fullName + "_*", type="transform"):
             if pm.PyNode(child).getParent(-1) == model:
-                objects[child[child.index(
-                    self.fullName + "_") + len(self.fullName + "_"):]] = child
+                objects[
+                    child[child.index(self.fullName + "_") + len(self.fullName + "_") :]
+                ] = child
 
         return objects
 
@@ -893,8 +937,9 @@ class ComponentGuide(guide.Main):
         """
         if "#" not in name:
             mgear.log(
-                "Invalid definition for min/max. You should have a '#' in "
-                "the name", mgear.sev_error)
+                "Invalid definition for min/max. You should have a '#' in " "the name",
+                mgear.sev_error,
+            )
         self.minmax[name] = MinMax(minimum, maximum)
 
     def addMinMaxBlade(self, name, minimum=1, maximum=-1):
@@ -905,8 +950,9 @@ class ComponentGuide(guide.Main):
         """
         if "#" not in name:
             mgear.log(
-                "Invalid definition for min/max. You should have a '#' in "
-                "the name", mgear.sev_error)
+                "Invalid definition for min/max. You should have a '#' in " "the name",
+                mgear.sev_error,
+            )
         self.minmax_blade[name] = MinMax(minimum, maximum)
 
     def getSize(self):
@@ -916,11 +962,11 @@ class ComponentGuide(guide.Main):
             float: the size
 
         """
-        size = .01
+        size = 0.01
         for pos in self.apos:
             d = vector.getDistance(self.pos["root"], pos)
             size = max(size, d)
-        size = max(size, .01)
+        size = max(size, 0.01)
 
         return size
 
@@ -942,8 +988,12 @@ class ComponentGuide(guide.Main):
             str: Component fullname.
 
         """
-        return self.values["comp_name"] + "_" + self.values["comp_side"] + \
-            str(self.values["comp_index"])
+        return (
+            self.values["comp_name"]
+            + "_"
+            + self.values["comp_side"]
+            + str(self.values["comp_index"])
+        )
 
     def getType(self):
         """Return the type of the component.
@@ -981,6 +1031,7 @@ class ComponentGuide(guide.Main):
     type = property(getType)
     objectNames = property(getObjectNames)
 
+
 ##########################################################
 # OTHER CLASSES
 ##########################################################
@@ -1005,6 +1056,7 @@ class MinMax(object):
 # Setting Page
 ##########################################################
 
+
 class mainSettingsTab(QtWidgets.QDialog, msui.Ui_Form):
 
     # ============================================
@@ -1015,7 +1067,6 @@ class mainSettingsTab(QtWidgets.QDialog, msui.Ui_Form):
 
 
 class NameDescriptor(QtWidgets.QDialog):
-
     def __init__(self, parent=None):
         super(NameDescriptor, self).__init__()
 
@@ -1024,7 +1075,6 @@ class NameDescriptor(QtWidgets.QDialog):
         self.descriptors_label = []
         self.descriptors_layout = []
         self.main_layout = QtWidgets.QVBoxLayout(self)
-
 
     def create_descriptor(self, descriptor, d_custom):
         """Create descriptor widgets
@@ -1068,10 +1118,8 @@ class NameDescriptor(QtWidgets.QDialog):
             self.main_layout.addLayout(d)
 
         spacerItem = QtWidgets.QSpacerItem(
-            20,
-            40,
-            QtWidgets.QSizePolicy.Minimum,
-            QtWidgets.QSizePolicy.Expanding)
+            20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding
+        )
         self.main_layout.addItem(spacerItem)
 
     def set_descriptors_attr(self):
@@ -1084,12 +1132,10 @@ class NameDescriptor(QtWidgets.QDialog):
                 d_name = string.normalize2(d.text())
             d.setText(d_name)
             descriptors_attr_val.append(d_name)
-            self.root.attr(
-                self.descriptor_name_custom).set(str(descriptors_attr_val))
+            self.root.attr(self.descriptor_name_custom).set(str(descriptors_attr_val))
 
 
 class jointNameDescriptor(NameDescriptor):
-
     def __init__(self, parent=None):
         super(jointNameDescriptor, self).__init__()
 
@@ -1107,7 +1153,6 @@ class jointNameDescriptor(NameDescriptor):
 
 
 class CtlNameDescriptor(NameDescriptor):
-
     def __init__(self, parent=None):
         super(CtlNameDescriptor, self).__init__()
 
@@ -1168,91 +1213,99 @@ class componentMainSettings(QtWidgets.QDialog, guide.helperSlots):
         self.tabs.insertTab(0, self.mainSettingsTab, "Main Settings")
 
         # populate main settings
-        self.mainSettingsTab.name_lineEdit.setText(
-            self.root.attr("comp_name").get())
+        self.mainSettingsTab.name_lineEdit.setText(self.root.attr("comp_name").get())
         sideSet = ["C", "L", "R"]
         sideIndex = sideSet.index(self.root.attr("comp_side").get())
         self.mainSettingsTab.side_comboBox.setCurrentIndex(sideIndex)
         self.mainSettingsTab.componentIndex_spinBox.setValue(
-            self.root.attr("comp_index").get())
+            self.root.attr("comp_index").get()
+        )
         if self.root.attr("useIndex").get():
-            self.mainSettingsTab.useJointIndex_checkBox.setCheckState(
-                QtCore.Qt.Checked)
+            self.mainSettingsTab.useJointIndex_checkBox.setCheckState(QtCore.Qt.Checked)
         else:
             self.mainSettingsTab.useJointIndex_checkBox.setCheckState(
-                QtCore.Qt.Unchecked)
+                QtCore.Qt.Unchecked
+            )
         self.mainSettingsTab.parentJointIndex_spinBox.setValue(
-            self.root.attr("parentJointIndex").get())
-        self.mainSettingsTab.host_lineEdit.setText(
-            self.root.attr("ui_host").get())
-        self.mainSettingsTab.subGroup_lineEdit.setText(
-            self.root.attr("ctlGrp").get())
+            self.root.attr("parentJointIndex").get()
+        )
+        self.mainSettingsTab.host_lineEdit.setText(self.root.attr("ui_host").get())
+        self.mainSettingsTab.subGroup_lineEdit.setText(self.root.attr("ctlGrp").get())
         self.mainSettingsTab.joint_offset_x_doubleSpinBox.setValue(
-            self.root.attr("joint_rot_offset_x").get())
+            self.root.attr("joint_rot_offset_x").get()
+        )
         self.mainSettingsTab.joint_offset_y_doubleSpinBox.setValue(
-            self.root.attr("joint_rot_offset_y").get())
+            self.root.attr("joint_rot_offset_y").get()
+        )
         self.mainSettingsTab.joint_offset_z_doubleSpinBox.setValue(
-            self.root.attr("joint_rot_offset_z").get())
+            self.root.attr("joint_rot_offset_z").get()
+        )
 
         # testing adding custom color per component
         self.mainSettingsTab.overrideColors_checkBox.setCheckState(
-            QtCore.Qt.Checked if self.root.Override_Color.get()
-            else QtCore.Qt.Unchecked)
+            QtCore.Qt.Checked if self.root.Override_Color.get() else QtCore.Qt.Unchecked
+        )
 
         self.mainSettingsTab.useRGB_checkBox.setCheckState(
-            QtCore.Qt.Checked if self.root.Use_RGB_Color.get()
-            else QtCore.Qt.Unchecked)
+            QtCore.Qt.Checked if self.root.Use_RGB_Color.get() else QtCore.Qt.Unchecked
+        )
 
         tab = self.mainSettingsTab
 
-        index_widgets = ((tab.color_fk_spinBox,
-                          tab.color_fk_label,
-                          "color_fk"),
-                         (tab.color_ik_spinBox,
-                          tab.color_ik_label,
-                          "color_ik"))
+        index_widgets = (
+            (tab.color_fk_spinBox, tab.color_fk_label, "color_fk"),
+            (tab.color_ik_spinBox, tab.color_ik_label, "color_ik"),
+        )
 
-        rgb_widgets = ((tab.RGB_fk_pushButton, tab.RGB_fk_slider, "RGB_fk"),
-                       (tab.RGB_ik_pushButton, tab.RGB_ik_slider, "RGB_ik"))
+        rgb_widgets = (
+            (tab.RGB_fk_pushButton, tab.RGB_fk_slider, "RGB_fk"),
+            (tab.RGB_ik_pushButton, tab.RGB_ik_slider, "RGB_ik"),
+        )
 
         for spinBox, label, source_attr in index_widgets:
             color_index = self.root.attr(source_attr).get()
             spinBox.setValue(color_index)
             self.updateWidgetStyleSheet(
-                label, [i / 255.0 for i in MAYA_OVERRIDE_COLOR[color_index]])
+                label, [i / 255.0 for i in MAYA_OVERRIDE_COLOR[color_index]]
+            )
 
         for button, slider, source_attr in rgb_widgets:
             self.updateRgbColorWidgets(
-                button, self.root.attr(source_attr).get(), slider)
+                button, self.root.attr(source_attr).get(), slider
+            )
 
         # forceing the size of the color buttons/label to keep ui clean
         for widget in tuple(i[0] for i in rgb_widgets) + tuple(
-                i[1] for i in index_widgets):
+            i[1] for i in index_widgets
+        ):
             widget.setFixedSize(pyqt.dpi_scale(30), pyqt.dpi_scale(20))
 
-        self.toggleRgbIndexWidgets(tab.useRGB_checkBox,
-                                   (w for i in index_widgets for w in i[:2]),
-                                   (w for i in rgb_widgets for w in i[:2]),
-                                   "Use_RGB_Color",
-                                   tab.useRGB_checkBox.checkState())
+        self.toggleRgbIndexWidgets(
+            tab.useRGB_checkBox,
+            (w for i in index_widgets for w in i[:2]),
+            (w for i in rgb_widgets for w in i[:2]),
+            "Use_RGB_Color",
+            tab.useRGB_checkBox.checkState(),
+        )
 
         self.refresh_controls()
 
         # joint names tab
         if self.root.hasAttr(JOINT_NAME_DESCRIPTION):
-            self.tabs.insertTab(
-                2, self.jointNameDescriptor, "Joints Description Names")
+            self.tabs.insertTab(2, self.jointNameDescriptor, "Joints Description Names")
             ctl_tab = 3
         else:
             ctl_tab = 2
         # ctl names tab
         if self.root.hasAttr(CTL_NAME_DESCRIPTION):
             self.tabs.insertTab(
-                ctl_tab, self.CtlNameDescriptor, "Ctl Description Names")
+                ctl_tab, self.CtlNameDescriptor, "Ctl Description Names"
+            )
 
     def refresh_controls(self):
-        joint_names = [name.strip() for name in
-                       self.root.attr("joint_names").get().split(",")]
+        joint_names = [
+            name.strip() for name in self.root.attr("joint_names").get().split(",")
+        ]
         if any(joint_names):
             summary = "<b>({0} set)</b>".format(sum(map(bool, joint_names)))
         else:
@@ -1274,79 +1327,100 @@ class componentMainSettings(QtWidgets.QDialog, guide.helperSlots):
         self.close_button.clicked.connect(self.close_settings)
 
         self.mainSettingsTab.name_lineEdit.editingFinished.connect(
-            self.updateComponentName)
+            self.updateComponentName
+        )
         self.mainSettingsTab.side_comboBox.currentIndexChanged.connect(
-            self.updateComponentName)
+            self.updateComponentName
+        )
         self.mainSettingsTab.componentIndex_spinBox.valueChanged.connect(
-            self.updateComponentName)
+            self.updateComponentName
+        )
         self.mainSettingsTab.useJointIndex_checkBox.stateChanged.connect(
-            partial(self.updateCheck,
-                    self.mainSettingsTab.useJointIndex_checkBox,
-                    "useIndex"))
+            partial(
+                self.updateCheck,
+                self.mainSettingsTab.useJointIndex_checkBox,
+                "useIndex",
+            )
+        )
         self.mainSettingsTab.parentJointIndex_spinBox.valueChanged.connect(
-            partial(self.updateSpinBox,
-                    self.mainSettingsTab.parentJointIndex_spinBox,
-                    "parentJointIndex"))
+            partial(
+                self.updateSpinBox,
+                self.mainSettingsTab.parentJointIndex_spinBox,
+                "parentJointIndex",
+            )
+        )
         self.mainSettingsTab.host_pushButton.clicked.connect(
-            partial(self.updateHostUI,
-                    self.mainSettingsTab.host_lineEdit,
-                    "ui_host"))
+            partial(self.updateHostUI, self.mainSettingsTab.host_lineEdit, "ui_host")
+        )
         self.mainSettingsTab.subGroup_lineEdit.editingFinished.connect(
-            partial(self.updateLineEdit,
-                    self.mainSettingsTab.subGroup_lineEdit,
-                    "ctlGrp"))
+            partial(
+                self.updateLineEdit, self.mainSettingsTab.subGroup_lineEdit, "ctlGrp"
+            )
+        )
         self.mainSettingsTab.jointNames_pushButton.clicked.connect(
-            self.joint_names_dialog)
+            self.joint_names_dialog
+        )
 
         self.mainSettingsTab.joint_offset_x_doubleSpinBox.valueChanged.connect(
-            partial(self.updateSpinBox,
-                    self.mainSettingsTab.joint_offset_x_doubleSpinBox,
-                    "joint_rot_offset_x"))
+            partial(
+                self.updateSpinBox,
+                self.mainSettingsTab.joint_offset_x_doubleSpinBox,
+                "joint_rot_offset_x",
+            )
+        )
         self.mainSettingsTab.joint_offset_y_doubleSpinBox.valueChanged.connect(
-            partial(self.updateSpinBox,
-                    self.mainSettingsTab.joint_offset_y_doubleSpinBox,
-                    "joint_rot_offset_y"))
+            partial(
+                self.updateSpinBox,
+                self.mainSettingsTab.joint_offset_y_doubleSpinBox,
+                "joint_rot_offset_y",
+            )
+        )
         self.mainSettingsTab.joint_offset_z_doubleSpinBox.valueChanged.connect(
-            partial(self.updateSpinBox,
-                    self.mainSettingsTab.joint_offset_z_doubleSpinBox,
-                    "joint_rot_offset_z"))
+            partial(
+                self.updateSpinBox,
+                self.mainSettingsTab.joint_offset_z_doubleSpinBox,
+                "joint_rot_offset_z",
+            )
+        )
 
         tab = self.mainSettingsTab
 
-        index_widgets = ((tab.color_fk_spinBox,
-                          tab.color_fk_label,
-                          "color_fk"),
-                         (tab.color_ik_spinBox,
-                          tab.color_ik_label,
-                          "color_ik"))
+        index_widgets = (
+            (tab.color_fk_spinBox, tab.color_fk_label, "color_fk"),
+            (tab.color_ik_spinBox, tab.color_ik_label, "color_ik"),
+        )
 
-        rgb_widgets = ((tab.RGB_fk_pushButton, tab.RGB_fk_slider, "RGB_fk"),
-                       (tab.RGB_ik_pushButton, tab.RGB_ik_slider, "RGB_ik"))
+        rgb_widgets = (
+            (tab.RGB_fk_pushButton, tab.RGB_fk_slider, "RGB_fk"),
+            (tab.RGB_ik_pushButton, tab.RGB_ik_slider, "RGB_ik"),
+        )
 
         for spinBox, label, source_attr in index_widgets:
             spinBox.valueChanged.connect(
-                partial(self.updateIndexColorWidgets,
-                        spinBox,
-                        source_attr,
-                        label))
+                partial(self.updateIndexColorWidgets, spinBox, source_attr, label)
+            )
 
         for button, slider, source_attr in rgb_widgets:
             button.clicked.connect(
-                partial(self.rgbColorEditor, button, source_attr, slider))
+                partial(self.rgbColorEditor, button, source_attr, slider)
+            )
             slider.valueChanged.connect(
-                partial(self.rgbSliderValueChanged, button, source_attr))
+                partial(self.rgbSliderValueChanged, button, source_attr)
+            )
 
         tab.useRGB_checkBox.stateChanged.connect(
-            partial(self.toggleRgbIndexWidgets,
-                    tab.useRGB_checkBox,
-                    tuple(w for i in index_widgets for w in i[:2]),
-                    tuple(w for i in rgb_widgets for w in i[:2]),
-                    "Use_RGB_Color"))
+            partial(
+                self.toggleRgbIndexWidgets,
+                tab.useRGB_checkBox,
+                tuple(w for i in index_widgets for w in i[:2]),
+                tuple(w for i in rgb_widgets for w in i[:2]),
+                "Use_RGB_Color",
+            )
+        )
 
         tab.overrideColors_checkBox.stateChanged.connect(
-            partial(self.updateCheck,
-                    tab.overrideColors_checkBox,
-                    "Override_Color"))
+            partial(self.updateCheck, tab.overrideColors_checkBox, "Override_Color")
+        )
 
     def joint_names_dialog(self):
         dialog = JointNames(self.root, self)
@@ -1402,7 +1476,8 @@ class JointNames(QtWidgets.QDialog, jnui.Ui_Form):
         self.root.attr("joint_names").set(value)
 
         self.jointNamesList.setVerticalHeaderLabels(
-            [str(i) for i in range(len(jointNames))])
+            [str(i) for i in range(len(jointNames))]
+        )
 
         self.attributeChanged.emit()
 
@@ -1443,8 +1518,7 @@ class JointNames(QtWidgets.QDialog, jnui.Ui_Form):
         item = self.jointNamesList.item(row, column)
         if row == self.jointNamesList.rowCount() - 1 and item.text():
             self.jointNamesList.insertRow(row + 1)
-            self.jointNamesList.setItem(
-                row + 1, 0, QtWidgets.QTableWidgetItem(""))
+            self.jointNamesList.setItem(row + 1, 0, QtWidgets.QTableWidgetItem(""))
         self.apply_names()
         self.jointNamesList.setCurrentCell(row + 1, 0)
         self.jointNamesList.editItem(self.jointNamesList.currentItem())
