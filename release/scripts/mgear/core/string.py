@@ -50,7 +50,7 @@ def normalize_path(string):
     Returns:
         TYPE: Description
     """
-    return string.replace('\\', '/')
+    return string.replace("\\", "/")
 
 
 def normalize_with_padding(string):
@@ -114,6 +114,48 @@ def replaceSharpWithPadding(string, index):
 
 
 def convertRLName(name):
+    """Convert a string with underscore
+
+    i.e: "_\L", "_L0\_", "L\_", "_L" to "R". And vice and versa.
+
+    :param string name: string to convert
+    :return: Tuple of Integer
+
+    """
+    if name == "L":
+        return "R"
+    elif name == "R":
+        return "L"
+    elif name == "l":
+        return "r"
+    elif name == "r":
+        return "l"
+
+    re_str = "_[RLrl][0-9]+_|^[RLrl][0-9]+_"
+    re_str = re_str + "|_[RLrl][0-9]+$|_[RLrl]_|^[RLrl]_|_[RLrl]$"
+    re_str = re_str + "|_[RLrl][.]|^[RLrl][.]"
+    re_str = re_str + "|_[RLrl][0-9]+[.]|^[RLrl][0-9]+[.]"
+    rePattern = re.compile(re_str)
+
+    matches = re.findall(rePattern, name)
+    if matches:
+        for match in matches:
+            if match.find("R") != -1:
+                rep = match.replace("R", "L")
+            elif match.find("L") != -1:
+                rep = match.replace("L", "R")
+            elif match.find("r") != -1:
+                rep = match.replace("r", "l")
+            elif match.find("l") != -1:
+                rep = match.replace("l", "r")
+            name = re.sub(match, rep, name)
+
+    return name
+
+
+# NOTE: Keeping the old version just in case an error ocurs
+# TODO: Delete old function when the new one is well tested
+def convertRLName_old(name):
     """Convert a string with underscore
 
     i.e: "_\L", "_L0\_", "L\_", "_L" to "R". And vice and versa.
