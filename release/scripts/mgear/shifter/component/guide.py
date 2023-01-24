@@ -15,6 +15,7 @@ import mgear
 
 from mgear.core import string
 from mgear.core import node
+from pymel import versions
 
 from mgear.core import dag, vector, transform, applyop, attribute, icon, pyqt
 
@@ -598,6 +599,14 @@ class ComponentGuide(guide.Main):
     # ====================================================
     # ELEMENTS
 
+    def connect_x_ray(self, loc):
+        for oShape in loc.getShapes():
+            # connecting the always draw shapes
+            if versions.current() >= 20220000 and self.model.hasAttr("guide_x_ray") and not oShape.attr("alwaysDrawOnTop").listConnections():
+                pm.connectAttr(
+                    self.model.guide_x_ray, oShape.attr("alwaysDrawOnTop")
+                )
+
     def addRoot(self):
         """Add a root object to the guide.
 
@@ -620,6 +629,8 @@ class ComponentGuide(guide.Main):
         for scriptName in self.paramNames:
             paramDef = self.paramDefs[scriptName]
             paramDef.create(self.root)
+
+        self.connect_x_ray(self.root)
 
         return self.root
 
@@ -657,6 +668,7 @@ class ComponentGuide(guide.Main):
 
             shp.lineWidth.set(3)
             loc.addChild(shp, add=True, shape=True)
+        self.connect_x_ray(loc)
         pm.delete(axis)
 
     def add_ref_joint(self, loc, vis_attr=None, width=0.5):
@@ -684,6 +696,7 @@ class ComponentGuide(guide.Main):
             shp.isHistoricallyInteresting.set(False)
 
             loc.addChild(shp, add=True, shape=True)
+        self.connect_x_ray(loc)
         pm.delete(add_ref_joint)
 
     def addLoc(self, name, parent, position=None):
@@ -714,7 +727,7 @@ class ComponentGuide(guide.Main):
             loc = icon.guideLocatorIcon(
                 parent, self.getName(name), color=17, m=self.tra[name]
             )
-
+        self.connect_x_ray(loc)
         return loc
 
     def addLocMulti(self, name, parent, updateParent=True):
@@ -753,6 +766,7 @@ class ComponentGuide(guide.Main):
             loc = icon.guideLocatorIcon(
                 parent, self.getName(localName), color=17, m=self.tra[localName]
             )
+            self.connect_x_ray(loc)
             locs.append(loc)
             if updateParent:
                 parent = loc
@@ -830,6 +844,7 @@ class ComponentGuide(guide.Main):
             ],
         )
 
+        self.connect_x_ray(blade)
         return blade
 
     def addDispCurve(self, name, centers=[], degree=1):
@@ -847,7 +862,10 @@ class ComponentGuide(guide.Main):
             dagNode: The newly creted curve.
 
         """
-        return icon.connection_display_curve(self.getName(name), centers, degree)
+        disp_crv = icon.connection_display_curve(self.getName(name), centers, degree)
+        self.connect_x_ray(disp_crv)
+        return disp_crv
+
 
     # ====================================================
     # MISC

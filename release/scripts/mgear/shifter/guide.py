@@ -11,10 +11,10 @@ import sys
 import traceback
 from functools import partial
 
-
 # pymel
 import pymel.core as pm
 from pymel.core import datatypes
+from pymel import versions
 
 # mgear
 import mgear
@@ -439,6 +439,9 @@ class Rig(Main):
         self.p_joint_padding = self.addParam(
             "joint_index_padding", "long", 0, 0, 99)
 
+
+
+
     def setFromSelection(self):
         """Set the guide hierarchy from selection."""
         selection = pm.ls(selection=True)
@@ -713,6 +716,10 @@ class Rig(Main):
     def initialHierarchy(self):
         """Create the initial rig guide hierarchy (model, options...)"""
         self.model = pm.group(n="guide", em=True, w=True)
+
+        attribute.addAttribute(
+            self.model, "guide_x_ray", "bool", False, keyable=True)
+
 
         # Options
         self.options = self.addPropertyParamenters(self.model)
