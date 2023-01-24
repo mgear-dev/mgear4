@@ -27,8 +27,6 @@ from mgear.shifter import game_tools_fbx_utils as fu
 
 from mgear.uegear import bridge, commands as uegear
 
-# from . import game_tools_fbx_widgets as fw
-
 
 class FBXExport(MayaQWidgetDockableMixin, QtWidgets.QDialog):
     def __init__(self, parent=None):
@@ -95,6 +93,8 @@ class FBXExport(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.file_type_combobox.addItem("ASCII")
         self.fbx_version_combobox = QtWidgets.QComboBox()
         self.populate_fbx_versions_combobox(self.fbx_version_combobox)
+        self.fbx_export_presets_combobox = QtWidgets.QComboBox()
+        self.populate_fbx_export_presets_combobox(self.fbx_export_presets_combobox)
 
         # FBX SDK settings
         self.remove_namespace_checkbox = QtWidgets.QCheckBox(
@@ -177,9 +177,10 @@ class FBXExport(MayaQWidgetDockableMixin, QtWidgets.QDialog):
 
         self.settings_form_layout.addRow("Up Axis", self.up_axis_combobox)
         self.settings_form_layout.addRow("File Type", self.file_type_combobox)
-        self.settings_form_layout.addRow(
-            "File Version", self.fbx_version_combobox
-        )
+        self.settings_form_layout.addRow("File Version", self.fbx_version_combobox)
+        self.settings_form_layout.addRow("FBX Preset", self.fbx_export_presets_combobox)
+
+
         # FBX SDK settings
         if pfbx.FBX_SDK:
             title = "FBX SDK settings"
@@ -325,6 +326,27 @@ class FBXExport(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         for v in fbx_versions:
             combobox.addItem(v)
 
+    def populate_fbx_export_presets_combobox(self, combobox):
+        fbx_export_file_paths = pfbx.get_fbx_export_presets()
+        for fbx_export_file_path in fbx_export_file_paths:
+            fbx_export_file_name = os.path.basename(fbx_export_file_path)
+            fbx_export_base_file_name, _ = os.path.splitext(fbx_export_file_name)
+            combobox.addItem(fbx_export_base_file_name, userData=fbx_export_file_path)
+
+        # Force user defined as the default preset
+        combobox.setCurrentText('User defined')
+
+    def populate_fbx_import_presets_combobox(self, combobox):
+        fbx_import_file_paths = pfbx.get_fbx_import_presets()
+        for fbx_import_file_path in fbx_export_file_paths:
+            fbx_export_file_name = os.path.basename(fbx_import_file_path)
+            fbx_export_base_file_name, _ = os.path.splitext(fbx_export_file_name)
+            combobox.addItem(fbx_export_base_file_name, userData=fbx_import_file_path)
+
+        # Force user defined as the default preset
+        combobox.setCurrentText('User defined')
+
+
     def set_folder_path(self):
         folder_path = pm.fileDialog2(fileMode=3)
         if folder_path:
@@ -368,18 +390,26 @@ class FBXExport(MayaQWidgetDockableMixin, QtWidgets.QDialog):
             os.path.join(file_path, file_name + ".fbx")
         )
 
-        fu.export_skeletal_mesh(
-            jnt_root,
-            geo,
-            path,
-            up_axis=up_axis,
-            file_type=file_type,
-            fbx_version=fbx_version,
-            remove_namespace=remove_namespace,
-            scene_clean=scene_clean,
-            skinning=skinning,
-            blendshapes=blendshapes,
-        )
+        current_export_preset = self.fbx_export_presets_combobox.currentText()
+        if not current_export_preset or current_export_preset == 'User defined':
+            fu.export_skeletal_mesh(
+                jnt_root,
+                geo,
+                path,
+                up_axis=up_axis,
+                file_type=file_type,
+                fbx_version=fbx_version,
+                remove_namespace=remove_namespace,
+                scene_clean=scene_clean,
+                skinning=skinning,
+                blendshapes=blendshapes,
+            )
+        else:
+            preset_file_path = self.fbx_export_presets_combobox.itemData(self.fbx_export_presets_combobox.currentIndex())
+            if not preset_file_path or not os.path.isfile(preset_file_path):
+                cmds.error('FBX Export Preset file was not found: "{}"'.format(preset_file_path))
+                return
+            fu.export_skeletal_mesh_from_preset(jnt_root, geo, path, preset_path=preset_file_path)
 
         # automatically import FBX into Unreal if necessary
         if self.ue_import_cbx.isChecked() and os.path.isfile(path):

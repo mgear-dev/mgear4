@@ -37,15 +37,21 @@ def export_animation_clip():
     return
 
 
-def _export_skeletal_mesh_from_preset(preset):
-    return
+def export_skeletal_mesh_from_preset(jnt_root, mesh_root, path, preset_path):
 
+    # export setings config
+    pfbx.FBXResetExport()
 
-def _export_animation_clip_from_preset(preset):
-    return
+    # load FBX export preset file
+    pfbx.FBXLoadExportPresetFile(f=preset_path)
 
+    # select elements
+    pm.select([jnt_root, mesh_root])
 
-def export_skeletal_mesh_from_preset(preset_path):
+    # export
+    pfbx.FBXExport(f=path, s=True)
+
+    # post process with FBX SDK if available
     return
 
 

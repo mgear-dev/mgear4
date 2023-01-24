@@ -765,6 +765,81 @@ def get_fbx_versions():
     return pm.mel.eval("FBXExportFileVersion -uivl;")
 
 
+def get_fbx_export_presets():
+    """Returns all available FBX export preset files
+
+    Returns:
+        list: String paths of the available fbx export preset files
+    """
+
+    paths_to_check = list()
+    export_preset_files = list()
+
+    # retrieve templates located in Maya installation folder
+    default_path = os.environ.get('MAYA_LOCATION', None)
+    if default_path and os.path.isdir(default_path):
+        default_path = os.path.join(default_path, 'plug-ins', 'fbx', 'plug-ins', 'FBX', 'Presets', 'export')
+        if os.path.isdir(default_path):
+            paths_to_check.append(default_path)
+
+    # retrieve user templates
+    if cmds.pluginInfo('fbxmaya.mll', loaded=True, query=True):
+        fbx_plugin_version = cmds.pluginInfo('fbxmaya.mll', version=True, query=True)
+        user_path = os.path.join(pm.mel.eval('internalVar -userAppDir'), 'FBX', 'Presets', fbx_plugin_version, 'export')
+        if user_path and os.path.isdir(user_path):
+            paths_to_check.append(user_path)
+
+    if not paths_to_check:
+        return
+
+    for path_to_check in paths_to_check:
+        for file_name in os.listdir(path_to_check):
+            _, file_extension = os.path.splitext(file_name)
+            if not file_extension or file_extension != '.fbxexportpreset':
+                continue
+            export_preset_files.append(string.normalize_path(os.path.join(path_to_check, file_name)))
+
+    return export_preset_files
+
+
+def get_fbx_import_presets():
+    """Returns all available FBX export preset files
+
+    Returns:
+        list: String paths of the available fbx export preset files
+    """
+
+    paths_to_check = list()
+    import_preset_files = list()
+
+    # retrieve templates located in Maya installation folder
+    default_path = os.environ.get('MAYA_LOCATION', None)
+    if default_path and os.path.isdir(default_path):
+        default_path = os.path.join(default_path, 'plug-ins', 'fbx', 'plug-ins', 'FBX', 'Presets', 'import')
+        if os.path.isdir(default_path):
+            paths_to_check.append(default_path)
+
+    # retrieve user templates
+    if cmds.pluginInfo('fbxmaya.mll', loaded=True, query=True):
+        fbx_plugin_version = cmds.pluginInfo('fbxmaya.mll', version=True, query=True)
+        user_path = os.path.join(pm.mel.eval('internalVar -userAppDir'), 'FBX', 'Presets', fbx_plugin_version, 'import')
+        if user_path and os.path.isdir(user_path):
+            paths_to_check.append(user_path)
+
+    if not paths_to_check:
+        return
+
+    for path_to_check in paths_to_check:
+        for file_name in os.listdir(path_to_check):
+            _, file_extension = os.path.splitext(file_name)
+            if not file_extension or file_extension != '.fbximportpreset':
+                continue
+            import_preset_files.append(string.normalize_path(os.path.join(path_to_check, file_name)))
+
+    return import_preset_files
+
+
+
 # SNIPPETS
 # docs https://knowledge.autodesk.com/support/maya/learn-explore/caas/CloudHelp/cloudhelp/2023/ENU/Maya-DataExchange/files/GUID-F48E3B78-3E56-4869-9914-CE0FAB6E3116-htm.html
 
