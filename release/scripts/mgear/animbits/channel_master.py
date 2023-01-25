@@ -20,7 +20,6 @@ import importlib
 
 
 class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
-
     def __init__(self, parent=None):
         super(ChannelMaster, self).__init__(parent)
 
@@ -64,8 +63,9 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.add_callback()
 
     def add_callback(self):
-        self.cb_manager.selectionChangedCB("Channel_Master_selection_CB",
-                                           self.selection_change)
+        self.cb_manager.selectionChangedCB(
+            "Channel_Master_selection_CB", self.selection_change
+        )
         # self.cb_manager.userTimeChangedCB("Channel_Master_userTimeChange_CB",
         #                                   self.time_changed)
 
@@ -86,61 +86,59 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         # file actions
         self.file_new_node_action = QtWidgets.QAction("New Node", self)
         self.file_new_node_action.setIcon(pyqt.get_icon("mgear_plus-square"))
-        self.file_save_node_action = QtWidgets.QAction("Save Current Node",
-                                                       self)
+        self.file_save_node_action = QtWidgets.QAction("Save Current Node", self)
         self.file_save_node_action.setIcon(pyqt.get_icon("mgear_save"))
-        self.set_external_config_action = QtWidgets.QAction(
-            "Add External Config", self)
-        self.set_external_config_action.setIcon(
-            pyqt.get_icon("mgear_plus-circle"))
+        self.set_external_config_action = QtWidgets.QAction("Add External Config", self)
+        self.set_external_config_action.setIcon(pyqt.get_icon("mgear_plus-circle"))
         self.remove_external_config_action = QtWidgets.QAction(
-            "Remove External Config", self)
-        self.remove_external_config_action.setIcon(
-            pyqt.get_icon("mgear_minus-circle"))
-        self.file_export_all_action = QtWidgets.QAction("Export All Tabs",
-                                                        self)
+            "Remove External Config", self
+        )
+        self.remove_external_config_action.setIcon(pyqt.get_icon("mgear_minus-circle"))
+        self.file_export_all_action = QtWidgets.QAction("Export All Tabs", self)
         self.file_export_all_action.setIcon(pyqt.get_icon("mgear_log-out"))
-        self.file_export_current_action = QtWidgets.QAction(
-            "Export Current Tab", self)
+        self.file_export_current_action = QtWidgets.QAction("Export Current Tab", self)
         self.file_export_current_action.setIcon(pyqt.get_icon("mgear_log-out"))
         self.file_import_action = QtWidgets.QAction("Import", self)
         self.file_import_action.setIcon(pyqt.get_icon("mgear_log-in"))
         self.file_import_add_action = QtWidgets.QAction("Import Add", self)
         self.file_import_add_action.setIcon(pyqt.get_icon("mgear_log-in"))
         self.use_node_namespace_action = QtWidgets.QAction(
-            "Use Namespace From ChannelMaster Node", self)
+            "Use Namespace From ChannelMaster Node", self
+        )
         self.use_node_namespace_action.setCheckable(True)
         self.use_node_namespace_action.setChecked(True)
 
         self.use_only_local_data_action = QtWidgets.QAction(
-            "Use Only Data Embedded in Local Node", self)
+            "Use Only Data Embedded in Local Node", self
+        )
         self.use_only_local_data_action.setCheckable(True)
 
         # Display actions
-        self.display_fullname_action = QtWidgets.QAction(
-            "Channel Full Name", self)
+        self.display_fullname_action = QtWidgets.QAction("Channel Full Name", self)
         self.display_fullname_action.setCheckable(True)
         self.display_fullname_action.setShortcut(QtGui.QKeySequence("Ctrl+F"))
 
         self.scrubbing_update_action = QtWidgets.QAction(
-            "Update Value While Scrubbing", self)
+            "Update Value While Scrubbing", self
+        )
         self.scrubbing_update_action.setCheckable(True)
         self.scrubbing_update_action.setShortcut(QtGui.QKeySequence("Ctrl+U"))
 
         self.display_edit_channel_order_action = QtWidgets.QAction(
-            "Edit Channel Order", self)
+            "Edit Channel Order", self
+        )
 
         self.display_sync_graph_action = QtWidgets.QAction(
-            "Sync with Graph Editor", self)
+            "Sync with Graph Editor", self
+        )
         self.display_sync_graph_action.setIcon(pyqt.get_icon("mgear_activity"))
         self.display_auto_sync_graph_action = QtWidgets.QAction(
-            "Auto Sync with Graph Editor", self)
+            "Auto Sync with Graph Editor", self
+        )
         self.display_auto_sync_graph_action.setCheckable(True)
 
-        self.display_order_default_action = QtWidgets.QAction(
-            "Default", self)
-        self.display_order_alphabetical_action = QtWidgets.QAction(
-            "Alphabetical", self)
+        self.display_order_default_action = QtWidgets.QAction("Default", self)
+        self.display_order_alphabetical_action = QtWidgets.QAction("Alphabetical", self)
 
         # Key actions
         self.key_all_action = QtWidgets.QAction("Keyframe", self)
@@ -152,15 +150,16 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.key_paste_action = QtWidgets.QAction("Paste Key", self)
         self.key_paste_action.setIcon(pyqt.get_icon("mgear_clipboard"))
         self.key_paste_action.setShortcut(QtGui.QKeySequence("Ctrl+V"))
-        self.key_all_tabs_action = QtWidgets.QAction(
-            "Keyframe All Tabs", self)
+        self.key_all_tabs_action = QtWidgets.QAction("Keyframe All Tabs", self)
         self.key_all_tabs_action.setCheckable(True)
         self.copypaste_all_channels_action = QtWidgets.QAction(
-            "Copy/Paste All Channels", self)
+            "Copy/Paste All Channels", self
+        )
         self.copypaste_all_channels_action.setCheckable(True)
 
         self.key_del_frame_action = QtWidgets.QAction(
-            "Delete Current Frame Keyframe", self)
+            "Delete Current Frame Keyframe", self
+        )
         self.key_del_frame_action.setIcon(pyqt.get_icon("mgear_trash-2"))
         self.key_del_frame_action.setShortcut(QtGui.QKeySequence("Shift+S"))
 
@@ -226,50 +225,60 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
 
         # Keyframe widgets
         self.key_all_button = mwgt.create_button(
-            size=34, icon="mgear_key", toolTip="Keyframe")
+            size=34, icon="mgear_key", toolTip="Keyframe"
+        )
         self.key_copy_button = mwgt.create_button(
-            size=34, icon="mgear_copy", toolTip="Copy Keyframe")
+            size=34, icon="mgear_copy", toolTip="Copy Keyframe"
+        )
         self.key_paste_button = mwgt.create_button(
-            size=34, icon="mgear_clipboard", toolTip="Paste Keyframe")
+            size=34, icon="mgear_clipboard", toolTip="Paste Keyframe"
+        )
 
         # channel listing widgets
         self.lock_button = mwgt.create_button(
             size=34,
             icon="mgear_unlock",
             toggle_icon="mgear_lock",
-            toolTip="Lock Channel Auto Refresh")
+            toolTip="Lock Channel Auto Refresh",
+        )
         self.refresh_button = mwgt.create_button(
-            size=17, icon="mgear_refresh-cw", toolTip="Refresh Channel List")
+            size=17, icon="mgear_refresh-cw", toolTip="Refresh Channel List"
+        )
         self.add_channel_button = mwgt.create_button(
-            size=34, icon="mgear_plus", toolTip="Add Selected Channels")
+            size=34, icon="mgear_plus", toolTip="Add Selected Channels"
+        )
         self.remove_channel_button = mwgt.create_button(
-            size=34, icon="mgear_minus", toolTip="Remove Selected Channels")
+            size=34, icon="mgear_minus", toolTip="Remove Selected Channels"
+        )
 
         # node list widgets
         self.node_list_combobox = QtWidgets.QComboBox()
         self.node_list_combobox.setMaximumHeight(17)
         self.refresh_node_list_button = mwgt.create_button(
-            size=17, icon="mgear_refresh-cw", toolTip="Refresh Node List")
+            size=17, icon="mgear_refresh-cw", toolTip="Refresh Node List"
+        )
         self.new_node_button = mwgt.create_button(
-            size=17,
-            icon="mgear_plus",
-            toolTip="Create New Channel Master Node")
+            size=17, icon="mgear_plus", toolTip="Create New Channel Master Node"
+        )
 
         # search widgets
         self.search_label = QtWidgets.QLabel("Filter Channel: ")
         self.search_lineEdit = QtWidgets.QLineEdit()
         self.search_clear_button = mwgt.create_button(
-            size=17, icon="mgear_delete", toolTip="Clear Search Field")
+            size=17, icon="mgear_delete", toolTip="Clear Search Field"
+        )
 
         # tabs widget
         self.tab_widget = QtWidgets.QTabWidget()
         self.add_tab_button = mwgt.create_button(
-            size=17, icon="mgear_plus", toolTip="Add New Tab")
+            size=17, icon="mgear_plus", toolTip="Add New Tab"
+        )
         self.add_tab_button.setFlat(True)
         self.add_tab_button.setMaximumWidth(34)
 
-        self.tab_widget.setCornerWidget(self.add_tab_button,
-                                        corner=QtCore.Qt.TopRightCorner)
+        self.tab_widget.setCornerWidget(
+            self.add_tab_button, corner=QtCore.Qt.TopRightCorner
+        )
 
     def create_layout(self):
 
@@ -331,40 +340,30 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
 
     def create_connections(self):
         #  actions File
-        self.file_new_node_action.triggered.connect(
-            self.create_new_node)
-        self.file_save_node_action.triggered.connect(
-            self.save_node_data)
-        self.set_external_config_action.triggered.connect(
-            self.set_external_config)
+        self.file_new_node_action.triggered.connect(self.create_new_node)
+        self.file_save_node_action.triggered.connect(self.save_node_data)
+        self.set_external_config_action.triggered.connect(self.set_external_config)
         self.remove_external_config_action.triggered.connect(
-            self.remove_external_config)
-        self.file_export_all_action.triggered.connect(
-            self.export_node_data)
-        self.file_export_current_action.triggered.connect(
-            self.export_tab_data)
-        self.file_import_action.triggered.connect(
-            self.import_node_data)
-        self.file_import_add_action.triggered.connect(
-            self.add_node_data)
-        self.use_node_namespace_action.triggered.connect(
-            self.use_node_namespace)
-        self.use_only_local_data_action.triggered.connect(
-            self.use_only_local_data)
+            self.remove_external_config
+        )
+        self.file_export_all_action.triggered.connect(self.export_node_data)
+        self.file_export_current_action.triggered.connect(self.export_tab_data)
+        self.file_import_action.triggered.connect(self.import_node_data)
+        self.file_import_add_action.triggered.connect(self.add_node_data)
+        self.use_node_namespace_action.triggered.connect(self.use_node_namespace)
+        self.use_only_local_data_action.triggered.connect(self.use_only_local_data)
 
         # actions display
-        self.display_fullname_action.triggered.connect(
-            self.action_display_fullname)
-        self.display_sync_graph_action.triggered.connect(
-            self.action_sync_graph_editor)
+        self.display_fullname_action.triggered.connect(self.action_display_fullname)
+        self.display_sync_graph_action.triggered.connect(self.action_sync_graph_editor)
         self.display_edit_channel_order_action.triggered.connect(
-            self.action_edit_channel_order)
-        self.scrubbing_update_action.triggered.connect(
-            self.action_scrubbing_update)
-        self.display_order_default_action.triggered.connect(
-            self.action_default_order)
+            self.action_edit_channel_order
+        )
+        self.scrubbing_update_action.triggered.connect(self.action_scrubbing_update)
+        self.display_order_default_action.triggered.connect(self.action_default_order)
         self.display_order_alphabetical_action.triggered.connect(
-            self.action_alphabetical_order)
+            self.action_alphabetical_order
+        )
 
         # actions keyframe
         self.key_all_action.triggered.connect(self.key_all)
@@ -393,13 +392,12 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
 
         self.add_tab_button.clicked.connect(self.add_tab)
 
-        self.add_channel_button.clicked.connect(
-            self.add_channels_to_current_tab)
-        self.remove_channel_button.clicked.connect(
-            self.remove_selected_channels)
+        self.add_channel_button.clicked.connect(self.add_channels_to_current_tab)
+        self.remove_channel_button.clicked.connect(self.remove_selected_channels)
 
         self.node_list_combobox.currentIndexChanged.connect(
-            self.update_channel_master_from_node)
+            self.update_channel_master_from_node
+        )
         # self.tab_widget.currentChanged.connect(self.save_node_data)
         self.tab_widget.currentChanged.connect(self.tab_change)
 
@@ -435,8 +433,10 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         if not current_node:
             return
         if not pm.objExists(current_node):
-            pm.displayWarning("Channel Master Node: {}".format(current_node)
-                              + " Can't be found or doesn't exist")
+            pm.displayWarning(
+                "Channel Master Node: {}".format(current_node)
+                + " Can't be found or doesn't exist"
+            )
             return
 
         return current_node
@@ -468,12 +468,10 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         return self.tab_widget.tabText(self.tab_widget.currentIndex())
 
     def save_node_data(self):
-        """Save current node data
-        """
+        """Save current node data"""
         current_node = self.get_current_node()
         if not current_node:
-            pm.displayWarning("Node data can't be saved."
-                              " Please check if node exist")
+            pm.displayWarning("Node data can't be saved." " Please check if node exist")
             return
 
         cmn.set_node_data(current_node, self.get_channel_master_config())
@@ -487,8 +485,7 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         cmn.export_data(current_node)
 
     def export_tab_data(self):
-        """Export the data configuration from the current tab
-        """
+        """Export the data configuration from the current tab"""
         current_node = self.get_current_node()
         current_tab = self.get_current_tab_name()
         cmn.export_data(current_node, current_tab)
@@ -523,38 +520,32 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         return cmn.get_node_data(node)
 
     def import_node_data(self):
-        """Create a new node and import the data from an exported data file
-        """
+        """Create a new node and import the data from an exported data file"""
         sel = pm.selected()
         node = cmn.import_data()
         self.set_active_node(node)
         pm.select(sel)
 
     def add_node_data(self):
-        """Add the imported data to the current node
-        """
+        """Add the imported data to the current node"""
         current_node = self.get_current_node()
         cmn.import_data(node=current_node, add_data=True)
         self.update_channel_master_from_node()
 
     def set_external_config(self):
-        """set external config path
-        """
+        """set external config path"""
         current_node = self.get_current_node()
         cmn.set_external_config_path(current_node)
         self.update_channel_master_from_node()
 
     def remove_external_config(self):
-        """remove external config path
-        """
+        """remove external config path"""
         current_node = self.get_current_node()
         cmn.remove_external_config_path(current_node)
         self.update_channel_master_from_node()
 
     def update_channel_master_from_node(self):
-        """Update the channel master content from the node configuration
-
-        """
+        """Update the channel master content from the node configuration"""
         data = self.get_data_from_current_node()
         if not data:
             return
@@ -562,13 +553,11 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         for t in data["tabs"]:
             if t != "Main":
                 new_table = self.add_tab(name=t)
-                new_table.set_table_config(data["tabs_data"][t],
-                                           self.namespace)
+                new_table.set_table_config(data["tabs_data"][t], self.namespace)
         self.tab_widget.setCurrentIndex(data["current_tab"])
 
     def update_main_table(self):
-        """update main table content
-        """
+        """update main table content"""
         self.main_table.update_table_from_selection()
         # Clean values buffer
         # self.values_buffer = []
@@ -588,20 +577,17 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
                 table.setRowHidden(i, True)
 
     def search_clear(self):
-        """Clear search field
-        """
+        """Clear search field"""
         self.search_lineEdit.setText("")
 
     def refresh_channels_values(self, current_time=False):
-        """Refresh the channel values of the current table
-        """
+        """Refresh the channel values of the current table"""
         table = self.get_current_table()
         if table:
             table.refresh_channels_values(current_time)
 
     def tab_change(self):
-        """Slot triggered when tab change
-        """
+        """Slot triggered when tab change"""
         self.refresh_channels_values()
         self.action_display_fullname()
         # self.values_buffer = []
@@ -632,14 +618,13 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
     def action_scrubbing_update(self):
         if self.scrubbing_update_action.isChecked():
             self.cb_manager.userTimeChangedCB(
-                "Channel_Master_userTimeChange_CB",
-                self.time_changed)
+                "Channel_Master_userTimeChange_CB", self.time_changed
+            )
         else:
             self.cb_manager.removeManagedCB("Channel_Master_userTimeChange_CB")
 
     def action_edit_channel_order(self):
-        """Show Edit channel order dialog
-        """
+        """Show Edit channel order dialog"""
         try:
             self.channel_dialog.close()
             self.channel_dialog.deleteLater()
@@ -651,12 +636,10 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.channel_dialog.show()
 
     def action_display_fullname(self):
-        """Toggle channel name  from nice name to full name
-        """
+        """Toggle channel name  from nice name to full name"""
         table = self.get_current_table()
         for i in range(table.rowCount()):
-            table.set_channel_fullname(
-                i, self.display_fullname_action.isChecked())
+            table.set_channel_fullname(i, self.display_fullname_action.isChecked())
 
     def action_sync_graph_editor(self):
         table = self.get_current_table()
@@ -669,15 +652,13 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         cmu.sync_graph_editor(attr_configs, self.namespace)
 
     def action_default_order(self):
-        """reset the channels to the default order
-        """
+        """reset the channels to the default order"""
         current_tab = self.tab_widget.currentIndex()
         self.update_channel_master_from_node()
         self.tab_widget.setCurrentIndex(current_tab)
 
     def action_alphabetical_order(self):
-        """order  the channels alphabetically
-        """
+        """order  the channels alphabetically"""
         # table = self.get_current_table()
         for i in range(self.tab_widget.count()):
             table = self.tab_widget.widget(i)
@@ -713,10 +694,8 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         keyed = []
         for i in range(table.rowCount()):
             item = table.item(i, 0)
-            attr = table.namespace_sync(
-                item.data(QtCore.Qt.UserRole)["fullName"])
-            if cmu.current_frame_has_key(attr) \
-                    and cmu.value_equal_keyvalue(attr):
+            attr = table.namespace_sync(item.data(QtCore.Qt.UserRole)["fullName"])
+            if cmu.current_frame_has_key(attr) and cmu.value_equal_keyvalue(attr):
                 keyed.append(attr)
             else:
                 not_keyed.append(attr)
@@ -730,8 +709,9 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
             *args: Description
         """
         if self.key_all_tabs_action.isChecked():
-            pm.displayInfo("Keyframe all tabs."
-                           " Only add keys. Not toggle key behavior!")
+            pm.displayInfo(
+                "Keyframe all tabs." " Only add keys. Not toggle key behavior!"
+            )
             tables = self.get_all_tables()
             key_only = True
         else:
@@ -777,8 +757,7 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
             items = table.selectedItems()
 
         for item in items:
-            attr = table.namespace_sync(
-                item.data(QtCore.Qt.UserRole)["fullName"])
+            attr = table.namespace_sync(item.data(QtCore.Qt.UserRole)["fullName"])
             self.values_buffer.append(cmds.getAttr(attr))
 
     @utils.one_undo
@@ -803,22 +782,20 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
             items = table.selectedItems()
         if len(items) == len(self.values_buffer):
             for e, item in enumerate(items):
-                attr = table.namespace_sync(
-                    item.data(QtCore.Qt.UserRole)["fullName"])
+                attr = table.namespace_sync(item.data(QtCore.Qt.UserRole)["fullName"])
                 cmds.setAttr(attr, self.values_buffer[e])
                 cmu.set_key(attr)
 
             self.refresh_channels_values()
         else:
-            pm.displayWarning("Stored buffer has {0} values but selected "
-                              "channels number is: {1}. Can't paste "
-                              "values".format(
-                                  str(len(self.values_buffer)),
-                                  str(len(items))))
+            pm.displayWarning(
+                "Stored buffer has {0} values but selected "
+                "channels number is: {1}. Can't paste "
+                "values".format(str(len(self.values_buffer)), str(len(items)))
+            )
 
     def refresh_node_list(self):
-        """Refresh the channel master node list
-        """
+        """Refresh the channel master node list"""
         current_node = self.node_list_combobox.currentText()
         nodes = cmn.list_channel_master_nodes()
         self.node_list_combobox.clear()
@@ -899,8 +876,7 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
             pm.displayWarning("No valid tab name!")
 
     def duplicate_tab(self):
-        """Duplicate the current tab
-        """
+        """Duplicate the current tab"""
         table = self.get_current_table()
         cur_idx = self.tab_widget.currentIndex()
         name = self.tab_widget.tabText(cur_idx) + "_copy"
@@ -912,12 +888,12 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
             # self.save_node_data()
 
     def delete_tab(self):
-        """Delete the current tab
-        """
+        """Delete the current tab"""
         cur_idx = self.tab_widget.currentIndex()
         if cur_idx >= 1:
             button_pressed = QtWidgets.QMessageBox.question(
-                self, "Delete Tab", "Confirm Delete Tab?")
+                self, "Delete Tab", "Confirm Delete Tab?"
+            )
             if button_pressed == QtWidgets.QMessageBox.Yes:
                 page = self.tab_widget.widget(cur_idx)
                 self.tab_widget.removeTab(cur_idx)
@@ -1001,8 +977,7 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
             for ch in selected_channels:
                 # get channel data
                 ch_parts = ch.split(".")
-                ch_config = cmu.get_single_attribute_config(ch_parts[0],
-                                                            ch_parts[1])
+                ch_config = cmu.get_single_attribute_config(ch_parts[0], ch_parts[1])
 
                 # check if channel is already in the table
                 ch_name = ch_config["fullName"]
@@ -1020,8 +995,7 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
             pm.displayWarning("Main Tab Can't be Edited!")
 
     def remove_selected_channels(self):
-        """Remove selected channels from the current channel master table
-        """
+        """Remove selected channels from the current channel master table"""
         # check that main tab is not edited
         cur_idx = self.tab_widget.currentIndex()
         if cur_idx >= 1:
@@ -1031,7 +1005,8 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
 
             # promp before remove the channel
             button_pressed = QtWidgets.QMessageBox.question(
-                self, "Remove Channels", "Confirm Remove Selected Channels?")
+                self, "Remove Channels", "Confirm Remove Selected Channels?"
+            )
             if button_pressed == QtWidgets.QMessageBox.Yes:
 
                 # get keys to remove
@@ -1054,17 +1029,14 @@ def openChannelMaster(*args):
 
 class channelOrderDialog(QtWidgets.QDialog):
 
-    """Dialog to edit table channel order
-
-    """
+    """Dialog to edit table channel order"""
 
     def __init__(self, parent, table):
         super(channelOrderDialog, self).__init__(parent)
 
         self.setWindowTitle("Channel Order")
         self.setMinimumWidth(220)
-        self.setWindowFlags(self.windowFlags()
-                            ^ QtCore.Qt.WindowContextHelpButtonHint)
+        self.setWindowFlags(self.windowFlags() ^ QtCore.Qt.WindowContextHelpButtonHint)
         self.table = table
         self.table_config = self.table.get_table_config()
         self.channels = self.table_config["channels"]
@@ -1076,11 +1048,13 @@ class channelOrderDialog(QtWidgets.QDialog):
     def create_widgets(self):
         self.channel_list_qlist = QtWidgets.QListWidget()
         self.channel_list_qlist.setSelectionMode(
-            QtWidgets.QAbstractItemView.ExtendedSelection)
+            QtWidgets.QAbstractItemView.ExtendedSelection
+        )
         self.channel_list_qlist.addItems(self.channels)
         self.channel_list_qlist.setDragDropOverwriteMode(True)
         self.channel_list_qlist.setDragDropMode(
-            QtWidgets.QAbstractItemView.InternalMove)
+            QtWidgets.QAbstractItemView.InternalMove
+        )
         self.channel_list_qlist.setDefaultDropAction(QtCore.Qt.MoveAction)
         self.channel_list_qlist.setAlternatingRowColors(True)
 
@@ -1119,6 +1093,7 @@ if __name__ == "__main__":
     from mgear.animbits import channel_master
 
     import sys
+
     if sys.version_info[0] == 2:
         reload(channel_master_utils)
         reload(channel_master_widgets)
@@ -1133,8 +1108,7 @@ if __name__ == "__main__":
     ctl = pm.selected()[0].name()
     attrs = channel_master_utils.get_attributes_config(ctl)
 
-    pyqt.showDialog(partial(channel_master.ChannelMaster, attrs),
-                    dockable=True)
+    pyqt.showDialog(partial(channel_master.ChannelMaster, attrs), dockable=True)
 
     end = timeit.default_timer()
     timeConsumed = end - start

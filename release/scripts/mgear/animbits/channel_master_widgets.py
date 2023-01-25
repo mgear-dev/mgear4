@@ -33,6 +33,7 @@ CHECKBOX_STYLE = """
 # Helper functions
 ##################
 
+
 def refresh_key_button_color(button, attr, current_time=False):
     """refresh the key button color based on the animation of a given attribute
 
@@ -43,21 +44,17 @@ def refresh_key_button_color(button, attr, current_time=False):
     if cmu.channel_has_animation(attr):
         if cmu.value_equal_keyvalue(attr, current_time):
             if cmu.current_frame_has_key(attr):
-                button.setStyleSheet(
-                    'QPushButton {background-color: #ce5846;}')
+                button.setStyleSheet("QPushButton {background-color: #ce5846;}")
             else:
-                button.setStyleSheet(
-                    'QPushButton {background-color: #89bf72;}')
+                button.setStyleSheet("QPushButton {background-color: #89bf72;}")
         else:
-            button.setStyleSheet(
-                'QPushButton {background-color: #ddd87c;}')
+            button.setStyleSheet("QPushButton {background-color: #ddd87c;}")
 
     else:
-        button.setStyleSheet(
-            'QPushButton {background-color: #ABA8A6;}')
+        button.setStyleSheet("QPushButton {background-color: #ABA8A6;}")
 
 
-def random_color(min_val=.01, max_val=.6):
+def random_color(min_val=0.01, max_val=0.6):
     r = random.uniform(min_val, max_val)
     g = random.uniform(min_val, max_val)
     b = random.uniform(min_val, max_val)
@@ -67,13 +64,13 @@ def random_color(min_val=.01, max_val=.6):
 
     return color
 
+
 ###################################################
 # Channel Table Class
 ###################################################
 
 
 class ChannelTable(QtWidgets.QTableWidget):
-
     def __init__(self, chan_config=None, namespace=None, parent=None):
         super(ChannelTable, self).__init__(parent)
         self._fixed_square = pyqt.dpi_scale(17)
@@ -89,48 +86,49 @@ class ChannelTable(QtWidgets.QTableWidget):
     def create_menu(self):
         self.menu = QtWidgets.QMenu(self)
 
-        reset_value_action = QtWidgets.QAction('Reset Value to Default', self)
+        reset_value_action = QtWidgets.QAction("Reset Value to Default", self)
         reset_value_action.setIcon(pyqt.get_icon("mgear_rewind"))
         reset_value_action.triggered.connect(self.reset_value_slot)
         self.menu.addAction(reset_value_action)
         self.menu.addSeparator()
 
         sync_graph_editor_action = QtWidgets.QAction(
-            'Sync Selected with Graph Editor', self)
+            "Sync Selected with Graph Editor", self
+        )
         sync_graph_editor_action.setIcon(pyqt.get_icon("mgear_activity"))
         sync_graph_editor_action.triggered.connect(self.sync_graph_editor)
         self.menu.addAction(sync_graph_editor_action)
         self.menu.addSeparator()
 
-        select_attr_host_action = QtWidgets.QAction('Select Host', self)
+        select_attr_host_action = QtWidgets.QAction("Select Host", self)
         select_attr_host_action.setIcon(pyqt.get_icon("mgear_arrow-up"))
         select_attr_host_action.triggered.connect(self.select_host)
         self.menu.addAction(select_attr_host_action)
         self.menu.addSeparator()
 
-        set_range_action = QtWidgets.QAction('Set Range', self)
+        set_range_action = QtWidgets.QAction("Set Range", self)
         set_range_action.setIcon(pyqt.get_icon("mgear_sliders"))
         set_range_action.triggered.connect(self.set_range_slot)
         self.menu.addAction(set_range_action)
         self.menu.addSeparator()
 
         self.menu.addSeparator()
-        set_color_action = QtWidgets.QAction('Set Color', self)
+        set_color_action = QtWidgets.QAction("Set Color", self)
         set_color_action.setIcon(pyqt.get_icon("mgear_edit-2"))
         set_color_action.triggered.connect(self.set_color_slot)
         self.menu.addAction(set_color_action)
 
-        auto_color_host_action = QtWidgets.QAction('Auto Color by Host', self)
+        auto_color_host_action = QtWidgets.QAction("Auto Color by Host", self)
         auto_color_host_action.setIcon(pyqt.get_icon("mgear_edit-3"))
         auto_color_host_action.triggered.connect(self.auto_color_host_slot)
         self.menu.addAction(auto_color_host_action)
 
-        auto_color_axis_action = QtWidgets.QAction('Auto Color by Axis', self)
+        auto_color_axis_action = QtWidgets.QAction("Auto Color by Axis", self)
         auto_color_axis_action.setIcon(pyqt.get_icon("mgear_edit-3"))
         auto_color_axis_action.triggered.connect(self.auto_color_axis_slot)
         self.menu.addAction(auto_color_axis_action)
 
-        clear_color_action = QtWidgets.QAction('Clear Color', self)
+        clear_color_action = QtWidgets.QAction("Clear Color", self)
         clear_color_action.setIcon(pyqt.get_icon("mgear_x-octagon"))
         clear_color_action.triggered.connect(self.clear_color_slot)
         self.menu.addAction(clear_color_action)
@@ -143,7 +141,8 @@ class ChannelTable(QtWidgets.QTableWidget):
                 color = QtWidgets.QColorDialog.getColor(
                     items[0].background().color(),
                     parent=self,
-                    options=QtWidgets.QColorDialog.DontUseNativeDialog)
+                    options=QtWidgets.QColorDialog.DontUseNativeDialog,
+                )
             if not color.isValid():
                 return
 
@@ -172,9 +171,7 @@ class ChannelTable(QtWidgets.QTableWidget):
         for itm in self.selectedItems():
             attr_config = itm.data(QtCore.Qt.UserRole)
             f_name = attr_config["fullName"]
-            colors = [[0.8, 0.0, 0.1],
-                      [0.0, 0.57, 0.0],
-                      [0.0, 0.0, 0.75]]
+            colors = [[0.8, 0.0, 0.1], [0.0, 0.57, 0.0], [0.0, 0.0, 0.75]]
 
             color = QtGui.QColor()
             if f_name.endswith("X"):
@@ -236,8 +233,7 @@ class ChannelTable(QtWidgets.QTableWidget):
                     ch_item = self.cellWidget(itm.row(), 2)
                     if not init_range:
                         init_range = ch_item.getRange()
-                        set_range_dialog = SetRangeDialog(init_range,
-                                                          self)
+                        set_range_dialog = SetRangeDialog(init_range, self)
                         result = set_range_dialog.exec_()
 
                         if result != QtWidgets.QDialog.Accepted:
@@ -252,8 +248,9 @@ class ChannelTable(QtWidgets.QTableWidget):
                     itm.setData(QtCore.Qt.UserRole, attr_config)
 
     def setup_table(self):
-        self.setSizePolicy(QtWidgets.QSizePolicy.Expanding,
-                           QtWidgets.QSizePolicy.Expanding)
+        self.setSizePolicy(
+            QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding
+        )
         self.setColumnCount(3)
         self.setStyleSheet(TABLE_STYLE)
         horizontal_header_view = self.horizontalHeader()
@@ -264,9 +261,9 @@ class ChannelTable(QtWidgets.QTableWidget):
         horizontal_header_view.setMinimumSectionSize(self._fixed_square)
 
         horizontal_header_view.setSectionResizeMode(
-            0, QtWidgets.QHeaderView.ResizeToContents)
-        horizontal_header_view.setSectionResizeMode(
-            2, QtWidgets.QHeaderView.Stretch)
+            0, QtWidgets.QHeaderView.ResizeToContents
+        )
+        horizontal_header_view.setSectionResizeMode(2, QtWidgets.QHeaderView.Stretch)
 
     def contextMenuEvent(self, event):
         if self.selectedItems():
@@ -291,7 +288,6 @@ class ChannelTable(QtWidgets.QTableWidget):
         return name
 
     def config_table(self):
-
         def value_update(attr_config, *args):
             """Update the attribute from the  channel value
 
@@ -302,27 +298,28 @@ class ChannelTable(QtWidgets.QTableWidget):
             """
             if self.trigger_value_update:
                 try:
-                    cmds.setAttr(self.namespace_sync(attr_config["fullName"]),
-                                 args[0])
+                    cmds.setAttr(self.namespace_sync(attr_config["fullName"]), args[0])
 
                     # refresh button color while value update
                     for i in range(self.rowCount()):
                         item = self.item(i, 0)
                         attr = item.data(QtCore.Qt.UserRole)
-                        if (self.namespace_sync(attr["fullName"])
-                                == self.namespace_sync(
-                                    attr_config["fullName"])):
+                        if self.namespace_sync(attr["fullName"]) == self.namespace_sync(
+                            attr_config["fullName"]
+                        ):
                             button = self.cellWidget(i, 1)
                             refresh_key_button_color(
-                                button,
-                                self.namespace_sync(attr_config["fullName"]))
+                                button, self.namespace_sync(attr_config["fullName"])
+                            )
                             break
                 except RuntimeError:
                     fname = self.namespace_sync(attr_config["fullName"])
-                    pm.displayWarning("Channel {} not Found.".format(fname)
-                                      + " Maybe the channel master"
-                                      + " contains not existing channels. "
-                                      + "Review Channel Master configuration")
+                    pm.displayWarning(
+                        "Channel {} not Found.".format(fname)
+                        + " Maybe the channel master"
+                        + " contains not existing channels. "
+                        + "Review Channel Master configuration"
+                    )
 
         def open_undo_chunk():
             cmds.undoInfo(openChunk=True)
@@ -341,18 +338,20 @@ class ChannelTable(QtWidgets.QTableWidget):
                 val = cmds.getAttr(at_name)
             except ValueError:
                 pm.displayWarning(
-                    "{} not found. Maybe wrong NameSpace?".format(at_name))
+                    "{} not found. Maybe wrong NameSpace?".format(at_name)
+                )
                 continue
             if at["type"] in cmu.ATTR_SLIDER_TYPES:
                 if at["type"] == "long":
                     Type = "int"
                 else:
                     Type = "float"
-                ch_ctl = pyflow_widgets.pyf_Slider(self,
-                                                   Type=Type,
-                                                   defaultValue=val,
-                                                   sliderRange=(at["min"],
-                                                                at["max"]))
+                ch_ctl = pyflow_widgets.pyf_Slider(
+                    self,
+                    Type=Type,
+                    defaultValue=val,
+                    sliderRange=(at["min"], at["max"]),
+                )
 
                 ch_ctl.setMaximumHeight(self._fixed_square)
                 ch_ctl.setMinimumHeight(self._fixed_square)
@@ -361,8 +360,7 @@ class ChannelTable(QtWidgets.QTableWidget):
                 ch_ctl.input.setMaximumHeight(self._fixed_square)
                 ch_ctl.input.setMinimumHeight(self._fixed_square)
 
-                ch_ctl.valueChanged.connect(
-                    partial(value_update, at))
+                ch_ctl.valueChanged.connect(partial(value_update, at))
                 ch_ctl.sliderPressed.connect(open_undo_chunk)
                 ch_ctl.sliderReleased.connect(close_undo_chunk)
 
@@ -380,8 +378,7 @@ class ChannelTable(QtWidgets.QTableWidget):
                 if val:
                     cbox.setChecked(True)
 
-                cbox.toggled.connect(
-                    partial(value_update, at))
+                cbox.toggled.connect(partial(value_update, at))
 
             elif at["type"] == "enum":
 
@@ -393,8 +390,7 @@ class ChannelTable(QtWidgets.QTableWidget):
                     ch_ctl.addItems(at["items"])
                     ch_ctl.setCurrentIndex(val)
 
-                    ch_ctl.currentIndexChanged.connect(
-                        partial(value_update, at))
+                    ch_ctl.currentIndexChanged.connect(partial(value_update, at))
 
             label_item = QtWidgets.QTableWidgetItem(at["niceName"] + "  ")
             if at["color"]:
@@ -421,8 +417,7 @@ class ChannelTable(QtWidgets.QTableWidget):
         self.setColumnWidth(1, self._fixed_square)
 
     def update_table(self):
-        """update table usin from the stored channel configuration
-        """
+        """update table usin from the stored channel configuration"""
         self.clear()
         for i in range(self.rowCount()):
             self.removeRow(0)
@@ -445,8 +440,7 @@ class ChannelTable(QtWidgets.QTableWidget):
         self.update_table()
 
     def refresh_channels_values(self, current_time=False):
-        """refresh the channel values of the table
-        """
+        """refresh the channel values of the table"""
         self.trigger_value_update = False
         for i in range(self.rowCount()):
             ch_item = self.cellWidget(i, 2)
@@ -457,8 +451,9 @@ class ChannelTable(QtWidgets.QTableWidget):
                     # Note: we can not set time to False because looks like
                     # having this flag force the evaluation on the animation
                     # curve and not in the current attribute value
-                    val = cmds.getAttr(self.namespace_sync(
-                        attr["fullName"]), time=current_time)
+                    val = cmds.getAttr(
+                        self.namespace_sync(attr["fullName"]), time=current_time
+                    )
                 else:
                     val = cmds.getAttr(self.namespace_sync(attr["fullName"]))
                 if attr["type"] in cmu.ATTR_SLIDER_TYPES:
@@ -472,9 +467,9 @@ class ChannelTable(QtWidgets.QTableWidget):
 
                 # refresh button color
                 button_item = self.cellWidget(i, 1)
-                refresh_key_button_color(button_item,
-                                         self.namespace_sync(attr["fullName"]),
-                                         current_time)
+                refresh_key_button_color(
+                    button_item, self.namespace_sync(attr["fullName"]), current_time
+                )
             except ValueError:
                 pass
 
@@ -538,23 +533,21 @@ class ChannelTable(QtWidgets.QTableWidget):
         # right click menu
         pop_menu = QtWidgets.QMenu(button)
 
-        next_key_action = QtWidgets.QAction('Next Keyframe', button)
+        next_key_action = QtWidgets.QAction("Next Keyframe", button)
         next_key_action.setIcon(pyqt.get_icon("mgear_arrow-right"))
         next_key_action.triggered.connect(partial(cmu.next_keyframe, attr))
         pop_menu.addAction(next_key_action)
 
-        previous_key_action = QtWidgets.QAction('previous Keyframe', button)
+        previous_key_action = QtWidgets.QAction("previous Keyframe", button)
         previous_key_action.setIcon(pyqt.get_icon("mgear_arrow-left"))
-        previous_key_action.triggered.connect(
-            partial(cmu.previous_keyframe, attr))
+        previous_key_action.triggered.connect(partial(cmu.previous_keyframe, attr))
         pop_menu.addAction(previous_key_action)
 
         pop_menu.addSeparator()
 
-        remove_animation_action = QtWidgets.QAction('Remove Animation', button)
+        remove_animation_action = QtWidgets.QAction("Remove Animation", button)
         remove_animation_action.setIcon(pyqt.get_icon("mgear_trash"))
-        remove_animation_action.triggered.connect(
-            partial(cmu.remove_animation, attr))
+        remove_animation_action.triggered.connect(partial(cmu.remove_animation, attr))
         pop_menu.addAction(remove_animation_action)
 
         def context_menu(point):
@@ -636,8 +629,7 @@ class SetRangeDialog(QtWidgets.QDialog):
         self.ok_btn.clicked.connect(self.accept)
 
     def get_range(self):
-        return([self.min_spinbox.value(),
-                self.max_spinbox.value()])
+        return [self.min_spinbox.value(), self.max_spinbox.value()]
 
 
 ##################
@@ -688,8 +680,7 @@ class NameDialog(QtWidgets.QDialog):
         return self.name_lineEdit.text()
 
     def eventFilter(self, obj, event):
-        if (obj == self.name_lineEdit
-                and event.type() == QtCore.QEvent.KeyPress):
+        if obj == self.name_lineEdit and event.type() == QtCore.QEvent.KeyPress:
             key = event.key()
             if key == QtCore.Qt.Key_Return or key == QtCore.Qt.Key_Enter:
                 self.accept()

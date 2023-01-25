@@ -35,9 +35,9 @@ def _convert_path_token(file_path):
     path_token = "[{}]".format(CHANNEL_MASTER_PATH)
     if path_token in file_path:
         if os.environ.get(CHANNEL_MASTER_PATH, ""):
-            file_path = file_path.replace(path_token,
-                                          os.environ.get(
-                                              CHANNEL_MASTER_PATH, ""))
+            file_path = file_path.replace(
+                path_token, os.environ.get(CHANNEL_MASTER_PATH, "")
+            )
     return file_path
 
 
@@ -80,9 +80,9 @@ def create_channel_master_node(name):
     attribute.lockAttribute(pm.PyNode(node))
 
     # init data
-    cmds.setAttr("{}.data".format(node),
-                 cmu.init_channel_master_config_data(),
-                 type="string")
+    cmds.setAttr(
+        "{}.data".format(node), cmu.init_channel_master_config_data(), type="string"
+    )
     return node
 
 
@@ -151,20 +151,22 @@ def export_data(node, tab=None, filePath=None):
             config["tabs_data"] = tabs_data
         else:
             keys = config["tabs_data"].keys()
-            pm.displayWarning("Tab {}, not found int current node.".format(tab)
-                              + " Available tabs are: {}".format(keys))
+            pm.displayWarning(
+                "Tab {}, not found int current node.".format(tab)
+                + " Available tabs are: {}".format(keys)
+            )
     data["config"] = config
 
     data_string = json.dumps(data, indent=4, sort_keys=True)
     if not filePath:
         filePath = pm.fileDialog2(
-            fileMode=0,
-            fileFilter='Channel Master Configuration .cmc (*%s)' % ".cmc")
+            fileMode=0, fileFilter="Channel Master Configuration .cmc (*%s)" % ".cmc"
+        )
     if not filePath:
         return
     if not isinstance(filePath, string_types):
         filePath = filePath[0]
-    f = open(filePath, 'w')
+    f = open(filePath, "w")
     f.write(data_string)
     f.close()
 
@@ -182,8 +184,8 @@ def import_data(filePath=None, node=None, add_data=False):
     """
     if not filePath:
         filePath = pm.fileDialog2(
-            fileMode=1,
-            fileFilter='Channel Master Configuration .cmc (*%s)' % ".cmc")
+            fileMode=1, fileFilter="Channel Master Configuration .cmc (*%s)" % ".cmc"
+        )
 
     if not filePath:
         return
@@ -232,8 +234,8 @@ def set_external_config_path(node, filePath=None):
         return
     if not filePath:
         filePath = pm.fileDialog2(
-            fileMode=1,
-            fileFilter='Channel Master Configuration .cmc (*%s)' % ".cmc")
+            fileMode=1, fileFilter="Channel Master Configuration .cmc (*%s)" % ".cmc"
+        )
     if not filePath:
         return
     else:
@@ -241,12 +243,8 @@ def set_external_config_path(node, filePath=None):
         # the externa data attr is missing
         if not pm.PyNode(node).hasAttr("external_data"):
             cmds.addAttr(node, ln="external_data", dt="string")
-        cmds.setAttr("{}.external_data".format(node),
-                     filePath[0],
-                     type="string")
+        cmds.setAttr("{}.external_data".format(node), filePath[0], type="string")
 
 
 def remove_external_config_path(node):
-    cmds.setAttr("{}.external_data".format(node),
-                 "",
-                 type="string")
+    cmds.setAttr("{}.external_data".format(node), "", type="string")
