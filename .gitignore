@@ -55,3 +55,4 @@ excons.cache
 /.vs/mgear4_node/v16/Browse.VC.db
 /.vs/mgear4_node/v16
 /.vs
+pyproject.toml
