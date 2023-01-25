@@ -105,7 +105,7 @@ def get_single_attribute_config(node, attr):
 
     # Get value at channel creation time
     # this value can be different from the default value
-    config["creationValue"] = cmds.getAttr(attr)
+    config["creationValue"] = cmds.getAttr("{}.{}".format(node, attr))
 
     return config
 
@@ -170,14 +170,24 @@ def reset_attribute(attr_config, namespace=None):
     attribute.reset_selected_channels_value(objects=[obj], attributes=[attr])
 
 
-# def reset_creation_value_attribute(attr_config, namespace=None):
-#     """Reset the value of a given attribute for the attribute configuration
+def reset_creation_value_attribute(attr_config, namespace=None):
+    """Reset the value of a given attribute for the attribute configuration
 
-#     Args:
-#         attr_config (dict): Attribute configuration
-#     """
-#     ctl = get_ctl_with_namespace(attr_config, namespace=None)
-#     return ctl
+    Args:
+        attr_config (dict): Attribute configuration
+    """
+    ctl = get_ctl_with_namespace(attr_config, namespace=None)
+    attr = attr_config["longName"]
+    fullname_attr = "{}.{}".format(ctl, attr)
+    if "creationValue" in attr_config.keys():
+        val = attr_config["creationValue"]
+        cmds.setAttr(fullname_attr, val)
+    else:
+        pm.displayWarning(
+            "Initial Creation Value was not originally stored for {}".format(
+                fullname_attr
+            )
+        )
 
 
 def sync_graph_editor(attr_configs, namespace=None):

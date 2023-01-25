@@ -94,6 +94,14 @@ class ChannelTable(QtWidgets.QTableWidget):
         reset_value_action.setIcon(pyqt.get_icon("mgear_rewind"))
         reset_value_action.triggered.connect(self.reset_value_slot)
         self.menu.addAction(reset_value_action)
+        reset_creation_value_action = QtWidgets.QAction(
+            "Reset to Creation Value", self
+        )
+        reset_creation_value_action.setIcon(pyqt.get_icon("mgear_rewind"))
+        reset_creation_value_action.triggered.connect(
+            self.reset_creation_value_slot
+        )
+        self.menu.addAction(reset_creation_value_action)
         self.menu.addSeparator()
 
         sync_graph_editor_action = QtWidgets.QAction(
