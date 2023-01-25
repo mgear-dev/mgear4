@@ -56,3 +56,6 @@ excons.cache
 /.vs/mgear4_node/v16
 /.vs
 pyproject.toml
+
+# mac os
+.DS_Store
