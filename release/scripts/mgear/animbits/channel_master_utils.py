@@ -78,8 +78,12 @@ def get_single_attribute_config(node, attr):
         config["niceName"] = attr
         config["longName"] = attr
     else:
-        config["niceName"] = cmds.attributeQuery(attr, node=node, niceName=True)
-        config["longName"] = cmds.attributeQuery(attr, node=node, longName=True)
+        config["niceName"] = cmds.attributeQuery(
+            attr, node=node, niceName=True
+        )
+        config["longName"] = cmds.attributeQuery(
+            attr, node=node, longName=True
+        )
 
     config["fullName"] = config["ctl"] + "." + config["longName"]
     if config["type"] in ATTR_SLIDER_TYPES:
@@ -91,7 +95,9 @@ def get_single_attribute_config(node, attr):
             config["min"] = cmds.attributeQuery(attr, node=node, min=True)[0]
         else:
             config["min"] = DEFAULT_RANGE * -1
-        config["default"] = cmds.attributeQuery(attr, node=node, listDefault=True)[0]
+        config["default"] = cmds.attributeQuery(
+            attr, node=node, listDefault=True
+        )[0]
     elif config["type"] in ["enum"]:
         items = cmds.attributeQuery(attr, node=node, listEnum=True)[0]
 
@@ -99,7 +105,7 @@ def get_single_attribute_config(node, attr):
 
     # Get value at channel creation time
     # this value can be different from the default value
-    # config["creationValue"] = cmds.getAttr(attr)
+    config["creationValue"] = cmds.getAttr(attr)
 
     return config
 
@@ -138,20 +144,40 @@ def get_table_config_from_selection():
     return attrs_config, namespace
 
 
+def get_ctl_with_namespace(attr_config, namespace=None):
+
+    if namespace:
+        ctl = (
+            namespace
+            + pm.NameParser(attr_config["ctl"]).stripNamespace().__str__()
+        )
+    else:
+        ctl = attr_config["ctl"]
+
+    return ctl
+
+
 def reset_attribute(attr_config, namespace=None):
     """Reset the value of a given attribute for the attribute configuration
 
     Args:
         attr_config (dict): Attribute configuration
     """
-    if namespace:
-        ctl = namespace + pm.NameParser(attr_config["ctl"]).stripNamespace().__str__()
-    else:
-        ctl = attr_config["ctl"]
+    ctl = get_ctl_with_namespace(attr_config, namespace=None)
     obj = pm.PyNode(ctl)
     attr = attr_config["longName"]
 
     attribute.reset_selected_channels_value(objects=[obj], attributes=[attr])
+
+
+# def reset_creation_value_attribute(attr_config, namespace=None):
+#     """Reset the value of a given attribute for the attribute configuration
+
+#     Args:
+#         attr_config (dict): Attribute configuration
+#     """
+#     ctl = get_ctl_with_namespace(attr_config, namespace=None)
+#     return ctl
 
 
 def sync_graph_editor(attr_configs, namespace=None):
@@ -182,7 +208,9 @@ def sync_graph_editor(attr_configs, namespace=None):
     def ge_update():
         pm.selectionConnection("graphEditor1FromOutliner", e=True, clear=True)
         for c in cnxs:
-            cmds.selectionConnection("graphEditor1FromOutliner", e=True, select=c)
+            cmds.selectionConnection(
+                "graphEditor1FromOutliner", e=True, select=c
+            )
 
     # we need to evalDeferred to allow grapheditor update the selection
     # highlight in grapheditor outliner

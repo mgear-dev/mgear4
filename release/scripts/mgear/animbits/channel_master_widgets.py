@@ -44,9 +44,13 @@ def refresh_key_button_color(button, attr, current_time=False):
     if cmu.channel_has_animation(attr):
         if cmu.value_equal_keyvalue(attr, current_time):
             if cmu.current_frame_has_key(attr):
-                button.setStyleSheet("QPushButton {background-color: #ce5846;}")
+                button.setStyleSheet(
+                    "QPushButton {background-color: #ce5846;}"
+                )
             else:
-                button.setStyleSheet("QPushButton {background-color: #89bf72;}")
+                button.setStyleSheet(
+                    "QPushButton {background-color: #89bf72;}"
+                )
         else:
             button.setStyleSheet("QPushButton {background-color: #ddd87c;}")
 
@@ -217,6 +221,14 @@ class ChannelTable(QtWidgets.QTableWidget):
                 attr_config = itm.data(QtCore.Qt.UserRole)
                 cmu.reset_attribute(attr_config, self.namespace)
 
+    def reset_creation_value_slot(self):
+        # reset the value to the orinal value when the channel was created
+        items = self.selectedItems()
+        if items:
+            for itm in items:
+                attr_config = itm.data(QtCore.Qt.UserRole)
+                cmu.reset_creation_value_attribute(attr_config, self.namespace)
+
     def clear_color_slot(self):
         items = self.selectedItems()
         if items:
@@ -263,7 +275,9 @@ class ChannelTable(QtWidgets.QTableWidget):
         horizontal_header_view.setSectionResizeMode(
             0, QtWidgets.QHeaderView.ResizeToContents
         )
-        horizontal_header_view.setSectionResizeMode(2, QtWidgets.QHeaderView.Stretch)
+        horizontal_header_view.setSectionResizeMode(
+            2, QtWidgets.QHeaderView.Stretch
+        )
 
     def contextMenuEvent(self, event):
         if self.selectedItems():
@@ -298,18 +312,21 @@ class ChannelTable(QtWidgets.QTableWidget):
             """
             if self.trigger_value_update:
                 try:
-                    cmds.setAttr(self.namespace_sync(attr_config["fullName"]), args[0])
+                    cmds.setAttr(
+                        self.namespace_sync(attr_config["fullName"]), args[0]
+                    )
 
                     # refresh button color while value update
                     for i in range(self.rowCount()):
                         item = self.item(i, 0)
                         attr = item.data(QtCore.Qt.UserRole)
-                        if self.namespace_sync(attr["fullName"]) == self.namespace_sync(
-                            attr_config["fullName"]
-                        ):
+                        if self.namespace_sync(
+                            attr["fullName"]
+                        ) == self.namespace_sync(attr_config["fullName"]):
                             button = self.cellWidget(i, 1)
                             refresh_key_button_color(
-                                button, self.namespace_sync(attr_config["fullName"])
+                                button,
+                                self.namespace_sync(attr_config["fullName"]),
                             )
                             break
                 except RuntimeError:
@@ -390,7 +407,9 @@ class ChannelTable(QtWidgets.QTableWidget):
                     ch_ctl.addItems(at["items"])
                     ch_ctl.setCurrentIndex(val)
 
-                    ch_ctl.currentIndexChanged.connect(partial(value_update, at))
+                    ch_ctl.currentIndexChanged.connect(
+                        partial(value_update, at)
+                    )
 
             label_item = QtWidgets.QTableWidgetItem(at["niceName"] + "  ")
             if at["color"]:
@@ -452,7 +471,8 @@ class ChannelTable(QtWidgets.QTableWidget):
                     # having this flag force the evaluation on the animation
                     # curve and not in the current attribute value
                     val = cmds.getAttr(
-                        self.namespace_sync(attr["fullName"]), time=current_time
+                        self.namespace_sync(attr["fullName"]),
+                        time=current_time,
                     )
                 else:
                     val = cmds.getAttr(self.namespace_sync(attr["fullName"]))
@@ -468,7 +488,9 @@ class ChannelTable(QtWidgets.QTableWidget):
                 # refresh button color
                 button_item = self.cellWidget(i, 1)
                 refresh_key_button_color(
-                    button_item, self.namespace_sync(attr["fullName"]), current_time
+                    button_item,
+                    self.namespace_sync(attr["fullName"]),
+                    current_time,
                 )
             except ValueError:
                 pass
@@ -540,14 +562,18 @@ class ChannelTable(QtWidgets.QTableWidget):
 
         previous_key_action = QtWidgets.QAction("previous Keyframe", button)
         previous_key_action.setIcon(pyqt.get_icon("mgear_arrow-left"))
-        previous_key_action.triggered.connect(partial(cmu.previous_keyframe, attr))
+        previous_key_action.triggered.connect(
+            partial(cmu.previous_keyframe, attr)
+        )
         pop_menu.addAction(previous_key_action)
 
         pop_menu.addSeparator()
 
         remove_animation_action = QtWidgets.QAction("Remove Animation", button)
         remove_animation_action.setIcon(pyqt.get_icon("mgear_trash"))
-        remove_animation_action.triggered.connect(partial(cmu.remove_animation, attr))
+        remove_animation_action.triggered.connect(
+            partial(cmu.remove_animation, attr)
+        )
         pop_menu.addAction(remove_animation_action)
 
         def context_menu(point):
@@ -680,7 +706,10 @@ class NameDialog(QtWidgets.QDialog):
         return self.name_lineEdit.text()
 
     def eventFilter(self, obj, event):
-        if obj == self.name_lineEdit and event.type() == QtCore.QEvent.KeyPress:
+        if (
+            obj == self.name_lineEdit
+            and event.type() == QtCore.QEvent.KeyPress
+        ):
             key = event.key()
             if key == QtCore.Qt.Key_Return or key == QtCore.Qt.Key_Enter:
                 self.accept()
