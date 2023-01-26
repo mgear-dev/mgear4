@@ -250,6 +250,10 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
             size=34, icon="mgear_clipboard", toolTip="Paste Keyframe"
         )
 
+        self.reset_all_button = mwgt.create_button(
+            size=34, icon="mgear_rewind", toolTip="Reset to Creation Value"
+        )
+
         # channel listing widgets
         self.lock_button = mwgt.create_button(
             size=34,
@@ -319,6 +323,7 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         key_buttons_layout.addWidget(self.key_all_button)
         key_buttons_layout.addWidget(self.key_copy_button)
         key_buttons_layout.addWidget(self.key_paste_button)
+        key_buttons_layout.addWidget(self.reset_all_button)
 
         # channel listing buttons Layout
         channel_buttons_layout = QtWidgets.QVBoxLayout()
@@ -418,6 +423,7 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.key_all_button.clicked.connect(self.key_all)
         self.key_copy_button.clicked.connect(self.copy_channel_values)
         self.key_paste_button.clicked.connect(self.paste_channel_values)
+        self.reset_all_button.clicked.connect(self.reset_all)
 
         self.refresh_node_list_button.clicked.connect(self.refresh_node_list)
         self.new_node_button.clicked.connect(self.create_new_node)
@@ -809,6 +815,22 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
                 item.data(QtCore.Qt.UserRole)["fullName"]
             )
             self.values_buffer.append(cmds.getAttr(attr))
+
+    def reset_all(self, *args):
+        """reset all values from current table to the creation value.
+        Note: creation value is the value that was set when the channel master
+        tab channel was created. The default value is the Maya's attr defaults
+        and can be different from the creation value
+
+        Args:
+            *args: Description
+        """
+        table = self.get_current_table()
+        for i in range(table.rowCount()):
+            item = table.item(i, 0)
+            attr_config = item.data(QtCore.Qt.UserRole)
+            cmu.reset_creation_value_attribute(attr_config, self.namespace)
+        self.refresh_channels_values()
 
     @utils.one_undo
     def paste_channel_values(self, *args):
