@@ -273,6 +273,10 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
             size=34, icon="mgear_rewind", toolTip="Reset to Creation Value"
         )
 
+        self.sync_graph_editor_button = mwgt.create_button(
+            size=34, icon="mgear_activity", toolTip="Sync with Graph Editor"
+        )
+
         # channel listing widgets
         self.lock_button = mwgt.create_button(
             size=34,
@@ -343,6 +347,7 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         key_buttons_layout.addWidget(self.key_copy_button)
         key_buttons_layout.addWidget(self.key_paste_button)
         key_buttons_layout.addWidget(self.reset_all_button)
+        key_buttons_layout.addWidget(self.sync_graph_editor_button)
 
         # channel listing buttons Layout
         channel_buttons_layout = QtWidgets.QVBoxLayout()
@@ -450,6 +455,9 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.key_copy_button.clicked.connect(self.copy_channel_values)
         self.key_paste_button.clicked.connect(self.paste_channel_values)
         self.reset_all_button.clicked.connect(self.reset_all)
+        self.sync_graph_editor_button.clicked.connect(
+            self.action_sync_graph_editor
+        )
 
         self.refresh_node_list_button.clicked.connect(self.refresh_node_list)
         self.new_node_button.clicked.connect(self.create_new_node)
