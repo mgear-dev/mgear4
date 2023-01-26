@@ -5,7 +5,7 @@ import os
 import sys
 
 from mgear.core import string
-
+from mgear.vendor.Qt import QtCore
 
 # FBX SDK section
 MGEAR_FBX_SDK_PATH = "MGEAR_FBX_SDK_PATH"
@@ -13,6 +13,11 @@ FBX_SDK = False
 
 if os.environ.get(MGEAR_FBX_SDK_PATH, ""):
     sys.path.append(os.environ.get(MGEAR_FBX_SDK_PATH, ""))
+else:
+    settings = QtCore.QSettings('mgear', 'pyfbx')
+    fbx_sdk_path = settings.value('fbx_sdk_path')
+    if fbx_sdk_path and os.path.isdir(fbx_sdk_path):
+        sys.path.append(fbx_sdk_path)
 
 try:
     import fbx
@@ -837,6 +842,46 @@ def get_fbx_import_presets():
             import_preset_files.append(string.normalize_path(os.path.join(path_to_check, file_name)))
 
     return import_preset_files
+
+
+def get_fbx_sdk_path(user=False):
+    """Returns path where Python FBX SDK is located.
+
+    Returns:
+         str: Python FBX sdk path.
+    """
+
+    if user:
+        settings = QtCore.QSettings('mgear', 'pyfbx')
+        return settings.value('fbx_sdk_path') or ''
+    else:
+        fbx_sdk_path = os.environ.get(MGEAR_FBX_SDK_PATH, "")
+        if not fbx_sdk_path or not os.path.isdir(fbx_sdk_path):
+            fbx_sdk_path = get_fbx_sdk_path(user=True)
+        return fbx_sdk_path
+
+
+def set_fbx_skd_path(fbx_sdk_path, user=False):
+    """Sets the path where Python FBX SDK is located.
+
+    Returns:
+        bool: True if the Python FBX SDK path was set successfully; False otherwise.
+    """
+
+    if not fbx_sdk_path or not os.path.isdir(fbx_sdk_path):
+        return False
+
+    if user:
+        settings = QtCore.QSettings('mgear', 'pyfbx')
+        settings.setValue('fbx_sdk_path', fbx_sdk_path)
+    else:
+        os.environ[MGEAR_FBX_SDK_PATH] = fbx_sdk_path
+
+    if fbx_sdk_path not in sys.path:
+        sys.path.append(fbx_sdk_path)
+    FBX_SDK = True
+
+    return True
 
 
 
