@@ -125,6 +125,21 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         )
         self.use_only_local_data_action.setCheckable(True)
 
+        # Select actions
+        self.select_all_hosts_action = QtWidgets.QAction(
+            "Select All Ctl Hosts", self
+        )
+        self.select_all_hosts_action.setIcon(
+            pyqt.get_icon("mgear_mouse-pointer")
+        )
+
+        self.select_current_tab_all_hosts_action = QtWidgets.QAction(
+            "Select Current Tab All Ctl Hosts", self
+        )
+        self.select_current_tab_all_hosts_action.setIcon(
+            pyqt.get_icon("mgear_mouse-pointer")
+        )
+
         # Display actions
         self.display_fullname_action = QtWidgets.QAction(
             "Channel Full Name", self
@@ -207,6 +222,10 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.file_menu.addSeparator()
         self.file_menu.addAction(self.use_node_namespace_action)
         self.file_menu.addAction(self.use_only_local_data_action)
+
+        self.select_menu = self.menu_bar.addMenu("Select")
+        self.select_menu.addAction(self.select_all_hosts_action)
+        self.select_menu.addAction(self.select_current_tab_all_hosts_action)
 
         self.display_menu = self.menu_bar.addMenu("Display")
         self.display_menu.addAction(self.display_sync_graph_action)
@@ -380,6 +399,13 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         )
         self.use_only_local_data_action.triggered.connect(
             self.use_only_local_data
+        )
+
+        # actions select
+        self.select_all_hosts_action.triggered.connect(self.select_all_hosts)
+
+        self.select_current_tab_all_hosts_action.triggered.connect(
+            self.select_current_table_all_hosts
         )
 
         # actions display
@@ -1097,6 +1123,65 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
                 # self.save_node_data()
         else:
             pm.displayWarning("Main Tab Can't be Edited!")
+
+    def get_table_all_hosts(self, table, *args):
+        """Get the ctl host for a given table
+
+        Args:
+            table (obj): table
+            *args: Description
+
+        Returns:
+            TYPE: Description
+        """
+        ctls = []
+        for i in range(table.rowCount()):
+            item = table.item(i, 0)
+            attr_config = item.data(QtCore.Qt.UserRole)
+            ctls.append(attr_config["ctl"])
+        return ctls
+
+    def get_all_hosts(self, *args):
+        """Get all ctl host from all the table in channel master
+
+        Args:
+            *args: Description
+
+        Returns:
+            TYPE: Description
+        """
+        all_ctls = []
+        for t in self.get_all_tables():
+            all_ctls += self.get_table_all_hosts(t)
+        return all_ctls
+
+    def get_current_table_all_hosts(self, *args):
+        """Get current active table all ctl hosts
+
+        Args:
+            *args: Description
+
+        Returns:
+            TYPE: Description
+        """
+        table = self.get_current_table()
+        return self.get_table_all_hosts(table)
+
+    def select_current_table_all_hosts(self, *args):
+        """Select current active table all ctl hosts
+
+        Args:
+            *args: Description
+        """
+        pm.select(self.get_current_table_all_hosts())
+
+    def select_all_hosts(self, *args):
+        """Select all ctl host from all tabs in Channel Master
+
+        Args:
+            *args: Description
+        """
+        pm.select(self.get_all_hosts())
 
 
 def openChannelMaster(*args):
