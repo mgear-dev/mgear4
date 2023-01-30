@@ -125,9 +125,9 @@ def install_main_menu():
     import mgear.shifter.menu
     mgear.shifter.menu.install()
 
-    # # Install ueGear Menu
-    # import mgear.uegear.menu
-    # mgear.uegear.menu.install()
+    # Install ueGear Menu
+    import mgear.uegear.menu
+    mgear.uegear.menu.install()
 
     # Install Simple Rig Menu
     import mgear.simpleRig.menu

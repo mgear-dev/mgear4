@@ -45,7 +45,6 @@ def install():
         ("Reload Components", str_reloadComponents, "mgear_refresh-cw.svg"),
         ("-----", None),
         (None, log_submenu),
-
     )
 
     mgear.menu.install("Shifter", commands, image="mgear_shifter.svg")
@@ -131,6 +130,8 @@ def game_submenu(parent_menu_id):
         parent_menu_id (str): Parent menu. i.e: "MayaWindow|mGear|menuItem355"
     """
     commands = (
+        ("FBX Export", str_game_fbx_export),
+        ("-----", None),
         ("Disconnect Joints", str_game_disconnet),
         ("Connect Joints", str_game_connect),
         ("Delete Rig + Keep Joints", str_game_delete_rig),
@@ -319,4 +320,9 @@ str_toggleDebugMode = """
 import mgear
 state = mgear.toggleDebug()
 print("Debug Mode State: {}".format(state))
+"""
+
+str_game_fbx_export = """
+from mgear.shifter import game_tools_fbx
+game_tools_fbx.openFBXExport()
 """
