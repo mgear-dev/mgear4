@@ -1418,6 +1418,10 @@ class Component(component.Main):
         self.ikhUpLegTwist.attr("dWorldUpVectorY").set(0.0)
         self.ikhUpLegTwist.attr("dWorldUpVectorEndZ").set(1.0)
         self.ikhUpLegTwist.attr("dWorldUpVectorEndY").set(0.0)
+
+        if self.negate:
+            self.ikhUpLegTwist.attr("dForwardAxis").set(1)
+
         pm.connectAttr(
             self.uplegRollRef[0].attr("worldMatrix[0]"),
             self.ikhUpLegTwist.attr("dWorldUpMatrix"),

@@ -1456,6 +1456,8 @@ class Component(component.Main):
         self.ikhArmTwist.attr("dWorldUpVectorY").set(0.0)
         self.ikhArmTwist.attr("dWorldUpVectorEndZ").set(1.0)
         self.ikhArmTwist.attr("dWorldUpVectorEndY").set(0.0)
+        if self.negate:
+            self.ikhArmTwist.attr("dForwardAxis").set(1)
 
         pm.connectAttr(
             self.armRollRef[0].attr("worldMatrix[0]"),
