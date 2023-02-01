@@ -70,7 +70,10 @@ def get_single_attribute_config(node, attr):
     # config["ctl"] = pm.NameParser(node).stripNamespace().__str__()
     config["ctl"] = node
     config["color"] = None  # This is a place holder for the channel UI color
-    config["type"] = cmds.attributeQuery(attr, node=node, attributeType=True)
+    try:
+        config["type"] = cmds.attributeQuery(attr, node=node, attributeType=True)
+    except:
+        return
 
     # check it the attr is alias
     alias = cmds.aliasAttr(node, q=True)
@@ -127,8 +130,9 @@ def get_attributes_config(node):
         for attr in keyable_attrs:
             config = get_single_attribute_config(node, attr)
             # attrs_config[attr] = config
-            config_data["channels"].append(config["fullName"])
-            config_data["channels_data"][config["fullName"]] = config
+            if config:
+                config_data["channels"].append(config["fullName"])
+                config_data["channels_data"][config["fullName"]] = config
 
     return config_data
 
