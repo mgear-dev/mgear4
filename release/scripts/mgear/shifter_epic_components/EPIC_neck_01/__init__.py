@@ -270,7 +270,7 @@ class Component(component.Main):
 
             if i != self.divisions - 1:
                 if i == 0:
-                    guide_relative = self.guide.guide_locators[0]
+                    guide_relative = "root"
                 else:
                     guide_relative = None
                 self.jnt_pos.append(
@@ -348,7 +348,7 @@ class Component(component.Main):
             {
                 "obj": self.head_ctl,
                 "name": jdn_head,
-                "guide_relative": self.guide.guide_locators[-2],
+                "guide_relative": "neck",
             }
         )
 

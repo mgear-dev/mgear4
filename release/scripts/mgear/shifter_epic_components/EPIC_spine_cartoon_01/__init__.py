@@ -84,7 +84,7 @@ class Component(component.Main):
                 {
                     "obj": self.hip_lvl,
                     "name": "pelvis",
-                    "guide_relative": self.guide.guide_locators[0],
+                    "guide_relative": "root",
                 }
             )
 
@@ -388,9 +388,9 @@ class Component(component.Main):
 
             # Deformers (Shadow)
             if i == 0:
-                guide_relative = self.guide.guide_locators[1]
+                guide_relative = "tan0"
             elif i == self.settings["division"] - 1:
-                guide_relative = self.guide.guide_locators[-2]
+                guide_relative = "tan1"
             else:
                 guide_relative = None
             self.jnt_pos.append(

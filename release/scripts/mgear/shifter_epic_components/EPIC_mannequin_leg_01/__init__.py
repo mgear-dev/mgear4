@@ -460,7 +460,7 @@ class Component(component.Main):
                     {
                         "obj": driver,
                         "name": "thigh",
-                        "guide_relative": self.guide.guide_locators[0],
+                        "guide_relative": "root",
                         "data_contracts": "Ik",
                     }
                 )
@@ -474,7 +474,7 @@ class Component(component.Main):
                         "obj": driver,
                         "name": "calf",
                         "newActiveJnt": current_parent,
-                        "guide_relative": self.guide.guide_locators[1],
+                        "guide_relative": "knee",
                         "data_contracts": "Ik",
                     }
                 )
@@ -509,7 +509,7 @@ class Component(component.Main):
                 "obj": self.end_jnt_off,
                 "name": "foot",
                 "newActiveJnt": current_parent,
-                "guide_relative": self.guide.guide_locators[2],
+                "guide_relative": "ankle",
                 "data_contracts": "Ik",
             }
         )

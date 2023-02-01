@@ -225,11 +225,12 @@ class Component(component.Main):
                 name = jdn_ball + str(i)
             else:
                 name = jdn_ball
+
             self.jnt_pos.append(
                 {
                     "obj": fk_ctl,
                     "name": name,
-                    "guide_relative": self.guide.guide_locators[i + 1],
+                    "guide_relative": "{}_loc".format(str(i)),
                 }
             )
 

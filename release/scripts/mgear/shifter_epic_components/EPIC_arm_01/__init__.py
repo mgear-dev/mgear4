@@ -563,7 +563,7 @@ class Component(component.Main):
                     {
                         "obj": driver,
                         "name": jdn_upperarm,
-                        "guide_relative": self.guide.guide_locators[0],
+                        "guide_relative": "root",
                         "data_contracts": "Ik",
                     }
                 )
@@ -577,7 +577,7 @@ class Component(component.Main):
                         "obj": driver,
                         "name": jdn_lowerarm,
                         "newActiveJnt": current_parent,
-                        "guide_relative": self.guide.guide_locators[1],
+                        "guide_relative": "elbow",
                         "data_contracts": "Ik",
                     }
                 )
@@ -607,7 +607,7 @@ class Component(component.Main):
                 "obj": eff_loc,
                 "name": jdn_hand,
                 "newActiveJnt": current_parent,
-                "guide_relative": self.guide.guide_locators[2],
+                "guide_relative": "wrist",
                 "data_contracts": "Ik",
             }
         )

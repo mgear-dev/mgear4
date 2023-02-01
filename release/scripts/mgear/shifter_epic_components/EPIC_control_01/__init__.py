@@ -77,7 +77,7 @@ class Component(component.Main):
                 {
                     "obj": self.ctl,
                     "name": self.name,
-                    "guide_relative": self.guide.guide_locators[0],
+                    "guide_relative": "root",
                     "UniScale": self.settings["uniScale"],
                 }
             )

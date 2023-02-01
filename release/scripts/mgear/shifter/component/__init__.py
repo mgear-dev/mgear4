@@ -471,7 +471,7 @@ class Main(object):
                                     dm_node.outputScaleZ,
                                 ],
                                 invert_scale,
-                                [jnt.sx, jnt.sy, jnt.sz]
+                                [jnt.sx, jnt.sy, jnt.sz],
                             )
                         else:
                             pm.connectAttr(dm_node.outputScale, jnt.s)
@@ -570,7 +570,9 @@ class Main(object):
         if guide_relative:
             if not jnt.hasAttr("guide_relative"):
                 attribute.addAttribute(jnt, "guide_relative", "string")
-            jnt.guide_relative.set(guide_relative)
+            jnt.guide_relative.set(
+                "{}_{}".format(self.fullName, guide_relative)
+            )
 
         if data_contracts:
             if not jnt.hasAttr("data_contracts"):

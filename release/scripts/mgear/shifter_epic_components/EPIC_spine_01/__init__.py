@@ -113,7 +113,7 @@ class Component(component.Main):
             {
                 "obj": self.pelvis_lvl,
                 "name": jdn_pelvis,
-                "guide_relative": self.guide.guide_locators[0],
+                "guide_relative": "root",
             }
         )
 
@@ -391,9 +391,9 @@ class Component(component.Main):
 
             # Deformers (Shadow)
             if i == 0:
-                guide_relative = self.guide.guide_locators[1]
+                guide_relative = "spineBase"
             elif i == self.settings["division"] - 1:
-                guide_relative = self.guide.guide_locators[-2]
+                guide_relative = "spineTop"
             else:
                 guide_relative = None
             self.jnt_pos.append(
@@ -440,7 +440,7 @@ class Component(component.Main):
             {
                 "obj": self.cnx1,
                 "name": string.replaceSharpWithPadding(jdn_spine, i + 2),
-                "guide_relative": self.guide.guide_locators[-1],
+                "guide_relative": "chest",
                 "data_contracts": "Twist,Squash",
                 "leaf_joint": self.settings["leafJoints"],
             }

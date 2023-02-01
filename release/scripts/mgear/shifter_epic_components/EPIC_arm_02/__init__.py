@@ -708,7 +708,7 @@ class Component(component.Main):
                     {
                         "obj": roll_off,
                         "name": jdn_upperarm,
-                        "guide_relative": self.guide.guide_locators[0],
+                        "guide_relative": "root",
                         "data_contracts": "Ik",
                         "leaf_joint": self.settings["leafJoints"],
                     }
@@ -723,7 +723,7 @@ class Component(component.Main):
                         "obj": roll_off,
                         "name": jdn_lowerarm,
                         "newActiveJnt": current_parent,
-                        "guide_relative": self.guide.guide_locators[1],
+                        "guide_relative": "elbow",
                         "data_contracts": "Ik",
                         "leaf_joint": self.settings["leafJoints"],
                     }
@@ -783,7 +783,7 @@ class Component(component.Main):
                 "obj": self.eff_jnt_off,
                 "name": jdn_hand,
                 "newActiveJnt": current_parent,
-                "guide_relative": self.guide.guide_locators[2],
+                "guide_relative": "wrist",
                 "data_contracts": "Ik",
                 "leaf_joint": self.settings["leafJoints"],
             }

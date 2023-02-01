@@ -160,11 +160,15 @@ class Component(component.Main):
             # self.jnt_pos.append([loc, i, None, False])
 
             jnt_name = "_".join([self.name, str(i + 1).zfill(2)])
+            if i:
+                guide_relative_name = "{}_loc".format(str(i - 1))
+            else:
+                guide_relative_name = "root"
             self.jnt_pos.append(
                 {
                     "obj": loc,
                     "name": jnt_name,
-                    "guide_relative": self.guide.guide_locators[i],
+                    "guide_relative": guide_relative_name,
                 }
             )
 

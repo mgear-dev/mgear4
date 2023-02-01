@@ -81,12 +81,16 @@ class Component(component.Main):
             self.previusTag = fk_ctl
             parent = fk_ctl
             if self.settings["addJoints"]:
+                if i:
+                    guide_relative_name = "{}_loc".format(str(i - 1))
+                else:
+                    guide_relative_name = "root"
                 jnt_name = "_".join([self.name, str(i + 1).zfill(2)])
                 self.jnt_pos.append(
                     {
                         "obj": fk_ctl,
                         "name": jnt_name,
-                        "guide_relative": self.guide.guide_locators[i],
+                        "guide_relative": guide_relative_name,
                     }
                 )
 

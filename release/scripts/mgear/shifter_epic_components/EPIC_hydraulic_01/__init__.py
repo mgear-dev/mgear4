@@ -78,9 +78,9 @@ class Component(component.Main):
             #     [div_cns, string.replaceSharpWithPadding(jdn_section, i + 1)]
             # )
             if i == 0:
-                guide_relative = self.guide.guide_locators[0]
+                guide_relative = "root"
             elif i == self.settings["div"] - 1:
-                guide_relative = self.guide.guide_locators[-1]
+                guide_relative = "tip"
             else:
                 guide_relative = None
             self.jnt_pos.append(
