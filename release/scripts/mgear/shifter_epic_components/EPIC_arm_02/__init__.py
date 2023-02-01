@@ -923,7 +923,6 @@ class Component(component.Main):
             self.getName("visalRef"), [self.upv_ctl, self.mid_ctl]
         )
 
-
     # =====================================================
     # ATTRIBUTES
     # =====================================================
@@ -941,60 +940,46 @@ class Component(component.Main):
             "armpitRoll", "Armpit Roll", "double", 0
         )
         self.scale_att = self.addAnimParam(
-            "ikscale", "Scale", "double", 100, 1, 10000
+            "ikscale", "Scale", "double", 1, 0.001, 10
         )
-        self.scale_att = node.createDivNode(self.scale_att, 100).outputX
 
         self.maxstretch_att = self.addAnimParam(
             "maxstretch",
             "Max Stretch",
             "double",
-            self.settings["maxstretch"] * 100,
+            self.settings["maxstretch"],
+            1,
             100,
-            100000,
         )
-        self.maxstretch_att = node.createDivNode(
-            self.maxstretch_att, 100
-        ).outputX
 
         self.slide_att = self.addAnimParam(
-            "slide", "Slide", "double", 50, 0, 100
+            "slide", "Slide", "double", 0.5, 0, 1
         )
-        self.slide_att = node.createDivNode(self.slide_att, 100).outputX
 
         self.softness_att = self.addAnimParam(
-            "softness", "Softness", "double", 0, 0, 100
+            "softness", "Softness", "double", 0, 0, 1
         )
-        self.softness_att = node.createDivNode(self.softness_att, 100).outputX
 
         self.reverse_att = self.addAnimParam(
-            "reverse", "Reverse", "double", 0, 0, 100
+            "reverse", "Reverse", "double", 0, 0, 1
         )
-        self.reverse_att = node.createDivNode(self.reverse_att, 100).outputX
 
         self.roundness_att = self.addAnimParam(
-            "roundness", "Roundness", "double", 0, 0, 100
+            "roundness", "Roundness", "double", 0, 0, 1
         )
-        self.roundness_att = node.createDivNode(
-            self.roundness_att, 100
-        ).outputX
 
         self.volume_att = self.addAnimParam(
-            "volume", "Volume Joint Scale", "double", 0, 0, 100
+            "volume", "Volume Joint Scale", "double", 0, 0, 1
         )
-        self.volume_att = node.createDivNode(self.volume_att, 100).outputX
 
         self.volume_blenshape_mult_att = self.addAnimParam(
             "volume_blendshape",
             "Volume Blendshape Mult",
             "double",
-            100,
+            1,
             0,
-            1000,
+            10,
         )
-        self.volume_blenshape_mult_att = node.createDivNode(
-            self.volume_blenshape_mult_att, 100
-        ).outputX
 
         self.bendyVis_att = self.addAnimParam(
             "Bendy_vis", "Bendy vis", "bool", False
@@ -1032,34 +1017,28 @@ class Component(component.Main):
         )
         # section scale
         self.armWide_att = self.addAnimParam(
-            "wide", "Wide", "double", 0, -90, uihost=self.armBendyA_ctl
+            "wide", "Wide", "double", 0, -0.9, uihost=self.armBendyA_ctl
         )
-        self.armWide_att = node.createDivNode(self.armWide_att, 100).outputX
 
         self.midWide_att = self.addAnimParam(
-            "wide", "Wide", "double", 0, -90, uihost=self.mid_ctl
+            "wide", "Wide", "double", 0, -0.9, uihost=self.mid_ctl
         )
-        self.midWide_att = node.createDivNode(self.midWide_att, 100).outputX
 
         self.foreWide_att = self.addAnimParam(
-            "wide", "Wide", "double", 0, -90, uihost=self.forearmBendyB_ctl
+            "wide", "Wide", "double", 0, -0.9, uihost=self.forearmBendyB_ctl
         )
-        self.foreWide_att = node.createDivNode(self.foreWide_att, 100).outputX
 
         self.armHigh_att = self.addAnimParam(
-            "high", "High", "double", 0, -90, uihost=self.armBendyA_ctl
+            "high", "High", "double", 0, -0.9, uihost=self.armBendyA_ctl
         )
-        self.armHigh_att = node.createDivNode(self.armHigh_att, 100).outputX
 
         self.midHigh_att = self.addAnimParam(
-            "high", "High", "double", 0, -90, uihost=self.mid_ctl
+            "high", "High", "double", 0, -0.9, uihost=self.mid_ctl
         )
-        self.midHigh_att = node.createDivNode(self.midHigh_att, 100).outputX
 
         self.foreHigh_att = self.addAnimParam(
-            "high", "High", "double", 0, -90, uihost=self.forearmBendyB_ctl
+            "high", "High", "double", 0, -0.9, uihost=self.forearmBendyB_ctl
         )
-        self.foreHigh_att = node.createDivNode(self.foreHigh_att, 100).outputX
 
         # gimbal vis attr
         self.gimbal_vis_attrs = []
@@ -1162,7 +1141,7 @@ class Component(component.Main):
             "absolute", "Absolute", "bool", False
         )
         self.volume_blenshape_att = self.addSetupParam(
-            "volume_blendshape", "Volume Blendshape", "double", 0, 0, 100
+            "volume_blendshape", "Volume Blendshape", "double", 0, 0, 10
         )
 
     # =====================================================
