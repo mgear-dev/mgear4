@@ -1211,6 +1211,7 @@ def getMirrorTarget(nameSpace, node):
         # Center controls mirror onto self
         return node
 
+
 def mirrorPose(flip=False, nodes=None):
     """Summary
 
@@ -1237,7 +1238,6 @@ def mirrorPose(flip=False, nodes=None):
             # To flip a pose, do mirroring both ways.
             if target not in nodes and flip:
                 mirrorEntries.extend(calculateMirrorData(target, oSel))
-
 
         for dat in mirrorEntries:
             applyMirror(nameSpace, dat)
@@ -1288,7 +1288,62 @@ def applyMirror(nameSpace, mirrorEntry):
         )
 
 
-def calculateMirrorData(srcNode, targetNode):
+def calculateMirrorData(srcNode, targetNode, flip=False):
+    """Calculate the mirror data
+
+    Args:
+        srcNode (str): The source Node
+        targetNode ([dict[str]]): Target node
+        flip (bool, optional): flip option
+
+    Returns:
+        [{"target": node, "attr": at, "val": flipVal}]
+    """
+    results = []
+
+    # mirror attribute of source
+    for attrName in listAttrForMirror(srcNode):
+
+        # whether does attribute "invTx" exists when attrName is "tx"
+        invCheckName = getInvertCheckButtonAttrName(attrName)
+        if not pm.attributeQuery(
+            invCheckName, node=srcNode, shortName=True, exists=True
+        ):
+
+            # if not exists, straight
+            inv = 1
+
+        else:
+            # if exists, check its value
+            invAttr = srcNode.attr(invCheckName)
+            if invAttr.get():
+                inv = -1
+            else:
+                inv = 1
+
+        # if attr name is side specified, record inverted attr name
+        if isSideElement(attrName):
+            invAttrName = swapSideLabel(attrName)
+        else:
+            invAttrName = attrName
+
+        # if flip enabled record self also
+        if flip:
+            flipVal = targetNode.attr(attrName).get()
+            results.append(
+                {"target": srcNode, "attr": invAttrName, "val": flipVal * inv}
+            )
+
+        results.append(
+            {
+                "target": targetNode,
+                "attr": invAttrName,
+                "val": srcNode.attr(attrName).get() * inv,
+            }
+        )
+    return results
+
+def calculateMirrorDataRBF(srcNode, targetNode):
     """Calculate the mirror data
 
     Args:
@@ -1305,7 +1360,7 @@ def calculateMirrorData(srcNode, targetNode):
     for attrName in listAttrForMirror(srcNode):
 
         # Apply "Invert Mirror" check boxes
-        invCheck = getInvertCheckButtonAttrName(attrName)
+        invCheckName = getInvertCheckButtonAttrName(attrName)
         if not pm.attributeQuery(
             invCheckName, node=srcNode, shortName=True, exists=True
         ):
@@ -1319,9 +1374,13 @@ def calculateMirrorData(srcNode, targetNode):
         else:
             invAttrName = attrName
 
-        results.append({"target": targetNode,
-                        "attr": invAttrName,
-                        "val": srcNode.attr(attrName).get() * inv})
+        results.append(
+            {
+                "target": targetNode,
+                "attr": invAttrName,
+                "val": srcNode.attr(attrName).get() * inv,
+            }
+        )
     return results
 
 
@@ -1841,7 +1900,7 @@ class IkFkTransfer(AbstractAnimationTransfer):
         at = "{}.{}".format(
             self.getHostName(),
             self.switchedAttrShortName.replace("blend", "roll"),
-            at_name
+            at_name,
         )
         if pm.objExists(at):
             return at

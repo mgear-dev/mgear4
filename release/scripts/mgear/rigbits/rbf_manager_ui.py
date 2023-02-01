@@ -1635,7 +1635,7 @@ class RBFManagerUI(MayaQWidgetDockableMixin, QtWidgets.QMainWindow):
             anim_utils.mirrorPose(flip=False, nodes=[driverControl])
             mrData = []
             for srcNode, dstValues in setupTargetInfo_dict.items():
-                mrData.extend(anim_utils.calculateMirrorData(srcNode,
+                mrData.extend(anim_utils.calculateMirrorDataRBF(srcNode,
                                                              dstValues[0]))
             for entry in mrData:
                 anim_utils.applyMirror(nameSpace, entry)
