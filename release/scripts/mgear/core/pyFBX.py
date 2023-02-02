@@ -767,6 +767,7 @@ def get_fbx_versions():
     Returns:
         list: String names of the available fbx versions
     """
+
     return pm.mel.eval("FBXExportFileVersion -uivl;")
 
 

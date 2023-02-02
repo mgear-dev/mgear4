@@ -26,6 +26,84 @@ class FbxSdkGameToolsWrapper(object):
 
 		self._sdk_manager.Destroy()
 
+	def save(
+			self, path=None, mode='binary', close=False, embed_media=False, file_version=None, preset_path=None,
+			deformations=None, skins=None, blendshapes=None):
+
+		if not pfbx.FBX_SDK:
+			return False
+
+		file_format = -1
+		if mode == 'binary':
+			file_format = 0
+
+		exporter = pfbx.fbx.FbxExporter.Create(self._scene, '')
+		if file_format < 0 or file_format >= self._sdk_manager.GetIOPluginRegistry().GetWriterFormatCount():
+			file_format = self._sdk_manager.GetIOPluginRegistry().GetNativeWriterFormat()
+			if not embed_media:
+				format_count = self._sdk_manager.GetIOPluginRegistry().GetWriterFormatCount()
+				for format_index in range(format_count):
+					if self._sdk_manager.GetIOPluginRegistry().WriterIsFBX(format_index):
+						desc = self._sdk_manager.GetIOPluginRegistry().GetWriterFormatDescription(format_index)
+						if 'ascii' in desc:
+							file_format = format_index
+							break
+
+		if not self._sdk_manager.GetIOSettings():
+			ios = pfbx.fbx.FbxIOSettings.Create(self._sdk_manager, pfbx.fbx.IOSROOT)
+			self._sdk_manager.SetIOSettings(ios)
+
+		self._sdk_manager.GetIOSettings().SetBoolProp(pfbx.fbx.EXP_FBX_MATERIAL, True)
+		self._sdk_manager.GetIOSettings().SetBoolProp(pfbx.fbx.EXP_FBX_TEXTURE, True)
+		self._sdk_manager.GetIOSettings().SetBoolProp(pfbx.fbx.EXP_FBX_EMBEDDED, embed_media)
+		self._sdk_manager.GetIOSettings().SetBoolProp(pfbx.fbx.EXP_FBX_SHAPE, True)
+		self._sdk_manager.GetIOSettings().SetBoolProp(pfbx.fbx.EXP_FBX_GOBO, True)
+		self._sdk_manager.GetIOSettings().SetBoolProp(pfbx.fbx.EXP_FBX_ANIMATION, True)
+		self._sdk_manager.GetIOSettings().SetBoolProp(pfbx.fbx.EXP_FBX_GLOBAL_SETTINGS, True)
+
+		if deformations is not None:
+			self._sdk_manager.GetIOSettings().SetBoolProp('Deformations', deformations)
+		if skins is not None:
+			self._sdk_manager.GetIOSettings().SetBoolProp('Skins', skins)
+		if blendshapes is not None:
+			self._sdk_manager.GetIOSettings().SetBoolProp('Blend Shapes', blendshapes)
+
+		# override FBX settins from FBX preset file path (if it exists)
+		if preset_path and os.path.isfile(preset_path):
+			self._sdk_manager.GetIOSettings().ReadXMLFile(preset_path)
+
+		save_path = path or self._filename
+		result = exporter.Initialize(save_path, file_format, self._sdk_manager.GetIOSettings())
+		if result is False:
+			exporter.Destroy()
+			return False
+
+		if file_version is not None:
+			exporter.SetFileExportVersion(file_version, pfbx.fbx.FbxSceneRenamer.eNone)
+		result = exporter.Export(self._scene)
+
+		exporter.Destroy()
+
+		if close:
+			self.close()
+
+		return True
+
+	def get_file_format(self, format_name):
+
+		if not pfbx.FBX_SDK:
+			return None
+
+		io_plugin_registry = self._sdk_manager.GetIOPluginRegistry()
+		for format_id in range(io_plugin_registry.GetWriterFormatCount()):
+			if io_plugin_registry.WriterIsFBX(format_id):
+				desc = io_plugin_registry.GetWriterFormatDescription(format_id)
+				if format_name in desc:
+					return format_id
+
+		# Default format is auto
+		return -1
+
 	def get_scene_nodes(self):
 
 		if not pfbx.FBX_SDK:
@@ -123,6 +201,11 @@ class FbxSdkGameToolsWrapper(object):
 		casted_property = cast_property(fbx_property) if fbx_property and fbx_property.IsValid() else None
 		return casted_property.Get() if casted_property else None
 
+	def clean_scene(self, no_export_tag='no_export', world_control_name='world_ctl'):
+		self.remove_non_exportable_nodes(no_export_tag=no_export_tag)
+		self.remove_world_control(control_name=world_control_name)
+
+
 	def remove_non_exportable_nodes(self, no_export_tag='no_export'):
 
 		nodes_to_delete = list()
@@ -138,7 +221,36 @@ class FbxSdkGameToolsWrapper(object):
 		# force the update of the internal cache of scene nodes
 		self.get_scene_nodes()
 
-	def export_skeletal_mesh(self, mesh_name, hierarchy_joints):
+	def remove_world_control(self, control_name='world_ctl'):
+
+		node_to_delete = None
+		scene_nodes = self.get_scene_nodes()
+		for node in scene_nodes:
+			if node.GetName() == control_name:
+				node_to_delete = node
+				break
+		if not node_to_delete:
+			return False
+
+		self._scene.DisconnectSrcObject(node_to_delete)
+		self._scene.RemoveNode(node_to_delete)
+
+		# force the update of the internal cache of scene nodes
+		self.get_scene_nodes()
+
+	def remove_namespaces(self):
+
+		scene_nodes = self.get_scene_nodes()
+		for node in scene_nodes:
+			orig_name = node.GetName()
+			split_by_colon = orig_name.split(':')
+			if len(split_by_colon) > 1:
+				new_name = split_by_colon[-1:][0]
+				node.SetName(new_name)
+
+		return True
+
+	def export_skeletal_mesh(self, mesh_name, hierarchy_joints, deformations=None, skins=None, blendshapes=None):
 
 		if not pfbx.FBX_SDK:
 			cmds.warning('Export Skeletal Mesh functionality is only available if Python FBX SDK is available!')
@@ -181,5 +293,6 @@ class FbxSdkGameToolsWrapper(object):
 			self._scene.DisconnectSrcObject(joint_to_delete)
 			self._scene.RemoveNode(joint_to_delete)
 
-		save_path = os.path.join(os.path.dirname(self._filename), '{}.fbx'.format(mesh_name))
-		pfbx.FbxCommon.SaveScene(self._sdk_manager, self._scene, save_path, 0)
+		save_path = os.path.join(os.path.dirname(self._filename), '{}_{}.fbx'.format(
+			os.path.splitext(os.path.basename(self._filename))[0], mesh_name))
+		self.save(save_path, deformations=deformations, skins=skins, blendshapes=blendshapes)
