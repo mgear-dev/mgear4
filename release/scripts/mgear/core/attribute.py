@@ -29,6 +29,8 @@ def addAttribute(
     storable=True,
     writable=True,
     channelBox=False,
+    softMinValue=None,
+    softMaxValue=None,
 ):
     """Add attribute to a node
 
@@ -76,6 +78,11 @@ def addAttribute(
         data["minValue"] = minValue
     if maxValue is not None and maxValue is not False:
         data["maxValue"] = maxValue
+
+    if softMinValue is not None and softMinValue is not False:
+        data["softMinValue"] = softMinValue
+    if softMaxValue is not None and softMaxValue is not False:
+        data["softMaxValue"] = softMaxValue
 
     data["keyable"] = keyable
     data["readable"] = readable
