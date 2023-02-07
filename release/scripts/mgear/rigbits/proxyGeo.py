@@ -84,6 +84,15 @@ def create_proxy(
 
 
 def create_proxy_to_children(joints=None, radius=None):
+    """Create one proxy geo aiming to each child of the joint
+
+    Args:
+        joints (list, optional): list of joints
+        radius (float, optional): default radius
+
+    Returns:
+        list: list of pyNode proxy gemetries
+    """
 
     joints = get_list_or_selection(joints)
     proxies = []
@@ -95,7 +104,6 @@ def create_proxy_to_children(joints=None, radius=None):
             blade = vector.Blade(j.getMatrix(worldSpace=True))
             normal = blade.z
             for child in children:
-                # child = children[0]
                 lookat_ref = child
                 lookat = transform.getTranslation(child)
 
@@ -116,7 +124,17 @@ def create_proxy_to_children(joints=None, radius=None):
     return proxies
 
 
-def create_proxy_to_next(joints=None, radius=None):
+def create_proxy_to_next(joints=None, radius=None, tip=True):
+    """Create proxy geo aiming to the next joint position
+
+    Args:
+        joints (list, optional): list of joints
+        radius (float, optional): default radius
+        tip (bool, optional): if true will create the proxy for the tip joint
+
+    Returns:
+        list: list of pyNode proxy gemetries
+    """
     proxies = []
     joints = get_list_or_selection(joints)
     nb_joints = len(joints)
@@ -139,7 +157,8 @@ def create_proxy_to_next(joints=None, radius=None):
             pxy = create_proxy(j, radius, length, m=t)
             proxies.append(pxy)
 
-        else:
+        elif tip:
+            # create the proxy for the tip joint
             if nb_joints >= 2:
                 lookat_ref = joints[i - 1]
             elif j.getParent():
@@ -168,6 +187,15 @@ def create_proxy_to_next(joints=None, radius=None):
 
 
 def create_proxy_centered(joints=None, radius=None):
+    """Create proxy geo centered in the joint position
+
+    Args:
+        joints (list, optional): list of joints
+        radius (float, optional): default radius
+
+    Returns:
+        list: list of pyNode proxy gemetries
+    """
     proxies = []
     joints = get_list_or_selection(joints)
     nb_joints = len(joints)
@@ -211,7 +239,6 @@ def create_proxy_centered(joints=None, radius=None):
                 t = transform.setMatrixPosition(t, mid_pos)
                 length = vector.getDistance(lookat_back, lookat) / 2
 
-            # radius = length * 0.3
             pxy = create_proxy(j, radius, length, m=t)
             proxies.append(pxy)
 
