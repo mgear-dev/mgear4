@@ -149,23 +149,19 @@ def create_proxy_to_next(joints=None, radius=None):
                     "Selected single joint without parent, can't build proxy."
                 )
                 return
-            lookat = transform.getTranslation(lookat_ref)
 
-            t = j.getMatrix(worldSpace=True)
             pos = j.getTranslation(space="world")
-            off_pos = lookat_ref.getTranslation(space="world")
-            # check if need to negate the value
-            if j.getAttr("tx") < 0:
-                off_mult = -0.5
-            else:
-                off_mult = 0.5
-            off_vec = vector.getDistance(pos, off_pos) * off_mult
-            # for the moment we take X as default axis
+            lookat = lookat_ref.getTranslation(space="world")
+            v = pos - lookat
+            v2 = v + pos
+            mid_pos = vector.linearlyInterpolate(pos, v2)
+
+            t = transform.getTransformLookingAt(lookat, pos, normal, axis="xy")
+            t = transform.setMatrixPosition(t, mid_pos)
             length = vector.getDistance2(j, lookat_ref)
             if not radius:
                 radius = length * 0.3
             pxy = create_proxy(j, radius, length, m=t)
-            pxy.tx.set(off_vec)
             proxies.append(pxy)
 
     return proxies
@@ -177,8 +173,11 @@ def create_proxy_centered(joints=None, radius=None):
     nb_joints = len(joints)
 
     if nb_joints == 1:
-        # just create an center proxy using the joint radio as reference
-        return
+        # just create an center proxy using the joint radius as reference
+        radius = joints[0].radius.get()
+        t = joints[0].getMatrix(worldSpace=True)
+        pxy = create_proxy(joints[0], radius, 1, m=t)
+        proxies.append(pxy)
 
     elif nb_joints >= 2:
         for i, j in enumerate(joints):
