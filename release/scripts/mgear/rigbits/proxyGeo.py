@@ -56,8 +56,54 @@ def create_capsule(name, radius, height, axis=[1, 0, 0]):
     return trans
 
 
-def create_box():
-    return
+def create_box(name, radius, height, axis=[1, 0, 0]):
+    args = {
+        "subdivisionsX": 1,
+        "subdivisionsY": 1,
+        "subdivisionsZ": 1,
+        "subdivisionsDepth": 1,
+        "subdivisionsHeight": 1,
+        "subdivisionsWidth": 1,
+        "createUVs": 0,
+        "constructionHistory": True,
+        "name": name,
+        "depth": radius * 2,
+        "width": radius * 2,
+        "height": height,
+        "axis": axis,
+    }
+    trans, box = pm.polyCube(**args)
+
+    # hide build nodes from channelbox
+    box.isHistoricallyInteresting.set(False)
+    trans.getShapes()[0].isHistoricallyInteresting.set(False)
+
+    # add manipulation attrs
+    r_att = attribute.addAttribute(
+        trans,
+        "radius",
+        "float",
+        value=radius,
+        softMinValue=0.001,
+        softMaxValue=100,
+    )
+    h_att = attribute.addAttribute(
+        trans,
+        "height",
+        "float",
+        value=height,
+        softMinValue=0.001,
+        softMaxValue=100,
+    )
+
+    # lock scale
+    # attribute.lockAttribute(trans, attributes=["sx", "sy", "sz"])
+
+    pm.connectAttr(r_att, box.width)
+    pm.connectAttr(r_att, box.depth)
+    pm.connectAttr(h_att, box.height)
+
+    return trans
 
 
 def add_meta_data():
@@ -70,14 +116,12 @@ def add_meta_data():
     return
 
 
-def create_proxy(
-    parent, radius, height, m=datatypes.Matrix(), shape="capsule"
-):
+def create_proxy(parent, radius, height, m=datatypes.Matrix(), shape="capsule"):
     name = parent.name() + PROXY_SUFFIX
     if shape == "capsule":
         proxy = create_capsule(name, radius, height)
     else:
-        return
+        proxy = create_box(name, radius, height)
     pm.parent(proxy, parent)
     proxy.setMatrix(m, worldSpace=True)
     return proxy
