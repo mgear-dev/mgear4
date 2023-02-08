@@ -10,7 +10,7 @@ from mgear.core import vector
 PROXY_SUFFIX = "_proxy"
 
 
-def create_capsule(name, radius, height, axis=[1, 0, 0]):
+def create_capsule(name, side, length, axis=[1, 0, 0]):
     args = {
         "subdivisionsX": 16,
         "subdivisionsY": 1,
@@ -19,8 +19,8 @@ def create_capsule(name, radius, height, axis=[1, 0, 0]):
         "createUVs": 0,
         "constructionHistory": True,
         "name": name,
-        "radius": radius,
-        "height": height,
+        "radius": side,
+        "height": length,
         "axis": axis,
     }
     trans, cap = pm.polyCylinder(**args)
@@ -32,17 +32,17 @@ def create_capsule(name, radius, height, axis=[1, 0, 0]):
     # add manipulation attrs
     r_att = attribute.addAttribute(
         trans,
-        "radius",
+        "side",
         "float",
-        value=radius,
+        value=side,
         softMinValue=0.001,
         softMaxValue=100,
     )
     h_att = attribute.addAttribute(
         trans,
-        "height",
+        "length",
         "float",
-        value=height,
+        value=length,
         softMinValue=0.001,
         softMaxValue=100,
     )
@@ -56,7 +56,7 @@ def create_capsule(name, radius, height, axis=[1, 0, 0]):
     return trans
 
 
-def create_box(name, radius, height, axis=[1, 0, 0]):
+def create_box(name, side, length, axis=[1, 0, 0]):
     args = {
         "subdivisionsX": 1,
         "subdivisionsY": 1,
@@ -67,9 +67,9 @@ def create_box(name, radius, height, axis=[1, 0, 0]):
         "createUVs": 0,
         "constructionHistory": True,
         "name": name,
-        "depth": radius * 2,
-        "width": radius * 2,
-        "height": height,
+        "depth": side * 2,
+        "width": side * 2,
+        "height": length,
         "axis": axis,
     }
     trans, box = pm.polyCube(**args)
@@ -81,17 +81,17 @@ def create_box(name, radius, height, axis=[1, 0, 0]):
     # add manipulation attrs
     r_att = attribute.addAttribute(
         trans,
-        "radius",
+        "side",
         "float",
-        value=radius,
+        value=side,
         softMinValue=0.001,
         softMaxValue=100,
     )
     h_att = attribute.addAttribute(
         trans,
-        "height",
+        "length",
         "float",
-        value=height,
+        value=length,
         softMinValue=0.001,
         softMaxValue=100,
     )
@@ -112,27 +112,27 @@ def add_meta_data():
     # tranlation array
     # rotation array
     # heigh
-    # radius
+    # side
     return
 
 
-def create_proxy(parent, radius, height, m=datatypes.Matrix(), shape="capsule"):
+def create_proxy(parent, side, length, m=datatypes.Matrix(), shape="box"):
     name = parent.name() + PROXY_SUFFIX
     if shape == "capsule":
-        proxy = create_capsule(name, radius, height)
+        proxy = create_capsule(name, side, length)
     else:
-        proxy = create_box(name, radius, height)
+        proxy = create_box(name, side, length)
     pm.parent(proxy, parent)
     proxy.setMatrix(m, worldSpace=True)
     return proxy
 
 
-def create_proxy_to_children(joints=None, radius=None):
+def create_proxy_to_children(joints=None, side=None):
     """Create one proxy geo aiming to each child of the joint
 
     Args:
         joints (list, optional): list of joints
-        radius (float, optional): default radius
+        side (float, optional): default side
 
     Returns:
         list: list of pyNode proxy gemetries
@@ -158,9 +158,9 @@ def create_proxy_to_children(joints=None, radius=None):
                 mid_pos = vector.linearlyInterpolate(pos, lookat)
                 t = transform.setMatrixPosition(t, mid_pos)
                 length = vector.getDistance2(j, lookat_ref)
-                if not radius:
-                    radius = length * 0.3
-                pxy = create_proxy(j, radius, length, m=t)
+                if not side:
+                    side = length * 0.3
+                pxy = create_proxy(j, side, length, m=t)
                 proxies.append(pxy)
         else:
             pm.displayWarning("{}: has not children".format(j.name()))
@@ -168,12 +168,12 @@ def create_proxy_to_children(joints=None, radius=None):
     return proxies
 
 
-def create_proxy_to_next(joints=None, radius=None, tip=True):
+def create_proxy_to_next(joints=None, side=None, tip=True):
     """Create proxy geo aiming to the next joint position
 
     Args:
         joints (list, optional): list of joints
-        radius (float, optional): default radius
+        side (float, optional): default side
         tip (bool, optional): if true will create the proxy for the tip joint
 
     Returns:
@@ -196,9 +196,9 @@ def create_proxy_to_next(joints=None, radius=None, tip=True):
             mid_pos = vector.linearlyInterpolate(pos, lookat)
             t = transform.setMatrixPosition(t, mid_pos)
             length = vector.getDistance2(j, lookat_ref)
-            if not radius:
-                radius = length * 0.3
-            pxy = create_proxy(j, radius, length, m=t)
+            if not side:
+                side = length * 0.3
+            pxy = create_proxy(j, side, length, m=t)
             proxies.append(pxy)
 
         elif tip:
@@ -222,20 +222,20 @@ def create_proxy_to_next(joints=None, radius=None, tip=True):
             t = transform.getTransformLookingAt(lookat, pos, normal, axis="xy")
             t = transform.setMatrixPosition(t, mid_pos)
             length = vector.getDistance2(j, lookat_ref)
-            if not radius:
-                radius = length * 0.3
-            pxy = create_proxy(j, radius, length, m=t)
+            if not side:
+                side = length * 0.3
+            pxy = create_proxy(j, side, length, m=t)
             proxies.append(pxy)
 
     return proxies
 
 
-def create_proxy_centered(joints=None, radius=None):
+def create_proxy_centered(joints=None, side=None):
     """Create proxy geo centered in the joint position
 
     Args:
         joints (list, optional): list of joints
-        radius (float, optional): default radius
+        side (float, optional): default side
 
     Returns:
         list: list of pyNode proxy gemetries
@@ -245,10 +245,10 @@ def create_proxy_centered(joints=None, radius=None):
     nb_joints = len(joints)
 
     if nb_joints == 1:
-        # just create an center proxy using the joint radius as reference
-        radius = joints[0].radius.get()
+        # just create an center proxy using the joint side as reference
+        side = joints[0].side.get()
         t = joints[0].getMatrix(worldSpace=True)
-        pxy = create_proxy(joints[0], radius, 1, m=t)
+        pxy = create_proxy(joints[0], side, 1, m=t)
         proxies.append(pxy)
 
     elif nb_joints >= 2:
@@ -264,8 +264,8 @@ def create_proxy_centered(joints=None, radius=None):
                 mid_pos = vector.linearlyInterpolate(pos, lookat, blend=0.25)
                 t = transform.setMatrixPosition(t, mid_pos)
                 length = vector.getDistance2(j, lookat_ref) / 2
-                if not radius:
-                    radius = length * 0.3
+                if not side:
+                    side = length * 0.3
             elif i == nb_joints - 1:
                 lookat_back_ref = joints[i - 1]
                 lookat_back = transform.getTranslation(lookat_back_ref)
@@ -283,7 +283,7 @@ def create_proxy_centered(joints=None, radius=None):
                 t = transform.setMatrixPosition(t, mid_pos)
                 length = vector.getDistance(lookat_back, lookat) / 2
 
-            pxy = create_proxy(j, radius, length, m=t)
+            pxy = create_proxy(j, side, length, m=t)
             proxies.append(pxy)
 
     return proxies
