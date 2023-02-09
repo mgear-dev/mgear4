@@ -151,6 +151,7 @@ def _create_control(name,
 
     npo = pm.createNode('transform', n=_set_name("npo"))
     npo.setTransformation(t)
+    attribute.lockAttribute(npo)
     if parent:
         pm.parent(npo, parent)
 
@@ -1087,7 +1088,9 @@ def _parent_pivot(pivot, parent):
                 pm.displayWarning("{}: have SRT values. Reset, before edit "
                                   "elements".format(pivot))
             npo = pivot.getParent()
+            attribute.unlockAttribute(npo)
             pm.parent(npo, parent)
+            attribute.lockAttribute(npo)
             # re-connect controller tag
 
             pivotTag = pm.PyNode(pm.controller(pivot, q=True)[0])
@@ -1149,6 +1152,7 @@ def _consolidate_pivot_position(ctl):
         # rig = pm.PyNode(RIG_ROOT)
         rig = _get_simple_rig_root()
         npo = ctl.getParent()
+        attribute.unlockAttribute(npo)
         children = npo.listRelatives(type="transform")
         pm.parent(children, rig)
         # filter out the ctl
@@ -1162,6 +1166,7 @@ def _consolidate_pivot_position(ctl):
         # re-connect/update driven elements
         _update_driven(ctl)
         ctl.attr("edit_mode").set(False)
+        attribute.lockAttribute(npo)
         pm.select(ctl)
     else:
         pm.displayWarning("The control: {} Is NOT in"
