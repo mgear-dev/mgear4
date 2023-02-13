@@ -12,6 +12,20 @@ PROXY_GRP = "proxy_grp"
 
 
 def create_capsule(name, side, length, axis=[1, 0, 0]):
+    """Create a Maya polygonal capsule with specified dimensions and return
+    the transform node.
+
+    Args:
+        name (str): The name of the capsule transform node to be created.
+        side (float): The radius of the capsule.
+        length (float): The length of the capsule.
+        axis (list, optional): The axis along which the capsule is aligned.
+        Defaults to [1, 0, 0].
+
+    Returns:
+        pm.nodetypes.Transform: The transform node of the newly created capsule.
+
+    """
     args = {
         "subdivisionsX": 16,
         "subdivisionsY": 1,
@@ -58,6 +72,20 @@ def create_capsule(name, side, length, axis=[1, 0, 0]):
 
 
 def create_box(name, side, length, axis=[1, 0, 0]):
+    """Create a Maya polygonal box with specified dimensions and return the
+    transform node.
+
+    Args:
+        name (str): The name of the box transform node to be created.
+        side (float): The size of each side of the box.
+        length (float): The length of the box.
+        axis (list, optional): The axis along which the box is aligned.
+        Defaults to [1, 0, 0].
+
+    Returns:
+        pm.nodetypes.Transform: The transform node of the newly created box.
+
+    """
     args = {
         "subdivisionsX": 1,
         "subdivisionsY": 1,
@@ -108,6 +136,23 @@ def create_box(name, side, length, axis=[1, 0, 0]):
 
 
 def add_to_grp(proxy_objs):
+    """Add a list of proxy objects to the appropriate rig proxy set and rig
+    groups.
+
+    If the first proxy object in the list has a parent transform with an
+    "is_rig" attribute, the proxy
+    objects will be added to a proxy set specific to that rig. Otherwise,
+    the proxy objects will be
+    added to a generic "rig_proxy_grp" set.
+
+    Args:
+        proxy_objs (list of pm.nodetypes.Transform): A list of proxy objects
+            to add to the rig proxy set.
+
+    Returns:
+        None
+
+    """
     if proxy_objs and proxy_objs[0].getParent(-1).hasAttr("is_rig"):
         model = proxy_objs[0].getParent(-1)
         name = "{}_{}".format(model.name(), PROXY_GRP)
@@ -134,15 +179,57 @@ def add_to_grp(proxy_objs):
 
 
 def collect_proxy_data(proxy):
-    data = {}
+    """Collect the data of a single proxy object.
 
-    return
+    Args:
+        proxy (pymel.core.PyNode): The proxy object.
+
+    Returns:
+        dict: The data of the proxy object, including its translation,
+        rotation, scale, shape, length, side, and parent.
+    """
+    if proxy.hasAttr("isProxy"):
+        data = {}
+        data["t"] = proxy.translate.get().get()
+        data["r"] = proxy.rotate.get().get()
+        data["s"] = proxy.scale.get().get()
+        data["shape"] = proxy.proxy_shape.get()
+        data["length"] = proxy.length.get()
+        data["side"] = proxy.side.get()
+        data["parent"] = proxy.getParent().name()
+
+        return data
 
 
-def add_meta_data(proxy):
-    joint = proxy.getParent(proxy)
-    # add proxy_data attr if doesn 't exist
-    return
+def collect_config_data(proxies):
+    """Collect the data of multiple proxy objects.
+
+    Args:
+        proxies (list[pymel.core.PyNode]): The list of proxy objects.
+
+    Returns:
+        dict: The data of the proxy objects, including their order and the
+        data for each individual proxy.
+    """
+    config_data = {}
+    config_data["proxy_order"] = []
+    for p in proxies:
+        data = collect_proxy_data(p)
+        if data:
+            p_name = p.name()
+            config_data["proxy_order"].append(p_name)
+            config_data[p_name] = data
+    return config_data
+
+
+def collect_selected_proxy_data():
+    """Collect the data of the selected proxy objects.
+
+    Returns:
+        dict: The data of the selected proxy objects, including their order
+        and the data for each individual proxy.
+    """
+    return collect_config_data(pm.selected())
 
 
 def create_proxy(
@@ -154,6 +241,21 @@ def create_proxy(
     replace=False,
     used_index=[],
 ):
+    """Create a geo proxy for a given parent transform with specified dimensions and return the proxy node.
+
+    Args:
+        parent (pm.nodetypes.Transform): The parent transform to attach the rig proxy to.
+        side (float): The size or radius of the rig proxy.
+        length (float): The length of the rig proxy.
+        m (pm.datatypes.Matrix, optional): The initial transformation matrix of the rig proxy. Defaults to pm.datatypes.Matrix().
+        shape (str, optional): The shape of the rig proxy, either "capsule" or "box". Defaults to "capsule".
+        replace (bool, optional): Whether to replace an existing proxy at the same index or create a new index. Defaults to False.
+        used_index (list of int, optional): A list of existing proxy indices that are already in use. Defaults to [].
+
+    Returns:
+        pm.nodetypes.Transform: The newly created or updated rig proxy.
+
+    """
     if parent.hasAttr("isProxy"):
         return
     index = 0
@@ -164,11 +266,16 @@ def create_proxy(
             # Object does not exist, create it
             if shape == "capsule":
                 proxy = create_capsule(name, side, length)
+                proxy_shape = "capsule"
             else:
                 proxy = create_box(name, side, length)
+                proxy_shape = "box"
             pm.parent(proxy, parent)
             proxy.setMatrix(m, worldSpace=True)
             attribute.addAttribute(proxy, "isProxy", "bool", keyable=False)
+            attribute.addAttribute(
+                proxy, "proxy_shape", "string", value=proxy_shape
+            )
             return proxy, index
         else:
             # Object exists, check if it is parented to the given parent
@@ -371,10 +478,40 @@ def combine_proxy_geo():
 
 
 def filter_out_proxy(objs):
+    """Return a list of Maya nodes without the "isProxy" attribute.
+
+    Args:
+        objs (list of pm.nodetypes.Transform): A list of Maya nodes to filter.
+
+    Returns:
+        list of pm.nodetypes.Transform: A filtered list of Maya nodes without
+        the "isProxy" attribute.
+
+    """
     return [o for o in objs if not o.hasAttr("isProxy")]
 
 
 def get_list_or_selection(joints=None):
+    """Return a list of Maya joints based on user input or current selection.
+
+    If `joints` is None, return the currently selected joints without the
+        "isProxy" attribute.
+    If `joints` is a string, treat it as the name of a single joint and return
+        it without the "isProxy" attribute.
+    If `joints` is a list of strings, treat each string as the name of a single
+        joint and return them without the "isProxy" attribute.
+    If `joints` is a list of Maya joint nodes, return them without the
+        "isProxy" attribute.
+
+    Args:
+        joints (None, str, list of str, list of pm.nodetypes.Joint, optional):
+            The input specifying which joints to return. Defaults to None.
+
+    Returns:
+        list of pm.nodetypes.Joint: A list of Maya joint nodes without the
+            "isProxy" attribute.
+
+    """
     if not joints:
         return filter_out_proxy(pm.selected())
 
