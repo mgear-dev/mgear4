@@ -108,7 +108,6 @@ def create_box(name, side, length, axis=[1, 0, 0]):
 
 
 def add_to_grp(proxy_objs):
-    return
     if proxy_objs and proxy_objs[0].getParent(-1).hasAttr("is_rig"):
         model = proxy_objs[0].getParent(-1)
         name = "{}_{}".format(model.name(), PROXY_GRP)
@@ -146,18 +145,13 @@ def add_meta_data(proxy):
     return
 
 
-def get_proxy_name(parent, idx):
-    name = "{}_{}_{}".format(parent.name(), str(idx).zfill(2), PROXY_SUFFIX)
-    return name
-
-
 def create_proxy(
     parent,
     side,
     length,
     m=datatypes.Matrix(),
     shape="capsule",
-    replace=True,
+    replace=False,
     used_index=[],
 ):
     if parent.hasAttr("isProxy"):
