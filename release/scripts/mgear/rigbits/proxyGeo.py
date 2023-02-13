@@ -159,6 +159,9 @@ def add_to_grp(proxy_objs):
         None
 
     """
+    if not isinstance(proxy_objs, list):
+        proxy_objs = [proxy_objs]
+
     if proxy_objs and proxy_objs[0].getParent(-1).hasAttr("is_rig"):
         model = proxy_objs[0].getParent(-1)
         name = "{}_{}".format(model.name(), PROXY_GRP)
@@ -229,6 +232,7 @@ def create_proxy(
             attribute.addAttribute(
                 proxy, "proxy_shape", "string", value=proxy_shape
             )
+            add_to_grp(proxy)
             return proxy, index
         else:
             # Object exists, check if it is parented to the given parent
@@ -250,6 +254,7 @@ def create_proxy(
             else:
                 # Object is not parented to the given parent, parent it
                 pm.parent(existing_object, parent)
+                add_to_grp(existing_object)
                 return existing_object, index
 
 
@@ -298,7 +303,6 @@ def create_proxy_to_children(joints=None, side=None):
                     proxies.append(pxy)
         else:
             pm.displayWarning("{}: has not children".format(j.name()))
-    add_to_grp(proxies)
     return proxies
 
 
@@ -362,7 +366,6 @@ def create_proxy_to_next(joints=None, side=None, tip=True):
             pxy, idx = create_proxy(j, side, length, m=t)
             if pxy:
                 proxies.append(pxy)
-    add_to_grp(proxies)
     return proxies
 
 
@@ -426,7 +429,6 @@ def create_proxy_centered(joints=None, side=None):
             pxy, idx = create_proxy(j, side, length, m=t)
             if pxy:
                 proxies.append(pxy)
-    add_to_grp(proxies)
     return proxies
 
 
@@ -475,11 +477,11 @@ def get_list_or_selection(joints=None):
     if isinstance(joints, str):
         joints = filter_out_proxy([pm.PyNode(joints)])
     if not isinstance(joints, list):
-        joints = filter_out_proxy(list(joints))
+        joints = filter_out_proxy([joints])
     return joints
 
 
-### IO data
+# IO data
 
 
 def collect_proxy_data(proxy):
@@ -707,7 +709,7 @@ def duplicate_proxy(proxy=None):
     if not proxy:
         proxy = filter_proxy(pm.selected())
     if not isinstance(proxy, list):
-        proxy = list(proxy)
+        proxy = [proxy]
     data = collect_config_data(proxy)
     return create_proxy_from_data(data, duplicate=True)
 
@@ -728,7 +730,7 @@ def mirror_proxy(proxy=None):
     if not proxy:
         proxy = filter_proxy(pm.selected())
     if not isinstance(proxy, list):
-        proxy = list(proxy)
+        proxy = [proxy]
     data = collect_config_data(proxy)
     return create_proxy_from_data(data, duplicate=True, mirror=True)
 
