@@ -7,7 +7,8 @@ from mgear.core import attribute
 from mgear.core import transform
 from mgear.core import vector
 
-PROXY_SUFFIX = "_proxy"
+PROXY_SUFFIX = "proxy"
+PROXY_GRP = "proxy_grp"
 
 
 def create_capsule(name, side, length, axis=[1, 0, 0]):
@@ -106,25 +107,89 @@ def create_box(name, side, length, axis=[1, 0, 0]):
     return trans
 
 
-def add_meta_data():
-    # adds meta data attrs in joint
-    # str to store dic
-    # tranlation array
-    # rotation array
-    # heigh
-    # side
+def add_to_grp(proxy_objs):
+    return
+    if proxy_objs and proxy_objs[0].getParent(-1).hasAttr("is_rig"):
+        model = proxy_objs[0].getParent(-1)
+        name = "{}_{}".format(model.name(), PROXY_GRP)
+    else:
+        model = None
+        name = "rig_{}".format(PROXY_GRP)
+
+    # Check if the set already exists
+    if pm.objExists(name):
+        # The set already exists, get a reference to it
+        pxy_set = pm.PyNode(name)
+    else:
+        # The set does not exist, create it
+        pxy_set = pm.sets(empty=True, name=name)
+        if model:
+            groupIdx = attribute.get_next_available_index(model.rigGroups)
+            pm.connectAttr(pxy_set.message, model.rigGroups[groupIdx])
+            masterSet = model.rigGroups.listConnections()[0]
+            masterSet.add(pxy_set)
+
+    # Add the objects to the set
+    for o in proxy_objs:
+        pxy_set.add(o)
+
+
+def collect_proxy_data(proxy):
+    data = {}
+
     return
 
 
-def create_proxy(parent, side, length, m=datatypes.Matrix(), shape="box"):
-    name = parent.name() + PROXY_SUFFIX
-    if shape == "capsule":
-        proxy = create_capsule(name, side, length)
-    else:
-        proxy = create_box(name, side, length)
-    pm.parent(proxy, parent)
-    proxy.setMatrix(m, worldSpace=True)
-    return proxy
+def add_meta_data(proxy):
+    joint = proxy.getParent(proxy)
+    # add proxy_data attr if doesn 't exist
+    return
+
+
+def get_proxy_name(parent, idx):
+    name = "{}_{}_{}".format(parent.name(), str(idx).zfill(2), PROXY_SUFFIX)
+    return name
+
+
+def create_proxy(
+    parent,
+    side,
+    length,
+    m=datatypes.Matrix(),
+    shape="capsule",
+    replace=True,
+    used_index=[],
+):
+    if parent.hasAttr("isProxy"):
+        return
+    index = 0
+
+    while True:
+        name = "{}_{:02d}_{}".format(parent.name(), index, PROXY_SUFFIX)
+        if not pm.objExists(name):
+            # Object does not exist, create it
+            if shape == "capsule":
+                proxy = create_capsule(name, side, length)
+            else:
+                proxy = create_box(name, side, length)
+            pm.parent(proxy, parent)
+            proxy.setMatrix(m, worldSpace=True)
+            attribute.addAttribute(proxy, "isProxy", "bool", keyable=False)
+            return proxy, index
+        else:
+            # Object exists, check if it is parented to the given parent
+            existing_object = pm.PyNode(name)
+            if existing_object.getParent() == parent:
+                # Object is already parented to the given parent
+                if replace and index not in used_index:
+                    pm.delete(existing_object)
+                    continue
+                else:
+                    index += 1
+            else:
+                # Object is not parented to the given parent, parent it
+                pm.parent(existing_object, parent)
+                return existing_object, index
 
 
 def create_proxy_to_children(joints=None, side=None):
@@ -140,9 +205,13 @@ def create_proxy_to_children(joints=None, side=None):
 
     joints = get_list_or_selection(joints)
     proxies = []
+    used_index = []
 
     for j in joints:
-        children = j.getChildren()
+        children = [
+            child for child in j.getChildren() if not child.hasAttr("isProxy")
+        ]
+
         if children:
             pos = transform.getTranslation(j)
             blade = vector.Blade(j.getMatrix(worldSpace=True))
@@ -160,11 +229,15 @@ def create_proxy_to_children(joints=None, side=None):
                 length = vector.getDistance2(j, lookat_ref)
                 if not side:
                     side = length * 0.3
-                pxy = create_proxy(j, side, length, m=t)
-                proxies.append(pxy)
+                pxy, idx = create_proxy(
+                    j, side, length, m=t, used_index=used_index
+                )
+                used_index.append(idx)
+                if pxy:
+                    proxies.append(pxy)
         else:
             pm.displayWarning("{}: has not children".format(j.name()))
-
+    add_to_grp(proxies)
     return proxies
 
 
@@ -198,8 +271,9 @@ def create_proxy_to_next(joints=None, side=None, tip=True):
             length = vector.getDistance2(j, lookat_ref)
             if not side:
                 side = length * 0.3
-            pxy = create_proxy(j, side, length, m=t)
-            proxies.append(pxy)
+            pxy, idx = create_proxy(j, side, length, m=t)
+            if pxy:
+                proxies.append(pxy)
 
         elif tip:
             # create the proxy for the tip joint
@@ -224,9 +298,10 @@ def create_proxy_to_next(joints=None, side=None, tip=True):
             length = vector.getDistance2(j, lookat_ref)
             if not side:
                 side = length * 0.3
-            pxy = create_proxy(j, side, length, m=t)
-            proxies.append(pxy)
-
+            pxy, idx = create_proxy(j, side, length, m=t)
+            if pxy:
+                proxies.append(pxy)
+    add_to_grp(proxies)
     return proxies
 
 
@@ -246,10 +321,14 @@ def create_proxy_centered(joints=None, side=None):
 
     if nb_joints == 1:
         # just create an center proxy using the joint side as reference
-        side = joints[0].side.get()
+        if joints[0].type() == "joint":
+            side = joints[0].radius.get()
+        else:
+            side = 1
         t = joints[0].getMatrix(worldSpace=True)
-        pxy = create_proxy(joints[0], side, 1, m=t)
-        proxies.append(pxy)
+        pxy, idx = create_proxy(joints[0], side, 0.1, m=t)
+        if pxy:
+            proxies.append(pxy)
 
     elif nb_joints >= 2:
         for i, j in enumerate(joints):
@@ -283,9 +362,10 @@ def create_proxy_centered(joints=None, side=None):
                 t = transform.setMatrixPosition(t, mid_pos)
                 length = vector.getDistance(lookat_back, lookat) / 2
 
-            pxy = create_proxy(j, side, length, m=t)
-            proxies.append(pxy)
-
+            pxy, idx = create_proxy(j, side, length, m=t)
+            if pxy:
+                proxies.append(pxy)
+    add_to_grp(proxies)
     return proxies
 
 
@@ -296,11 +376,16 @@ def combine_proxy_geo():
     return
 
 
+def filter_out_proxy(objs):
+    return [o for o in objs if not o.hasAttr("isProxy")]
+
+
 def get_list_or_selection(joints=None):
     if not joints:
-        return pm.selected()
+        return filter_out_proxy(pm.selected())
+
     if isinstance(joints, str):
-        joints = [pm.PyNode(joints)]
+        joints = filter_out_proxy([pm.PyNode(joints)])
     if not isinstance(joints, list):
-        joints = list(joints)
+        joints = filter_out_proxy(list(joints))
     return joints
