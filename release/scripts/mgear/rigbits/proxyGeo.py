@@ -10,6 +10,7 @@ from pymel.core import nodetypes
 from mgear.core import attribute
 from mgear.core import transform
 from mgear.core import vector
+from mgear.core import string
 
 
 PROXY_SUFFIX = "proxy"
@@ -191,6 +192,7 @@ def create_proxy(
     shape="capsule",
     replace=False,
     used_index=[],
+    duplicate=False,
 ):
     """Create a geo proxy for a given parent transform with specified dimensions and return the proxy node.
 
@@ -234,10 +236,17 @@ def create_proxy(
             if existing_object.getParent() == parent:
                 # Object is already parented to the given parent
                 if replace and index not in used_index:
+                    pm.displayInfo(
+                        "Replacing {} with a new proxy".format(
+                            existing_object.name()
+                        )
+                    )
                     pm.delete(existing_object)
                     continue
                 else:
                     index += 1
+            elif duplicate:
+                index += 1
             else:
                 # Object is not parented to the given parent, parent it
                 pm.parent(existing_object, parent)
@@ -421,11 +430,8 @@ def create_proxy_centered(joints=None, side=None):
     return proxies
 
 
-def combine_proxy_geo():
-    # combines all the proxy geometry and the skinning
-    # by defaul we just parent the proxy geos
-    # this function will add the skinning and combine all
-    return
+def filter_proxy(objs):
+    return [o for o in objs if o.hasAttr("isProxy")]
 
 
 def filter_out_proxy(objs):
@@ -495,11 +501,12 @@ def collect_proxy_data(proxy):
         data["length"] = proxy.length.get()
         data["side"] = proxy.side.get()
         data["parent"] = proxy.getParent().name()
+        data["worldMatrix"] = proxy.getMatrix(worldSpace=True)
 
         return data
 
 
-def collect_config_data(proxies):
+def collect_config_data(proxies, mirror=False):
     """Collect the data of multiple proxy objects.
 
     Args:
@@ -614,7 +621,7 @@ def export_selected_proxy_data():
     export_proxy_data(data=data)
 
 
-def create_proxy_from_data(data, selection=False):
+def create_proxy_from_data(data, selection=False, duplicate=False, mirror=False):
     """Create proxy geometry from given JSON data.
 
     Args:
@@ -632,23 +639,36 @@ def create_proxy_from_data(data, selection=False):
     for proxy_name in proxy_order:
         if proxy_name in data.keys():
             proxy_data = data[proxy_name]
-            if pm.objExists(proxy_data["parent"]):
-                parent = pm.PyNode(proxy_data["parent"])
+            if duplicate and mirror:
+                parent_name = string.convertRLName(proxy_data["parent"])
+            else:
+                parent_name = proxy_data["parent"]
+            if pm.objExists(parent_name):
+                parent = pm.PyNode(parent_name)
                 side = proxy_data["side"]
                 length = proxy_data["length"]
                 t = proxy_data["t"]
                 r = proxy_data["r"]
                 s = proxy_data["s"]
                 shape = proxy_data["shape"]
-                if pm.objExists(proxy_name):
+                if not duplicate and pm.objExists(proxy_name):
                     proxy = pm.PyNode(proxy_name)
                 else:
                     proxy, idx = create_proxy(
-                        parent, side, length, shape=shape
+                        parent,
+                        side,
+                        length,
+                        shape=shape,
+                        duplicate=duplicate
                     )
-                proxy.translate.set(t)
-                proxy.rotate.set(r)
-                proxy.scale.set(s)
+                if duplicate and mirror:
+                    t = proxy_data["worldMatrix"]
+                    m = transform.getSymmetricalTransform(t)
+                    proxy.setMatrix(m, worldSpace=True)
+                else:
+                    proxy.translate.set(t)
+                    proxy.rotate.set(r)
+                    proxy.scale.set(s)
                 proxies.append(proxy)
     return proxies
 
@@ -669,3 +689,52 @@ def create_selected_proxy_data():
         list of pm.nodetypes.Transform: The newly created or updated proxy geometry transforms.
     """
     return create_proxy_from_data(import_proxy_data(), selection=True)
+
+
+def duplicate_proxy(proxy=None):
+    """
+    Creates a duplicate of the given proxy. If no proxy is provided, uses the selected proxy in the scene.
+    If the proxy is not a list, converts it to a list. Collects configuration data for the proxy and creates
+    a new proxy with the collected data using the create_proxy_from_data function. The new proxy is a duplicate
+    of the original proxy.
+
+    Args:
+        proxy (list): List of proxy objects. If not provided, defaults to the selected proxy in the scene.
+
+    Returns:
+        list: A list of the new proxy object(s).
+    """
+    if not proxy:
+        proxy = filter_proxy(pm.selected())
+    if not isinstance(proxy, list):
+        proxy = list(proxy)
+    data = collect_config_data(proxy)
+    return create_proxy_from_data(data, duplicate=True)
+
+
+def mirror_proxy(proxy=None):
+    """
+    Creates a mirrored copy of the given proxy. If no proxy is provided, uses the selected proxy in the scene.
+    If the proxy is not a list, converts it to a list. Collects configuration data for the proxy and creates
+    a new proxy with the collected data using the create_proxy_from_data function. The new proxy is a mirrored
+    copy of the original proxy.
+
+    Args:
+        proxy (list): List of proxy objects. If not provided, defaults to the selected proxy in the scene.
+
+    Returns:
+        list: A list of the new proxy object(s).
+    """
+    if not proxy:
+        proxy = filter_proxy(pm.selected())
+    if not isinstance(proxy, list):
+        proxy = list(proxy)
+    data = collect_config_data(proxy)
+    return create_proxy_from_data(data, duplicate=True, mirror=True)
+
+
+def combine_proxy_geo():
+    # combines all the proxy geometry and the skinning
+    # by defaul we just parent the proxy geos
+    # this function will add the skinning and combine all
+    return
