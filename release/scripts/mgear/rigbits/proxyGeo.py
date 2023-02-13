@@ -1,3 +1,7 @@
+import os
+import json
+
+
 import pymel.core as pm
 from pymel.core import datatypes
 from pymel.core import nodetypes
@@ -6,6 +10,7 @@ from pymel.core import nodetypes
 from mgear.core import attribute
 from mgear.core import transform
 from mgear.core import vector
+
 
 PROXY_SUFFIX = "proxy"
 PROXY_GRP = "proxy_grp"
@@ -176,60 +181,6 @@ def add_to_grp(proxy_objs):
     # Add the objects to the set
     for o in proxy_objs:
         pxy_set.add(o)
-
-
-def collect_proxy_data(proxy):
-    """Collect the data of a single proxy object.
-
-    Args:
-        proxy (pymel.core.PyNode): The proxy object.
-
-    Returns:
-        dict: The data of the proxy object, including its translation,
-        rotation, scale, shape, length, side, and parent.
-    """
-    if proxy.hasAttr("isProxy"):
-        data = {}
-        data["t"] = proxy.translate.get().get()
-        data["r"] = proxy.rotate.get().get()
-        data["s"] = proxy.scale.get().get()
-        data["shape"] = proxy.proxy_shape.get()
-        data["length"] = proxy.length.get()
-        data["side"] = proxy.side.get()
-        data["parent"] = proxy.getParent().name()
-
-        return data
-
-
-def collect_config_data(proxies):
-    """Collect the data of multiple proxy objects.
-
-    Args:
-        proxies (list[pymel.core.PyNode]): The list of proxy objects.
-
-    Returns:
-        dict: The data of the proxy objects, including their order and the
-        data for each individual proxy.
-    """
-    config_data = {}
-    config_data["proxy_order"] = []
-    for p in proxies:
-        data = collect_proxy_data(p)
-        if data:
-            p_name = p.name()
-            config_data["proxy_order"].append(p_name)
-            config_data[p_name] = data
-    return config_data
-
-
-def collect_selected_proxy_data():
-    """Collect the data of the selected proxy objects.
-
-    Returns:
-        dict: The data of the selected proxy objects, including their order
-        and the data for each individual proxy.
-    """
-    return collect_config_data(pm.selected())
 
 
 def create_proxy(
@@ -520,3 +471,201 @@ def get_list_or_selection(joints=None):
     if not isinstance(joints, list):
         joints = filter_out_proxy(list(joints))
     return joints
+
+
+### IO data
+
+
+def collect_proxy_data(proxy):
+    """Collect the data of a single proxy object.
+
+    Args:
+        proxy (pymel.core.PyNode): The proxy object.
+
+    Returns:
+        dict: The data of the proxy object, including its translation,
+        rotation, scale, shape, length, side, and parent.
+    """
+    if proxy.hasAttr("isProxy"):
+        data = {}
+        data["t"] = proxy.translate.get().get()
+        data["r"] = proxy.rotate.get().get()
+        data["s"] = proxy.scale.get().get()
+        data["shape"] = proxy.proxy_shape.get()
+        data["length"] = proxy.length.get()
+        data["side"] = proxy.side.get()
+        data["parent"] = proxy.getParent().name()
+
+        return data
+
+
+def collect_config_data(proxies):
+    """Collect the data of multiple proxy objects.
+
+    Args:
+        proxies (list[pymel.core.PyNode]): The list of proxy objects.
+
+    Returns:
+        dict: The data of the proxy objects, including their order and the
+        data for each individual proxy.
+    """
+    config_data = {}
+    config_data["proxy_order"] = []
+    for p in proxies:
+        data = collect_proxy_data(p)
+        if data:
+            p_name = p.name()
+            config_data["proxy_order"].append(p_name)
+            config_data[p_name] = data
+    return config_data
+
+
+def collect_selected_proxy_data():
+    """Collect the data of the selected proxy objects.
+
+    Returns:
+        dict: The data of the selected proxy objects, including their order
+        and the data for each individual proxy.
+    """
+    return collect_config_data(pm.selected())
+
+
+def collect_all_proxy_data():
+    """Collect the data of all objects in the scene that have the attribute "isProxy".
+
+    Returns:
+        dict: The data of all proxy objects in the scene, including their order and the data for each individual proxy.
+    """
+    proxies = []
+
+    for p in pm.ls(type="transform"):
+        if p.hasAttr("isProxy"):
+            proxies.append(p)
+
+    return collect_config_data(proxies)
+
+
+def export_proxy_data(data=None, file_path=None):
+    """Export collected data to a json format with the extension ".pxy".
+
+    If `data` is None, the function will collect data of all objects in the scene that have the attribute "isProxy".
+    If `file_path` is None, the function will prompt the user to select a file path and name using the Maya file dialog.
+
+    Args:
+        data (dict, optional): The data to be exported. Defaults to None.
+        file_path (str, optional): The file path and name to save the data to. Defaults to None.
+
+    Returns:
+        None
+    """
+    if not data:
+        data = collect_all_proxy_data()
+    if not file_path:
+        file_filter = "Proxy Data (*.pxy);;All Files(*.*)"
+        file_path = pm.fileDialog2(fileFilter=file_filter, fileMode=0)
+        if not file_path:
+            return
+        file_path = file_path[0]
+        if not file_path.endswith(".pxy"):
+            file_path += ".pxy"
+    with open(file_path, "w") as f:
+        json.dump(data, f)
+
+
+def import_proxy_data(file_path=None):
+    """Import collected data from a proxy data file.
+
+    If `file_path` is None, the function will prompt the user to select a file path and name using the Maya file dialog.
+
+    Args:
+        file_path (str, optional): The file path and name to import the data from. Defaults to None.
+
+    Returns:
+        dict: The imported proxy data.
+    """
+    if not file_path:
+        file_filter = "Proxy Data (*.pxy);;All Files(*.*)"
+        file_path = pm.fileDialog2(fileFilter=file_filter, fileMode=1)
+        if not file_path:
+            return
+        file_path = file_path[0]
+    with open(file_path, "r") as f:
+        data = json.load(f)
+    return data
+
+
+def export_all_proxy_data():
+    """Export all proxy data to a json format with the extension ".pxy".
+
+    Returns:
+        None
+    """
+    data = collect_all_proxy_data()
+    export_proxy_data(data=data)
+
+
+def export_selected_proxy_data():
+    """Export selected proxy data to a json format with the extension ".pxy".
+
+    Returns:
+        None
+    """
+    data = collect_selected_proxy_data()
+    export_proxy_data(data=data)
+
+
+def create_proxy_from_data(data, selection=False):
+    """Create proxy geometry from given JSON data.
+
+    Args:
+        data (dict): The JSON data containing the proxy geometry details.
+        selection (bool, optional): If True will create only the proxy for the selected objects.
+
+    Returns:
+        list of pm.nodetypes.Transform: The newly created or updated proxy geometry transforms.
+    """
+    proxies = []
+    if selection:
+        proxy_order = [x.name() for x in pm.selected()]
+    else:
+        proxy_order = data["proxy_order"]
+    for proxy_name in proxy_order:
+        if proxy_name in data.keys():
+            proxy_data = data[proxy_name]
+            if pm.objExists(proxy_data["parent"]):
+                parent = pm.PyNode(proxy_data["parent"])
+                side = proxy_data["side"]
+                length = proxy_data["length"]
+                t = proxy_data["t"]
+                r = proxy_data["r"]
+                s = proxy_data["s"]
+                shape = proxy_data["shape"]
+                if pm.objExists(proxy_name):
+                    proxy = pm.PyNode(proxy_name)
+                else:
+                    proxy, idx = create_proxy(
+                        parent, side, length, shape=shape
+                    )
+                proxy.translate.set(t)
+                proxy.rotate.set(r)
+                proxy.scale.set(s)
+                proxies.append(proxy)
+    return proxies
+
+
+def create_all_proxy_data():
+    """Import all proxy data from a proxy data file and create the proxy geometry.
+
+    Returns:
+        list of pm.nodetypes.Transform: The newly created or updated proxy geometry transforms.
+    """
+    return create_proxy_from_data(import_proxy_data())
+
+
+def create_selected_proxy_data():
+    """Import proxy data from a proxy data file and only apply it to selected objects.
+
+    Returns:
+        list of pm.nodetypes.Transform: The newly created or updated proxy geometry transforms.
+    """
+    return create_proxy_from_data(import_proxy_data(), selection=True)
