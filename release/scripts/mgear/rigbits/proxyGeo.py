@@ -26,7 +26,7 @@ def create_capsule(name, side, length, axis=[1, 0, 0]):
         side (float): The radius of the capsule.
         length (float): The length of the capsule.
         axis (list, optional): The axis along which the capsule is aligned.
-        Defaults to [1, 0, 0].
+            Defaults to [1, 0, 0].
 
     Returns:
         pm.nodetypes.Transform: The transform node of the newly created capsule.
@@ -86,11 +86,10 @@ def create_box(name, side, length, axis=[1, 0, 0]):
         side (float): The size of each side of the box.
         length (float): The length of the box.
         axis (list, optional): The axis along which the box is aligned.
-        Defaults to [1, 0, 0].
+          Defaults to [1, 0, 0].
 
     Returns:
         pm.nodetypes.Transform: The transform node of the newly created box.
-
     """
     args = {
         "subdivisionsX": 1,
@@ -196,41 +195,54 @@ def create_proxy(
     replace=False,
     used_index=[],
     duplicate=False,
+    axis="xy",
 ):
     """Create a geo proxy for a given parent transform with specified
-        dimensions and return the proxy node.
+    dimensions and return the proxy node.
 
     Args:
         parent (pm.nodetypes.Transform): The parent transform to attach the
-            rig proxy to.
+          rig proxy to.
         side (float): The size or radius of the rig proxy.
         length (float): The length of the rig proxy.
-        m (pm.datatypes.Matrix, optional): The initial transformation matrix of
-            the rig proxy. Defaults to pm.datatypes.Matrix().
-        shape (str, optional): The shape of the rig proxy, either "capsule" or
-            "box". Defaults to "capsule".
+        m (pm.datatypes.Matrix, optional): The initial transformation matrix
+          of the rig proxy. Defaults to pm.datatypes.Matrix().
+        shape (str, optional): The shape of the rig proxy, either "capsule"
+          or "box". Defaults to "capsule".
         replace (bool, optional): Whether to replace an existing proxy at the
-            same index or create a new index. Defaults to False.
+          same index or create a new index. Defaults to False.
         used_index (list of int, optional): A list of existing proxy indices
-            that are already in use. Defaults to [].
+          that are already in use. Defaults to [].
+        duplicate (bool, optional): Whether to allow a new proxy to be
+          created even if a proxy already exists with the same name.
+          Defaults to False.
+        axis (str, optional): The axis for the rig proxy. Options are
+          "xy", "yx", and "zx". Defaults to "xy".
 
     Returns:
         pm.nodetypes.Transform: The newly created or updated rig proxy.
-
+        int: The index of the newly created or updated rig proxy.
     """
     if parent.hasAttr("isProxy"):
         return
     index = 0
+    # axis
+    if axis == "yx":
+        axis_v = [0, 1, 0]
+    elif axis == "zx":
+        axis_v = [0, 0, 1]
+    else:  # xy and anyother combination
+        axis_v = [1, 0, 0]
 
     while True:
         name = "{}_{:02d}_{}".format(parent.name(), index, PROXY_SUFFIX)
         if not pm.objExists(name):
             # Object does not exist, create it
             if shape == "capsule":
-                proxy = create_capsule(name, side, length)
+                proxy = create_capsule(name, side, length, axis=axis_v)
                 proxy_shape = "capsule"
             else:
-                proxy = create_box(name, side, length)
+                proxy = create_box(name, side, length, axis=axis_v)
                 proxy_shape = "box"
             pm.parent(proxy, parent)
             proxy.setMatrix(m, worldSpace=True)
@@ -238,6 +250,7 @@ def create_proxy(
             attribute.addAttribute(
                 proxy, "proxy_shape", "string", value=proxy_shape
             )
+            attribute.addAttribute(proxy, "proxy_axis", "string", value=axis)
             add_to_grp(proxy)
             return proxy, index
         else:
@@ -264,15 +277,21 @@ def create_proxy(
                 return existing_object, index
 
 
-def create_proxy_to_children(joints=None, side=None, replace=False):
-    """Create one proxy geo aiming to each child of the joint
+def create_proxy_to_children(joints=None, side=None, replace=False, axis="xy"):
+    """Create one proxy geo aiming to each child of the joint.
 
     Args:
-        joints (list, optional): list of joints
-        side (float, optional): default side
+        joints (list, optional): A list of joints. If None, the function will
+            use the selected joints.
+        side (float, optional): The default side length of the proxy geometry.
+        replace (bool, optional): If True, the original object will be replaced
+            by the proxy geometry. Defaults to False.
+        axis (str, optional): The axis to align the proxy geometry to. Defaults
+            to "xy". other options are "yx", "zy"
 
     Returns:
-        list: list of pyNode proxy gemetries
+        list: A list of PyNode proxy geometries.
+
     """
 
     joints = get_list_or_selection(joints)
@@ -287,13 +306,16 @@ def create_proxy_to_children(joints=None, side=None, replace=False):
         if children:
             pos = transform.getTranslation(j)
             blade = vector.Blade(j.getMatrix(worldSpace=True))
-            normal = blade.z
+            if axis == "zy":
+                normal = blade.x
+            else:
+                normal = blade.z
             for child in children:
                 lookat_ref = child
                 lookat = transform.getTranslation(child)
 
                 t = transform.getTransformLookingAt(
-                    pos, lookat, normal, axis="xy"
+                    pos, lookat, normal, axis=axis
                 )
 
                 mid_pos = vector.linearlyInterpolate(pos, lookat)
@@ -308,6 +330,7 @@ def create_proxy_to_children(joints=None, side=None, replace=False):
                     m=t,
                     used_index=used_index,
                     replace=replace,
+                    axis=axis,
                 )
                 used_index.append(idx)
                 if pxy:
@@ -317,16 +340,23 @@ def create_proxy_to_children(joints=None, side=None, replace=False):
     return proxies
 
 
-def create_proxy_to_next(joints=None, side=None, tip=True, replace=False):
-    """Create proxy geo aiming to the next joint position
+def create_proxy_to_next(
+    joints=None, side=None, tip=True, replace=False, axis="xy"
+):
+    """Create proxy geo aiming to the next joint position.
 
     Args:
-        joints (list, optional): list of joints
-        side (float, optional): default side
-        tip (bool, optional): if true will create the proxy for the tip joint
+        joints (list, optional): A list of joints. Defaults to None.
+        side (float, optional): The default side of the proxy. Defaults to None.
+        tip (bool, optional): If True, a proxy will be created for the tip joint.
+          Defaults to True.
+        replace (bool, optional): Whether to replace an existing proxy at the
+          same index or create a new index. Defaults to False.
+        axis (str, optional): The axis for the rig proxy. Options are
+          "xy", "yx", and "zx". Defaults to "xy".
 
     Returns:
-        list: list of pyNode proxy gemetries
+        list: A list of PyNode proxy geometries.
     """
     proxies = []
     joints = get_list_or_selection(joints)
@@ -335,19 +365,24 @@ def create_proxy_to_next(joints=None, side=None, tip=True, replace=False):
     for i, j in enumerate(joints):
         pos = transform.getTranslation(j)
         blade = vector.Blade(j.getMatrix(worldSpace=True))
-        normal = blade.z
+        if axis == "zy":
+            normal = blade.x
+        else:
+            normal = blade.z
         if i < nb_joints - 1:
             lookat_ref = joints[i + 1]
             lookat = transform.getTranslation(lookat_ref)
 
-            t = transform.getTransformLookingAt(pos, lookat, normal, axis="xy")
+            t = transform.getTransformLookingAt(pos, lookat, normal, axis=axis)
 
             mid_pos = vector.linearlyInterpolate(pos, lookat)
             t = transform.setMatrixPosition(t, mid_pos)
             length = vector.getDistance2(j, lookat_ref)
             if not side:
                 side = length * 0.3
-            pxy, idx = create_proxy(j, side, length, m=t, replace=replace)
+            pxy, idx = create_proxy(
+                j, side, length, m=t, replace=replace, axis=axis
+            )
             if pxy:
                 proxies.append(pxy)
 
@@ -369,26 +404,30 @@ def create_proxy_to_next(joints=None, side=None, tip=True, replace=False):
             v2 = v + pos
             mid_pos = vector.linearlyInterpolate(pos, v2)
 
-            t = transform.getTransformLookingAt(lookat, pos, normal, axis="xy")
+            t = transform.getTransformLookingAt(lookat, pos, normal, axis=axis)
             t = transform.setMatrixPosition(t, mid_pos)
             length = vector.getDistance2(j, lookat_ref)
             if not side:
                 side = length * 0.3
-            pxy, idx = create_proxy(j, side, length, m=t)
+            pxy, idx = create_proxy(j, side, length, m=t, axis=axis)
             if pxy:
                 proxies.append(pxy)
     return proxies
 
 
-def create_proxy_centered(joints=None, side=None, replace=False):
-    """Create proxy geo centered in the joint position
+def create_proxy_centered(joints=None, side=None, replace=False, axis="xy"):
+    """Create a proxy geometry centered at the joint position.
 
     Args:
-        joints (list, optional): list of joints
-        side (float, optional): default side
+        joints (list, optional): A list of joints. Default is None.
+        side (float, optional): The default side. Default is None.
+        replace (bool, optional): Replace the existing proxy geometry.
+            Default is False.
+        axis (str, optional): Axis for the proxy geometry.
+            Default is "xy".
 
     Returns:
-        list: list of pyNode proxy gemetries
+        list: A list of PyNode proxy geometries.
     """
     proxies = []
     joints = get_list_or_selection(joints)
@@ -401,7 +440,9 @@ def create_proxy_centered(joints=None, side=None, replace=False):
         else:
             side = 1
         t = joints[0].getMatrix(worldSpace=True)
-        pxy, idx = create_proxy(joints[0], side, 0.1, m=t, replace=replace)
+        pxy, idx = create_proxy(
+            joints[0], side, 0.1, m=t, replace=replace, axis=axis
+        )
         if pxy:
             proxies.append(pxy)
 
@@ -437,13 +478,23 @@ def create_proxy_centered(joints=None, side=None, replace=False):
                 t = transform.setMatrixPosition(t, mid_pos)
                 length = vector.getDistance(lookat_back, lookat) / 2
 
-            pxy, idx = create_proxy(j, side, length, m=t, replace=replace)
+            pxy, idx = create_proxy(
+                j, side, length, m=t, replace=replace, axis=axis
+            )
             if pxy:
                 proxies.append(pxy)
     return proxies
 
 
 def filter_proxy(objs):
+    """Filter the objects to return only the proxy objects.
+
+    Args:
+        objs (list): A list of objects.
+
+    Returns:
+        list: A list of objects with "isProxy" attribute.
+    """
     return [o for o in objs if o.hasAttr("isProxy")]
 
 
@@ -511,6 +562,7 @@ def collect_proxy_data(proxy):
         data["r"] = proxy.rotate.get().get()
         data["s"] = proxy.scale.get().get()
         data["shape"] = proxy.proxy_shape.get()
+        data["axis"] = proxy.proxy_axis.get()
         data["length"] = proxy.length.get()
         data["side"] = proxy.side.get()
         data["parent"] = proxy.getParent().name()
@@ -644,7 +696,11 @@ def export_selected_proxy_data():
 
 
 def create_proxy_from_data(
-    data, selection=False, duplicate=False, mirror=False, replace=False
+    data,
+    selection=False,
+    duplicate=False,
+    mirror=False,
+    replace=False,
 ):
     """Create proxy geometry from given JSON data.
 
@@ -684,6 +740,7 @@ def create_proxy_from_data(
                 r = proxy_data["r"]
                 s = proxy_data["s"]
                 shape = proxy_data["shape"]
+                axis = proxy_data["axis"]
                 if not duplicate and pm.objExists(proxy_name):
                     proxy = pm.PyNode(proxy_name)
                 else:
@@ -694,6 +751,7 @@ def create_proxy_from_data(
                         shape=shape,
                         duplicate=duplicate,
                         replace=replace,
+                        axis=axis,
                     )
                 if duplicate and mirror:
                     t = proxy_data["worldMatrix"]
