@@ -197,16 +197,22 @@ def create_proxy(
     used_index=[],
     duplicate=False,
 ):
-    """Create a geo proxy for a given parent transform with specified dimensions and return the proxy node.
+    """Create a geo proxy for a given parent transform with specified
+        dimensions and return the proxy node.
 
     Args:
-        parent (pm.nodetypes.Transform): The parent transform to attach the rig proxy to.
+        parent (pm.nodetypes.Transform): The parent transform to attach the
+            rig proxy to.
         side (float): The size or radius of the rig proxy.
         length (float): The length of the rig proxy.
-        m (pm.datatypes.Matrix, optional): The initial transformation matrix of the rig proxy. Defaults to pm.datatypes.Matrix().
-        shape (str, optional): The shape of the rig proxy, either "capsule" or "box". Defaults to "capsule".
-        replace (bool, optional): Whether to replace an existing proxy at the same index or create a new index. Defaults to False.
-        used_index (list of int, optional): A list of existing proxy indices that are already in use. Defaults to [].
+        m (pm.datatypes.Matrix, optional): The initial transformation matrix of
+            the rig proxy. Defaults to pm.datatypes.Matrix().
+        shape (str, optional): The shape of the rig proxy, either "capsule" or
+            "box". Defaults to "capsule".
+        replace (bool, optional): Whether to replace an existing proxy at the
+            same index or create a new index. Defaults to False.
+        used_index (list of int, optional): A list of existing proxy indices
+            that are already in use. Defaults to [].
 
     Returns:
         pm.nodetypes.Transform: The newly created or updated rig proxy.
@@ -258,7 +264,7 @@ def create_proxy(
                 return existing_object, index
 
 
-def create_proxy_to_children(joints=None, side=None):
+def create_proxy_to_children(joints=None, side=None, replace=False):
     """Create one proxy geo aiming to each child of the joint
 
     Args:
@@ -296,7 +302,12 @@ def create_proxy_to_children(joints=None, side=None):
                 if not side:
                     side = length * 0.3
                 pxy, idx = create_proxy(
-                    j, side, length, m=t, used_index=used_index
+                    j,
+                    side,
+                    length,
+                    m=t,
+                    used_index=used_index,
+                    replace=replace,
                 )
                 used_index.append(idx)
                 if pxy:
@@ -306,7 +317,7 @@ def create_proxy_to_children(joints=None, side=None):
     return proxies
 
 
-def create_proxy_to_next(joints=None, side=None, tip=True):
+def create_proxy_to_next(joints=None, side=None, tip=True, replace=False):
     """Create proxy geo aiming to the next joint position
 
     Args:
@@ -336,7 +347,7 @@ def create_proxy_to_next(joints=None, side=None, tip=True):
             length = vector.getDistance2(j, lookat_ref)
             if not side:
                 side = length * 0.3
-            pxy, idx = create_proxy(j, side, length, m=t)
+            pxy, idx = create_proxy(j, side, length, m=t, replace=replace)
             if pxy:
                 proxies.append(pxy)
 
@@ -369,7 +380,7 @@ def create_proxy_to_next(joints=None, side=None, tip=True):
     return proxies
 
 
-def create_proxy_centered(joints=None, side=None):
+def create_proxy_centered(joints=None, side=None, replace=False):
     """Create proxy geo centered in the joint position
 
     Args:
@@ -390,7 +401,7 @@ def create_proxy_centered(joints=None, side=None):
         else:
             side = 1
         t = joints[0].getMatrix(worldSpace=True)
-        pxy, idx = create_proxy(joints[0], side, 0.1, m=t)
+        pxy, idx = create_proxy(joints[0], side, 0.1, m=t, replace=replace)
         if pxy:
             proxies.append(pxy)
 
@@ -426,7 +437,7 @@ def create_proxy_centered(joints=None, side=None):
                 t = transform.setMatrixPosition(t, mid_pos)
                 length = vector.getDistance(lookat_back, lookat) / 2
 
-            pxy, idx = create_proxy(j, side, length, m=t)
+            pxy, idx = create_proxy(j, side, length, m=t, replace=replace)
             if pxy:
                 proxies.append(pxy)
     return proxies
@@ -540,10 +551,12 @@ def collect_selected_proxy_data():
 
 
 def collect_all_proxy_data():
-    """Collect the data of all objects in the scene that have the attribute "isProxy".
+    """Collect the data of all objects in the scene that have the attribute
+        "isProxy".
 
     Returns:
-        dict: The data of all proxy objects in the scene, including their order and the data for each individual proxy.
+        dict: The data of all proxy objects in the scene, including their order
+            and the data for each individual proxy.
     """
     proxies = []
 
@@ -557,15 +570,19 @@ def collect_all_proxy_data():
 def export_proxy_data(data=None, file_path=None):
     """Export collected data to a json format with the extension ".pxy".
 
-    If `data` is None, the function will collect data of all objects in the scene that have the attribute "isProxy".
-    If `file_path` is None, the function will prompt the user to select a file path and name using the Maya file dialog.
+    If `data` is None, the function will collect data of all objects in the
+    scene that have the attribute "isProxy". If `file_path` is None, the
+    function will prompt the user to select a file path and name using the Maya
+    file dialog.
 
     Args:
         data (dict, optional): The data to be exported. Defaults to None.
-        file_path (str, optional): The file path and name to save the data to. Defaults to None.
+        file_path (str, optional): The file path and name to save the data to.
+            Defaults to None.
 
     Returns:
         None
+
     """
     if not data:
         data = collect_all_proxy_data()
@@ -584,13 +601,16 @@ def export_proxy_data(data=None, file_path=None):
 def import_proxy_data(file_path=None):
     """Import collected data from a proxy data file.
 
-    If `file_path` is None, the function will prompt the user to select a file path and name using the Maya file dialog.
+    If `file_path` is None, the function will prompt the user to select a file
+    path and name using the Maya file dialog.
 
     Args:
-        file_path (str, optional): The file path and name to import the data from. Defaults to None.
+        file_path (str, optional): The file path and name to import the data
+            from. Defaults to None.
 
     Returns:
         dict: The imported proxy data.
+
     """
     if not file_path:
         file_filter = "Proxy Data (*.pxy);;All Files(*.*)"
@@ -623,15 +643,26 @@ def export_selected_proxy_data():
     export_proxy_data(data=data)
 
 
-def create_proxy_from_data(data, selection=False, duplicate=False, mirror=False):
+def create_proxy_from_data(
+    data, selection=False, duplicate=False, mirror=False, replace=False
+):
     """Create proxy geometry from given JSON data.
 
     Args:
         data (dict): The JSON data containing the proxy geometry details.
-        selection (bool, optional): If True will create only the proxy for the selected objects.
+        selection (bool, optional): If True, only the proxy for the selected
+            objects will be created. Defaults to False.
+        duplicate (bool, optional): If True, the proxy geometry will be created
+            as a duplicate of the original object. Defaults to False.
+        mirror (bool, optional): If True, the duplicate proxy geometry will be
+            mirrored. Defaults to False.
+        replace (bool, optional): If True, the original object will be replaced
+            by the proxy geometry. Defaults to False.
 
     Returns:
-        list of pm.nodetypes.Transform: The newly created or updated proxy geometry transforms.
+        list of pm.nodetypes.Transform: The newly created or updated proxy
+            geometry transforms.
+
     """
     proxies = []
     if selection:
@@ -661,7 +692,8 @@ def create_proxy_from_data(data, selection=False, duplicate=False, mirror=False)
                         side,
                         length,
                         shape=shape,
-                        duplicate=duplicate
+                        duplicate=duplicate,
+                        replace=replace,
                     )
                 if duplicate and mirror:
                     t = proxy_data["worldMatrix"]
@@ -676,32 +708,40 @@ def create_proxy_from_data(data, selection=False, duplicate=False, mirror=False)
 
 
 def create_all_proxy_data():
-    """Import all proxy data from a proxy data file and create the proxy geometry.
+    """Import all proxy data from a proxy data file and create the proxy
+        geometry.
 
     Returns:
-        list of pm.nodetypes.Transform: The newly created or updated proxy geometry transforms.
+        list of pm.nodetypes.Transform: The newly created or updated proxy
+            geometry transforms.
     """
     return create_proxy_from_data(import_proxy_data())
 
 
 def create_selected_proxy_data():
-    """Import proxy data from a proxy data file and only apply it to selected objects.
+    """Import proxy data from a proxy data file and only apply it to
+        selected objects.
 
     Returns:
-        list of pm.nodetypes.Transform: The newly created or updated proxy geometry transforms.
+        list of pm.nodetypes.Transform: The newly created or updated proxy
+            geometry transforms.
     """
     return create_proxy_from_data(import_proxy_data(), selection=True)
 
 
 def duplicate_proxy(proxy=None):
     """
-    Creates a duplicate of the given proxy. If no proxy is provided, uses the selected proxy in the scene.
-    If the proxy is not a list, converts it to a list. Collects configuration data for the proxy and creates
-    a new proxy with the collected data using the create_proxy_from_data function. The new proxy is a duplicate
+    Creates a duplicate of the given proxy. If no proxy is provided, uses the
+        selected proxy in the scene.
+    If the proxy is not a list, converts it to a list. Collects configuration
+        data for the proxy and creates
+    a new proxy with the collected data using the create_proxy_from_data
+        function. The new proxy is a duplicate
     of the original proxy.
 
     Args:
-        proxy (list): List of proxy objects. If not provided, defaults to the selected proxy in the scene.
+        proxy (list): List of proxy objects. If not provided, defaults to the
+            selected proxy in the scene.
 
     Returns:
         list: A list of the new proxy object(s).
@@ -716,13 +756,17 @@ def duplicate_proxy(proxy=None):
 
 def mirror_proxy(proxy=None):
     """
-    Creates a mirrored copy of the given proxy. If no proxy is provided, uses the selected proxy in the scene.
-    If the proxy is not a list, converts it to a list. Collects configuration data for the proxy and creates
-    a new proxy with the collected data using the create_proxy_from_data function. The new proxy is a mirrored
+    Creates a mirrored copy of the given proxy. If no proxy is provided,
+    uses the selected proxy in the scene.
+    If the proxy is not a list, converts it to a list. Collects configuration
+    data for the proxy and creates
+    a new proxy with the collected data using the create_proxy_from_data
+    function. The new proxy is a mirrored
     copy of the original proxy.
 
     Args:
-        proxy (list): List of proxy objects. If not provided, defaults to the selected proxy in the scene.
+        proxy (list): List of proxy objects. If not provided, defaults to the
+            selected proxy in the scene.
 
     Returns:
         list: A list of the new proxy object(s).
