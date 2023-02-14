@@ -779,8 +779,36 @@ def mirror_proxy(proxy=None):
     return create_proxy_from_data(data, duplicate=True, mirror=True)
 
 
-def combine_proxy_geo():
-    # combines all the proxy geometry and the skinning
-    # by defaul we just parent the proxy geos
-    # this function will add the skinning and combine all
-    return
+def skin_and_combine_meshes(proxy_meshes):
+    """Skin and combine proxy meshes into a single mesh.
+
+    Args:
+        proxy_meshes (list): A list of proxy meshes to be skinned and combined.
+
+    Returns:
+        pm.nodetypes.Mesh: The combined mesh.
+
+    """
+
+    # Get the parent joints of the proxy meshes
+    parent_joints = [mesh.getParent() for mesh in proxy_meshes]
+    dup_meshes = [pm.duplicate(mesh)[0] for mesh in proxy_meshes]
+
+    # Skin each mesh to its parent joint
+    for mesh, joint in zip(dup_meshes, parent_joints):
+        pm.skinCluster(joint, mesh, toSelectedBones=True)
+
+    # Combine all the proxy meshes into a single mesh
+    combined_mesh = pm.polyUniteSkinned(
+        *dup_meshes, ch=False, mergeUVSets=True
+    )[0]
+    pm.rename(combined_mesh, "combined_proxy")
+    attribute.addAttribute(
+        combined_mesh, "isProxyCombined", "bool", keyable=False
+    )
+    attribute.addAttribute(
+        combined_mesh, "proxy_shape", "string", value="combined"
+    )
+    add_to_grp(combined_mesh)
+
+    return combined_mesh
