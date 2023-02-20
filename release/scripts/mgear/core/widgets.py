@@ -371,7 +371,9 @@ def create_button(size=17,
                   icon=None,
                   toggle_icon=None,
                   icon_size=None,
-                  toolTip=None):
+                  toolTip=None,
+                  width=None,
+                  setMax=True):
     """Create and configure a QPsuhButton
 
     Args:
@@ -387,10 +389,13 @@ def create_button(size=17,
         QPushButton: The reated button
     """
     button = QtWidgets.QPushButton()
-    button.setMaximumHeight(size)
+    if not width:
+        width = size
     button.setMinimumHeight(size)
-    button.setMaximumWidth(size)
-    button.setMinimumWidth(size)
+    button.setMinimumWidth(width)
+    if setMax:
+        button.setMaximumHeight(size)
+        button.setMaximumWidth(width)
 
     if toolTip:
         button.setToolTip(toolTip)
@@ -402,6 +407,7 @@ def create_button(size=17,
         if not icon_size:
             icon_size = size - 3
         button.setIcon(pyqt.get_icon(icon, icon_size))
+        # button.setIconSize(QtCore.QSize(icon_size, icon_size))
 
     if toggle_icon:
 
@@ -415,6 +421,7 @@ def create_button(size=17,
                 button.setIcon(pyqt.get_icon(toggle_icon, size))
             else:
                 button.setIcon(pyqt.get_icon(icon, size))
+            # button.setIconSize(QtCore.QSize(icon_size, icon_size))
 
         button.clicked.connect(changeIcon)
 

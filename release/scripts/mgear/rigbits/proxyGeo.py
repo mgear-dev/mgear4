@@ -3,6 +3,7 @@ import json
 
 
 import pymel.core as pm
+import maya.cmds as cmds
 from pymel.core import datatypes
 from pymel.core import nodetypes
 
@@ -11,6 +12,20 @@ from mgear.core import attribute
 from mgear.core import transform
 from mgear.core import vector
 from mgear.core import string
+from mgear.core import utils
+
+
+from mgear.core import pyqt
+from maya.app.general.mayaMixin import MayaQWidgetDockableMixin
+from mgear.core import widgets as mwgt
+
+# from mgear.vendor.Qt import QtWidgets
+# from mgear.vendor.Qt import QtCore
+# from mgear.vendor.Qt import QtGui
+# TODO: comment out later. using direct import for better auto completion
+from PySide2 import QtCore
+from PySide2 import QtGui
+from PySide2 import QtWidgets
 
 
 PROXY_SUFFIX = "proxy"
@@ -277,7 +292,10 @@ def create_proxy(
                 return existing_object, index
 
 
-def create_proxy_to_children(joints=None, side=None, replace=False, axis="xy"):
+@utils.one_undo
+def create_proxy_to_children(
+    joints=None, side=None, replace=False, axis="xy", shape="capsule"
+):
     """Create one proxy geo aiming to each child of the joint.
 
     Args:
@@ -288,6 +306,7 @@ def create_proxy_to_children(joints=None, side=None, replace=False, axis="xy"):
             by the proxy geometry. Defaults to False.
         axis (str, optional): The axis to align the proxy geometry to. Defaults
             to "xy". other options are "yx", "zy"
+        shape (str, optional): The shape of the proxy geometry. Defaults to capsule.
 
     Returns:
         list: A list of PyNode proxy geometries.
@@ -331,6 +350,7 @@ def create_proxy_to_children(joints=None, side=None, replace=False, axis="xy"):
                     used_index=used_index,
                     replace=replace,
                     axis=axis,
+                    shape=shape,
                 )
                 used_index.append(idx)
                 if pxy:
@@ -340,8 +360,9 @@ def create_proxy_to_children(joints=None, side=None, replace=False, axis="xy"):
     return proxies
 
 
+@utils.one_undo
 def create_proxy_to_next(
-    joints=None, side=None, tip=True, replace=False, axis="xy"
+    joints=None, side=None, tip=True, replace=False, axis="xy", shape="capsule"
 ):
     """Create proxy geo aiming to the next joint position.
 
@@ -354,6 +375,7 @@ def create_proxy_to_next(
           same index or create a new index. Defaults to False.
         axis (str, optional): The axis for the rig proxy. Options are
           "xy", "yx", and "zx". Defaults to "xy".
+        shape (str, optional): The shape of the proxy. Options are "box" and capsule.
 
     Returns:
         list: A list of PyNode proxy geometries.
@@ -381,7 +403,7 @@ def create_proxy_to_next(
             if not side:
                 side = length * 0.3
             pxy, idx = create_proxy(
-                j, side, length, m=t, replace=replace, axis=axis
+                j, side, length, m=t, replace=replace, axis=axis, shape=shape
             )
             if pxy:
                 proxies.append(pxy)
@@ -409,13 +431,18 @@ def create_proxy_to_next(
             length = vector.getDistance2(j, lookat_ref)
             if not side:
                 side = length * 0.3
-            pxy, idx = create_proxy(j, side, length, m=t, axis=axis)
+            pxy, idx = create_proxy(
+                j, side, length, m=t, axis=axis, shape=shape
+            )
             if pxy:
                 proxies.append(pxy)
     return proxies
 
 
-def create_proxy_centered(joints=None, side=None, replace=False, axis="xy"):
+@utils.one_undo
+def create_proxy_centered(
+    joints=None, side=None, replace=False, axis="xy", shape="capsule"
+):
     """Create a proxy geometry centered at the joint position.
 
     Args:
@@ -425,6 +452,7 @@ def create_proxy_centered(joints=None, side=None, replace=False, axis="xy"):
             Default is False.
         axis (str, optional): Axis for the proxy geometry.
             Default is "xy".
+        shape (str, optional): The shape of the proxy geometry.
 
     Returns:
         list: A list of PyNode proxy geometries.
@@ -441,7 +469,7 @@ def create_proxy_centered(joints=None, side=None, replace=False, axis="xy"):
             side = 1
         t = joints[0].getMatrix(worldSpace=True)
         pxy, idx = create_proxy(
-            joints[0], side, 0.1, m=t, replace=replace, axis=axis
+            joints[0], side, 0.1, m=t, replace=replace, axis=axis, shape=shape
         )
         if pxy:
             proxies.append(pxy)
@@ -479,7 +507,7 @@ def create_proxy_centered(joints=None, side=None, replace=False, axis="xy"):
                 length = vector.getDistance(lookat_back, lookat) / 2
 
             pxy, idx = create_proxy(
-                j, side, length, m=t, replace=replace, axis=axis
+                j, side, length, m=t, replace=replace, axis=axis, shape=shape
             )
             if pxy:
                 proxies.append(pxy)
@@ -566,8 +594,7 @@ def collect_proxy_data(proxy):
         data["length"] = proxy.length.get()
         data["side"] = proxy.side.get()
         data["parent"] = proxy.getParent().name()
-        data["worldMatrix"] = proxy.getMatrix(worldSpace=True)
-
+        data["worldMatrix"] = proxy.getMatrix(worldSpace=True).get()
         return data
 
 
@@ -722,12 +749,14 @@ def create_proxy_from_data(
     """
     proxies = []
     if selection:
-        proxy_order = [x.name() for x in pm.selected()]
+        proxy_parents = [x.name() for x in pm.selected()]
     else:
-        proxy_order = data["proxy_order"]
-    for proxy_name in proxy_order:
+        proxy_parents = []
+    for proxy_name in data["proxy_order"]:
         if proxy_name in data.keys():
             proxy_data = data[proxy_name]
+            if selection and proxy_data["parent"] not in proxy_parents:
+                continue
             if duplicate and mirror:
                 parent_name = string.convertRLName(proxy_data["parent"])
             else:
@@ -765,6 +794,7 @@ def create_proxy_from_data(
     return proxies
 
 
+@utils.one_undo
 def create_all_proxy_data():
     """Import all proxy data from a proxy data file and create the proxy
         geometry.
@@ -776,6 +806,7 @@ def create_all_proxy_data():
     return create_proxy_from_data(import_proxy_data())
 
 
+@utils.one_undo
 def create_selected_proxy_data():
     """Import proxy data from a proxy data file and only apply it to
         selected objects.
@@ -787,6 +818,7 @@ def create_selected_proxy_data():
     return create_proxy_from_data(import_proxy_data(), selection=True)
 
 
+@utils.one_undo
 def duplicate_proxy(proxy=None):
     """
     Creates a duplicate of the given proxy. If no proxy is provided, uses the
@@ -812,6 +844,7 @@ def duplicate_proxy(proxy=None):
     return create_proxy_from_data(data, duplicate=True)
 
 
+@utils.one_undo
 def mirror_proxy(proxy=None):
     """
     Creates a mirrored copy of the given proxy. If no proxy is provided,
@@ -860,6 +893,7 @@ def skin_and_combine_meshes(proxy_meshes):
     combined_mesh = pm.polyUniteSkinned(
         *dup_meshes, ch=False, mergeUVSets=True
     )[0]
+    combined_mesh = pm.PyNode(combined_mesh)
     pm.rename(combined_mesh, "combined_proxy")
     attribute.addAttribute(
         combined_mesh, "isProxyCombined", "bool", keyable=False
@@ -870,3 +904,298 @@ def skin_and_combine_meshes(proxy_meshes):
     add_to_grp(combined_mesh)
 
     return combined_mesh
+
+
+@utils.one_undo
+def combine_selected_meshes():
+    """Combine selected proxy meshes into a single mesh.
+
+    Returns:
+        pm.nodetypes.Mesh: The combined mesh.
+
+    """
+    proxy_meshes = filter_proxy(pm.selected())
+    return skin_and_combine_meshes(proxy_meshes)
+
+
+@utils.one_undo
+def combine_all_meshes():
+    """Combine all proxy meshes into a single mesh.
+
+    Returns:
+        pm.nodetypes.Mesh: The combined mesh.
+
+    """
+    proxy_meshes = filter_proxy(pm.ls())
+    return skin_and_combine_meshes(proxy_meshes)
+
+
+###########################################################
+#  UI
+###########################################################
+
+
+class proxyGeoUI(MayaQWidgetDockableMixin, QtWidgets.QDialog):
+    def __init__(self, parent=None):
+        super(proxyGeoUI, self).__init__(parent)
+
+        self.setWindowTitle("Proxy Geo Creator")
+        min_w = 155
+        default_w = 200
+        default_h = 300
+        self.setMinimumWidth(min_w)
+        self.resize(default_w, default_h)
+        if cmds.about(ntOS=True):
+            flags = self.windowFlags() ^ QtCore.Qt.WindowContextHelpButtonHint
+            self.setWindowFlags(flags)
+        elif cmds.about(macOS=True):
+            self.setWindowFlags(QtCore.Qt.Tool)
+
+        # Delete UI on close to avoid winEvent error
+        self.setAttribute(QtCore.Qt.WA_DeleteOnClose, 1)
+
+        self.create_actions()
+        self.create_widgets()
+        self.create_layout()
+        self.create_connections()
+
+    def create_actions(self):
+        self.file_export_all_action = QtWidgets.QAction("Export", self)
+        self.file_export_all_action.setIcon(pyqt.get_icon("mgear_log-out"))
+        self.file_export_selected_action = QtWidgets.QAction(
+            "Export Selected", self
+        )
+        self.file_export_selected_action.setIcon(
+            pyqt.get_icon("mgear_log-out")
+        )
+        self.file_import_action = QtWidgets.QAction("Import", self)
+        self.file_import_action.setIcon(pyqt.get_icon("mgear_log-in"))
+        self.file_import_selected_action = QtWidgets.QAction(
+            "Import Selected", self
+        )
+        self.file_import_selected_action.setIcon(pyqt.get_icon("mgear_log-in"))
+
+    def create_widgets(self):
+        # Menu bar
+        self.menu_bar = QtWidgets.QMenuBar()
+        self.file_menu = self.menu_bar.addMenu("File")
+        self.file_menu.addAction(self.file_export_all_action)
+        self.file_menu.addAction(self.file_export_selected_action)
+        self.file_menu.addSeparator()
+        self.file_menu.addAction(self.file_import_action)
+        self.file_menu.addAction(self.file_import_selected_action)
+        self.file_menu.addSeparator()
+
+        # shape list widgets
+        self.shape_list_label = QtWidgets.QLabel("Proxy Shape")
+        self.shape_list_combobox = QtWidgets.QComboBox()
+        self.shape_list_combobox.setSizePolicy(
+            QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding
+        )
+        self.shape_list_combobox.addItems(["Capsule", "Box"])
+        self.shape_list_combobox.setMaximumHeight(17)
+
+        # Creation buttons
+        self.create_to_next_button = mwgt.create_button(
+            size=64,
+            icon="mgear_proxyGeo_to_next",
+            toolTip="Proxy to Next",
+            setMax=False,
+        )
+        self.create_to_next_button.setIconSize(QtCore.QSize(60, 60))
+        self.create_centered_button = mwgt.create_button(
+            size=64,
+            icon="mgear_proxyGeo_centered",
+            toolTip="Proxy Centered",
+            setMax=False,
+        )
+        self.create_centered_button.setIconSize(QtCore.QSize(60, 60))
+        self.create_to_children_button = mwgt.create_button(
+            size=64,
+            icon="mgear_proxyGeo_to_children",
+            toolTip="Proxy to all children",
+            setMax=False,
+        )
+        self.create_to_children_button.setIconSize(QtCore.QSize(60, 60))
+
+        # tip option
+        self.build_to_tip_joint_label = QtWidgets.QLabel("Build Tip Joint")
+        self.build_to_tip_joint_checkbox = QtWidgets.QCheckBox()
+        self.build_to_tip_joint_checkbox.setChecked(True)
+
+        # mode: add or replace
+        self.build_mode_label = QtWidgets.QLabel("Build Mode")
+        self.build_mode_combobox = QtWidgets.QComboBox()
+        self.build_mode_combobox.setSizePolicy(
+            QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding
+        )
+        self.build_mode_combobox.addItems(["Add", "Replace"])
+        self.build_mode_combobox.setMaximumHeight(17)
+
+        # duplicate buttons
+        # self.duplicate_button = QtWidgets.QPushButton(text="Duplicate")
+        self.duplicate_button = mwgt.create_button(
+            size=64,
+            text="Duplicate",
+            toolTip="Duplicate",
+            setMax=False,
+        )
+
+        self.mirror_button = mwgt.create_button(
+            size=64,
+            text="Mirror",
+            toolTip="Mirror",
+            setMax=False,
+        )
+
+        # Combine buttons
+
+        self.combine_all_button = mwgt.create_button(
+            size=64, text="Combine All", toolTip="Combine All", setMax=False
+        )
+
+        self.combine_selected_button = mwgt.create_button(
+            size=64,
+            text="Combine Selected",
+            toolTip="Combine Selected",
+            setMax=False,
+        )
+
+    def create_layout(self):
+
+        # main Layout
+        main_layout = QtWidgets.QVBoxLayout(self)
+        main_layout.setContentsMargins(2, 2, 2, 2)
+        main_layout.setSpacing(0)
+
+        # menu bar
+        main_layout.setMenuBar(self.menu_bar)
+
+        # shape layout
+        shape_layout = QtWidgets.QHBoxLayout()
+        shape_layout.addWidget(self.shape_list_label)
+        shape_layout.addWidget(self.shape_list_combobox)
+
+        main_layout.addLayout(shape_layout)
+
+        # creation buttons layout
+        creation_buttons_layout = QtWidgets.QHBoxLayout()
+        creation_buttons_layout.addWidget(self.create_to_next_button)
+        creation_buttons_layout.addWidget(self.create_centered_button)
+        creation_buttons_layout.addWidget(self.create_to_children_button)
+        main_layout.addLayout(creation_buttons_layout)
+
+        # options layout
+        options_groupbox = QtWidgets.QGroupBox()
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Fixed
+        )
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(
+            options_groupbox.sizePolicy().hasHeightForWidth()
+        )
+        options_groupbox.setSizePolicy(sizePolicy)
+        options_groupbox.setTitle("Options")
+
+        options_layout = QtWidgets.QVBoxLayout(options_groupbox)
+
+        mode_options_layout = QtWidgets.QHBoxLayout(self)
+        mode_options_layout.addWidget(self.build_mode_label)
+        mode_options_layout.addWidget(self.build_mode_combobox)
+
+        tip_options_layout = QtWidgets.QHBoxLayout(self)
+        tip_options_layout.addWidget(self.build_to_tip_joint_label)
+        tip_options_layout.addWidget(self.build_to_tip_joint_checkbox)
+
+        options_layout.addLayout(mode_options_layout)
+        options_layout.addLayout(tip_options_layout)
+
+        main_layout.addWidget(options_groupbox)
+
+        # duplicate layout
+        duplicate_buttons_layout = QtWidgets.QHBoxLayout()
+        duplicate_buttons_layout.addWidget(self.duplicate_button)
+        duplicate_buttons_layout.addWidget(self.mirror_button)
+        main_layout.addLayout(duplicate_buttons_layout)
+
+        # combine layout
+        combine_buttons_layout = QtWidgets.QHBoxLayout()
+        combine_buttons_layout.addWidget(self.combine_all_button)
+        combine_buttons_layout.addWidget(self.combine_selected_button)
+        main_layout.addLayout(combine_buttons_layout)
+
+        main_layout.addStretch()
+
+    def create_connections(self):
+        #  actions File
+        self.file_export_all_action.triggered.connect(self.export_all)
+        self.file_export_selected_action.triggered.connect(
+            self.export_selected
+        )
+        self.file_import_action.triggered.connect(self.import_file)
+        self.file_import_selected_action.triggered.connect(
+            self.import_selected
+        )
+
+        # buttons
+        self.create_to_next_button.clicked.connect(self.create_to_next)
+        self.create_centered_button.clicked.connect(self.create_centered)
+        self.create_to_children_button.clicked.connect(self.create_to_children)
+
+        self.duplicate_button.clicked.connect(duplicate_proxy)
+        self.mirror_button.clicked.connect(mirror_proxy)
+
+        self.combine_all_button.clicked.connect(combine_all_meshes)
+        self.combine_selected_button.clicked.connect(combine_selected_meshes)
+
+    def export_all(self):
+        # export all proxy geo
+        export_all_proxy_data()
+
+    def export_selected(self):
+        export_selected_proxy_data()
+
+    def import_file(self):
+        create_all_proxy_data()
+
+    def import_selected(self):
+        create_selected_proxy_data()
+
+    def create_to_next(self):
+        replace = self.build_mode_combobox.currentIndex()
+        tip = self.build_to_tip_joint_checkbox.isChecked()
+        shape = self.shape_list_combobox.currentText()
+        create_proxy_to_next(replace=replace, tip=tip, shape=shape.lower())
+
+    def create_centered(self):
+        shape = self.shape_list_combobox.currentText()
+
+        replace = self.build_mode_combobox.currentIndex()
+        create_proxy_centered(replace=replace, shape=shape.lower())
+
+    def create_to_children(self):
+        replace = self.build_mode_combobox.currentIndex()
+        shape = self.shape_list_combobox.currentText()
+        create_proxy_to_children(replace=replace, shape=shape.lower())
+
+    def duplicate_proxy_geo(self):
+        duplicate_proxy()
+
+    def mirror_proxy_geo(self):
+        mirror_proxy()
+
+    def combine_all_proxy_geo(self):
+        combine_all_meshes()
+
+    def combine_selected_proxy_geo(self):
+        combine_selected_meshes()
+
+
+def openProxyGeo(*args):
+    return pyqt.showDialog(proxyGeoUI, dockable=True)
+
+
+if __name__ == "__main__":
+
+    pyqt.showDialog(proxyGeoUI)

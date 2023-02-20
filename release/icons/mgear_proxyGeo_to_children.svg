@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg width="100%" height="100%" viewBox="0 0 24 24" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linecap:round;stroke-linejoin:round;">
+    <g id="to-children" serif:id="to children" transform="matrix(1,0,0,1,-1.92243,-0.480607)">
+        <g id="To-childeren" serif:id="To childeren">
+            <g id="joint" transform="matrix(0.7634,-0.7634,0.7634,0.7634,-8.69999,18.3024)">
+                <g transform="matrix(9.64583e-17,2.2891,-0.262828,2.33862e-17,21.2239,-22.2272)">
+                    <path d="M12,5L19,12L12,19" style="fill:none;fill-rule:nonzero;stroke:white;stroke-width:0.57px;"/>
+                </g>
+                <g transform="matrix(0.613828,0,0,0.613828,7.06239,1.38617)">
+                    <circle cx="18" cy="6" r="3" style="fill:none;stroke:white;stroke-width:1.63px;"/>
+                </g>
+            </g>
+            <g transform="matrix(1.76501,-1.76501,1.7755,1.7755,-17.4182,-1.83231)">
+                <g id="Layer1">
+                    <path id="capsule" d="M2.782,15.885C2.782,18.395 6.344,18.384 6.344,15.885L6.344,10.401C6.344,7.92 2.803,7.902 2.803,10.401C2.803,11.373 2.782,14.874 2.782,15.885Z" style="fill:rgb(204,204,204);fill-opacity:0;stroke:white;stroke-width:0.4px;stroke-miterlimit:1.5;stroke-dasharray:0.4,0.8,0,0;"/>
+                </g>
+            </g>
+        </g>
+        <g id="To-childeren1" serif:id="To childeren" transform="matrix(0.476092,-0.879395,0.879395,0.476092,-2.71516,12.3594)">
+            <g id="joint1" serif:id="joint" transform="matrix(0.7634,-0.7634,0.7634,0.7634,-8.69999,18.3024)">
+                <g transform="matrix(9.64583e-17,1.57528,-0.262828,1.60936e-17,21.2239,-13.6614)">
+                    <path d="M12,5L19,12L12,19" style="fill:none;fill-rule:nonzero;stroke:white;stroke-width:0.9px;"/>
+                </g>
+                <g transform="matrix(0.613828,0,0,0.613828,7.06239,1.38617)">
+                    <circle cx="18" cy="6" r="3" style="fill:none;stroke:white;stroke-width:1.63px;"/>
+                </g>
+            </g>
+            <g transform="matrix(1.76501,-1.76501,1.38416,1.38416,-14.0788,1.50707)">
+                <g id="Layer11" serif:id="Layer1">
+                    <path id="capsule1" serif:id="capsule" d="M2.782,15.885C2.782,18.395 6.344,18.384 6.344,15.885L6.344,10.401C6.344,7.92 2.803,7.902 2.803,10.401C2.803,11.373 2.782,14.874 2.782,15.885Z" style="fill:rgb(204,204,204);fill-opacity:0;stroke:white;stroke-width:0.45px;stroke-miterlimit:1.5;stroke-dasharray:0.45,0.89,0,0;"/>
+                </g>
+            </g>
+        </g>
+        <g id="To-childeren2" serif:id="To childeren" transform="matrix(0.581892,0.813266,-0.813266,0.581892,10.5535,-3.83276)">
+            <g id="joint2" serif:id="joint" transform="matrix(0.7634,-0.7634,0.7634,0.7634,-8.69999,18.3024)">
+                <g transform="matrix(9.64583e-17,1.57528,-0.262828,1.60936e-17,21.2239,-13.6614)">
+                    <path d="M12,5L19,12L12,19" style="fill:none;fill-rule:nonzero;stroke:white;stroke-width:0.9px;"/>
+                </g>
+                <g transform="matrix(0.613828,0,0,0.613828,7.06239,1.38617)">
+                    <circle cx="18" cy="6" r="3" style="fill:none;stroke:white;stroke-width:1.63px;"/>
+                </g>
+            </g>
+            <g transform="matrix(1.76501,-1.76501,1.38416,1.38416,-14.0788,1.50707)">
+                <g id="Layer12" serif:id="Layer1">
+                    <path id="capsule2" serif:id="capsule" d="M2.782,15.885C2.782,18.395 6.344,18.384 6.344,15.885L6.344,10.401C6.344,7.92 2.803,7.902 2.803,10.401C2.803,11.373 2.782,14.874 2.782,15.885Z" style="fill:rgb(204,204,204);fill-opacity:0;stroke:white;stroke-width:0.45px;stroke-miterlimit:1.5;stroke-dasharray:0.45,0.89,0,0;"/>
+                </g>
+            </g>
+        </g>
+    </g>
+</svg>

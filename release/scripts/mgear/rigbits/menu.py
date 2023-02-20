@@ -45,6 +45,7 @@ def install():
         ("Facial Rigger", str_facial_rigger),
         ("Eyelid Rigger 2.0", str_eye_rigger),
         ("-----", None),
+        ("Proxy Geo", str_proxyGeo, "mgear_proxyGeo_to_next.svg"),
         ("Proxy Slicer", str_proxySlicer),
         ("Proxy Slicer Parenting", str_proxySlicer_parent),
         ("-----", None),
@@ -225,6 +226,11 @@ channelWrangler.openChannelWrangler()
 str_facial_rigger = """
 from mgear.rigbits import facial_rigger
 facial_rigger.show()
+"""
+
+str_proxyGeo = """
+from mgear.rigbits import proxyGeo
+proxyGeo.openProxyGeo()
 """
 
 str_proxySlicer = """
