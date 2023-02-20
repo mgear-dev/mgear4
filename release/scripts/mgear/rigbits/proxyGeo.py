@@ -942,7 +942,7 @@ class proxyGeoUI(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.setWindowTitle("Proxy Geo Creator")
         min_w = 155
         default_w = 200
-        default_h = 300
+        default_h = 230
         self.setMinimumWidth(min_w)
         self.resize(default_w, default_h)
         if cmds.about(ntOS=True):
@@ -1035,14 +1035,14 @@ class proxyGeoUI(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         # duplicate buttons
         # self.duplicate_button = QtWidgets.QPushButton(text="Duplicate")
         self.duplicate_button = mwgt.create_button(
-            size=64,
+            size=32,
             text="Duplicate",
             toolTip="Duplicate",
             setMax=False,
         )
 
         self.mirror_button = mwgt.create_button(
-            size=64,
+            size=32,
             text="Mirror",
             toolTip="Mirror",
             setMax=False,
@@ -1051,11 +1051,11 @@ class proxyGeoUI(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         # Combine buttons
 
         self.combine_all_button = mwgt.create_button(
-            size=64, text="Combine All", toolTip="Combine All", setMax=False
+            size=32, text="Combine All", toolTip="Combine All", setMax=False
         )
 
         self.combine_selected_button = mwgt.create_button(
-            size=64,
+            size=32,
             text="Combine Selected",
             toolTip="Combine Selected",
             setMax=False,
