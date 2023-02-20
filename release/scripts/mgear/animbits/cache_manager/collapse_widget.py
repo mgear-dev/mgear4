@@ -48,12 +48,12 @@ class QCollapse(QtWidgets.QWidget):
 
         # declares property to expand the QCollapse widget
         self.animation_group.addAnimation(QtCore.QPropertyAnimation(
-                                          self, "minimumHeight"))
+                                          self, b"minimumHeight"))
         self.animation_group.addAnimation(QtCore.QPropertyAnimation(
-                                          self, "maximumHeight"))
+                                          self, b"maximumHeight"))
         # declares property to expand the scroll area widget
         self.animation_group.addAnimation(QtCore.QPropertyAnimation(
-                                          self.scrool_area, "maximumHeight"))
+                                          self.scrool_area, b"maximumHeight"))
 
         # adds signal connection
         self.arrow_button.clicked.connect(self.__run_animation)
