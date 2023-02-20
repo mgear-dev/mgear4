@@ -473,6 +473,9 @@ class Main(object):
                                 invert_scale,
                                 [jnt.sx, jnt.sy, jnt.sz],
                             )
+                            # if negative scaling we need to inver rotation
+                            # directions in X and Y
+                            srt = "t"
                         else:
                             pm.connectAttr(dm_node.outputScale, jnt.s)
 
@@ -481,6 +484,19 @@ class Main(object):
                     cns_m = applyop.gear_matrix_cns(
                         driver, jnt, rot_off=rot_off, connect_srt=srt
                     )
+
+                    # if negative scaling we need to invert rotation directions
+                    # in X and Y after the constraint matrix is created
+                    if srt == "t":
+                        node.createMulNode(
+                            [
+                                cns_m.rotateX,
+                                cns_m.rotateY,
+                                cns_m.rotateZ,
+                            ],
+                            [-1, -1, 1],
+                            [jnt.rx, jnt.ry, jnt.rz],
+                        )
 
                     # invert negative scaling in Joints. We only inver Z axis,
                     # so is the only axis that we are checking
