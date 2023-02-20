@@ -783,7 +783,7 @@ def create_proxy_from_data(
                         axis=axis,
                     )
                 if duplicate and mirror:
-                    t = proxy_data["worldMatrix"]
+                    t = datatypes.Matrix(proxy_data["worldMatrix"])
                     m = transform.getSymmetricalTransform(t)
                     proxy.setMatrix(m, worldSpace=True)
                 else:
