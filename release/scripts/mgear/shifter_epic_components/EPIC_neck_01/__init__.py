@@ -638,11 +638,13 @@ class Component(component.Main):
 
         self.parent.addChild(self.root)
 
-        self.connectRef(self.settings["ikrefarray"], self.ik_cns)
-
-        if not self.settings["chickenStyleIK"]:
-            for axis in ["tx", "ty", "tz"]:
-                self.ik_cns.attr(axis).disconnect()
+        if self.settings["chickenStyleIK"]:
+            skipTranslate = "none"
+        else:
+            skipTranslate = ["x", "y", "z"]
+        self.connectRef(
+            self.settings["ikrefarray"], self.ik_cns, st=skipTranslate
+        )
 
         if self.settings["headrefarray"]:
             ref_names = self.settings["headrefarray"].split(",")
