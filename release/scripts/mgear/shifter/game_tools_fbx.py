@@ -23,7 +23,7 @@ from mgear.core import string
 from mgear.core import callbackManager
 from mgear.core import pyFBX as pfbx
 
-from mgear.shifter import game_tools_fbx_utils as fu
+from mgear.shifter import game_tools_fbx_utils as fu, game_tools_fbx_widgets as fuw
 
 from mgear.uegear import bridge, commands as uegear
 
@@ -137,9 +137,9 @@ class FBXExport(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.blendshapes_checkbox = QtWidgets.QCheckBox("Blendshapes")
         self.blendshapes_checkbox.setChecked(True)
         self.use_partitions_checkbox = QtWidgets.QCheckBox("Use Partitions")
-        self.use_partitions_checkbox.setChecked(False)
+        self.use_partitions_checkbox.setChecked(True)
         self.skeletal_mesh_partitions_label = QtWidgets.QLabel("Partitions")
-        self.skeletal_mesh_partitions_list = QtWidgets.QListWidget()
+        self.skeletal_mesh_partitions_outliner = fuw.OutlinerTreeView()
         self.skeletal_mesh_partition_add_button = QtWidgets.QPushButton()
         self.skeletal_mesh_partition_add_button.setIcon(pyqt.get_icon("mgear_plus"))
         self.skeletal_mesh_partition_remove_button = QtWidgets.QPushButton()
@@ -279,7 +279,7 @@ class FBXExport(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.skeletal_mesh_partitions_buttons_layout.addWidget(self.skeletal_mesh_partition_add_button)
         self.skeletal_mesh_partitions_buttons_layout.addWidget(self.skeletal_mesh_partition_remove_button)
         self.skeletal_mesh_partitions_buttons_layout.addStretch()
-        self.skeletal_mesh_list_layout.addWidget(self.skeletal_mesh_partitions_list)
+        self.skeletal_mesh_list_layout.addWidget(self.skeletal_mesh_partitions_outliner)
         self.skeletal_mesh_list_layout.addLayout(self.skeletal_mesh_partitions_buttons_layout)
         self.export_geo_layout.addLayout(self.skeletal_mesh_partitions_label_layout)
         self.export_geo_layout.addLayout(self.skeletal_mesh_list_layout)
@@ -361,19 +361,19 @@ class FBXExport(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.ue_file_path_set_button.clicked.connect(self.set_ue_folder_path)
         self.use_partitions_checkbox.toggled.connect(self.set_use_partitions)
 
-        self.skeletal_mesh_partition_add_button.clicked.connect(
-            partial(
-                self.add_list_items_from_sel,
-                self.skeletal_mesh_partitions_list,
-                "transform"
-            )
-        )
-        self.skeletal_mesh_partition_remove_button.clicked.connect(
-            partial(
-                self.remove_list_items_from_sel,
-                self.skeletal_mesh_partitions_list
-            )
-        )
+        # self.skeletal_mesh_partition_add_button.clicked.connect(
+        #     partial(
+        #         self.add_list_items_from_sel,
+        #         self.skeletal_mesh_partitions_list,
+        #         "transform"
+        #     )
+        # )
+        # self.skeletal_mesh_partition_remove_button.clicked.connect(
+        #     partial(
+        #         self.remove_list_items_from_sel,
+        #         self.skeletal_mesh_partitions_list
+        #     )
+        # )
 
     # slots
 
@@ -448,7 +448,7 @@ class FBXExport(MayaQWidgetDockableMixin, QtWidgets.QDialog):
             self.ue_file_path_lineedit.setText(string.normalize_path(folder_path[0]))
 
     def set_use_partitions(self, flag):
-        self.skeletal_mesh_partitions_list.setEnabled(flag)
+        self.skeletal_mesh_partitions_outliner.setEnabled(flag)
         self.skeletal_mesh_partitions_label.setEnabled(flag)
         self.skeletal_mesh_partition_add_button.setEnabled(flag)
         self.skeletal_mesh_partition_remove_button.setEnabled(flag)
@@ -587,7 +587,7 @@ class FBXExport(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         sel = pm.selected()
         if not sel:
             pm.displayWarning("Nothing selected")
-            return
+            return filter_sel
 
         for node in sel:
             if type_filter:
