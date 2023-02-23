@@ -35,6 +35,11 @@ def export_skeletal_mesh(jnt_roots, geo_roots, path, **kwargs):
     pfbx.FBXResetExport()
 
     # set configuration
+    if preset_path is not None:
+        # load FBX export preset file
+        pfbx.FBXLoadExportPresetFile(f=preset_path)
+    pfbx.FBXExportSkins(v=skinning)
+    pfbx.FBXExportShapes(v=blendshapes)
     fbx_version_str = None
     if up_axis is not None:
         pfbx.FBXExportUpAxis(up_axis)
@@ -43,12 +48,6 @@ def export_skeletal_mesh(jnt_roots, geo_roots, path, **kwargs):
         pfbx.FBXExportFileVersion(v=fbx_version_str)
     if file_type == 'ascii':
         pfbx.FBXExportInAscii(v=True)
-    pfbx.FBXExportSkins(v=skinning)
-    pfbx.FBXExportShapes(v=blendshapes)
-    # if preset is given, previous defined settinsg will be overriden
-    if preset_path is not None:
-        # load FBX export preset file
-        pfbx.FBXLoadExportPresetFile(f=preset_path)
 
     # select elements and export all the data
     pm.select(jnt_roots + geo_roots)
