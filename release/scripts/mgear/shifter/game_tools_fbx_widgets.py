@@ -6,6 +6,7 @@ from mgear.vendor.Qt import QtWidgets
 from mgear.vendor.Qt import QtCore
 from mgear.vendor.Qt import QtGui
 
+
 import maya.cmds as cmds
 
 # TODO: Remove following dependencies
@@ -17,19 +18,19 @@ ROW_HEIGHT = 30
 
 
 class NodeClass(object):
-	def __init__(self, node_name, node_type, is_partition, icon, enabled, network_enabled):
+	def __init__(self, node_name, node_type, is_root, icon, enabled, network_enabled):
 		super(NodeClass, self).__init__()
 
 		self._node_name = node_name
 		self._node_type = node_type
-		self._is_partition = is_partition
+		self._is_root = is_root
 		self._icon = icon
 		self._enabled = enabled
 		self._network_enabled = network_enabled
 		self._label_color = QtGui.QColor(241, 90, 91)
 		color = QtGui.QColor(0, 0, 0)
 		color.setNamedColor('#444444')
-		if self._is_partition:
+		if self._is_root:
 			color.setNamedColor('#5d5d5d')
 		self._background_color = color
 		self._tooltip = None
@@ -50,8 +51,8 @@ class NodeClass(object):
 		return self._node_type
 
 	@property
-	def is_partition(self):
-		return self._is_partition
+	def is_root(self):
+		return self._is_root
 
 	@property
 	def icon(self):
@@ -61,9 +62,17 @@ class NodeClass(object):
 	def enabled(self):
 		return self._enabled
 
+	@enabled.setter
+	def enabled(self, flag):
+		self._enabled = flag
+
 	@property
 	def network_enabled(self):
 		return self._network_enabled
+
+	@network_enabled.setter
+	def network_enabled(self, flag):
+		self._network_enabled = flag
 
 	@property
 	def label_color(self):
@@ -81,6 +90,11 @@ class NodeClass(object):
 class OutlinerTreeView(QtWidgets.QTreeWidget):
 
 	EXPAND_WIDTH = pix(60)
+
+	itemEnabledChanged = QtCore.Signal(object)
+	itemAddNode = QtCore.Signal(object)
+	itemRenamed = QtCore.Signal(str, str)
+	itemRemoved = QtCore.Signal(str, str)
 
 	def __init__(self, parent=None):
 		super(OutlinerTreeView, self).__init__(parent)
@@ -140,15 +154,30 @@ class OutlinerTreeView(QtWidgets.QTreeWidget):
 			action = self._get_current_action(event.pos(), item)
 
 			self.setCurrentItem(item)
-			if item.node.node_type != 'Partition':
+			if item.node.node_type != 'Root':
 				self._selection_parent = item.parent().get_name()
 				self._selection_node = item.get_name()
+
 			self.selectionModel().setCurrentIndex(index, QtCore.QItemSelectionModel.NoUpdate)
 
 			if action is not None:
+				self._action_button_pressed = True
+				if action == 'Enabled':
+					item.set_enabled()
+					self.itemEnabledChanged.emit(item)
+				if action == 'Add':
+					self.itemAddNode.emit(item)
+				if action == 'Remove':
+					if not item.is_root():
+						parent_name = item.parent().get_name()
+						item_name = item.get_name()
+						item.parent().takeChild(item.parent().indexOfChild(item))
+						self.itemRemoved.emit(parent_name, item_name)
 				if action == 'ExpandCollapse':
-					if item.node.node_type == 'Partition':
+					if item.node.node_type == 'Root':
 						self._toggle_expand_collapse()
+			else:
+				pass
 			event.accept()
 		elif event.button() == QtCore.Qt.MiddleButton:
 			super(OutlinerTreeView, self).mousePressEvent(event)
@@ -185,39 +214,70 @@ class OutlinerTreeView(QtWidgets.QTreeWidget):
 		self._last_hit_action = None
 		self.window().repaint()
 
+	def get_indent(self, index):
+		indent = 0
+		while (index and index.parent().isValid()):
+			index = index.parent()
+			indent += self.indentation()
+
+		return indent
+
+	def find_items(self):
+
+		return list()
+
 	def populate_items(self, add_callbacks=True):
 
 		if add_callbacks:
 			self.cleanup()
 
-		partitions = {
-			'Body': ['Boy_Mesh'],
-			'Props': ['Knife']
-		}
+		all_items = self.find_items()
 
-		for partition_name, partition_data in partitions.items():
-			partition_item = self._create_partition_item(partition_name)
-			partition_item.setFlags(partition_item.flags() | QtCore.Qt.ItemIsEditable | QtCore.Qt.ItemIsDropEnabled)
-			partition_item.setFlags(partition_item.flags() & ~QtCore.Qt.ItemIsDragEnabled)
-			self.addTopLevelItem(partition_item)
+		for item_name, item_data in all_items.items():
+			root_item = self._create_root_item(item_name)
+			root_item.setFlags(root_item.flags() | QtCore.Qt.ItemIsEditable | QtCore.Qt.ItemIsDropEnabled)
+			root_item.setFlags(root_item.flags() & ~QtCore.Qt.ItemIsDragEnabled)
+			self.addTopLevelItem(root_item)
 
-			for partition_node in partition_data:
-				child = self._add_partition_item(partition_node, partition_item)
+			for child_node in item_data:
+				child = self._add_partition_item(child_node, root_item)
 				child.setFlags(child.flags() | QtCore.Qt.ItemIsEditable | QtCore.Qt.ItemIsDropEnabled)
-				partition_item.addChild(child)
+				root_item.addChild(child)
 				if add_callbacks:
 					pass
 
+	def clear_items(self):
+		"""
+		Clear all tree widget items
+		"""
+
+		# NOTE: it seems self.clear() crashes Maya
+		for i in range(self.topLevelItemCount()):
+			self.takeTopLevelItem(0)
+
+	def reset_contents(self, reset_callbacks=True, expand=True):
+		"""
+		Forces the repopulation the tree widget
+		"""
+
+		self._selection_parent = None
+		self._selection_node = None
+
+		self.clear_items()
+		self.populate_items(reset_callbacks)
+
+		if expand:
+			self.expandAll()
 
 	def cleanup(self):
 		self._registered_node_callbacks = list()
 
-	def _create_partition_item(self, partition):
+	def _create_root_item(self, partition):
 
 		node_icon = pyqt.get_icon('mgear_package')
-		partition_node = NodeClass(partition, 'Partition', True, node_icon, True, True)
+		root_node = NodeClass(partition, 'Root', True, node_icon, True, True)
 
-		item = TreeItem(partition_node, partition, True, None)
+		item = TreeItem(root_node, partition, True, None)
 
 		return item
 
@@ -226,7 +286,7 @@ class OutlinerTreeView(QtWidgets.QTreeWidget):
 		node_icon = pyqt.get_icon('mgear_box')
 		item_node = NodeClass(node, 'Geometry', False, node_icon, True, partition_item.node.network_enabled)
 
-		item = TreeItem(item_node, '', False, partition_item)
+		item = TreeItem(item_node, '', True, partition_item)
 
 		return item
 
@@ -276,14 +336,20 @@ class TreeItem(QtWidgets.QTreeWidgetItem):
 		return self.node.node_name if self.node else self._header
 
 	def set_name(self, name):
-		new_name = cmds.rename(self.get_name(), name)
-		self.node.node_name = new_name
+		self.node.node_name = name
 
 	def get_node_type(self):
 		return self.node.node_type
 
 	def get_icon(self):
 		return self.node.icon
+
+	def set_enabled(self):
+		self.node.enabled = not self.is_enabled()
+		if not self.is_root():
+			pass
+		else:
+			self.node.network_enabled = self.is_enabled()
 
 	def get_background_color(self):
 		return self.node.background_color
@@ -298,27 +364,27 @@ class TreeItem(QtWidgets.QTreeWidgetItem):
 		return self.node.enabled
 
 	def network_enabled(self):
-		return self.parent().node.network_enabled
+		return self.parent().node.network_enabled if self.parent() else True
 
-	def is_partition(self):
-		return self.node.is_partition
+	def is_root(self):
+		return self.node.is_root
 
 	def get_label_color(self):
 		return self.node.label_color
 
 	def get_action_button_count(self):
-		return 7 if self.node.is_partition else 3
+		return 7 if self.node.is_root else 3
 
 	def has_enable_toggle(self):
 		return self._show_enabled
 
 	def get_action_button(self, index):
-		if self.node.is_partition:
+		if self.node.is_root:
 			if index >= 0 and index <= 6:
 				return ['Enabled', None, 'Add', None, None, None, None][index]
 		else:
 			if index >= 0 and index <= 2:
-				return ['Enabled', None, None][index]
+				return ['Enabled', None, 'Remove'][index]
 
 		return None
 
@@ -338,7 +404,7 @@ class TreeViewDelegate(QtWidgets.QItemDelegate):
 		# override what you need to change in option
 		if option.state & QtWidgets.QStyle.State_Selected:
 			option.state &= ~ QtWidgets.QStyle.State_Selected
-			option.backgroundBrush = qt.QBrush(QtCore.Qt.red)
+			option.backgroundBrush = QtGui.QBrush(QtCore.Qt.red)
 
 	def paint(self, painter, option, index):
 		if not index.isValid():
@@ -352,6 +418,46 @@ class TreeViewDelegate(QtWidgets.QItemDelegate):
 		hint = super(TreeViewDelegate, self).sizeHint(option, index)
 		hint.setHeight(pix(ROW_HEIGHT))
 		return hint
+
+	def createEditor(self, parent, option, index):
+		"""
+		Overrides createEditor function to create the double-click editor for renaming nodes.
+		"""
+
+		editor = QtWidgets.QLineEdit(parent)
+		editor.setAlignment(QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter)
+		return editor
+
+	def updateEditorGeometry(self, editor, option, index):
+		"""
+		Overrides updateEditorGeometry so a valid rectangle for the QtWidgets.QLineEditor is defined.
+		"""
+
+		indent = self.tree_view.get_indent(index)
+		rect = copy.deepcopy(option.rect)
+		rect.setLeft(indent + pix(46.5))
+		rect.setBottom(rect.bottom() - pix(4))
+		rect.setRight(rect.right() - pix(50))
+		editor.setGeometry(rect)
+
+	def setEditorData(self, editor, index):
+		item = self.tree_view.itemFromIndex(index)
+		editor.setText(item.get_name())
+
+	def setModelData(self, editor, model, index):
+		"""
+		Overrides setModelData which will trigger the node renaming to run within Maya
+		"""
+
+		new_value = editor.text()
+		item = self.tree_view.itemFromIndex(index)
+		if not item:
+			return
+		name = item.get_name()
+		if not name or name == new_value:
+			return
+		item.set_name(new_value)
+		self.tree_view.itemRenamed.emit(name, new_value)
 
 
 class RowPainter(object):
@@ -405,14 +511,16 @@ class RowPainter(object):
 		self._add_action_icons()
 
 	def _draw_background(self):
-		"""Draws the cell background color/image"""
+		"""
+		Internal function that draws the cell background color/image
+		"""
 
-		if self.item.is_partition() or self.item.network_enabled():
+		if self.item.is_root() or self.item.network_enabled():
 			color = self._highlight_color if self._is_highlighted else self.item.get_background_color()
 			self._painter.fillRect(self._rect, color)
 		else:
 			pixmap = self.DISABLED_HIGHLIGHT_IMAGE if self._is_highlighted else self.DISABLED_BACKGROUND_IMAGE
-			self.painter.drawTiledPixmap(self._rect, pixmap, QtCore.QPoint(self._rect.left(), 0))
+			self._painter.drawTiledPixmap(self._rect, pixmap, QtCore.QPoint(self._rect.left(), 0))
 
 	def _draw_color_bar(self):
 		"""Draws the label color bar"""
@@ -436,12 +544,13 @@ class RowPainter(object):
 		self._painter.setPen(old_pen)
 
 	def _draw_arrow_drag_lock(self):
-		"""Draws the expansion arrow on the nodes that need it"""
+		"""
+		Draws the expansion arrow on the nodes that need it
+		"""
 
 		self._painter.save()
-		arrow = None
 		old_brush = self._painter.brush()
-		if self.item.is_partition():
+		if self.item.is_root() and self.item.childCount() > 0:
 			padding = pix(3)
 			self._painter.translate(self._rect.left() + padding, self._rect.top() + pix(2))
 			arrow = self.COLLAPSED_ARROW
@@ -465,11 +574,13 @@ class RowPainter(object):
 		self._painter.restore()
 
 	def _draw_text(self):
-		"""Draws node name"""
+		"""
+		Draws node name
+		"""
 
 		old_pen = self._painter.pen()
 		draw_enabled = True
-		if not self.item.node.is_partition and not self.item.network_enabled():
+		if not self.item.node.is_root and not self.item.network_enabled():
 			draw_enabled = False
 		if self.item.node.enabled and draw_enabled:
 			self._painter.setPen(QtGui.QPen(self.parent().palette().text().color(), pix(1)))
@@ -486,7 +597,9 @@ class RowPainter(object):
 		return text_rect
 
 	def _draw_icon(self, text_rect):
-		"""Draws the node icon"""
+		"""
+		Internal function that draws the node icon
+		"""
 
 		rect2 = copy.deepcopy(text_rect)
 		icon = None
@@ -498,14 +611,16 @@ class RowPainter(object):
 			new_rect.setBottom(rect2.top() - self.ICON_WIDTH + pix(3))
 			new_rect.setTop(new_rect.bottom() + self.ICON_WIDTH)
 			draw_enabled = True
-			if not self.item.node.is_partition and not self.item.network_enabled():
+			if not self.item.node.is_root and not self.item.network_enabled():
 				draw_enabled = False
 			if not self.item.node.enabled or not draw_enabled:
 				self._painter.setOpacity(0.5)
 			self._painter.drawPixmap(new_rect, icon)
 
 	def _draw_action(self, action_name, pixmap, left, top):
-		"""Draws the icons for this node"""
+		"""
+		Internal function that draws the icons for this node.
+		"""
 
 		if pixmap is not None:
 			icon_rect = QtCore.QRect(left, top, self.ICON_WIDTH, self.ICON_WIDTH)
@@ -542,9 +657,10 @@ class RowPainter(object):
 
 		return QtGui.QPixmap(img)
 
-
 	def _add_action_icons(self):
-		"""Draws the icons, buttons and tags on the right hand side of the cell"""
+		"""
+		Internal function that draws the icons, buttons and tags on the right hand side of the cell
+		"""
 
 		top = self._rect.top() + self.ICON_TOP_OFFSET
 
@@ -563,7 +679,7 @@ class RowPainter(object):
 					continue
 				extra_padding = pix(10)
 				pixmap = self.ENABLED_IMAGE
-				if not self.item.is_partition() and not self.item.network_enabled():
+				if not self.item.is_root() and not self.item.network_enabled():
 					pixmap = self.INACTIVE_ENABLED_IMAGE
 				checked = self.item.is_enabled()
 				if not checked:
@@ -572,11 +688,11 @@ class RowPainter(object):
 					pixmap = self.ENABLED_SELECTED_IMAGE
 			elif action_name == 'Add':
 				pixmap = self.ADD_IMAGE
+			elif action_name == 'Remove':
+				pixmap = self.REMOVE_IMAGE
 
 			start += self.ACTION_WIDTH + extra_padding
 			self._draw_action(action_name, pixmap, self._rect.right() - start, top)
-
-
 
 
 

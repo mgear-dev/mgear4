@@ -205,7 +205,6 @@ class FbxSdkGameToolsWrapper(object):
 		self.remove_non_exportable_nodes(no_export_tag=no_export_tag)
 		self.remove_world_control(control_name=world_control_name)
 
-
 	def remove_non_exportable_nodes(self, no_export_tag='no_export'):
 
 		nodes_to_delete = list()

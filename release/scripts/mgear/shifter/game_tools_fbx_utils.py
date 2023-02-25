@@ -1,14 +1,16 @@
-import os
 import sys
+import json
 import traceback
 from collections import OrderedDict
 
 import pymel.core as pm
 import maya.cmds as cmds
 
-from mgear.vendor.Qt import QtWidgets
-from mgear.vendor.Qt import QtCore
-from mgear.vendor.Qt import QtGui
+# from mgear.vendor.Qt import QtWidgets
+# from mgear.vendor.Qt import QtCore
+# TODO: comment out later. using direct import for better auto completion
+from PySide2 import QtCore
+from PySide2 import QtWidgets
 
 from mgear.core import pyFBX as pfbx
 from mgear.core import pyqt
@@ -16,6 +18,157 @@ from mgear.shifter import game_tools_fbx_sdk_utils
 
 NO_EXPORT_TAG = 'no_export'
 WORLD_CONTROL_NAME = 'world_ctl'
+EXPORT_NODE_NAME = 'mgearFbxExportNode'
+
+
+class FbxExportNode(object):
+
+    TYPE_ATTR = 'fbxExportNode'
+    EXPORT_DATA_ATTR = 'exportData'
+
+    def __init__(self, node):
+        super(FbxExportNode, self).__init__()
+
+        self._node = node
+
+        self._add_attributes()
+
+    @classmethod
+    def create(cls, name=EXPORT_NODE_NAME):
+        return cls(cmds.createNode('network', name=name))
+
+    @classmethod
+    def get(cls, name=EXPORT_NODE_NAME):
+        if not cls.exists_in_scene(name):
+            return None
+
+        return cls(name)
+
+    @classmethod
+    def find(cls):
+        found_export_nodes = list()
+        network_nodes = cmds.ls(type='network')
+        for network_node in network_nodes:
+            if not cmds.attributeQuery(cls.TYPE_ATTR, n=network_node, ex=True):
+                continue
+            found_export_nodes.append(cls(network_node))
+
+        return found_export_nodes
+
+    @classmethod
+    def exists_in_scene(cls, name=EXPORT_NODE_NAME):
+        if not name or not cmds.objExists(name):
+            return False
+        if not cmds.attributeQuery(cls.TYPE_ATTR, n=name, ex=True):
+            return False
+        return True
+
+    def add_new_skeletal_mesh_partition(self, name, node_names):
+        data = self._parse_export_data()
+        data.setdefault('partitions', dict())
+        if name in data['partitions']:
+            cmds.warning('Partition with name "{}" already exist!'.format(name))
+            return False
+
+        data['partitions'][name] = {
+            'enabled': True,
+            'skeletalMeshes': node_names
+        }
+
+        return self._save_data(data)
+
+    def delete_skeletal_mesh_partition(self, name):
+        data = self._parse_export_data()
+        partitions = data.get('partitions', dict())
+        if not partitions or name not in partitions:
+            return False
+        partitions.pop(name)
+
+        return self._save_data(data)
+
+    def get_partitions(self):
+        return self._parse_export_data().get('partitions', dict())
+
+    def set_partition_enabled(self, name, flag):
+        data = self._parse_export_data()
+        partitions = data.get('partitions', dict())
+        if not partitions or name not in partitions:
+            return False
+        partitions[name]['enabled'] = flag
+
+        return self._save_data(data)
+
+    def set_partition_name(self, name, new_name):
+        data = self._parse_export_data()
+        partitions = data.get('partitions', dict())
+        if not partitions or name not in partitions:
+            return False
+
+        partitions[new_name] = partitions.pop(name)
+
+        return self._save_data(data)
+
+    def add_skeletal_meshes_to_partition(self, name, skeletal_meshes):
+        data = self._parse_export_data()
+        partitions = data.get('partitions', dict())
+        if not partitions or name not in partitions:
+            return False
+
+        partitions[name]['skeletalMeshes'] = skeletal_meshes
+
+        return self._save_data(data)
+
+    def delete_skeletal_mesh_from_partition(self, name, skeletal_mesh_to_remove):
+        data = self._parse_export_data()
+        partitions = data.get('partitions', dict())
+        if not partitions or name not in partitions:
+            return False
+
+        skeletal_meshes = partitions[name].get('skeletalMeshes', list())
+        if skeletal_mesh_to_remove not in skeletal_meshes:
+            return False
+
+        skeletal_meshes.remove(skeletal_mesh_to_remove)
+
+        return self._save_data(data)
+
+    def _add_attributes(self):
+        if not self._node or not cmds.objExists(self._node):
+            return False
+
+        if not cmds.attributeQuery(self.TYPE_ATTR, n=self._node, ex=True):
+            cmds.addAttr(self._node, longName=self.TYPE_ATTR, at='bool')
+            cmds.setAttr('{}.{}'.format(self._node, self.TYPE_ATTR), True)
+
+        if not cmds.attributeQuery(self.EXPORT_DATA_ATTR, n=self._node, ex=True):
+            cmds.addAttr(self._node, longName=self.EXPORT_DATA_ATTR, dataType='string')
+
+        return True
+
+    def _parse_export_data(self):
+        if not cmds.objExists(self._node):
+            return dict()
+        if not cmds.attributeQuery(self.EXPORT_DATA_ATTR, n=self._node, ex=True):
+            return dict()
+        export_data_str = cmds.getAttr('{}.{}'.format(self._node, self.EXPORT_DATA_ATTR))
+        try:
+            return json.loads(export_data_str)
+        except Exception:
+            cmds.warning('Error while parsing FbxExportNode export data')
+            return dict()
+
+    def _save_data(self, data):
+        result = self._add_attributes()
+        if not result:
+            return False
+        try:
+            json_data = json.dumps(data)
+        except Exception:
+            cmds.warning('Errhor while converting FbxExportNode data into a dictionary')
+            return False
+        cmds.setAttr('{}.{}'.format(self._node, self.EXPORT_DATA_ATTR), json_data, type='string')
+
+        return True
 
 
 def export_skeletal_mesh(jnt_roots, geo_roots, path, **kwargs):
