@@ -13,8 +13,8 @@ from . import settingsUI as sui
 
 # guide info
 AUTHOR = "Jeremie Passerin, Miquel Campos, Gotetz"
-URL = "www.jeremiepasserin.com, www.miquel-campos.com"
-EMAIL = "geerem@hotmail.com, hello@miquel-campos.com"
+URL = ", www.mcsgear.com"
+EMAIL = ", "
 VERSION = [1, 1, 0]
 TYPE = "spine_S_shape_01"
 NAME = "spine"

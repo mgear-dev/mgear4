@@ -14,8 +14,8 @@ from . import settingsUI as sui
 
 # guide info
 AUTHOR = "Miquel Campos"
-URL = "www.miquel-campos.com"
-EMAIL = "hello@miquel-campos.com"
+URL = "www.mcsgear.com"
+EMAIL = ""
 VERSION = [1, 0, 0]
 TYPE = "chain_FK_spline_01"
 NAME = "chain"

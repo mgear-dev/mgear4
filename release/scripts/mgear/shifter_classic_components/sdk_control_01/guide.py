@@ -15,7 +15,7 @@ from . import settingsUI as sui
 
 # guide info
 AUTHOR = "Jeremie Passerin, Miquel Campos, Justin Pedersen"
-URL = "www.jeremiepasserin.com, www.miquel-campos.com, justin@tcgcape.co.za"
+URL = ", www.mcsgear.com, justin@tcgcape.co.za"
 EMAIL = ""
 VERSION = [1, 0, 0]
 TYPE = "sdk_control_01"

@@ -14,7 +14,7 @@ from . import settingsUI as sui
 
 # guide info
 AUTHOR = "Miquel Campos"
-URL = "www.miquel-campos.com"
+URL = "www.mcsgear.com"
 EMAIL = ""
 VERSION = [1, 0, 0]
 TYPE = "lite_chain_stack_02"

@@ -13,7 +13,7 @@ from . import settingsUI as sui
 
 # guide info
 AUTHOR = "Jeremie Passerin, Miquel Campos"
-URL = "www.jeremiepasserin.com, www.miquel-campos.com"
+URL = ", www.mcsgear.com"
 EMAIL = ""
 VERSION = [2, 0, 0]
 TYPE = "leg_2jnt_02"

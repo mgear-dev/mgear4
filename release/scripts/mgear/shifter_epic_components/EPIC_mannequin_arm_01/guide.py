@@ -12,7 +12,7 @@ from . import settingsUI as sui
 
 # guide info
 AUTHOR = "Jeremie Passerin, Miquel Campos"
-URL = "www.jeremiepasserin.com, www.miquel-campos.com"
+URL = ", www.mcsgear.com"
 EMAIL = ""
 VERSION = [1, 0, 0]
 TYPE = "EPIC_mannequin_arm_01"

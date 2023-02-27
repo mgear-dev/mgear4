@@ -9,8 +9,8 @@ from maya.app.general.mayaMixin import MayaQDockWidget
 
 # guide info
 AUTHOR = "Jeremie Passerin, Miquel Campos"
-URL = "www.jeremiepasserin.com, www.miquel-campos.com"
-EMAIL = "geerem@hotmail.com, hello@miquel-campos.com"
+URL = ", www.mcsgear.com"
+EMAIL = ", "
 VERSION = [1, 0, 1]
 TYPE = "chain_spring_01"
 NAME = "chainSpring"

@@ -9,8 +9,8 @@ from maya.app.general.mayaMixin import MayaQDockWidget
 
 # guide info
 AUTHOR = "Jeremie Passerin, Miquel Campos,Miles Cheng"
-URL = "www.jeremiepasserin.com, www.miquletd.com"
-EMAIL = "geerem@hotmail.com, hello@miquel-campos.com,milesckt@gmail.com"
+URL = ", www.miquletd.com"
+EMAIL = ", ,milesckt@gmail.com"
 VERSION = [1, 0, 0]
 TYPE = "shoulder_ms_01"
 NAME = "shoulder"

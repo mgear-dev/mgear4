@@ -14,7 +14,7 @@ from . import settingsUI as sui
 # guide info
 AUTHOR = "Miles Cheng, Jeremie Passerin, Miquel Campos"
 URL = ""
-EMAIL = "miles@simage.com.hk, geerem@hotmail.com, hello@miquel-campos.com"
+EMAIL = "miles@simage.com.hk, , "
 VERSION = [1, 3, 0]
 TYPE = "arm_ms_2jnt_01"
 NAME = "arm"

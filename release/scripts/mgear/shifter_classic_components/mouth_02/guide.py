@@ -9,7 +9,7 @@ from maya.app.general.mayaMixin import MayaQDockWidget
 
 # guide info
 AUTHOR = "Jeremie Passerin, Miquel Campos"
-URL = "www.jeremiepasserin.com, www.miquletd.com"
+URL = ", www.miquletd.com"
 EMAIL = ""
 VERSION = [2, 0, 0]
 TYPE = "mouth_02"
