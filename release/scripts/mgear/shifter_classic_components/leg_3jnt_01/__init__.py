@@ -1308,7 +1308,9 @@ class Component(component.Main):
 
         self.jointRelatives["root"] = 0
         self.jointRelatives["knee"] = self.settings["div0"] + 2
-        self.jointRelatives["ankle"] = len(self.div_cns) - 1
+        self.jointRelatives["ankle"] = (
+            self.settings["div0"] + self.settings["div1"] + 2
+        )
         self.jointRelatives["foot"] = len(self.div_cns)
         self.jointRelatives["eff"] = len(self.div_cns)
 
