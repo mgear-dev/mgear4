@@ -1,6 +1,9 @@
 from . import spaceManagerUI as sui
 from mgear.vendor.Qt import QtCore, QtWidgets, QtGui
 
+from mgear.core import pyqt
+from mgear.core import widgets as mwgt
+
 from functools import partial
 import maya.cmds as cmds
 import string
@@ -119,7 +122,7 @@ def create_constraints(dataSet):
             # if there are not enough menu names, fill the rest using driver names
             if not len(menuNames.split(":")) == len(drivers):
                 # creating list of needed driver names to append the custom names with
-                extensions = drivers[(len(menuNames.split(":")) - 1): -1]
+                extensions = drivers[(len(menuNames.split(":")) - 1) : -1]
                 # unicode extensions need to be added one by one to avoid ugly formatting
                 for x in extensions:
                     menuNames = menuNames + ":" + x
@@ -197,7 +200,7 @@ def patch_data(data):
         return data
 
 
-class SpaceManager:
+class SpaceManager(QtWidgets.QDialog):
     # class for handling interactivity of ui
     def __init__(self):
         self.setup_ui()
@@ -213,8 +216,7 @@ class SpaceManager:
         self.abcList = list(string.ascii_uppercase)
 
     def setup_ui(self):
-        self.ui = sui.SpaceManagerDialog()
-        self.ui.show()
+        self.ui = pyqt.showDialog(sui.SpaceManagerDialog, dockable=True)
 
     def update_connections_table(self):
         self.dataset = []
@@ -600,3 +602,7 @@ class SpaceManager:
         # dataset returned from function is used to generate connections
         dataset = self.update_connections_table()
         create_constraints(dataset)
+
+
+def openSpaceManager(*args):
+    return pyqt.showDialog(SpaceManager, dockable=True)

@@ -2,8 +2,10 @@ from mgear.vendor.Qt import QtCore, QtWidgets, QtGui
 
 import maya.cmds as cmds
 
+from maya.app.general.mayaMixin import MayaQWidgetDockableMixin
 
-class SpaceManagerDialog(QtWidgets.QDialog):
+
+class SpaceManagerDialog(MayaQWidgetDockableMixin, QtWidgets.QDialog):
     def __init__(self, parent=None):
         super(SpaceManagerDialog, self).__init__(parent)
 
