@@ -93,7 +93,7 @@ class Guide(guide.ComponentGuide):
         self.pIkRefArray = self.addParam("ikrefarray", "string", "")
         self.pUpvRefArray = self.addParam("upvrefarray", "string", "")
         self.pUpvRefArray = self.addParam("pinrefarray", "string", "")
-        self.pMaxStretch = self.addParam("maxstretch", "double", 1000, 1, None)
+        self.pMaxStretch = self.addParam("maxstretch", "double", 100, 1, None)
         self.pMirrorMid = self.addParam("mirrorMid", "bool", False)
         self.pleafJoints = self.addParam("leafJoints", "bool", False)
 

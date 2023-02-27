@@ -617,6 +617,16 @@ class Component(component.Main):
         self.tweak_ctl = []
         self.div_cns = []
         self.roll_offset = []
+
+        # joint Description Name
+        jd_names = ast.literal_eval(
+            self.settings["jointNamesDescription_custom"]
+        )
+        jdn_thigh = jd_names[0]
+        jdn_calf = jd_names[1]
+        jdn_thigh_twist = jd_names[2]
+        jdn_calf_twist = jd_names[3]
+        jdn_foot = jd_names[4]
         for i in range(self.divisions):
 
             div_cns = primitive.addTransform(
@@ -647,15 +657,6 @@ class Component(component.Main):
             )
 
             self.roll_offset.append(roll_off)
-            # joint Description Name
-            jd_names = ast.literal_eval(
-                self.settings["jointNamesDescription_custom"]
-            )
-            jdn_thigh = jd_names[0]
-            jdn_calf = jd_names[1]
-            jdn_thigh_twist = jd_names[2]
-            jdn_calf_twist = jd_names[3]
-            jdn_foot = jd_names[4]
 
             # setting the joints
             if i == 0:
