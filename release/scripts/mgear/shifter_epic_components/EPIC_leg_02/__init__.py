@@ -659,6 +659,12 @@ class Component(component.Main):
             self.roll_offset.append(roll_off)
 
             # setting the joints
+            # auto rotation offset
+            rot_off = [
+                self.settings["joint_rot_offset_x"],
+                self.settings["joint_rot_offset_y"],
+                self.settings["joint_rot_offset_z"] + 180,
+            ]
             if i == 0:
                 self.jnt_pos.append(
                     {
@@ -667,6 +673,7 @@ class Component(component.Main):
                         "guide_relative": "root",
                         "data_contracts": "Ik",
                         "leaf_joint": self.settings["leafJoints"],
+                        "rot_off": rot_off,
                     }
                 )
                 current_parent = "root"
@@ -682,6 +689,7 @@ class Component(component.Main):
                         "guide_relative": "knee",
                         "data_contracts": "Ik",
                         "leaf_joint": self.settings["leafJoints"],
+                        "rot_off": rot_off,
                     }
                 )
                 twist_name = jdn_calf_twist
@@ -697,6 +705,7 @@ class Component(component.Main):
                         ),
                         "newActiveJnt": current_parent,
                         "data_contracts": "Twist,Squash",
+                        "rot_off": rot_off,
                     }
                 )
                 twist_idx += increment
@@ -734,12 +743,13 @@ class Component(component.Main):
         attribute.setKeyableAttributes(tweak_ctl)
         self.tweak_ctl.append(tweak_ctl)
 
-        # set offset orientation to mathc EPIC standard orientation
+        # set offset orientation to match EPIC standard orientation
         self.end_jnt_off = primitive.addTransform(
             tweak_ctl, self.getName("end_off"), m
         )
         if self.up_axis == "z":
-            self.end_jnt_off.rz.set(-90)
+            if self.negate:
+                self.end_jnt_off.rz.set(-180)
 
         self.jnt_pos.append(
             {
@@ -749,6 +759,7 @@ class Component(component.Main):
                 "guide_relative": "ankle",
                 "data_contracts": "Ik",
                 "leaf_joint": self.settings["leafJoints"],
+                "rot_off": rot_off,
             }
         )
 
