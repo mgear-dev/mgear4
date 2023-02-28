@@ -837,9 +837,15 @@ class Component(component.Main):
             self.softblendLoc,
             self.getName("ik3BonesHandle"),
             self.chain3bones,
-            self.ikSolver,
+            "ikRPsolver",
             self.upv_ctl,
         )
+        # we connect the ik spring solver after tu avoid flip issue that may
+        # happend with the IKSprin solver
+        if self.ikSolver == "ikSpringSolver":
+            pm.connectAttr(
+                "ikSpringSolver.message", self.ikHandle.ikSolver, force=True
+            )
 
         # TwistTest
         if [
