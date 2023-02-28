@@ -560,7 +560,6 @@ class Component(component.Main):
         jdn_cannon_twist = jd_names[5]
         jdn_foot = jd_names[6]
 
-
         for i in range(self.divisions):
             div_cns = primitive.addTransform(
                 self.root_ctl, self.getName("div%s_loc" % i)
@@ -584,6 +583,15 @@ class Component(component.Main):
 
             # self.jnt_pos.append([tweak_ctl, i])
             # setting the joints
+            # auto rotation offset
+            if self.negate:
+                rot_off = [
+                    self.settings["joint_rot_offset_x"],
+                    self.settings["joint_rot_offset_y"],
+                    self.settings["joint_rot_offset_z"] + 180,
+                ]
+            else:
+                rot_off = None
             if i == 0:
                 self.jnt_pos.append(
                     {
@@ -592,6 +600,7 @@ class Component(component.Main):
                         "guide_relative": "root",
                         "data_contracts": "Ik",
                         "leaf_joint": self.settings["leafJoints"],
+                        "rot_off": rot_off,
                     }
                 )
                 current_parent = "root"
@@ -607,6 +616,7 @@ class Component(component.Main):
                         "guide_relative": "knee",
                         "data_contracts": "Ik",
                         "leaf_joint": self.settings["leafJoints"],
+                        "rot_off": rot_off,
                     }
                 )
                 twist_name = jdn_tibia_twist
@@ -622,6 +632,7 @@ class Component(component.Main):
                         "guide_relative": "ankle",
                         "data_contracts": "Ik",
                         "leaf_joint": self.settings["leafJoints"],
+                        "rot_off": rot_off,
                     }
                 )
                 twist_name = jdn_cannon_twist
@@ -637,6 +648,7 @@ class Component(component.Main):
                         ),
                         "newActiveJnt": current_parent,
                         "data_contracts": "Twist,Squash",
+                        "rot_off": rot_off,
                     }
                 )
                 twist_idx += increment
@@ -657,6 +669,7 @@ class Component(component.Main):
                 "guide_relative": "ankle",
                 "data_contracts": "Ik",
                 "leaf_joint": self.settings["leafJoints"],
+                "rot_off": rot_off,
             }
         )
 
@@ -918,9 +931,15 @@ class Component(component.Main):
             self.softblendLoc,
             self.getName("ik3BonesHandle"),
             self.chain3bones,
-            self.ikSolver,
+            "ikRPsolver",
             self.upv_ctl,
         )
+        # we connect the ik spring solver after tu avoid flip issue that may
+        # happend with the IKSprin solver
+        if self.ikSolver == "ikSpringSolver":
+            pm.connectAttr(
+                "ikSpringSolver.message", self.ikHandle.ikSolver, force=True
+            )
 
         # TwistTest
         if [
@@ -1389,7 +1408,9 @@ class Component(component.Main):
 
         self.jointRelatives["root"] = 0
         self.jointRelatives["knee"] = self.settings["div0"] + 1
-        self.jointRelatives["ankle"] = self.settings["div0"] + self.settings["div1"] + 2
+        self.jointRelatives["ankle"] = (
+            self.settings["div0"] + self.settings["div1"] + 2
+        )
         self.jointRelatives["foot"] = len(self.div_cns)
         self.jointRelatives["eff"] = len(self.div_cns)
 
