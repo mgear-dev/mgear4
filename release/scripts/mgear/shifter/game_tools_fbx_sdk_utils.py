@@ -147,22 +147,22 @@ class FbxSdkGameToolsWrapper(object):
 			return None
 
 		unsupported_types = [
-			fbx.eFbxUndefined,
-			fbx.eFbxChar,
-			fbx.eFbxUChar,
-			fbx.eFbxShort,
-			fbx.eFbxUShort,
-			fbx.eFbxUInt,
-			fbx.eFbxLongLong,
-			fbx.eFbxHalfFloat,
-			fbx.eFbxDouble4x4,
-			fbx.eFbxEnum,
-			fbx.eFbxTime,
-			fbx.eFbxReference,
-			fbx.eFbxBlob,
-			fbx.eFbxDistance,
-			fbx.eFbxDateTime,
-			fbx.eFbxTypeCount,
+			pfbx.fbx.eFbxUndefined,
+			pfbx.fbx.eFbxChar,
+			pfbx.fbx.eFbxUChar,
+			pfbx.fbx.eFbxShort,
+			pfbx.fbx.eFbxUShort,
+			pfbx.fbx.eFbxUInt,
+			pfbx.fbx.eFbxLongLong,
+			pfbx.fbx.eFbxHalfFloat,
+			pfbx.fbx.eFbxDouble4x4,
+			pfbx.fbx.eFbxEnum,
+			pfbx.fbx.eFbxTime,
+			pfbx.fbx.eFbxReference,
+			pfbx.fbx.eFbxBlob,
+			pfbx.fbx.eFbxDistance,
+			pfbx.fbx.eFbxDateTime,
+			pfbx.fbx.eFbxTypeCount,
 		]
 
 		casted_property = None
@@ -172,22 +172,22 @@ class FbxSdkGameToolsWrapper(object):
 		if property_type in unsupported_types:
 			return None
 
-		if property_type == fbx.eFbxBool:
-			casted_property = fbx.FbxPropertyBool1(fbx_property)
-		elif property_type == fbx.eFbxDouble:
-			casted_property = fbx.FbxPropertyDouble1(fbx_property)
-		elif property_type == fbx.eFbxDouble2:
-			casted_property = fbx.FbxPropertyDouble2(fbx_property)
-		elif property_type == fbx.eFbxDouble3:
-			casted_property = fbx.FbxPropertyDouble3(fbx_property)
-		elif property_type == fbx.eFbxDouble4:
-			casted_property = fbx.FbxPropertyDouble4(fbx_property)
-		elif property_type == fbx.eFbxInt:
-			casted_property = fbx.FbxPropertyInteger1(fbx_property)
-		elif property_type == fbx.eFbxFloat:
-			casted_property = fbx.FbxPropertyFloat1(fbx_property)
-		elif property_type == fbx.eFbxString:
-			casted_property = fbx.FbxPropertyString(fbx_property)
+		if property_type == pfbx.fbx.eFbxBool:
+			casted_property = pfbx.fbx.FbxPropertyBool1(fbx_property)
+		elif property_type == pfbx.fbx.eFbxDouble:
+			casted_property = pfbx.fbx.FbxPropertyDouble1(fbx_property)
+		elif property_type == pfbx.fbx.eFbxDouble2:
+			casted_property = pfbx.fbx.FbxPropertyDouble2(fbx_property)
+		elif property_type == pfbx.fbx.eFbxDouble3:
+			casted_property = pfbx.fbx.FbxPropertyDouble3(fbx_property)
+		elif property_type == pfbx.fbx.eFbxDouble4:
+			casted_property = pfbx.fbx.FbxPropertyDouble4(fbx_property)
+		elif property_type == pfbx.fbx.eFbxInt:
+			casted_property = pfbx.fbx.FbxPropertyInteger1(fbx_property)
+		elif property_type == pfbx.fbx.eFbxFloat:
+			casted_property = pfbx.fbx.FbxPropertyFloat1(fbx_property)
+		elif property_type == pfbx.fbx.eFbxString:
+			casted_property = pfbx.fbx.FbxPropertyString(fbx_property)
 		else:
 			raise ValueError(
 				"Unknown property type: {0} {1}".format(
@@ -198,7 +198,7 @@ class FbxSdkGameToolsWrapper(object):
 		return casted_property
 
 	def get_property_value(self, fbx_property):
-		casted_property = cast_property(fbx_property) if fbx_property and fbx_property.IsValid() else None
+		casted_property = self.cast_property(fbx_property) if fbx_property and fbx_property.IsValid() else None
 		return casted_property.Get() if casted_property else None
 
 	def clean_scene(self, no_export_tag='no_export', world_control_name='world_ctl'):
@@ -214,8 +214,8 @@ class FbxSdkGameToolsWrapper(object):
 			if property_value is True:
 				nodes_to_delete.append(node)
 		for node_to_delete in nodes_to_delete:
-			scene.DisconnectSrcObject(node_to_delete)
-			scene.RemoveNode(node_to_delete)
+			self._scene.DisconnectSrcObject(node_to_delete)
+			self._scene.RemoveNode(node_to_delete)
 
 		# force the update of the internal cache of scene nodes
 		self.get_scene_nodes()
