@@ -72,6 +72,7 @@ class FbxExportNode(object):
 
         data['partitions'][name] = {
             'enabled': True,
+            'color': [241, 90, 91],
             'skeletalMeshes': node_names
         }
 
@@ -105,6 +106,16 @@ class FbxExportNode(object):
             return False
 
         partitions[new_name] = partitions.pop(name)
+
+        return self._save_data(data)
+
+    def set_partition_color(self, name, new_color):
+        data = self._parse_export_data()
+        partitions = data.get('partitions', dict())
+        if not partitions or name not in partitions:
+            return False
+
+        partitions[name]['color'] = new_color
 
         return self._save_data(data)
 

@@ -1,13 +1,11 @@
 import copy
 import weakref
 
-from mgear.core import pyqt
+from mgear.core import pyqt, utils
+from mgear.shifter import game_tools_fbx_utils as fu
 from mgear.vendor.Qt import QtWidgets
 from mgear.vendor.Qt import QtCore
 from mgear.vendor.Qt import QtGui
-
-
-import maya.cmds as cmds
 
 # TODO: Remove following dependencies
 import maya.app.flux.core as fx
@@ -15,6 +13,16 @@ from maya.app.flux.core import pix
 from MASH.itemStyle import *
 
 ROW_HEIGHT = 30
+LABEL_COLORS = ['red', 'blue', 'grey', 'orange', 'green', 'yellow', 'purple']
+COLORS = {
+	'blue': [88, 165, 204],
+	'grey': [189, 189, 189],
+	'orange': [219, 148, 86],
+	'green': [85, 171, 100],
+	'yellow': [191, 178, 58],
+	'purple': [174, 156, 219],
+	'default': [241, 90, 91]
+}
 
 
 class NodeClass(object):
@@ -87,9 +95,21 @@ class NodeClass(object):
 		return self._background_color
 
 
+class OutlinerMenu(QtWidgets.QMenu):
+	def __init__(self, title='', parent=None):
+		super().__init__(title, parent)
+
+		self.hovered.connect(self._on_hovered)
+
+	def _on_hovered(self, action):
+		QtWidgets.QToolTip.showText(QtGui.QCursor.pos(), action.toolTip(), self, self.actionGeometry(action))
+
+
 class OutlinerTreeView(QtWidgets.QTreeWidget):
 
 	EXPAND_WIDTH = pix(60)
+	TRASH_IMAGE = pyqt.get_icon('mgear_trash')
+	COPY_IMAGE = pyqt.get_icon('mgear_copy')
 
 	itemEnabledChanged = QtCore.Signal(object)
 	itemAddNode = QtCore.Signal(object)
@@ -128,6 +148,10 @@ class OutlinerTreeView(QtWidgets.QTreeWidget):
 		self.setDropIndicatorShown(True)
 		self.setDefaultDropAction(QtCore.Qt.MoveAction)
 
+		self._context_menu = OutlinerMenu(parent=self)
+		self.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
+		self.customContextMenuRequested.connect(self._on_custom_context_menu_requested)
+
 	@property
 	def last_hit_action(self):
 		return self._last_hit_action
@@ -137,7 +161,9 @@ class OutlinerTreeView(QtWidgets.QTreeWidget):
 		self._last_hit_action = value
 
 	def mousePressEvent(self, event):
-		"""Triggers actions based on mouse press"""
+		"""
+		Triggers actions based on mouse press
+		"""
 
 		self._button_pressed = event.button()
 
@@ -223,8 +249,7 @@ class OutlinerTreeView(QtWidgets.QTreeWidget):
 		return indent
 
 	def find_items(self):
-
-		return list()
+		return dict()
 
 	def populate_items(self, add_callbacks=True):
 
@@ -303,11 +328,56 @@ class OutlinerTreeView(QtWidgets.QTreeWidget):
 			return self._last_hit_action
 		return None
 
+	def _get_label_color(self):
+		item = self._get_current_item()
+		return item.node.label_color
+
+	@utils.one_undo
+	def _set_label_color(self, color_label):
+		color = self._get_color_from_label(color_label)
+		self._get_current_item().set_label_color(color)
+
+	def _get_color_from_label(self, color_label):
+		return QtGui.QColor(*COLORS.get(color_label.lower(), COLORS['default']))
+
 	def _toggle_expand_collapse(self):
-		"""Expands and collaps the partition nodes"""
+		"""
+		Expands and collaps the partition nodes
+		"""
 
 		item = self.currentItem()
 		self.collapseItem(item) if item.isExpanded() else self.expandItem(item)
+
+	def _on_custom_context_menu_requested(self, pos):
+		"""
+		Internal callback function that rebuils the context menu from scratch
+		"""
+
+		selected_indexes = self.selectedIndexes()
+		num_indexes = len(selected_indexes)
+		self._context_menu.clear()
+		item = self._get_current_item()
+		if item is None:
+			return
+		if item.is_root():
+			if num_indexes > 0:
+				pixmap = QtGui.QPixmap(pix(100), pix(100))
+				pixmap.fill(self._get_label_color())
+				label_icon = QtGui.QIcon(pixmap)
+				prev_menu = self._context_menu.addMenu(label_icon, 'Label Color')
+				for color_label in LABEL_COLORS:
+					pixmap = QtGui.QPixmap(pix(100), pix(100))
+					pixmap.fill(self._get_color_from_label(color_label))
+					label_icon = QtGui.QIcon(pixmap)
+					prev_menu.addAction(
+						label_icon, color_label, lambda color_label=color_label: self._set_label_color(color_label))
+			self._context_menu.addAction(self.COPY_IMAGE, 'Duplicate')
+			self._context_menu.addAction(self.TRASH_IMAGE, 'Delete')
+		else:
+			self._context_menu.addAction(self.TRASH_IMAGE, 'Delete')
+
+		self._context_menu.popup(QtGui.QCursor.pos())
+		self._context_menu.exec_(self.mapToGlobal(pos))
 
 
 class TreeItem(QtWidgets.QTreeWidgetItem):
@@ -371,6 +441,20 @@ class TreeItem(QtWidgets.QTreeWidgetItem):
 
 	def get_label_color(self):
 		return self.node.label_color
+
+	def set_label_color(self, color):
+		if isinstance(color, (list, tuple)):
+			color = QtGui.QColor(*color)
+		self.node.label_color = color
+		for i in range(self.childCount()):
+			child = self.child(i)
+			child.node.label_color = color
+
+		value = [color.red(), color.green(), color.blue()]
+		export_node = fu.FbxExportNode.get()
+		if not export_node:
+			return
+		export_node.set_partition_color(self.node.node_name, value)
 
 	def get_action_button_count(self):
 		return 7 if self.node.is_root else 3
@@ -693,7 +777,6 @@ class RowPainter(object):
 
 			start += self.ACTION_WIDTH + extra_padding
 			self._draw_action(action_name, pixmap, self._rect.right() - start, top)
-
 
 
 class AnimClipWidget(QtWidgets.QWidget):

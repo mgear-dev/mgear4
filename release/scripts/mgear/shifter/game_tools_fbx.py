@@ -739,9 +739,6 @@ class PartitionsTreeView(fuw.OutlinerTreeView):
             root_item.setFlags(root_item.flags() | QtCore.Qt.ItemIsEditable | QtCore.Qt.ItemIsDropEnabled)
             root_item.setFlags(root_item.flags() & ~QtCore.Qt.ItemIsDragEnabled)
             self.addTopLevelItem(root_item)
-            enabled = item_data.get('enabled', True)
-            if not enabled:
-                root_item.set_enabled()
             child_items = item_data.get('skeletalMeshes', list())
             for child_node in child_items:
                 child = self._add_partition_item(child_node, root_item)
@@ -749,6 +746,12 @@ class PartitionsTreeView(fuw.OutlinerTreeView):
                 root_item.addChild(child)
                 if add_callbacks:
                     pass
+            enabled = item_data.get('enabled', True)
+            color = item_data.get('color', None)
+            if not enabled:
+                root_item.set_enabled()
+            if color is not None:
+                root_item.set_label_color(color)
 
 
 def openFBXExport(*args):
