@@ -147,22 +147,22 @@ class FbxSdkGameToolsWrapper(object):
 			return None
 
 		unsupported_types = [
-			fbx.eFbxUndefined,
-			fbx.eFbxChar,
-			fbx.eFbxUChar,
-			fbx.eFbxShort,
-			fbx.eFbxUShort,
-			fbx.eFbxUInt,
-			fbx.eFbxLongLong,
-			fbx.eFbxHalfFloat,
-			fbx.eFbxDouble4x4,
-			fbx.eFbxEnum,
-			fbx.eFbxTime,
-			fbx.eFbxReference,
-			fbx.eFbxBlob,
-			fbx.eFbxDistance,
-			fbx.eFbxDateTime,
-			fbx.eFbxTypeCount,
+			pfbx.fbx.eFbxUndefined,
+			pfbx.fbx.eFbxChar,
+			pfbx.fbx.eFbxUChar,
+			pfbx.fbx.eFbxShort,
+			pfbx.fbx.eFbxUShort,
+			pfbx.fbx.eFbxUInt,
+			pfbx.fbx.eFbxLongLong,
+			pfbx.fbx.eFbxHalfFloat,
+			pfbx.fbx.eFbxDouble4x4,
+			pfbx.fbx.eFbxEnum,
+			pfbx.fbx.eFbxTime,
+			pfbx.fbx.eFbxReference,
+			pfbx.fbx.eFbxBlob,
+			pfbx.fbx.eFbxDistance,
+			pfbx.fbx.eFbxDateTime,
+			pfbx.fbx.eFbxTypeCount,
 		]
 
 		casted_property = None
@@ -172,22 +172,22 @@ class FbxSdkGameToolsWrapper(object):
 		if property_type in unsupported_types:
 			return None
 
-		if property_type == fbx.eFbxBool:
-			casted_property = fbx.FbxPropertyBool1(fbx_property)
-		elif property_type == fbx.eFbxDouble:
-			casted_property = fbx.FbxPropertyDouble1(fbx_property)
-		elif property_type == fbx.eFbxDouble2:
-			casted_property = fbx.FbxPropertyDouble2(fbx_property)
-		elif property_type == fbx.eFbxDouble3:
-			casted_property = fbx.FbxPropertyDouble3(fbx_property)
-		elif property_type == fbx.eFbxDouble4:
-			casted_property = fbx.FbxPropertyDouble4(fbx_property)
-		elif property_type == fbx.eFbxInt:
-			casted_property = fbx.FbxPropertyInteger1(fbx_property)
-		elif property_type == fbx.eFbxFloat:
-			casted_property = fbx.FbxPropertyFloat1(fbx_property)
-		elif property_type == fbx.eFbxString:
-			casted_property = fbx.FbxPropertyString(fbx_property)
+		if property_type == pfbx.fbx.eFbxBool:
+			casted_property = pfbx.fbx.FbxPropertyBool1(fbx_property)
+		elif property_type == pfbx.fbx.eFbxDouble:
+			casted_property = pfbx.fbx.FbxPropertyDouble1(fbx_property)
+		elif property_type == pfbx.fbx.eFbxDouble2:
+			casted_property = pfbx.fbx.FbxPropertyDouble2(fbx_property)
+		elif property_type == pfbx.fbx.eFbxDouble3:
+			casted_property = pfbx.fbx.FbxPropertyDouble3(fbx_property)
+		elif property_type == pfbx.fbx.eFbxDouble4:
+			casted_property = pfbx.fbx.FbxPropertyDouble4(fbx_property)
+		elif property_type == pfbx.fbx.eFbxInt:
+			casted_property = pfbx.fbx.FbxPropertyInteger1(fbx_property)
+		elif property_type == pfbx.fbx.eFbxFloat:
+			casted_property = pfbx.fbx.FbxPropertyFloat1(fbx_property)
+		elif property_type == pfbx.fbx.eFbxString:
+			casted_property = pfbx.fbx.FbxPropertyString(fbx_property)
 		else:
 			raise ValueError(
 				"Unknown property type: {0} {1}".format(
@@ -198,13 +198,12 @@ class FbxSdkGameToolsWrapper(object):
 		return casted_property
 
 	def get_property_value(self, fbx_property):
-		casted_property = cast_property(fbx_property) if fbx_property and fbx_property.IsValid() else None
+		casted_property = self.cast_property(fbx_property) if fbx_property and fbx_property.IsValid() else None
 		return casted_property.Get() if casted_property else None
 
 	def clean_scene(self, no_export_tag='no_export', world_control_name='world_ctl'):
 		self.remove_non_exportable_nodes(no_export_tag=no_export_tag)
 		self.remove_world_control(control_name=world_control_name)
-
 
 	def remove_non_exportable_nodes(self, no_export_tag='no_export'):
 
@@ -215,8 +214,8 @@ class FbxSdkGameToolsWrapper(object):
 			if property_value is True:
 				nodes_to_delete.append(node)
 		for node_to_delete in nodes_to_delete:
-			scene.DisconnectSrcObject(node_to_delete)
-			scene.RemoveNode(node_to_delete)
+			self._scene.DisconnectSrcObject(node_to_delete)
+			self._scene.RemoveNode(node_to_delete)
 
 		# force the update of the internal cache of scene nodes
 		self.get_scene_nodes()
@@ -250,27 +249,31 @@ class FbxSdkGameToolsWrapper(object):
 
 		return True
 
-	def export_skeletal_mesh(self, mesh_name, hierarchy_joints, deformations=None, skins=None, blendshapes=None):
+	def export_skeletal_mesh(self, file_name, mesh_names, hierarchy_joints, deformations=None, skins=None, blendshapes=None):
 
 		if not pfbx.FBX_SDK:
 			cmds.warning('Export Skeletal Mesh functionality is only available if Python FBX SDK is available!')
 			return None
 
-		mesh_to_export = None
+		# TODO: Check how we can retrieve the long name using FBX SDK
+		short_mesh_names = [mesh_name.split('|')[-1] for mesh_name in mesh_names]
+
+		meshes_to_export = list()
 		meshes_to_delete = list()
 		meshes_nodes = self.get_meshes()
 		for mesh_node in meshes_nodes:
-			if mesh_node.GetName() == mesh_name:
-				mesh_to_export = mesh_node
+			if mesh_node.GetName() in short_mesh_names:
+				meshes_to_export.append(mesh_node)
 			else:
 				if mesh_node.GetName():
 					meshes_to_delete.append(mesh_node)
-		if not mesh_to_export:
-			cmds.warning('No mesh with name "{}" to export found!'.format(mesh_name))
+		if not meshes_to_export:
+			cmds.warning('No meshes with names "{}" to export found!'.format(mesh_names))
 			return None
 
-		# ensure hierarchy has no
+		# ensure hierarchy has no duplicated joints
 		hierarchy = set(list(hierarchy_joints))
+
 		skeleton_joints = list()
 		joints_to_remove = list()
 		scene_joints = self.get_joints()
@@ -294,5 +297,5 @@ class FbxSdkGameToolsWrapper(object):
 			self._scene.RemoveNode(joint_to_delete)
 
 		save_path = os.path.join(os.path.dirname(self._filename), '{}_{}.fbx'.format(
-			os.path.splitext(os.path.basename(self._filename))[0], mesh_name))
+			os.path.splitext(os.path.basename(self._filename))[0], file_name))
 		self.save(save_path, deformations=deformations, skins=skins, blendshapes=blendshapes)
