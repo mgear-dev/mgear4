@@ -7,6 +7,8 @@ from mgear.vendor.Qt import QtWidgets
 from mgear.vendor.Qt import QtCore
 from mgear.vendor.Qt import QtGui
 
+import maya.cmds as cmds
+
 # TODO: Remove following dependencies
 import maya.app.flux.core as fx
 from maya.app.flux.core import pix
@@ -302,7 +304,7 @@ class OutlinerTreeView(QtWidgets.QTreeWidget):
 		node_icon = pyqt.get_icon('mgear_package')
 		root_node = NodeClass(partition, 'Root', True, node_icon, True, True)
 
-		item = TreeItem(root_node, partition, True, None)
+		item = TreeItem(root_node, partition, True, parent=self)
 
 		return item
 
@@ -348,6 +350,17 @@ class OutlinerTreeView(QtWidgets.QTreeWidget):
 		item = self.currentItem()
 		self.collapseItem(item) if item.isExpanded() else self.expandItem(item)
 
+	def _delete_node(self):
+		item = self._get_current_item()
+		if item is None:
+			return
+		response = cmds.confirmDialog(
+			title='Confirm', message='Confirm Deletion',
+			button=['Yes', 'No'], defaultButton='Yes', cancelButton='No', dismissString='No')
+		if response == 'Yes':
+			cmds.select(clear=True)
+			item.delete_node()
+
 	def _on_custom_context_menu_requested(self, pos):
 		"""
 		Internal callback function that rebuils the context menu from scratch
@@ -372,9 +385,9 @@ class OutlinerTreeView(QtWidgets.QTreeWidget):
 					prev_menu.addAction(
 						label_icon, color_label, lambda color_label=color_label: self._set_label_color(color_label))
 			self._context_menu.addAction(self.COPY_IMAGE, 'Duplicate')
-			self._context_menu.addAction(self.TRASH_IMAGE, 'Delete')
+			self._context_menu.addAction(self.TRASH_IMAGE, 'Delete', self._delete_node)
 		else:
-			self._context_menu.addAction(self.TRASH_IMAGE, 'Delete')
+			self._context_menu.addAction(self.TRASH_IMAGE, 'Delete', self._delete_node)
 
 		self._context_menu.popup(QtGui.QCursor.pos())
 		self._context_menu.exec_(self.mapToGlobal(pos))
@@ -471,6 +484,19 @@ class TreeItem(QtWidgets.QTreeWidgetItem):
 				return ['Enabled', None, 'Remove'][index]
 
 		return None
+
+	def delete_node(self):
+		export_node = fu.FbxExportNode.get()
+		if not export_node:
+			return
+		if self.is_root():
+			result = export_node.delete_skeletal_mesh_partition(self.get_name())
+			if result:
+				self.parent().takeTopLevelItem(self.parent().indexOfTopLevelItem(self))
+		else:
+			result = export_node.delete_skeletal_mesh_from_partition(self.parent().get_name(), self.get_name())
+			if result:
+				self.parent().takeChild(self.parent().indexOfChild(self))
 
 
 class TreeViewDelegate(QtWidgets.QItemDelegate):

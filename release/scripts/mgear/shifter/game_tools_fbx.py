@@ -452,19 +452,16 @@ class FBXExport(MayaQWidgetDockableMixin, QtWidgets.QDialog):
 
     def remove_skeletal_mesh_partition(self):
 
-        export_node = fu.FbxExportNode.get()
-        if not export_node:
-            return
-
         selected_partition_items = self.skeletal_mesh_partitions_outliner.selectedItems()
         if not selected_partition_items:
             return
-        selected_items_to_delete = [item for item in selected_partition_items if item.node.is_root]
-        selected_names_to_delete = [item.node.node_name for item in selected_items_to_delete]
-        for partition_name in selected_names_to_delete:
-            export_node.delete_skeletal_mesh_partition(partition_name)
 
-        self.skeletal_mesh_partitions_outliner.reset_contents()
+        response = cmds.confirmDialog(
+            title='Confirm', message='Confirm Deletion',
+            button=['Yes', 'No'], defaultButton='Yes', cancelButton='No', dismissString='No')
+        if response == 'Yes':
+            for selected_partition_item in selected_partition_items:
+                selected_partition_item.delete_node()
 
     def partition_item_enabled_changed(self, item):
 
