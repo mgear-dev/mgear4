@@ -67,6 +67,12 @@ except NameError:
     long = int
 
 
+if False:
+    from PySide2 import QtCore
+    from PySide2 import QtWidgets
+    from PySide2 import QtGui
+
+
 """Common members of all bindings
 
 This is where each member of Qt.py is explicitly defined.
