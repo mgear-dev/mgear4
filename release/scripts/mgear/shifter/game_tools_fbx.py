@@ -520,52 +520,82 @@ class FBXExport(MayaQWidgetDockableMixin, QtWidgets.QDialog):
 
     def export_skeletal_mesh(self):
 
-        print('----- Exporting Skeletal Meshes ...')
+        print('----- Exporting Skeletal Meshes -----')
 
-        self.auto_set_geo_roots()
-        # self.auto_set_joint_root()
-        # self.auto_file_path()
-        #
-        # # retrieve export config
-        # geo_roots = [self.geo_root_list.item(i).text() for i in range(self.geo_root_list.count())]
-        # jnt_root = self.joint_root_lineedit.text().split(",")
-        # up_axis = self.up_axis_combobox.currentText()
-        # file_type = self.file_type_combobox.currentText()
-        # fbx_version = self.fbx_version_combobox.currentText()
-        # remove_namespace = self.remove_namespace_checkbox.isChecked()
-        # scene_clean = self.clean_scene_checkbox.isChecked()
-        # use_partitions = self.use_partitions_checkbox.isChecked()
-        # file_name = self.file_name_lineedit.text()
-        # file_path = self.file_path_lineedit.text()
-        # skinning = self.skinning_checkbox.isChecked()
-        # blendshapes = self.blendshapes_checkbox.isChecked()
-        # partitions = [self.skeletal_mesh_partitions_list.item(i).text() for i in range(
-        #     self.skeletal_mesh_partitions_list.count())]
-        #
-        # path = string.normalize_path(os.path.join(file_path, file_name + ".fbx"))
-        #
-        # current_export_preset = self.fbx_export_presets_combobox.currentText()
-        # preset_file_path = None
-        # if current_export_preset and current_export_preset != 'User defined':
-        #     preset_file_path = self.fbx_export_presets_combobox.itemData(
-        #         self.fbx_export_presets_combobox.currentIndex())
-        #
-        # fu.export_skeletal_mesh(
-        #     jnt_root,
-        #     geo_roots,
-        #     path,
-        #     preset_path=preset_file_path,
-        #     up_axis=up_axis,
-        #     file_type=file_type,
-        #     fbx_version=fbx_version,
-        #     remove_namespace=remove_namespace,
-        #     scene_clean=scene_clean,
-        #     skinning=skinning,
-        #     blendshapes=blendshapes,
-        #     use_partitions=use_partitions,
-        #     partitions=partitions
-        # )
-        #
+        geo_roots = [self.geo_root_list.item(i).text() for i in range(self.geo_root_list.count())]
+        if not geo_roots:
+            cmds.warning('No geo roots defined!')
+            return False
+        jnt_root = self.joint_root_lineedit.text().split(",")
+        if not jnt_root[0]:
+            cmds.warning('No Joint Root defined!')
+            return False
+        print('\t>>> Geo Roots: {}'.format(geo_roots))
+        print('\t>>> Joint Root: {}'.format(jnt_root))
+
+        self.auto_file_path()
+        file_path = self.file_path_lineedit.text()
+        file_name = self.file_name_lineedit.text()
+        if not file_path or not file_name:
+            cmds.warning('Not valid file path and name defined!')
+            return False
+
+        partitions = dict()
+        use_partitions = self.use_partitions_checkbox.isChecked()
+        if use_partitions:
+
+            # Master partition data is retrieved from UI
+            # TODO: Should we store master data within FbxExporterNode too?
+            master_partition = self.skeletal_mesh_partitions_outliner.get_master_partition()
+
+            export_nodes = fu.FbxExportNode.find()
+            if not export_nodes:
+                return dict()
+            if len(export_nodes) > 2:
+                cmds.warning(
+                    'Multiple FBX Export nodes found in scene. Using first one found: "{}"'.format(export_nodes[0]))
+            found_partitions = dict()
+            found_partitions.update(master_partition)
+            found_partitions.update(export_nodes[0].get_partitions())
+            for partition_name, partition_data in found_partitions.items():
+                enabled = partition_data.get('enabled', True)
+                skeletal_meshes = partition_data.get('skeletalMeshes', list())
+                if not enabled or not skeletal_meshes:
+                    continue
+                partitions[partition_name] = skeletal_meshes
+            print('\t>>> Partitions: {}'.format(partitions))
+
+        current_export_preset = self.fbx_export_presets_combobox.currentText()
+        preset_file_path = ''
+        if current_export_preset and current_export_preset != 'User defined':
+            preset_file_path = self.fbx_export_presets_combobox.itemData(
+                self.fbx_export_presets_combobox.currentIndex())
+        print('\t>>> Preset File Path: {}'.format(preset_file_path))
+
+        # retrieve export config
+        export_config = {
+            'up_axis': self.up_axis_combobox.currentText(),
+            'file_type': self.file_type_combobox.currentText(),
+            'fbx_version': self.fbx_version_combobox.currentText(),
+            'remove_namespace': self.remove_namespace_checkbox.isChecked(),
+            'scene_clean': self.clean_scene_checkbox.isChecked(),
+            'use_partitions': use_partitions,
+            'file_name': file_name,
+            'file_path': file_path,
+            'skinning': self.skinning_checkbox.isChecked(),
+            'blendshapes': self.blendshapes_checkbox.isChecked(),
+            'partitions': partitions
+        }
+
+        result = fu.export_skeletal_mesh(
+            jnt_root,
+            geo_roots,
+            **export_config
+        )
+        if not result:
+            cmds.warning('Something went wrong while exporting Skeletal Mesh/es')
+            return False
+
         # # automatically import FBX into Unreal if necessary
         # if self.ue_import_cbx.isChecked() and os.path.isfile(path):
         #     uegear_bridge = bridge.UeGearBridge()
@@ -786,6 +816,18 @@ class PartitionsTreeView(fuw.OutlinerTreeView):
     def set_geo_roots(self, geo_roots):
         self._geo_roots = geo_roots
         self.reset_contents()
+
+    def get_master_partition(self):
+        master_partition = dict()
+        master_partition['Master'] = {'enabled': True, 'skeletalMeshes': []}
+        if not self._master_item:
+            return master_partition
+
+        for i in range(self._master_item.childCount()):
+            item = self._master_item.child(i)
+            master_partition['Master']['skeletalMeshes'].append(item.get_name())
+
+        return master_partition
 
     def find_items(self):
 

@@ -467,6 +467,7 @@ class OutlinerTreeView(QtWidgets.QTreeWidget):
 
 		node_icon = pyqt.get_icon('mgear_box')
 		item_node = self.NODE_CLASS(node, 'Geometry', False, node_icon, True, partition_item.node.network_enabled)
+		item_node.can_be_disabled = False
 
 		item = self.TREE_ITEM_CLASS(item_node, '', True, partition_item)
 

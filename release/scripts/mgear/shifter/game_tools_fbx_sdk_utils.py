@@ -249,27 +249,31 @@ class FbxSdkGameToolsWrapper(object):
 
 		return True
 
-	def export_skeletal_mesh(self, mesh_name, hierarchy_joints, deformations=None, skins=None, blendshapes=None):
+	def export_skeletal_mesh(self, file_name, mesh_names, hierarchy_joints, deformations=None, skins=None, blendshapes=None):
 
 		if not pfbx.FBX_SDK:
 			cmds.warning('Export Skeletal Mesh functionality is only available if Python FBX SDK is available!')
 			return None
 
-		mesh_to_export = None
+		# TODO: Check how we can retrieve the long name using FBX SDK
+		short_mesh_names = [mesh_name.split('|')[-1] for mesh_name in mesh_names]
+
+		meshes_to_export = list()
 		meshes_to_delete = list()
 		meshes_nodes = self.get_meshes()
 		for mesh_node in meshes_nodes:
-			if mesh_node.GetName() == mesh_name:
-				mesh_to_export = mesh_node
+			if mesh_node.GetName() in short_mesh_names:
+				meshes_to_export.append(mesh_node)
 			else:
 				if mesh_node.GetName():
 					meshes_to_delete.append(mesh_node)
-		if not mesh_to_export:
-			cmds.warning('No mesh with name "{}" to export found!'.format(mesh_name))
+		if not meshes_to_export:
+			cmds.warning('No meshes with names "{}" to export found!'.format(mesh_names))
 			return None
 
-		# ensure hierarchy has no
+		# ensure hierarchy has no duplicated joints
 		hierarchy = set(list(hierarchy_joints))
+
 		skeleton_joints = list()
 		joints_to_remove = list()
 		scene_joints = self.get_joints()
@@ -293,5 +297,5 @@ class FbxSdkGameToolsWrapper(object):
 			self._scene.RemoveNode(joint_to_delete)
 
 		save_path = os.path.join(os.path.dirname(self._filename), '{}_{}.fbx'.format(
-			os.path.splitext(os.path.basename(self._filename))[0], mesh_name))
+			os.path.splitext(os.path.basename(self._filename))[0], file_name))
 		self.save(save_path, deformations=deformations, skins=skins, blendshapes=blendshapes)
