@@ -312,7 +312,7 @@ def export_animation_clip():
 
 
 def get_geo_grp():
-    """Return the goemetry group (objectSet in Maya) of the rig.
+    """Return the geometry group (objectSet in Maya) of the rig.
     If more than one xxx_geo_grp is available will pop up a selection list
 
     Returns:
@@ -339,9 +339,7 @@ def get_geo_root():
         else:
             pm.displayWarning("Geo_grp is empty. Please set geo root manually")
     else:
-        pm.displayWarning(
-            "Not Geo_grp available, please set geo roots manually"
-        )
+        pm.displayWarning("Not Geo_grp available, please set geo roots manually")
 
 
 def get_joint_org():

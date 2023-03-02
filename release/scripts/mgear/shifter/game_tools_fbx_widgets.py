@@ -44,6 +44,10 @@ class NodeClass(object):
 			color.setNamedColor('#5d5d5d')
 		self._background_color = color
 		self._tooltip = None
+		self._can_be_deleted = True
+		self._can_be_disabled = True
+		self._can_be_duplicated = True
+		self._can_add_children = True
 
 	def __repr__(self):
 		return 'NODE - {} {}'.format(self._node_name, self._node_type)
@@ -55,6 +59,10 @@ class NodeClass(object):
 	@node_name.setter
 	def node_name(self, value):
 		self._node_name = value
+
+	@property
+	def display_name(self):
+		return self.node_name.split('|')[-1]
 
 	@property
 	def node_type(self):
@@ -96,6 +104,37 @@ class NodeClass(object):
 	def background_color(self):
 		return self._background_color
 
+	@property
+	def can_be_deleted(self):
+		return self._can_be_deleted
+
+	@can_be_deleted.setter
+	def can_be_deleted(self, flag):
+		self._can_be_deleted = flag
+
+	@property
+	def can_be_disabled(self):
+		return self._can_be_disabled
+
+	@can_be_disabled.setter
+	def can_be_disabled(self, flag):
+		self._can_be_disabled = flag
+
+	@property
+	def can_be_duplicated(self):
+		return self._can_be_duplicated
+
+	@can_be_duplicated.setter
+	def can_be_duplicated(self, flag):
+		self._can_be_duplicated = flag
+
+	@property
+	def can_add_children(self):
+		return self._can_add_children
+
+	@can_add_children.setter
+	def can_add_children(self, flag):
+		self._can_add_children = flag
 
 class OutlinerMenu(QtWidgets.QMenu):
 	def __init__(self, title='', parent=None):
@@ -107,7 +146,123 @@ class OutlinerMenu(QtWidgets.QMenu):
 		QtWidgets.QToolTip.showText(QtGui.QCursor.pos(), action.toolTip(), self, self.actionGeometry(action))
 
 
+class TreeItem(QtWidgets.QTreeWidgetItem):
+
+	def __init__(self, node, header, show_enabled, parent=None):
+		super(TreeItem, self).__init__()
+
+		self._node = node  # type: NodeClass
+		self._header = header
+		self._connected_nodes = list()
+		self._show_enabled = show_enabled
+
+		self.set_parent(parent)
+
+	@property
+	def node(self):
+		return self._node
+
+	def parent(self):
+		return self._parent
+
+	def set_parent(self, parent):
+		self._parent = parent
+
+	def get_name(self):
+		return self.node.node_name if self.node else self._header
+
+	def set_name(self, name):
+		self.node.node_name = name
+
+	def get_display_name(self):
+		return self.node.display_name if self.node else self.get_name()
+
+	def get_node_type(self):
+		return self.node.node_type
+
+	def get_icon(self):
+		return self.node.icon
+
+	def set_enabled(self):
+		self.node.enabled = not self.is_enabled()
+		if not self.is_root():
+			pass
+		else:
+			self.node.network_enabled = self.is_enabled()
+
+	def get_background_color(self):
+		return self.node.background_color
+
+	def get_window_background_color(self):
+		return QtGui.QColor(43, 43, 43)
+
+	def get_inactive_color(self):
+		return QtGui.QColor(150, 150, 150)
+
+	def is_enabled(self):
+		return self.node.enabled
+
+	def network_enabled(self):
+		return self.parent().node.network_enabled if self.parent() else True
+
+	def is_root(self):
+		return self.node.is_root
+
+	def get_label_color(self):
+		return self.node.label_color
+
+	def set_label_color(self, color):
+		if isinstance(color, (list, tuple)):
+			color = QtGui.QColor(*color)
+		self.node.label_color = color
+		for i in range(self.childCount()):
+			child = self.child(i)
+			child.node.label_color = color
+
+		value = [color.red(), color.green(), color.blue()]
+		export_node = fu.FbxExportNode.get()
+		if not export_node:
+			return
+		export_node.set_partition_color(self.node.node_name, value)
+
+	def get_action_button_count(self):
+		return 7 if self.node.is_root else 3
+
+	def has_enable_toggle(self):
+		return self._show_enabled
+
+	def get_action_button(self, index):
+		if self.node.is_root:
+			if index >= 0 and index <= 6:
+				return [
+					'Enabled' if self.node.can_be_disabled else None,
+					None, 'Add' if self.node.can_add_children else None, None, None, None, None][index]
+		else:
+			if index >= 0 and index <= 2:
+				return [
+					'Enabled' if self.node.can_be_disabled else None,
+					None, 'Remove' if self.node.can_be_deleted else None][index]
+
+		return None
+
+	def delete_node(self):
+		export_node = fu.FbxExportNode.get()
+		if not export_node:
+			return
+		if self.is_root():
+			result = export_node.delete_skeletal_mesh_partition(self.get_name())
+			if result:
+				self.parent().takeTopLevelItem(self.parent().indexOfTopLevelItem(self))
+		else:
+			result = export_node.delete_skeletal_mesh_from_partition(self.parent().get_name(), self.get_name())
+			if result:
+				self.parent().takeChild(self.parent().indexOfChild(self))
+
+
 class OutlinerTreeView(QtWidgets.QTreeWidget):
+
+	TREE_ITEM_CLASS = TreeItem
+	NODE_CLASS = NodeClass
 
 	EXPAND_WIDTH = pix(60)
 	TRASH_IMAGE = pyqt.get_icon('mgear_trash')
@@ -302,18 +457,18 @@ class OutlinerTreeView(QtWidgets.QTreeWidget):
 	def _create_root_item(self, partition):
 
 		node_icon = pyqt.get_icon('mgear_package')
-		root_node = NodeClass(partition, 'Root', True, node_icon, True, True)
+		root_node = self.NODE_CLASS(partition, 'Root', True, node_icon, True, True)
 
-		item = TreeItem(root_node, partition, True, parent=self)
+		item = self.TREE_ITEM_CLASS(root_node, partition, True, parent=self)
 
 		return item
 
 	def _add_partition_item(self, node, partition_item):
 
 		node_icon = pyqt.get_icon('mgear_box')
-		item_node = NodeClass(node, 'Geometry', False, node_icon, True, partition_item.node.network_enabled)
+		item_node = self.NODE_CLASS(node, 'Geometry', False, node_icon, True, partition_item.node.network_enabled)
 
-		item = TreeItem(item_node, '', True, partition_item)
+		item = self.TREE_ITEM_CLASS(item_node, '', True, partition_item)
 
 		return item
 
@@ -384,119 +539,17 @@ class OutlinerTreeView(QtWidgets.QTreeWidget):
 					label_icon = QtGui.QIcon(pixmap)
 					prev_menu.addAction(
 						label_icon, color_label, lambda color_label=color_label: self._set_label_color(color_label))
-			self._context_menu.addAction(self.COPY_IMAGE, 'Duplicate')
-			self._context_menu.addAction(self.TRASH_IMAGE, 'Delete', self._delete_node)
+			if item.node.can_be_duplicated:
+				duplicate_action = self._context_menu.addAction(self.COPY_IMAGE, 'Duplicate')
+				duplicate_action.setEnabled(False)
+			if item.node.can_be_deleted:
+				self._context_menu.addAction(self.TRASH_IMAGE, 'Delete', self._delete_node)
 		else:
-			self._context_menu.addAction(self.TRASH_IMAGE, 'Delete', self._delete_node)
+			if item.node.can_be_deleted:
+				self._context_menu.addAction(self.TRASH_IMAGE, 'Delete', self._delete_node)
 
 		self._context_menu.popup(QtGui.QCursor.pos())
 		self._context_menu.exec_(self.mapToGlobal(pos))
-
-
-class TreeItem(QtWidgets.QTreeWidgetItem):
-
-	def __init__(self, node, header, show_enabled, parent=None):
-		super(TreeItem, self).__init__()
-
-		self._node = node  # type: NodeClass
-		self._header = header
-		self._connected_nodes = list()
-		self._show_enabled = show_enabled
-
-		self.set_parent(parent)
-
-	@property
-	def node(self):
-		return self._node
-
-	def parent(self):
-		return self._parent
-
-	def set_parent(self, parent):
-		self._parent = parent
-
-	def get_name(self):
-		return self.node.node_name if self.node else self._header
-
-	def set_name(self, name):
-		self.node.node_name = name
-
-	def get_node_type(self):
-		return self.node.node_type
-
-	def get_icon(self):
-		return self.node.icon
-
-	def set_enabled(self):
-		self.node.enabled = not self.is_enabled()
-		if not self.is_root():
-			pass
-		else:
-			self.node.network_enabled = self.is_enabled()
-
-	def get_background_color(self):
-		return self.node.background_color
-
-	def get_window_background_color(self):
-		return QtGui.QColor(43, 43, 43)
-
-	def get_inactive_color(self):
-		return QtGui.QColor(150, 150, 150)
-
-	def is_enabled(self):
-		return self.node.enabled
-
-	def network_enabled(self):
-		return self.parent().node.network_enabled if self.parent() else True
-
-	def is_root(self):
-		return self.node.is_root
-
-	def get_label_color(self):
-		return self.node.label_color
-
-	def set_label_color(self, color):
-		if isinstance(color, (list, tuple)):
-			color = QtGui.QColor(*color)
-		self.node.label_color = color
-		for i in range(self.childCount()):
-			child = self.child(i)
-			child.node.label_color = color
-
-		value = [color.red(), color.green(), color.blue()]
-		export_node = fu.FbxExportNode.get()
-		if not export_node:
-			return
-		export_node.set_partition_color(self.node.node_name, value)
-
-	def get_action_button_count(self):
-		return 7 if self.node.is_root else 3
-
-	def has_enable_toggle(self):
-		return self._show_enabled
-
-	def get_action_button(self, index):
-		if self.node.is_root:
-			if index >= 0 and index <= 6:
-				return ['Enabled', None, 'Add', None, None, None, None][index]
-		else:
-			if index >= 0 and index <= 2:
-				return ['Enabled', None, 'Remove'][index]
-
-		return None
-
-	def delete_node(self):
-		export_node = fu.FbxExportNode.get()
-		if not export_node:
-			return
-		if self.is_root():
-			result = export_node.delete_skeletal_mesh_partition(self.get_name())
-			if result:
-				self.parent().takeTopLevelItem(self.parent().indexOfTopLevelItem(self))
-		else:
-			result = export_node.delete_skeletal_mesh_from_partition(self.parent().get_name(), self.get_name())
-			if result:
-				self.parent().takeChild(self.parent().indexOfChild(self))
 
 
 class TreeViewDelegate(QtWidgets.QItemDelegate):
@@ -531,8 +584,13 @@ class TreeViewDelegate(QtWidgets.QItemDelegate):
 
 	def createEditor(self, parent, option, index):
 		"""
-		Overrides createEditor function to create the double-click editor for renaming nodes.
+		Overrides createEditor function to create the double click editor for renaming nodes.
 		"""
+
+		# only root items can be renamed
+		item = self.tree_view.itemFromIndex(index)
+		if not item or not item.is_root():
+			return None
 
 		editor = QtWidgets.QLineEdit(parent)
 		editor.setAlignment(QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter)
@@ -552,7 +610,7 @@ class TreeViewDelegate(QtWidgets.QItemDelegate):
 
 	def setEditorData(self, editor, index):
 		item = self.tree_view.itemFromIndex(index)
-		editor.setText(item.get_name())
+		editor.setText(item.get_display_name())
 
 	def setModelData(self, editor, model, index):
 		"""
@@ -700,9 +758,8 @@ class RowPainter(object):
 		text_rect.setBottom(text_rect.bottom() + pix(2))
 		text_rect.setLeft(text_rect.left() + pix(40) + self.ICON_PADDING)
 		text_rect.setRight(text_rect.right() - pix(11))
-		self._painter.drawText(text_rect, QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter, self.item.get_name())
+		self._painter.drawText(text_rect, QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter, self.item.get_display_name())
 		self._painter.setPen(old_pen)
-		old_pen = self._painter.pen()
 
 		return text_rect
 
