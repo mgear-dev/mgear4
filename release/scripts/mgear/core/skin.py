@@ -23,6 +23,9 @@ FILE_EXT = ".gSkin"
 FILE_JSON_EXT = ".jSkin"
 PACK_EXT = ".gSkinPack"
 
+NAMESPACE_REPLACER = "~"
+CLASH_REPLACER = "!"
+
 ######################################
 # Skin getters
 ######################################
@@ -200,6 +203,17 @@ def collectData(skinCls, dataDic):
 # Skin export
 ######################################
 
+def clash_and_namespace_fixer(filepath, toFile=True):
+    # This is a gross approach, but it does work as Windows
+    # supports ! (or CLASH_REPLACER if changed) but not |
+    # Same with : Namespaces and NAMESPACE_REPLACER
+    if toFile:
+        filepath = filepath.replace(":", NAMESPACE_REPLACER).replace("|", CLASH_REPLACER)
+    else:
+        filepath = filepath.replace(NAMESPACE_REPLACER, ":").replace(CLASH_REPLACER, "|")
+
+    return filepath
+
 def exportSkin(filePath=None, objs=None, *args):
     if not objs:
         if pm.selected():
@@ -222,8 +236,7 @@ def exportSkin(filePath=None, objs=None, *args):
         filePath = pm.fileDialog2(fileMode=0,
                                   fileFilter=fileFilters)
         if filePath:
-            filePath = filePath[0]
-
+            filePath = clash_and_namespace_fixer(filepath=filePath[0], toFile=True)
         else:
             return False
 
@@ -317,7 +330,7 @@ def exportSkinPack(packPath=None, objs=None, use_json=False, *args):
     packDic["rootPath"], packName = os.path.split(packPath)
 
     for obj in objs:
-        fileName = obj.stripNamespace() + file_ext
+        fileName = clash_and_namespace_fixer(filePath=obj.stripNamespace(), toFile=True) + file_ext
         filePath = os.path.join(packDic["rootPath"], fileName)
         if exportSkin(filePath, [obj], use_json):
             packDic["packFiles"].append(fileName)
@@ -448,7 +461,7 @@ def getObjsFromSkinFile(filePath=None, *args):
 
 
 def importSkin(filePath=None, *args):
-
+    filePath = clash_and_namespace_fixer(filepath=filePath, toFile=False)
     if not filePath:
         f1 = 'mGear Skin (*{0} *{1})'.format(FILE_EXT, FILE_JSON_EXT)
         f2 = ";;gSkin Binary (*{0});;jSkin ASCII  (*{1})".format(
