@@ -207,10 +207,15 @@ def clash_and_namespace_fixer(filepath, toFile=True):
     # This is a gross approach, but it does work as Windows
     # supports ! (or CLASH_REPLACER if changed) but not |
     # Same with : Namespaces and NAMESPACE_REPLACER
+    filedir = os.path.dirname(filepath)
+    if filedir:
+        filedir = filedir + "/"
+    filename = os.path.basename(filepath)
+    raw_name, extension = os.path.splitext(filename)
     if toFile:
-        filepath = filepath.replace(":", NAMESPACE_REPLACER).replace("|", CLASH_REPLACER)
+        filepath = filedir + raw_name.replace(":", NAMESPACE_REPLACER).replace("|", CLASH_REPLACER) + extension
     else:
-        filepath = filepath.replace(NAMESPACE_REPLACER, ":").replace(CLASH_REPLACER, "|")
+        filepath = filedir + raw_name.replace(NAMESPACE_REPLACER, ":").replace(CLASH_REPLACER, "|") + extension
 
     return filepath
 
@@ -330,7 +335,7 @@ def exportSkinPack(packPath=None, objs=None, use_json=False, *args):
     packDic["rootPath"], packName = os.path.split(packPath)
 
     for obj in objs:
-        fileName = clash_and_namespace_fixer(filePath=obj.stripNamespace(), toFile=True) + file_ext
+        fileName = clash_and_namespace_fixer(filepath=obj.name(), toFile=True) + file_ext
         filePath = os.path.join(packDic["rootPath"], fileName)
         if exportSkin(filePath, [obj], use_json):
             packDic["packFiles"].append(fileName)
@@ -461,7 +466,7 @@ def getObjsFromSkinFile(filePath=None, *args):
 
 
 def importSkin(filePath=None, *args):
-    filePath = clash_and_namespace_fixer(filepath=filePath, toFile=False)
+    filePath = clash_and_namespace_fixer(filepath=filePath, toFile=True)
     if not filePath:
         f1 = 'mGear Skin (*{0} *{1})'.format(FILE_EXT, FILE_JSON_EXT)
         f2 = ";;gSkin Binary (*{0});;jSkin ASCII  (*{1})".format(
@@ -570,7 +575,7 @@ def importSkinPack(filePath=None, *args):
         packDic = json.load(fp)
         for pFile in packDic["packFiles"]:
             filePath = os.path.join(os.path.split(filePath)[0], pFile)
-            importSkin(filePath, True)
+            importSkin(clash_and_namespace_fixer(filepath=filePath, toFile=True), True)
 
 ######################################
 # Skin Copy
