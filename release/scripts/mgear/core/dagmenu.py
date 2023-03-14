@@ -155,6 +155,21 @@ def _find_rig_root(node):
     return ""
 
 
+def _get_switch_node_attrs(node, end_string):
+    """
+    returns list of attr names for given node that match the end_string arg and are not proxy attrs
+    Args:
+        node: str
+    Returns: list of strings
+    """
+    attrs = []
+    for attr in cmds.listAttr(node, userDefined=True, keyable=True) or []:
+        if not attr.lower().endswith(end_string) or cmds.addAttr("{}.{}".format(node, attr), query=True, usedAsProxy=True):
+            continue
+        attrs.append(attr)
+    return attrs
+
+
 def __range_switch_callback(*args):
     """Wrapper function to call mGears range fk/ik switch function
 
@@ -588,46 +603,42 @@ def mgear_dagmenu_fill(parent_menu, current_control):
         #  if x not in child_controls]
 
     child_controls.append(current_control)
+    attrs = _get_switch_node_attrs(current_control, "_blend")
+    if attrs:
+        ui_host = current_control
+    else:
+        try:
+            ui_host = cmds.listConnections(f"{current_control}.uiHost_cnx")[0]
+            attrs = _get_switch_node_attrs(ui_host, "_blend")
+            if not attrs:
+                ui_host = None
+        except ValueError:
+            ui_host = None
 
-    # handles ik fk blend attributes
-    for attr in (
-        cmds.listAttr(current_control, userDefined=True, keyable=True) or []
-    ):
-        if not attr.endswith("_blend") or cmds.addAttr(
-            "{}.{}".format(current_control, attr), query=True, usedAsProxy=True
-        ):
-            continue
+    for attr in attrs:
         # found attribute so get current state
-        current_state = cmds.getAttr("{}.{}".format(current_control, attr))
-        states = {0: "Fk", 1: "Ik"}
+        current_state = cmds.getAttr("{}.{}".format(ui_host, attr))
+        states = {0: "Fk",
+                  1: "Ik"}
 
-        rvs_state = states[int(not (current_state))]
+        rvs_state = states[int(not current_state)]
 
-        cmds.menuItem(
-            parent=parent_menu,
-            label="Switch {} to {}".format(attr.split("_blend")[0], rvs_state),
-            command=partial(
-                __switch_fkik_callback, current_control, False, attr
-            ),
-            image="kinReroot.png",
-        )
+        cmds.menuItem(parent=parent_menu, label="Switch {} to {}"
+                      .format(attr.split("_blend")[0], rvs_state),
+                      command=partial(__switch_fkik_callback, ui_host,
+                                      False, attr),
+                      image="kinReroot.png")
 
-        cmds.menuItem(
-            parent=parent_menu,
-            label="Switch {} to {} + Key".format(
-                attr.split("_blend")[0], rvs_state
-            ),
-            command=partial(
-                __switch_fkik_callback, current_control, True, attr
-            ),
-            image="character.svg",
-        )
+        cmds.menuItem(parent=parent_menu, label="Switch {} to {} + Key"
+                      .format(attr.split("_blend")[0], rvs_state),
+                      command=partial(__switch_fkik_callback, ui_host,
+                                      True, attr),
 
-        cmds.menuItem(
-            parent=parent_menu,
-            label="Range switch",
-            command=partial(__range_switch_callback, current_control, attr),
-        )
+                      image="character.svg")
+
+        cmds.menuItem(parent=parent_menu, label="Range switch",
+                      command=partial(__range_switch_callback, ui_host,
+                                      attr))
 
         # divider
         cmds.menuItem(parent=parent_menu, divider=True)
@@ -756,52 +767,29 @@ def mgear_dagmenu_fill(parent_menu, current_control):
     cmds.menuItem(parent=parent_menu, divider=True)
 
     # handles constrains attributes (constrain switches)
-    for attr in (
-        cmds.listAttr(current_control, userDefined=True, keyable=True) or []
-    ):
+    if ui_host:
+        for attr in _get_switch_node_attrs(ui_host, "ref"):
 
-        # filters switch reference attributes
-        if (
-            cmds.addAttr(
-                "{}.{}".format(current_control, attr),
-                query=True,
-                usedAsProxy=True,
-            )
-            or not attr.endswith("ref")
-            and not attr.endswith("Ref")
-        ):
-            continue
+            part, ctl = (attr.split("_")[0],
+                         attr.split("_")[-1].split("Ref")[0].split("ref")[0])
+            _p_switch_menu = cmds.menuItem(parent=parent_menu, subMenu=True,
+                                           tearOff=False, label="Parent {} {}"
+                                           .format(part, ctl),
+                                           image="dynamicConstraint.svg")
+            cmds.radioMenuItemCollection(parent=_p_switch_menu)
+            k_values = cmds.addAttr("{}.{}".format(ui_host, attr),
+                                    query=True, enumName=True).split(":")
+            current_state = cmds.getAttr("{}.{}".format(ui_host, attr))
 
-        part, ctl = (
-            attr.split("_")[0],
-            attr.split("_")[-1].split("Ref")[0].split("ref")[0],
-        )
-        _p_switch_menu = cmds.menuItem(
-            parent=parent_menu,
-            subMenu=True,
-            tearOff=False,
-            label="Parent {} {}".format(part, ctl),
-            image="dynamicConstraint.svg",
-        )
-        cmds.radioMenuItemCollection(parent=_p_switch_menu)
-        k_values = cmds.addAttr(
-            "{}.{}".format(current_control, attr), query=True, enumName=True
-        ).split(":")
-        current_state = cmds.getAttr("{}.{}".format(current_control, attr))
-
-        for idx, k_val in enumerate(k_values):
-            if idx == current_state:
-                state = True
-            else:
-                state = False
-            cmds.menuItem(
-                parent=_p_switch_menu,
-                label=k_val,
-                radioButton=state,
-                command=partial(
-                    __switch_parent_callback, current_control, attr, idx, k_val
-                ),
-            )
+            for idx, k_val in enumerate(k_values):
+                if idx == current_state:
+                    state = True
+                else:
+                    state = False
+                cmds.menuItem(parent=_p_switch_menu, label=k_val,
+                              radioButton=state,
+                              command=partial(__switch_parent_callback,
+                                              ui_host, attr, idx, k_val))
 
     # divider
     cmds.menuItem(parent=parent_menu, divider=True)
