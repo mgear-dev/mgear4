@@ -21,6 +21,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
+import ast
 from mgear.shifter import component
 
 from mgear.core import attribute
@@ -94,10 +95,13 @@ class Component(component.Main):
             self.jnt_lvl = primitive.addTransform(
                 self.ctl_npo, self.getName("jnt_lvl"), t
             )
+            ctl_name = ast.literal_eval(
+                self.settings["ctlNamesDescription_custom"]
+            )[0]
 
             self.ctl = self.addCtl(
                 self.ctl_npo,
-                "ctl",
+                ctl_name,
                 t,
                 self.color_ik,
                 self.settings["icon"],
@@ -133,18 +137,25 @@ class Component(component.Main):
             ]
             attribute.setKeyableAttributes(self.ctl, params)
         if self.settings["joint"]:
+
             # TODO WIP: add new attr for seeting leaf joint + not build objcts
             if self.settings["leafJoint"]:
-                self.jnt_pos.append([t, 0, None, self.settings["uniScale"]])
+                input_transform = t
             else:
-                self.jnt_pos.append(
-                    [self.jnt_lvl, 0, None, self.settings["uniScale"]]
-                )
+                input_transform = self.jnt_lvl
+
+            self.jnt_pos.append(
+                {
+                    "obj": input_transform,
+                    "name": self.name,
+                    "guide_relative": "root",
+                    "UniScale": self.settings["uniScale"],
+                }
+            )
 
     def addAttributes(self):
-        # self.pivotVis_att = self.addAnimParam(
-        #     "pivot_vis", "Pivot Ctl Vis", "bool", False, uihost=self.ctl
-        # )
+        if self.settings["leafJoint"]:
+            return
 
         self.ctlVis_att = self.addAnimParam("ctl_vis", "Ctl Vis", "bool", True)
 
@@ -225,6 +236,8 @@ class Component(component.Main):
         )
 
     def addOperators(self):
+        if self.settings["leafJoint"]:
+            return
         # visibilities
         for shp in self.ctl.getShapes():
             pm.connectAttr(self.ctlVis_att, shp.attr("visibility"))

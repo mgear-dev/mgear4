@@ -62,6 +62,7 @@ class Guide(guide.ComponentGuide):
     version = VERSION
 
     connectors = ["orientation"]
+    ctl_names_description = ["ctl"]
 
     # =====================================================
     ##
