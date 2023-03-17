@@ -763,16 +763,17 @@ def create_proxy_from_data(
                 parent_name = proxy_data["parent"]
             if pm.objExists(parent_name):
                 parent = pm.PyNode(parent_name)
-                side = proxy_data["side"]
-                length = proxy_data["length"]
-                t = proxy_data["t"]
-                r = proxy_data["r"]
-                s = proxy_data["s"]
-                shape = proxy_data["shape"]
-                axis = proxy_data["axis"]
                 if not duplicate and pm.objExists(proxy_name):
                     proxy = pm.PyNode(proxy_name)
+                    pm.parent(proxy, parent)
                 else:
+                    side = proxy_data["side"]
+                    length = proxy_data["length"]
+                    t = proxy_data["t"]
+                    r = proxy_data["r"]
+                    s = proxy_data["s"]
+                    shape = proxy_data["shape"]
+                    axis = proxy_data["axis"]
                     proxy, idx = create_proxy(
                         parent,
                         side,
@@ -782,14 +783,13 @@ def create_proxy_from_data(
                         replace=replace,
                         axis=axis,
                     )
+                    proxy.translate.set(t)
+                    proxy.rotate.set(r)
+                    proxy.scale.set(s)
                 if duplicate and mirror:
                     t = datatypes.Matrix(proxy_data["worldMatrix"])
                     m = transform.getSymmetricalTransform(t)
                     proxy.setMatrix(m, worldSpace=True)
-                else:
-                    proxy.translate.set(t)
-                    proxy.rotate.set(r)
-                    proxy.scale.set(s)
                 proxies.append(proxy)
     return proxies
 
