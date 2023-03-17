@@ -608,7 +608,8 @@ def mgear_dagmenu_fill(parent_menu, current_control):
         ui_host = current_control
     else:
         try:
-            ui_host = cmds.listConnections(f"{current_control}.uiHost_cnx")[0]
+            ui_host = cmds.listConnections("{}.uiHost_cnx".format(
+                                           current_control))[0]
             attrs = _get_switch_node_attrs(ui_host, "_blend")
             if not attrs:
                 ui_host = None
