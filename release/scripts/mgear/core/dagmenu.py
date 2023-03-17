@@ -164,7 +164,9 @@ def _get_switch_node_attrs(node, end_string):
     """
     attrs = []
     for attr in cmds.listAttr(node, userDefined=True, keyable=True) or []:
-        if not attr.lower().endswith(end_string) or cmds.addAttr("{}.{}".format(node, attr), query=True, usedAsProxy=True):
+        if not attr.lower().endswith(end_string) or cmds.addAttr(
+            "{}.{}".format(node, attr), query=True, usedAsProxy=True
+        ):
             continue
         attrs.append(attr)
     return attrs
@@ -608,8 +610,9 @@ def mgear_dagmenu_fill(parent_menu, current_control):
         ui_host = current_control
     else:
         try:
-            ui_host = cmds.listConnections("{}.uiHost_cnx".format(
-                                           current_control))[0]
+            ui_host = cmds.listConnections(
+                "{}.uiHost_cnx".format(current_control)
+            )[0]
             attrs = _get_switch_node_attrs(ui_host, "_blend")
             if not attrs:
                 ui_host = None
@@ -619,27 +622,31 @@ def mgear_dagmenu_fill(parent_menu, current_control):
     for attr in attrs:
         # found attribute so get current state
         current_state = cmds.getAttr("{}.{}".format(ui_host, attr))
-        states = {0: "Fk",
-                  1: "Ik"}
+        states = {0: "Fk", 1: "Ik"}
 
         rvs_state = states[int(not current_state)]
 
-        cmds.menuItem(parent=parent_menu, label="Switch {} to {}"
-                      .format(attr.split("_blend")[0], rvs_state),
-                      command=partial(__switch_fkik_callback, ui_host,
-                                      False, attr),
-                      image="kinReroot.png")
+        cmds.menuItem(
+            parent=parent_menu,
+            label="Switch {} to {}".format(attr.split("_blend")[0], rvs_state),
+            command=partial(__switch_fkik_callback, ui_host, False, attr),
+            image="kinReroot.png",
+        )
 
-        cmds.menuItem(parent=parent_menu, label="Switch {} to {} + Key"
-                      .format(attr.split("_blend")[0], rvs_state),
-                      command=partial(__switch_fkik_callback, ui_host,
-                                      True, attr),
+        cmds.menuItem(
+            parent=parent_menu,
+            label="Switch {} to {} + Key".format(
+                attr.split("_blend")[0], rvs_state
+            ),
+            command=partial(__switch_fkik_callback, ui_host, True, attr),
+            image="character.svg",
+        )
 
-                      image="character.svg")
-
-        cmds.menuItem(parent=parent_menu, label="Range switch",
-                      command=partial(__range_switch_callback, ui_host,
-                                      attr))
+        cmds.menuItem(
+            parent=parent_menu,
+            label="Range switch",
+            command=partial(__range_switch_callback, ui_host, attr),
+        )
 
         # divider
         cmds.menuItem(parent=parent_menu, divider=True)
@@ -771,15 +778,21 @@ def mgear_dagmenu_fill(parent_menu, current_control):
     if ui_host:
         for attr in _get_switch_node_attrs(ui_host, "ref"):
 
-            part, ctl = (attr.split("_")[0],
-                         attr.split("_")[-1].split("Ref")[0].split("ref")[0])
-            _p_switch_menu = cmds.menuItem(parent=parent_menu, subMenu=True,
-                                           tearOff=False, label="Parent {} {}"
-                                           .format(part, ctl),
-                                           image="dynamicConstraint.svg")
+            part, ctl = (
+                attr.split("_")[0],
+                attr.split("_")[-1].split("Ref")[0].split("ref")[0],
+            )
+            _p_switch_menu = cmds.menuItem(
+                parent=parent_menu,
+                subMenu=True,
+                tearOff=False,
+                label="Parent {} {}".format(part, ctl),
+                image="dynamicConstraint.svg",
+            )
             cmds.radioMenuItemCollection(parent=_p_switch_menu)
-            k_values = cmds.addAttr("{}.{}".format(ui_host, attr),
-                                    query=True, enumName=True).split(":")
+            k_values = cmds.addAttr(
+                "{}.{}".format(ui_host, attr), query=True, enumName=True
+            ).split(":")
             current_state = cmds.getAttr("{}.{}".format(ui_host, attr))
 
             for idx, k_val in enumerate(k_values):
@@ -787,10 +800,14 @@ def mgear_dagmenu_fill(parent_menu, current_control):
                     state = True
                 else:
                     state = False
-                cmds.menuItem(parent=_p_switch_menu, label=k_val,
-                              radioButton=state,
-                              command=partial(__switch_parent_callback,
-                                              ui_host, attr, idx, k_val))
+                cmds.menuItem(
+                    parent=_p_switch_menu,
+                    label=k_val,
+                    radioButton=state,
+                    command=partial(
+                        __switch_parent_callback, ui_host, attr, idx, k_val
+                    ),
+                )
 
     # divider
     cmds.menuItem(parent=parent_menu, divider=True)
