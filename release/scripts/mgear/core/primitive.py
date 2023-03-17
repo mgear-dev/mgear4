@@ -51,6 +51,7 @@ def addTransformFromPos(parent, name, pos=datatypes.Vector(0, 0, 0)):
 
     return node
 
+
 # ===========================================
 # LOCATOR
 
@@ -101,6 +102,7 @@ def addLocatorFromPos(parent, name, pos=datatypes.Vector(0, 0, 0), size=1):
         parent.addChild(node)
 
     return node
+
 
 # ===========================================
 # JOINT
@@ -226,7 +228,9 @@ def add2DChain2(parent, name, positions, normal, negate=False, vis=True):
     return chain
 
 
-def add2DChain(parent, name, positions, normal, negate=False, vis=True):
+def add2DChain(
+    parent, name, positions, normal, negate=False, vis=True, axis="xz"
+):
     """Create a 2D joint chain. Like Softimage 2D chain.
 
     Warning:
@@ -255,7 +259,9 @@ def add2DChain(parent, name, positions, normal, negate=False, vis=True):
     if "%s" not in name:
         name += "%s"
 
-    transforms = transform.getChainTransform(positions, normal, negate)
+    transforms = transform.getChainTransform(
+        positions, normal, negate, axis=axis
+    )
     t = transform.setMatrixPosition(transforms[-1], positions[-1])
     transforms.append(t)
 
@@ -288,8 +294,9 @@ def add2DChain(parent, name, positions, normal, negate=False, vis=True):
             # round the position values to 6 decimals precission
             # TODO: test with less precision and new check after apply
             # Ik solver
-            if ([round(elem, 4) for elem in transform.getTranslation(jnt)]
-                    != [round(elem, 4) for elem in positions[i]]):
+            if [round(elem, 4) for elem in transform.getTranslation(jnt)] != [
+                round(elem, 4) for elem in positions[i]
+            ]:
 
                 jp = jnt.getParent()
 
@@ -299,7 +306,8 @@ def add2DChain(parent, name, positions, normal, negate=False, vis=True):
                     jp = jp.getParent()
 
                 jp.setAttr(
-                    "jointOrient", 0, 0, jp.attr("jointOrient").get()[2] * -1)
+                    "jointOrient", 0, 0, jp.attr("jointOrient").get()[2] * -1
+                )
 
         jnt.setAttr("radius", 1.5)
 
@@ -328,10 +336,12 @@ def addIkHandle(parent, name, chn, solver="ikRPsolver", poleV=None):
 
     """
     # creating a crazy name to avoid name clashing before convert to pyNode.
-    node = pm.ikHandle(n=name + "kjfjfklsdf049r58420582y829h3jnf",
-                       sj=chn[0],
-                       ee=chn[-1],
-                       solver=solver)[0]
+    node = pm.ikHandle(
+        n=name + "kjfjfklsdf049r58420582y829h3jnf",
+        sj=chn[0],
+        ee=chn[-1],
+        solver=solver,
+    )[0]
     node = pm.PyNode(node)
     pm.rename(node, name)
     node.attr("visibility").set(False)
