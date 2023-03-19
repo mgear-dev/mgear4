@@ -11,6 +11,7 @@ from functools import partial
 # Maya imports
 from maya import cmds, mel
 import pymel.core as pm
+from pymel import versions
 
 # mGear imports
 import mgear
@@ -578,6 +579,14 @@ def mgear_dagmenu_guide_fill(parent_menu, current_guide_locator):
         command=shifter.reloadComponents,
         image="mgear_refresh-cw.svg",
     )
+    if versions.current() >= 20220000:
+        cmds.menuItem(parent=parent_menu, divider=True)
+        cmds.menuItem(
+            parent=parent_menu,
+            label="X-Ray Guide Toggle",
+            command=guide_template.guide_toggle_xray,
+            image="mgear_x.svg",
+        )
 
 
 def mgear_dagmenu_fill(parent_menu, current_control):

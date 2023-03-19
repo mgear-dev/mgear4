@@ -7,10 +7,29 @@ from mgear.shifter import guide
 def updateGuide(*args):
     """Update the guide rig"""
     if pm.selected():
+        oSel = pm.selected()[0]
+        if oSel.hasAttr("isGearGuide"):
+            oSel = oSel.getParent(-1)
         rgGuide = guide.Rig()
-        rgGuide.update(pm.selected()[0])
+        rgGuide.update(oSel)
     else:
         pm.displayWarning("Please select the guide top node")
+
+
+def guide_toggle_xray(*args):
+    guide_root = None
+    if pm.selected():
+        oSel = pm.selected()[0]
+        if oSel.hasAttr("isGearGuide"):
+            oSel = oSel.getParent(-1)
+        if oSel.hasAttr("ismodel"):
+            guide_root = oSel
+    if guide_root and guide_root.hasAttr("guide_x_ray"):
+        if guide_root.guide_x_ray.get():
+            guide_root.guide_x_ray.set(False)
+        else:
+            guide_root.guide_x_ray.set(True)
+
 
 
 # guide differences checkers
