@@ -7,12 +7,13 @@ import pymel.core.datatypes as datatypes
 from mgear.core import attribute
 
 from .six import PY2, string_types
+
 #############################################
 # CREATE SIMPLE NODES
 #############################################
 
 
-def createMultMatrixNode(mA, mB, target=False, transform='srt'):
+def createMultMatrixNode(mA, mB, target=False, transform="srt"):
     """Create Maya multiply Matrix node.
 
     Note:
@@ -31,24 +32,26 @@ def createMultMatrixNode(mA, mB, target=False, transform='srt'):
 
     """
     node = pm.createNode("multMatrix")
-    for m, mi in zip([mA, mB], ['matrixIn[0]', 'matrixIn[1]']):
+    for m, mi in zip([mA, mB], ["matrixIn[0]", "matrixIn[1]"]):
         if isinstance(m, datatypes.Matrix):
             pm.setAttr(node.attr(mi), m)
         else:
             pm.connectAttr(m, node.attr(mi))
     if target:
         dm_node = pm.createNode("decomposeMatrix")
-        pm.connectAttr(node + ".matrixSum",
-                       dm_node + ".inputMatrix")
-        if 't' in transform:
-            pm.connectAttr(dm_node + ".outputTranslate",
-                           target.attr("translate"), f=True)
-        if 'r' in transform:
-            pm.connectAttr(dm_node + ".outputRotate",
-                           target.attr("rotate"), f=True)
-        if 's' in transform:
-            pm.connectAttr(dm_node + ".outputScale",
-                           target.attr("scale"), f=True)
+        pm.connectAttr(node + ".matrixSum", dm_node + ".inputMatrix")
+        if "t" in transform:
+            pm.connectAttr(
+                dm_node + ".outputTranslate", target.attr("translate"), f=True
+            )
+        if "r" in transform:
+            pm.connectAttr(
+                dm_node + ".outputRotate", target.attr("rotate"), f=True
+            )
+        if "s" in transform:
+            pm.connectAttr(
+                dm_node + ".outputScale", target.attr("scale"), f=True
+            )
 
     return node
 
@@ -104,11 +107,9 @@ def createDistNode(objA, objB, output=None):
     return node
 
 
-def createConditionNode(firstTerm=False,
-                        secondTerm=False,
-                        operator=0,
-                        ifTrue=False,
-                        ifFalse=False):
+def createConditionNode(
+    firstTerm=False, secondTerm=False, operator=0, ifTrue=False, ifFalse=False
+):
     """Create and connect a condition node.
 
     ========    ======
@@ -163,7 +164,7 @@ def createConditionNode(firstTerm=False,
     return node
 
 
-def createBlendNode(inputA, inputB, blender=.5):
+def createBlendNode(inputA, inputB, blender=0.5):
     """Create and connect a createBlendNode node.
 
     Arguments:
@@ -191,21 +192,18 @@ def createBlendNode(inputA, inputB, blender=.5):
         inputB = [inputB]
 
     for item, s in zip(inputA, "RGB"):
-        if (isinstance(item, string_types)
-                or isinstance(item, pm.Attribute)):
+        if isinstance(item, string_types) or isinstance(item, pm.Attribute):
             pm.connectAttr(item, node + ".color1" + s)
         else:
             pm.setAttr(node + ".color1" + s, item)
 
     for item, s in zip(inputB, "RGB"):
-        if (isinstance(item, string_types)
-                or isinstance(item, pm.Attribute)):
+        if isinstance(item, string_types) or isinstance(item, pm.Attribute):
             pm.connectAttr(item, node + ".color2" + s)
         else:
             pm.setAttr(node + ".color2" + s, item)
 
-    if (isinstance(blender, string_types)
-            or isinstance(blender, pm.Attribute)):
+    if isinstance(blender, string_types) or isinstance(blender, pm.Attribute):
         pm.connectAttr(blender, node + ".blender")
     else:
         pm.setAttr(node + ".blender", blender)
@@ -213,13 +211,15 @@ def createBlendNode(inputA, inputB, blender=.5):
     return node
 
 
-def createPairBlend(inputA=None,
-                    inputB=None,
-                    blender=.5,
-                    rotInterpolation=0,
-                    output=None,
-                    trans=True,
-                    rot=True):
+def createPairBlend(
+    inputA=None,
+    inputB=None,
+    blender=0.5,
+    rotInterpolation=0,
+    output=None,
+    trans=True,
+    rot=True,
+):
     """Create and connect a PairBlend node.
 
     Arguments:
@@ -263,8 +263,7 @@ def createPairBlend(inputA=None,
         if rot:
             pm.connectAttr(inputB + ".rotate", node + ".inRotate2")
 
-    if (isinstance(blender, string_types)
-            or isinstance(blender, pm.Attribute)):
+    if isinstance(blender, string_types) or isinstance(blender, pm.Attribute):
         pm.connectAttr(blender, node + ".weight")
     else:
         pm.setAttr(node + ".weight", blender)
@@ -278,13 +277,9 @@ def createPairBlend(inputA=None,
     return node
 
 
-def createSetRangeNode(input,
-                       oldMin,
-                       oldMax,
-                       newMin=0,
-                       newMax=1,
-                       output=None,
-                       name="setRange"):
+def createSetRangeNode(
+    input, oldMin, oldMax, newMin=0, newMax=1, output=None, name="setRange"
+):
     """Create Set Range Node"""
 
     node = pm.createNode("setRange", n=name)
@@ -293,32 +288,35 @@ def createSetRangeNode(input,
         input = [input]
 
     for item, s in zip(input, "XYZ"):
-        if (isinstance(item, string_types)
-                or isinstance(item, pm.Attribute)):
+        if isinstance(item, string_types) or isinstance(item, pm.Attribute):
             pm.connectAttr(item, node + ".value" + s)
         else:
             pm.setAttr(node + ".value" + s, item)
 
-        if (isinstance(oldMin, string_types)
-                or isinstance(oldMin, pm.Attribute)):
+        if isinstance(oldMin, string_types) or isinstance(
+            oldMin, pm.Attribute
+        ):
             pm.connectAttr(oldMin, node + ".oldMin" + s)
         else:
             pm.setAttr(node + ".oldMin" + s, oldMin)
 
-        if (isinstance(oldMax, string_types)
-                or isinstance(oldMax, pm.Attribute)):
+        if isinstance(oldMax, string_types) or isinstance(
+            oldMax, pm.Attribute
+        ):
             pm.connectAttr(oldMax, node + ".oldMax" + s)
         else:
             pm.setAttr(node + ".oldMax" + s, oldMax)
 
-        if (isinstance(newMin, string_types)
-                or isinstance(newMin, pm.Attribute)):
+        if isinstance(newMin, string_types) or isinstance(
+            newMin, pm.Attribute
+        ):
             pm.connectAttr(newMin, node + ".min" + s)
         else:
             pm.setAttr(node + ".min" + s, newMin)
 
-        if (isinstance(newMax, string_types)
-                or isinstance(newMax, pm.Attribute)):
+        if isinstance(newMax, string_types) or isinstance(
+            newMax, pm.Attribute
+        ):
             pm.connectAttr(newMax, node + ".max" + s)
         else:
             pm.setAttr(node + ".max" + s, newMax)
@@ -352,8 +350,7 @@ def createReverseNode(input, output=None):
         input = [input]
 
     for item, s in zip(input, "XYZ"):
-        if (isinstance(item, string_types)
-                or isinstance(item, pm.Attribute)):
+        if isinstance(item, string_types) or isinstance(item, pm.Attribute):
             pm.connectAttr(item, node + ".input" + s)
         else:
             pm.setAttr(node + ".input" + s, item)
@@ -404,14 +401,12 @@ def createAddNode(inputA, inputB):
     """
     node = pm.createNode("addDoubleLinear")
 
-    if (isinstance(inputA, string_types)
-            or isinstance(inputA, pm.Attribute)):
+    if isinstance(inputA, string_types) or isinstance(inputA, pm.Attribute):
         pm.connectAttr(inputA, node + ".input1")
     else:
         pm.setAttr(node + ".input1", inputA)
 
-    if (isinstance(inputB, string_types)
-            or isinstance(inputB, pm.Attribute)):
+    if isinstance(inputB, string_types) or isinstance(inputB, pm.Attribute):
         pm.connectAttr(inputB, node + ".input2")
     else:
         pm.setAttr(node + ".input2", inputB)
@@ -435,14 +430,12 @@ def createSubNode(inputA, inputB):
     """
     node = pm.createNode("addDoubleLinear")
 
-    if (isinstance(inputA, string_types)
-            or isinstance(inputA, pm.Attribute)):
+    if isinstance(inputA, string_types) or isinstance(inputA, pm.Attribute):
         pm.connectAttr(inputA, node + ".input1")
     else:
         pm.setAttr(node + ".input1", inputA)
 
-    if (isinstance(inputB, string_types)
-            or isinstance(inputB, pm.Attribute)):
+    if isinstance(inputB, string_types) or isinstance(inputB, pm.Attribute):
         neg_node = pm.createNode("multiplyDivide")
         pm.connectAttr(inputB, neg_node + ".input1X")
         pm.setAttr(neg_node + ".input2X", -1)
@@ -538,11 +531,10 @@ def createMulDivNode(inputA, inputB, operation=1, output=None):
         inputB = [inputB]
 
     for item, s in zip(inputA, "XYZ"):
-        if (isinstance(item, string_types)
-                or isinstance(item, pm.Attribute)):
+        if isinstance(item, string_types) or isinstance(item, pm.Attribute):
             try:
                 pm.connectAttr(item, node + ".input1" + s, f=True)
-            except(UnicodeEncodeError, RuntimeError):
+            except (UnicodeEncodeError, RuntimeError):
                 # Maya in Japanese have an issue with unicodeEndoce
                 # UnicodeEncodeError is a workaround
                 pm.connectAttr(item, node + ".input1", f=True)
@@ -552,11 +544,10 @@ def createMulDivNode(inputA, inputB, operation=1, output=None):
             pm.setAttr(node + ".input1" + s, item)
 
     for item, s in zip(inputB, "XYZ"):
-        if (isinstance(item, string_types)
-                or isinstance(item, pm.Attribute)):
+        if isinstance(item, string_types) or isinstance(item, pm.Attribute):
             try:
                 pm.connectAttr(item, node + ".input2" + s, f=True)
-            except(UnicodeEncodeError, RuntimeError):
+            except (UnicodeEncodeError, RuntimeError):
                 # Maya in Japanese have an issue with unicodeEndoce
                 # UnicodeEncodeError is a workaround
                 pm.connectAttr(item, node + ".input2", f=True)
@@ -602,20 +593,23 @@ def createClampNode(input, in_min, in_max):
 
     for in_item, min_item, max_item, s in zip(input, in_min, in_max, "RGB"):
 
-        if (isinstance(in_item, string_types)
-                or isinstance(in_item, pm.Attribute)):
+        if isinstance(in_item, string_types) or isinstance(
+            in_item, pm.Attribute
+        ):
             pm.connectAttr(in_item, node + ".input" + s)
         else:
             pm.setAttr(node + ".input" + s, in_item)
 
-        if (isinstance(min_item, string_types)
-                or isinstance(min_item, pm.Attribute)):
+        if isinstance(min_item, string_types) or isinstance(
+            min_item, pm.Attribute
+        ):
             pm.connectAttr(min_item, node + ".min" + s)
         else:
             pm.setAttr(node + ".min" + s, min_item)
 
-        if (isinstance(max_item, string_types)
-                or isinstance(max_item, pm.Attribute)):
+        if isinstance(max_item, string_types) or isinstance(
+            max_item, pm.Attribute
+        ):
             pm.connectAttr(max_item, node + ".max" + s)
         else:
             pm.setAttr(node + ".max" + s, max_item)
@@ -653,17 +647,17 @@ def createPlusMinusAverage1D(input, operation=1, output=None):
     return node
 
 
-def createVertexPositionNode(inShape,
-                             vId=0,
-                             output=None,
-                             name="mgear_vertexPosition"):
+def createVertexPositionNode(
+    inShape, vId=0, output=None, name="mgear_vertexPosition"
+):
     """Creates a mgear_vertexPosition node"""
     node = pm.createNode("mgear_vertexPosition", n=name)
     inShape.worldMesh.connect(node.inputShape)
     node.vertex.set(vId)
     if output:
-        pm.connectAttr(output.parentInverseMatrix,
-                       node.drivenParentInverseMatrix)
+        pm.connectAttr(
+            output.parentInverseMatrix, node.drivenParentInverseMatrix
+        )
         pm.connectAttr(node.output, output.translate)
 
     return node
@@ -672,6 +666,7 @@ def createVertexPositionNode(inShape,
 #############################################
 # CREATE MULTI NODES
 #############################################
+
 
 def createNegateNodeMulti(name, inputs=[]):
     """Create and connect multiple negate nodes
@@ -720,14 +715,14 @@ def createAddNodeMulti(inputs=[]):
     for i, input in enumerate(inputs[1:]):
         node_name = pm.createNode("addDoubleLinear")
 
-        if (isinstance(outputs[-1], string_types)
-                or isinstance(outputs[-1], pm.Attribute)):
+        if isinstance(outputs[-1], string_types) or isinstance(
+            outputs[-1], pm.Attribute
+        ):
             pm.connectAttr(outputs[-1], node_name + ".input1", f=True)
         else:
             pm.setAttr(node_name + ".input1", outputs[-1])
 
-        if (isinstance(input, string_types)
-                or isinstance(input, pm.Attribute)):
+        if isinstance(input, string_types) or isinstance(input, pm.Attribute):
             pm.connectAttr(input, node_name + ".input2", f=True)
         else:
             pm.setAttr(node_name + ".input2", input)
@@ -755,14 +750,14 @@ def createMulNodeMulti(name, inputs=[]):
         node_name = pm.createNode("multiplyDivide", n=real_name)
         pm.setAttr(node_name + ".operation", 1)
 
-        if (isinstance(outputs[-1], string_types)
-                or isinstance(outputs[-1], pm.Attribute)):
+        if isinstance(outputs[-1], string_types) or isinstance(
+            outputs[-1], pm.Attribute
+        ):
             pm.connectAttr(outputs[-1], node_name + ".input1X", f=True)
         else:
             pm.setAttr(node_name + ".input1X", outputs[-1])
 
-        if (isinstance(input, string_types)
-                or isinstance(input, pm.Attribute)):
+        if isinstance(input, string_types) or isinstance(input, pm.Attribute):
             pm.connectAttr(input, node_name + ".input2X", f=True)
         else:
             pm.setAttr(node_name + ".input2X", input)
@@ -789,14 +784,14 @@ def createDivNodeMulti(name, inputs1=[], inputs2=[]):
         node_name = pm.createNode("multiplyDivide", n=real_name)
         pm.setAttr(node_name + ".operation", 2)
 
-        if (isinstance(pm.outputs[-1], string_types)
-                or isinstance(pm.outputs[-1], pm.Attribute)):
+        if isinstance(pm.outputs[-1], string_types) or isinstance(
+            pm.outputs[-1], pm.Attribute
+        ):
             pm.connectAttr(pm.outputs[-1], node_name + ".input1X", f=True)
         else:
             pm.setAttr(node_name + ".input1X", pm.outputs[-1])
 
-        if (isinstance(input, string_types)
-                or isinstance(input, pm.Attribute)):
+        if isinstance(input, string_types) or isinstance(input, pm.Attribute):
             pm.connectAttr(input, node_name + ".input2X", f=True)
         else:
             pm.setAttr(node_name + ".input2X", input)
@@ -831,14 +826,12 @@ def createClampNodeMulti(name, inputs=[], in_min=[], in_max=[]):
 
         pm.connectAttr(input, node_name + ".input" + s[count], f=True)
 
-        if (isinstance(min, string_types)
-                or isinstance(min, pm.Attribute)):
+        if isinstance(min, string_types) or isinstance(min, pm.Attribute):
             pm.connectAttr(min, node_name + ".min" + s[count], f=True)
         else:
             pm.setAttr(node_name + ".min" + s[count], min)
 
-        if (isinstance(max, string_types)
-                or isinstance(max, pm.Attribute)):
+        if isinstance(max, string_types) or isinstance(max, pm.Attribute):
             pm.connectAttr(max, node_name + ".max" + s[count], f=True)
         else:
             pm.setAttr(node_name + ".max" + s[count], max)
@@ -847,6 +840,32 @@ def createClampNodeMulti(name, inputs=[], in_min=[], in_max=[]):
         count = (count + 1) % 3
 
     return outputs
+
+
+def createPickMatrix(
+    m=None, out_m=None, scale=True, rotate=True, translate=True, shear=True
+):
+    """Summary
+
+    Args:
+        m (None, optional): input matrix
+        out_m (None, optional): output matrix attr to connect
+        scale (bool, optional): use scale
+        rotate (bool, optional): use rotate
+        translate (bool, optional): use translate
+        shear (bool, optional): use shear
+    """
+    node = pm.createNode("pickMatrix")
+    node.useScale.set(scale)
+    node.useRotate.set(rotate)
+    node.useTranslate.set(translate)
+    node.useShear.set(shear)
+    if m:
+        pm.connectAttr(m, node.inputMatrix)
+    if out_m:
+        pm.connectAttr(node.outputMatrix, m)
+
+    return node
 
 
 #############################################
@@ -884,5 +903,4 @@ def controller_tag_connect(ctt, tagParent):
 
         ni = attribute.get_next_available_index(tpTagNode.children)
         pm.disconnectAttr(ctt.parent)
-        pm.connectAttr(ctt.parent, tpTagNode.attr(
-                       "children[%s]" % str(ni)))
+        pm.connectAttr(ctt.parent, tpTagNode.attr("children[%s]" % str(ni)))
