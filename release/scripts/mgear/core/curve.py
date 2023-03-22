@@ -179,6 +179,90 @@ def createCuveFromEdges(
     return crv
 
 
+def get_uniform_world_positions_on_curve(curve, num_positions):
+    """
+    Get a specified number of uniformly distributed world positions along a
+    NURBS curve.
+
+    Args:
+        curve (str or PyNode): The name or PyNode of the NURBS curve.
+        num_positions (int): The number of uniformly distributed positions
+            to return.
+
+    Returns:
+        tuple: A list of tuples, where each tuple represents a world
+            position (x, y, z).
+    """
+    # Get the MDagPath of the curve
+    sel_list = om.MSelectionList()
+    sel_list.add(curve)
+    curve_dag_path = om.MDagPath()
+    sel_list.getDagPath(0, curve_dag_path)
+
+    # Create an MFnNurbsCurve function set to work with the curve
+    curve_fn = om.MFnNurbsCurve(curve_dag_path)
+
+    # Calculate the arc length of the curve
+    arc_length = curve_fn.length()
+
+    # Calculate the interval length between positions
+    interval_length = arc_length / float(num_positions - 1)
+
+    positions = []
+
+    # Loop through the number of positions to calculate U parameter and world
+    # position
+    for i in range(num_positions):
+        # Calculate the desired length for the current position
+        desired_length = interval_length * i
+
+        # Get the corresponding U parameter for the desired length
+        u_param = curve_fn.findParamFromLength(desired_length)
+
+        # Create a point in 3D space to store the world position
+        world_pos = om.MPoint()
+
+        # Get the world position at the given U parameter
+        curve_fn.getPointAtParam(u_param, world_pos, om.MSpace.kWorld)
+
+        # Append the world position as a tuple (x, y, z) to the positions list
+        positions.append(
+            datatypes.Point(world_pos.x, world_pos.y, world_pos.z)
+        )
+
+    # Return the positions as a tuple of tuples
+    return positions
+
+
+def getParamPositionsOnCurve(srcCrv, nbPoints):
+    """get param position on curve
+
+    Arguments:
+        srcCrv (curve): The source curve.
+        nbPoints (int): Number of points to return.
+
+    Returns:
+        tuple: world positions.
+    """
+    if isinstance(srcCrv, str) or isinstance(srcCrv, str):
+        srcCrv = pm.PyNode(srcCrv)
+    length = srcCrv.length()
+    parL = srcCrv.findParamFromLength(length)
+    param = []
+    increment = parL / (nbPoints - 1)
+    p = 0.0
+    for x in range(nbPoints):
+        # we need to check that the param value never exceed the parL
+        if p > parL:
+            p = parL
+        pos = srcCrv.getPointAtParam(p, space="world")
+
+        param.append(pos)
+        p += increment
+
+    return param
+
+
 def createCurveFromCurve(srcCrv, name, nbPoints, parent=None):
     """Create a curve from a curve
 
@@ -191,20 +275,8 @@ def createCurveFromCurve(srcCrv, name, nbPoints, parent=None):
     Returns:
         dagNode: The newly created curve.
     """
-    if isinstance(srcCrv, str) or isinstance(srcCrv, string_types):
-        srcCrv = pm.PyNode(srcCrv)
-    length = srcCrv.length()
-    parL = srcCrv.findParamFromLength(length)
-    param = []
-    increment = parL / (nbPoints - 1)
-    p = 0.0
-    for x in range(nbPoints):
-        # we need to check that the param value never exceed the parL
-        if p > parL:
-            p = parL
-        pos = srcCrv.getPointAtParam(p, space="world")
-        param.append(pos)
-        p += increment
+    param = getParamPositionsOnCurve(srcCrv, nbPoints)
+
     crv = addCurve(parent, name, param, close=False, degree=3)
     return crv
 
