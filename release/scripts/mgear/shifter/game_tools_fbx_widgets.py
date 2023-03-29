@@ -272,6 +272,7 @@ class OutlinerTreeView(QtWidgets.QTreeWidget):
 	itemAddNode = QtCore.Signal(object)
 	itemRenamed = QtCore.Signal(str, str)
 	itemRemoved = QtCore.Signal(str, str)
+	droppedItems = QtCore.Signal(object, list, bool)
 
 	def __init__(self, parent=None):
 		super(OutlinerTreeView, self).__init__(parent)
@@ -286,7 +287,7 @@ class OutlinerTreeView(QtWidgets.QTreeWidget):
 		self.setHeaderHidden(True)
 		self.setIndentation(12)
 		self.setMouseTracking(True)
-		self.setSelectionMode(QtWidgets.QAbstractItemView.SingleSelection)
+		self.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)
 
 		self.populate_items()
 
@@ -324,7 +325,7 @@ class OutlinerTreeView(QtWidgets.QTreeWidget):
 
 		self._button_pressed = event.button()
 
-		if event.button() == QtCore.Qt.LeftButton:
+		if event.button() in (QtCore.Qt.LeftButton, QtCore.Qt.RightButton):
 			index = self.indexAt(event.pos())
 			if index.row() == -1:
 				self._action_button_pressed = False
@@ -336,7 +337,6 @@ class OutlinerTreeView(QtWidgets.QTreeWidget):
 			item = self._get_corresponding_item(index)
 			action = self._get_current_action(event.pos(), item)
 
-			self.setCurrentItem(item)
 			if item.node.node_type != 'Root':
 				self._selection_parent = item.parent().get_name()
 				self._selection_node = item.get_name()
@@ -365,7 +365,7 @@ class OutlinerTreeView(QtWidgets.QTreeWidget):
 		elif event.button() == QtCore.Qt.MiddleButton:
 			super(OutlinerTreeView, self).mousePressEvent(event)
 
-		self.clearSelection()
+		# self.clearSelection()
 		super(OutlinerTreeView, self).mousePressEvent(event)
 		self.window().repaint()
 
@@ -397,6 +397,32 @@ class OutlinerTreeView(QtWidgets.QTreeWidget):
 		self._last_hit_action = None
 		self.window().repaint()
 
+	@utils.one_undo
+	def dropEvent(self, event):
+		index = self.indexAt(event.pos())
+		item = self.itemFromIndex(index)
+
+		can_be_dropped = self.can_be_dropped(index)
+		if not can_be_dropped:
+			event.ignore()
+			return
+
+		self.droppedItems.emit(
+			item, self.selectedItems(), True if self._button_pressed == QtCore.Qt.RightButton else False)
+
+		self.reset_contents()
+
+	def can_be_dropped(self, index):
+
+		item = self.itemFromIndex(index)
+		drop_indicator_position = self.dropIndicatorPosition()
+
+		is_invalid_position = (not index.isValid() or item.childCount() == -1 or (
+				item.parent().indexOfChild(item) == (item.childCount() - 1) if item.parent() != self else True and
+				drop_indicator_position == QtWidgets.QAbstractItemView.BelowItem))
+
+		return not is_invalid_position
+
 	def get_indent(self, index):
 		indent = 0
 		while (index and index.parent().isValid()):
@@ -423,7 +449,8 @@ class OutlinerTreeView(QtWidgets.QTreeWidget):
 
 			for child_node in item_data:
 				child = self._add_partition_item(child_node, root_item)
-				child.setFlags(child.flags() | QtCore.Qt.ItemIsEditable | QtCore.Qt.ItemIsDropEnabled)
+				child.setFlags(child.flags() | QtCore.Qt.ItemIsEditable | ~QtCore.Qt.ItemIsDropEnabled)
+				child.setFlags(root_item.flags() & ~QtCore.Qt.ItemIsDragEnabled)
 				root_item.addChild(child)
 				if add_callbacks:
 					pass
