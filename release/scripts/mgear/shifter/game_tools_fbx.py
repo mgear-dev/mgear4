@@ -42,6 +42,22 @@ class FBXExport(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.refresh_fbx_sdk_ui()
         self.refresh_ue_connection()
 
+        self._settings = QtCore.QSettings(
+            QtCore.QSettings.IniFormat, QtCore.QSettings.UserScope, 'mcsGear', 'mgearFbxExporter')
+        self.restore_ui_state()
+
+    def closeEvent(self, event):
+
+        # make sure UI is stored, even if UI is launched without docking functionality
+        self.save_ui_state()
+
+        super(FBXExport, self).closeEvent(event)
+
+    def dockCloseEventTriggered(self):
+        super(FBXExport, self).dockCloseEventTriggered()
+
+        self.save_ui_state()
+
     def create_actions(self):
         # file actions
         self.file_export_preset_action = QtWidgets.QAction("Export Shifter FBX Preset", self)
@@ -73,6 +89,7 @@ class FBXExport(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         # set source roots
         self.geo_root_label = QtWidgets.QLabel("Geo Root")
         self.geo_root_list = QtWidgets.QListWidget()
+        self.geo_root_list.setSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Maximum)
         self.geo_root_list.setSelectionMode(QtWidgets.QListWidget.ExtendedSelection)
         self.geo_root_set_button = QtWidgets.QPushButton()
         self.geo_root_set_button.setIcon(pyqt.get_icon("mgear_mouse-pointer"))
@@ -132,6 +149,7 @@ class FBXExport(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.use_partitions_checkbox.setChecked(True)
         self.skeletal_mesh_partitions_label = QtWidgets.QLabel("Partitions")
         self.skeletal_mesh_partitions_outliner = PartitionsTreeView()
+        self.skeletal_mesh_partitions_outliner.setSizePolicy(QtWidgets.QSizePolicy.MinimumExpanding, QtWidgets.QSizePolicy.MinimumExpanding)
         self.skeletal_mesh_partition_add_button = QtWidgets.QPushButton()
         self.skeletal_mesh_partition_add_button.setIcon(pyqt.get_icon("mgear_plus"))
         self.skeletal_mesh_partition_remove_button = QtWidgets.QPushButton()
@@ -182,6 +200,7 @@ class FBXExport(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.set_source_layout.setSpacing(2)
 
         self.set_source_collap_wgt = widgets.CollapsibleWidget("Set Source Elements")
+        self.set_source_collap_wgt.setSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Maximum)
         self.set_source_collap_wgt.addLayout(self.set_source_layout)
 
         # settings layout
@@ -203,6 +222,7 @@ class FBXExport(MayaQWidgetDockableMixin, QtWidgets.QDialog):
 
         # general setting collapsible widget
         self.settings_collap_wgt = widgets.CollapsibleWidget("Settings")
+        self.settings_collap_wgt.setSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Maximum)
         self.settings_collap_wgt.addWidget(self.settings_tab)
 
         # export path layout
@@ -244,6 +264,7 @@ class FBXExport(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.ue_import_collap_wgt.addLayout(self.ue_path_layout)
 
         self.export_collap_wgt = widgets.CollapsibleWidget("Export")
+        self.export_collap_wgt.setSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.MinimumExpanding)
         self.export_tab = QtWidgets.QTabWidget()
         self.export_collap_wgt.addWidget(self.export_tab)
 
@@ -357,6 +378,7 @@ class FBXExport(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.skeletal_mesh_partitions_outliner.itemAddNode.connect(self.partition_item_add_skeletal_mesh)
         self.skeletal_mesh_partitions_outliner.itemRenamed.connect(self.partition_item_renamed)
         self.skeletal_mesh_partitions_outliner.itemRemoved.connect(self.partition_skeletal_mesh_removed)
+        self.skeletal_mesh_partitions_outliner.droppedItems.connect(self.partition_items_dropped)
 
     # slots
 
@@ -425,6 +447,73 @@ class FBXExport(MayaQWidgetDockableMixin, QtWidgets.QDialog):
             cmds.warning('Unreal Engine Import functionality not available. Run Unreal Engine and load ueGear plugin.')
             self.ue_import_cbx.setChecked(False)
 
+    def update_settings(self):
+
+        # Function that can be used to update settings file before loading them.
+        # Useful in case we change the way UI settings are stored, so we can update old setting files.
+
+        pass
+
+    def save_ui_state(self):
+        if not self._settings:
+            return False
+
+        self._settings.beginGroup('settings')
+        self._settings.setValue('up axis', self.up_axis_combobox.currentText())
+        self._settings.setValue('file type', self.file_type_combobox.currentText())
+        self._settings.setValue('fbx version', self.fbx_version_combobox.currentText())
+        self._settings.setValue('export preset', self.fbx_export_presets_combobox.currentText())
+        self._settings.endGroup()
+
+        self._settings.beginGroup('sdk settings')
+        self._settings.setValue('remove namespace', self.remove_namespace_checkbox.isChecked())
+        self._settings.setValue('clean up scene', self.clean_scene_checkbox.isChecked())
+        self._settings.endGroup()
+
+        self._settings.beginGroup('file path')
+        self._settings.setValue('path', self.file_path_lineedit.text())
+        self._settings.setValue('file name', self.file_name_lineedit.text())
+        self._settings.endGroup()
+
+        self._settings.beginGroup('unreal engine')
+        self._settings.setValue('enable', self.ue_import_cbx.isChecked())
+        self._settings.setValue('path', self.ue_file_path_lineedit.text())
+        self._settings.endGroup()
+
+        self._settings.beginGroup('export')
+        self._settings.setValue('skeletal mesh/skinning', self.skinning_checkbox.isChecked())
+        self._settings.setValue('skeletal mesh/blendshapes', self.blendshapes_checkbox.isChecked())
+        self._settings.setValue('skeletal mesh/use partitions', self.use_partitions_checkbox.isChecked())
+        self._settings.endGroup()
+
+        return True
+
+    def restore_ui_state(self):
+        if not self._settings:
+            return False
+
+        self.update_settings()
+
+        self.up_axis_combobox.setCurrentText(self._settings.value('settings/up axis', ''))
+        self.file_type_combobox.setCurrentText(self._settings.value('settings/file type', ''))
+        self.fbx_version_combobox.setCurrentText(self._settings.value('settings/fbx version', ''))
+        self.fbx_export_presets_combobox.setCurrentText(self._settings.value('settings/export preset'))
+
+        self.remove_namespace_checkbox.setChecked(self._settings.value('sdk settings/remove namespace', True))
+        self.clean_scene_checkbox.setChecked(self._settings.value('sdk settings/clean up scene', True))
+
+        self.file_path_lineedit.setText(self._settings.value('file path/path', ''))
+        self.file_name_lineedit.setText(self._settings.value('file path/file name', ''))
+
+        self.ue_import_cbx.setChecked(self._settings.value('unreal engine/enable', False))
+        self.ue_file_path_lineedit.setText(self._settings.value('unreal engine/path', ''))
+
+        self.skinning_checkbox.setChecked(self._settings.value('export/skeletal mesh/skinning', True))
+        self.blendshapes_checkbox.setChecked(self._settings.value('export/skeletal mesh/blendshapes', True))
+        self.use_partitions_checkbox.setChecked(self._settings.value('export/skeletal mesh/use partitions', True))
+
+        return True
+
     def set_ue_folder_path(self):
         content_folder = uegear.content_project_directory()
         folder_path = cmds.fileDialog2(fileMode=3, startingDirectory=content_folder)
@@ -444,7 +533,7 @@ class FBXExport(MayaQWidgetDockableMixin, QtWidgets.QDialog):
             self, 'New Partition', 'New Partition', QtWidgets.QLineEdit.Normal, 'New Partition')
         if not ok or not name:
             return
-        result = export_node.add_new_skeletal_mesh_partition(name, [])
+        result = export_node.add_new_skeletal_mesh_partition(name, list())
         if not result:
             return
 
@@ -517,6 +606,28 @@ class FBXExport(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         export_node.delete_skeletal_mesh_from_partition(parent_name, removed_name)
 
         self.skeletal_mesh_partitions_outliner.reset_contents()
+
+    def partition_items_dropped(self, parent_item, dropped_items, duplicate=False):
+
+        if not parent_item or not dropped_items:
+            return
+
+        export_node = fu.FbxExportNode.get()
+        if not export_node:
+            return
+
+        valid_items = [item for item in dropped_items if item.is_master]
+        if not valid_items:
+            return
+
+        if not duplicate:
+            # remove items from their old partitions
+            for item in valid_items:
+                export_node.delete_skeletal_mesh_from_partition(item.parent().node.node_name, item.node.node_name)
+
+        # add items to new partition
+        meshes_names = [item.node.node_name for item in valid_items]
+        export_node.add_skeletal_meshes_to_partition(parent_item.node.node_name, meshes_names)
 
     def export_skeletal_mesh(self):
 
@@ -723,6 +834,10 @@ class FBXExport(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         for node_name in node_names:
             listwidget.addItem(node_name)
 
+        if listwidget == self.geo_root_list:
+            self.skeletal_mesh_partitions_outliner.set_geo_roots(
+                [listwidget.item(i).text() for i in range(listwidget.count())])
+
     def add_list_items_from_sel(self, listwidget, type_filter):
         """Adds list widget items from selected element filtered by type
 
@@ -813,6 +928,16 @@ class PartitionsTreeView(fuw.OutlinerTreeView):
 
         super(PartitionsTreeView, self).mouseDoubleClickEvent(event)
 
+    def can_be_dropped(self, index):
+
+        valid = super(PartitionsTreeView, self).can_be_dropped(index)
+        if not valid:
+            return valid
+
+        # only root nodes can accept drop events
+        item = self.itemFromIndex(index)
+        return False if not item.is_master else True
+
     def set_geo_roots(self, geo_roots):
         self._geo_roots = geo_roots
         self.reset_contents()
@@ -859,7 +984,8 @@ class PartitionsTreeView(fuw.OutlinerTreeView):
             child_items = item_data.get('skeletalMeshes', list())
             for child_node in child_items:
                 child = self._add_partition_item(child_node, root_item)
-                child.setFlags(child.flags() | QtCore.Qt.ItemIsEditable | QtCore.Qt.ItemIsDropEnabled)
+                child.setFlags(child.flags() | QtCore.Qt.ItemIsEditable)
+                child.setFlags(child.flags() & ~QtCore.Qt.ItemIsDropEnabled)
                 root_item.addChild(child)
                 if add_callbacks:
                     pass

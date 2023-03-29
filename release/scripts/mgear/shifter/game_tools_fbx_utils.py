@@ -153,8 +153,14 @@ class FbxExportNode(object):
         if not partitions or name not in partitions:
             return False
 
+        current_skeletal_meshes = partitions.get(name, dict()).get('skeletalMeshes', list())
+        valid_skeletal_meshes = [
+            skeletal_mesh for skeletal_mesh in skeletal_meshes if skeletal_mesh not in current_skeletal_meshes]
+        if not valid_skeletal_meshes:
+            return
+
         partitions[name].setdefault('skeletalMeshes', list())
-        partitions[name]['skeletalMeshes'].extend(skeletal_meshes)
+        partitions[name]['skeletalMeshes'].extend(valid_skeletal_meshes)
 
         return self._save_data(data)
 
@@ -282,6 +288,13 @@ def export_skeletal_mesh(jnt_roots, geo_roots, **export_data):
                 cmds.warning("No Mesh partitions defined")
                 return False
             export_skeletal_mesh_partitions(jnt_roots=jnt_roots, **export_data)
+
+            # when using partitions, we remove full FBX file
+            if os.path.isfile(path):
+                try:
+                    os.remove(path)
+                except OSError:
+                    cmds.warning('Was not possible to remove temporal FBX file "{}"'.format(path))
 
     return True
 
