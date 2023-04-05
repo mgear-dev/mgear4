@@ -423,6 +423,19 @@ def __switch_parent_callback(*args):
             )
 
 
+def __switch_xray_ctl_callback(*args):
+    rig_root = None
+    if pm.selected():
+        ctl = pm.selected()[0]
+        if ctl.hasAttr("isCtl"):
+            tag = ctl.message.listConnections(type="controller")[0]
+            rig_root = tag.message.listConnections()[0]
+            if rig_root.hasAttr("is_rig") and rig_root.hasAttr("ctl_x_ray"):
+                if rig_root.ctl_x_ray.get():
+                    rig_root.ctl_x_ray.set(False)
+                else:
+                    rig_root.ctl_x_ray.set(True)
+
 def get_option_var_state():
     """Gets dag menu option variable
 
@@ -628,6 +641,19 @@ def mgear_dagmenu_fill(parent_menu, current_control):
         except ValueError:
             ui_host = None
 
+    # check is given control is an mGear control
+    if cmds.objExists("{}.uiHost".format(current_control)):
+        # select ui host
+        cmds.menuItem(
+            parent=parent_menu,
+            label="Select host",
+            command=partial(__select_host_callback, current_control),
+            image="hotkeySetSettings.png",
+        )
+
+        # divider
+        cmds.menuItem(parent=parent_menu, divider=True)
+
     for attr in attrs:
         # found attribute so get current state
         current_state = cmds.getAttr("{}.{}".format(ui_host, attr))
@@ -659,16 +685,6 @@ def mgear_dagmenu_fill(parent_menu, current_control):
 
         # divider
         cmds.menuItem(parent=parent_menu, divider=True)
-
-    # check is given control is an mGear control
-    if cmds.objExists("{}.uiHost".format(current_control)):
-        # select ui host
-        cmds.menuItem(
-            parent=parent_menu,
-            label="Select host",
-            command=partial(__select_host_callback, current_control),
-            image="hotkeySetSettings.png",
-        )
 
     # select all function
     cmds.menuItem(
@@ -818,9 +834,6 @@ def mgear_dagmenu_fill(parent_menu, current_control):
                     ),
                 )
 
-    # divider
-    cmds.menuItem(parent=parent_menu, divider=True)
-
     # select all rig controls
     selection_set = cmds.ls(
         cmds.listConnections(current_control), type="objectSet"
@@ -839,6 +852,19 @@ def mgear_dagmenu_fill(parent_menu, current_control):
         command=partial(__keyframe_nodes_callback, child_controls),
         image="setKeyframe.png",
     )
+
+    # divider
+    cmds.menuItem(parent=parent_menu, divider=True)
+
+    # x-ray ctl toggle
+    if versions.current() >= 20220000:
+        cmds.menuItem(parent=parent_menu, divider=True)
+        cmds.menuItem(
+            parent=parent_menu,
+            label="X-Ray CTL Toggle",
+            command=__switch_xray_ctl_callback,
+            image="mgear_x.svg",
+        )
 
 
 def mgear_dagmenu_toggle(state):
