@@ -577,7 +577,28 @@ class Component(component.Main):
             self.getName("end_ref"),
             transform.getTransform(self.legBones[3]),
         )
-        self.jnt_pos.append([self.end_ref, "end"])
+
+        for a in "xyz":
+            self.end_ref.attr("s%s" % a).set(1.0)
+        if self.negate:
+            self.end_ref.attr("ry").set(-180.0)
+
+        t = transform.getTransform(self.end_ref)
+        pos = self.guide.pos["ankle"]
+        pos[1] = 0
+        self.squash_npo = primitive.addTransformFromPos(
+            self.end_ref, self.getName("squashEnd_npo"), pos
+        )
+        self.squash_scl = primitive.addTransformFromPos(
+            self.squash_npo, self.getName("squashEnd_scl"), pos
+        )
+        self.squash_ref = primitive.addTransform(
+            self.squash_scl,
+            self.getName("squash_ref"),
+            transform.getTransform(self.legBones[3]),
+        )
+
+        self.jnt_pos.append([self.squash_ref, "end"])
 
         # match IK FK references
         self.match_fk0_off = self.add_match_ref(
@@ -714,6 +735,10 @@ class Component(component.Main):
 
         self.tweakVis_att = self.addAnimParam(
             "Tweak_vis", "Tweak Vis", "bool", False
+        )
+
+        self.foot_squash_att = self.addAnimParam(
+            "footSquash", "Foot Squash", "double", 1, 0.01, 1.9
         )
 
         # Setup ------------------------------------------
@@ -1292,7 +1317,13 @@ class Component(component.Main):
         pm.parentConstraint(self.legBones[1], self.match_fk1_off, mo=True)
         pm.parentConstraint(self.legBones[2], self.match_fk2_off, mo=True)
 
-        return
+        # squash foot
+        self.foot_squash_att >> self.squash_scl.sx
+        self.foot_squash_att >> self.squash_scl.sz
+        rev_nod = node.createReverseNode(self.foot_squash_att)
+        add_node = node.createPlusMinusAverage1D(
+            [rev_nod.outputX, 1], output=self.squash_scl.sy
+        )
 
     # =====================================================
     # CONNECTOR
