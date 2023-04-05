@@ -22,7 +22,7 @@ class Component(component.Main):
     def addObjects(self):
         """Add all the objects needed to create the component."""
 
-        self.WIP = True
+        self.WIP = self.options["mode"]
         self.normal = self.guide.blades["blade"].z * -1
         self.up_axis = pm.upAxis(q=True, axis=True)
 
@@ -679,7 +679,7 @@ class Component(component.Main):
             self.getName("spineTwist"),
             self.spineTwistChain,
             parent=self.root,
-            cParent=None,
+            cParent=self.root,
             curve=self.slv_ref_crv,
         )
 
