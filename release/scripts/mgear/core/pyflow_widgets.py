@@ -414,10 +414,8 @@ class slider(QtWidgets.QSlider):
         self.LeftButton = QtCore.Qt.LeftButton
         self.MidButton = QtCore.Qt.MidButton
         self.draggers = None
-        # if SessionDescriptor().software == "maya":
-        self.LeftButton = QtCore.Qt.MidButton
-        self.MidButton = QtCore.Qt.LeftButton
-        self.defaultValue = 0
+        self._click_offset = 0
+        self._prev_x = 0
 
         self.setRange(self.sliderRange[0], self.sliderRange[1])
 
@@ -427,10 +425,9 @@ class slider(QtWidgets.QSlider):
 
         emodif = event.modifiers()
         modif = [QtCore.Qt.ControlModifier,
-                 QtCore.Qt.ShiftModifier,
-                 QtCore.Qt.ControlModifier | QtCore.Qt.ShiftModifier]
+                 QtCore.Qt.ShiftModifier]
 
-        if event.button() == QtCore.Qt.MidButton:
+        if event.button() == self.MidButton:
             if self.draggers is None:
                 self.draggers = draggers(self,
                                          self.isFloat,
@@ -452,64 +449,72 @@ class slider(QtWidgets.QSlider):
                                                - self.draggers.height()
                                                / 6))))
 
-        elif event.button() == self.LeftButton and emodif not in modif:
-            butts = QtCore.Qt.MouseButtons(self.MidButton)
+        elif event.button() == self.LeftButton and emodif == QtCore.Qt.ControlModifier | QtCore.Qt.ShiftModifier:
+            butts = QtCore.Qt.MouseButtons(self.LeftButton)
             nevent = QtGui.QMouseEvent(event.type(), event.pos(),
-                                       self.MidButton, butts,
+                                       self.LeftButton, butts,
                                        event.modifiers())
             super(slider, self).mousePressEvent(nevent)
 
-        elif emodif in modif:
-            st_slider = QtWidgets.QStyleOptionSlider()
-            st_slider.initFrom(self)
-            st_slider.orientation = self.orientation()
-            available = self.style().pixelMetric(
-                QtWidgets.QStyle.PM_SliderSpaceAvailable,
-                st_slider, self)
-            xloc = QtWidgets.QStyle.sliderPositionFromValue(
-                self.minimum(),
-                self.maximum(),
-                super(slider, self).value(),
-                available)
-            butts = QtCore.Qt.MouseButtons(self.MidButton)
-            newPos = QtCore.QPointF()
-            newPos.setX(xloc)
-            nevent = QtGui.QMouseEvent(event.type(), newPos,
-                                       self.MidButton, butts,
-                                       event.modifiers())
-            self.startDragpos = newPos
-            self.realStartDragpos = event.pos()
-            super(slider, self).mousePressEvent(nevent)
-            self.deltaValue = self.value() - self.prevValue
-            self.setValue(self.prevValue)
-        else:
-            super(slider, self).mousePressEvent(event)
+        elif event.button() == self.LeftButton or emodif in modif:
+            opt = QtWidgets.QStyleOptionSlider()
+            opt.initFrom(self)
+            opt.subControls = QtWidgets.QStyle.SC_None
+            opt.activeSubControls = QtWidgets.QStyle.SC_None
+            opt.orientation = self.orientation()
+            opt.maximum = self.maximum()
+            opt.minimum = self.minimum()
+            opt.pageStep = self.pageStep()
+            opt.sliderPosition = self.sliderPosition()
+            opt.sliderValue = self.value()
+
+            hit = self.style().hitTestComplexControl(QtWidgets.QStyle.CC_Slider, opt, event.pos(), self)
+            if hit == QtWidgets.QStyle.SC_SliderHandle:
+                super(slider, self).mousePressEvent(event)
+                self._click_offset = event.pos().x() - self.style().sliderPositionFromValue(
+                    self.minimum(), self.maximum(), self.value(), self.width() - 16
+                )
+            else:
+                slider_handle_pos = self.style().sliderPositionFromValue(
+                    self.minimum(), self.maximum(), self.value(), self.width() - 16
+                )
+                self._click_offset = event.pos().x() - slider_handle_pos
+                self.mouseMoveEvent(event)
 
     def mouseMoveEvent(self, event):
-        deltaX = event.pos().x() - self.realStartDragpos.x()
-        deltaY = event.pos().y() - self.realStartDragpos.y()
-        newPos = QtCore.QPointF()
-
         modif = [QtCore.Qt.ControlModifier,
-                 QtCore.Qt.ShiftModifier,
-                 QtCore.Qt.ControlModifier | QtCore.Qt.ShiftModifier]
+                 QtCore.Qt.ShiftModifier]
         modif_ctl_shift = QtCore.Qt.ControlModifier | QtCore.Qt.ShiftModifier
 
-        if event.modifiers() in modif:
-            if event.modifiers() == QtCore.Qt.ControlModifier:
-                newPos.setX(self.startDragpos.x() + deltaX / 2)
-                newPos.setY(self.startDragpos.y() + deltaY / 2)
-            elif event.modifiers() == QtCore.Qt.ShiftModifier:
-                newPos.setX(self.startDragpos.x() + deltaX / 4)
-                newPos.setY(self.startDragpos.y() + deltaY / 4)
-            elif event.modifiers() == modif_ctl_shift:
-                newPos.setX(self.startDragpos.x() + deltaX / 8)
-                newPos.setY(self.startDragpos.y() + deltaY / 8)
-            nevent = QtGui.QMouseEvent(event.type(), newPos,
-                                       event.button(), event.buttons(),
-                                       event.modifiers())
-            super(slider, self).mouseMoveEvent(nevent)
-            self.setValue(self.value() - self.deltaValue)
+        if event.modifiers() == modif_ctl_shift:
+            super(slider, self).mouseMoveEvent(event)
+        elif event.buttons() & QtCore.Qt.LeftButton:
+            if event.modifiers() in modif:
+                new_position = event.pos().x() - self._click_offset
+
+                # modifiers = QGuiApplication.queryKeyboardModifiers()
+                if event.modifiers() == (QtCore.Qt.ControlModifier):
+                    step_size = 0.01
+                elif event.modifiers() == QtCore.Qt.ShiftModifier:
+                    step_size = 0.1
+                else:
+                    step_size = 1.0
+
+                new_value = round(self.value() / (1000 * step_size)) * (
+                    1000 * step_size
+                ) + int(step_size * 1000) * (
+                    1 if event.pos().x() > self._prev_x else -1
+                )
+                self.setValue(new_value)
+                self._prev_x = event.pos().x()
+                event.accept()
+            else:
+                new_position = event.pos().x() - self._click_offset
+                new_value = self.style().sliderValueFromPosition(
+                    self.minimum(), self.maximum(), new_position, self.width() - 16
+                )
+                self.setValue(new_value)
+                event.accept()
         else:
             super(slider, self).mouseMoveEvent(event)
 
