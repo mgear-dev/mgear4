@@ -102,6 +102,7 @@ class CheckBoxWidget(QtWidgets.QWidget):
 
         self.setFocusPolicy(QtCore.Qt.NoFocus)
 
+
 ###################################################
 # Channel Table Class
 ###################################################
@@ -384,11 +385,9 @@ class ChannelTable(QtWidgets.QTableWidget):
                     )
 
         def open_undo_chunk():
-            print("open undo")
             cmds.undoInfo(openChunk=True)
 
         def close_undo_chunk():
-            print("close undo")
             cmds.undoInfo(closeChunk=True)
 
         if not self.chan_config:
@@ -653,8 +652,9 @@ class ChannelTable(QtWidgets.QTableWidget):
             # for combobox and check box we do it here befor the loop
             # with this solution we need to undo 2 times to restore the previous
             # values
-            if isinstance(self.sender(), (QtWidgets.QComboBox, QtWidgets.QCheckBox)):
-                print("open >>")
+            if isinstance(
+                self.sender(), (QtWidgets.QComboBox, QtWidgets.QCheckBox)
+            ):
                 cmds.undoInfo(openChunk=True)
 
             for row in selected_rows:
@@ -695,9 +695,10 @@ class ChannelTable(QtWidgets.QTableWidget):
                             self.namespace_sync(attr_config["fullName"]), value
                         )
                         signal.connect(self.updateHighlightedSliders)
-            # close the undo chunk after the loop is finish
-            if isinstance(self.sender(), (QtWidgets.QComboBox, QtWidgets.QCheckBox)):
-                print(" >>")
+            # close the undo chunk after the loop is finished
+            if isinstance(
+                self.sender(), (QtWidgets.QComboBox, QtWidgets.QCheckBox)
+            ):
                 cmds.undoInfo(closeChunk=True)
 
 
