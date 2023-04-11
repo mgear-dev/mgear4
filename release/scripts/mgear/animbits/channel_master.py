@@ -40,6 +40,8 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.values_buffer = []
         self.namespace = None
 
+        self.doUpdateHighlightedSliders = True
+
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose, 1)
 
         self.create_actions()
@@ -70,7 +72,9 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         #                                   self.time_changed)
 
     def enterEvent(self, evnt):
+        self.doUpdateHighlightedSliders = False
         self.refresh_channels_values()
+        self.doUpdateHighlightedSliders = True
 
     def close(self):
         self.cb_manager.removeAllManagedCB()

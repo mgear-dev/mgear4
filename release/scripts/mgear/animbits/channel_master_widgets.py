@@ -70,11 +70,47 @@ def random_color(min_val=0.01, max_val=0.6):
 
 
 ###################################################
+# Widgets
+###################################################
+
+
+class CheckBoxWidget(QtWidgets.QWidget):
+    def __init__(self, val=False):
+        super(CheckBoxWidget, self).__init__()
+
+        # Create the QHBoxLayout
+        layout = QtWidgets.QHBoxLayout(self)
+
+        # Create the QCheckBox
+        cbox = QtWidgets.QCheckBox()
+        cbox.setStyleSheet(CHECKBOX_STYLE)
+        layout.addWidget(cbox)
+
+        # Set the layout properties
+        layout.setAlignment(QtCore.Qt.AlignCenter)
+        layout.setContentsMargins(0, 0, 0, 0)
+
+        # Set the initial value of the QCheckBox
+        if val:
+            cbox.setChecked(True)
+
+        # Set the widget style
+        self.setStyleSheet(CHECKBOX_STYLE)
+
+        # Set the widget layout
+        self.setLayout(layout)
+
+        self.setFocusPolicy(QtCore.Qt.NoFocus)
+
+###################################################
 # Channel Table Class
 ###################################################
 
 
 class ChannelTable(QtWidgets.QTableWidget):
+
+    sliderMoved = QtCore.Signal(int)
+
     def __init__(self, chan_config=None, namespace=None, parent=None):
         super(ChannelTable, self).__init__(parent)
         self._fixed_square = pyqt.dpi_scale(17)
@@ -86,6 +122,7 @@ class ChannelTable(QtWidgets.QTableWidget):
         self.setup_table()
         self.config_table()
         self.itemSelectionChanged.connect(self.auto_sync_graph_editor)
+        # self.custom_signals = CustomSignals()
 
     def create_menu(self):
         self.menu = QtWidgets.QMenu(self)
@@ -347,9 +384,11 @@ class ChannelTable(QtWidgets.QTableWidget):
                     )
 
         def open_undo_chunk():
+            print("open undo")
             cmds.undoInfo(openChunk=True)
 
         def close_undo_chunk():
+            print("close undo")
             cmds.undoInfo(closeChunk=True)
 
         if not self.chan_config:
@@ -366,6 +405,7 @@ class ChannelTable(QtWidgets.QTableWidget):
                     "{} not found. Maybe wrong NameSpace?".format(at_name)
                 )
                 continue
+
             if at["type"] in cmu.ATTR_SLIDER_TYPES:
                 if at["type"] == "long":
                     Type = "int"
@@ -373,10 +413,12 @@ class ChannelTable(QtWidgets.QTableWidget):
                     Type = "float"
                 ch_ctl = pyflow_widgets.pyf_Slider(
                     self,
+                    self.sliderMoved,
                     Type=Type,
                     defaultValue=val,
                     sliderRange=(at["min"], at["max"]),
                 )
+                ch_ctl.valueChanged.connect(self.updateHighlightedSliders)
 
                 ch_ctl.setMaximumHeight(self._fixed_square)
                 ch_ctl.setMinimumHeight(self._fixed_square)
@@ -388,21 +430,14 @@ class ChannelTable(QtWidgets.QTableWidget):
                 ch_ctl.valueChanged.connect(partial(value_update, at))
                 ch_ctl.sliderPressed.connect(open_undo_chunk)
                 ch_ctl.sliderReleased.connect(close_undo_chunk)
+                slider = ch_ctl.findChild(pyflow_widgets.slider)
+                slider.editingStart.connect(open_undo_chunk)
+                slider.editingFinished.connect(close_undo_chunk)
 
             elif at["type"] == "bool":
-
-                ch_ctl = QtWidgets.QWidget()
-                layout = QtWidgets.QHBoxLayout(ch_ctl)
-                cbox = QtWidgets.QCheckBox()
-                cbox.setStyleSheet(CHECKBOX_STYLE)
-                ch_ctl.setStyleSheet(CHECKBOX_STYLE)
-                layout.addWidget(cbox)
-                layout.setAlignment(QtCore.Qt.AlignCenter)
-                layout.setContentsMargins(0, 0, 0, 0)
-                ch_ctl.setLayout(layout)
-                if val:
-                    cbox.setChecked(True)
-
+                ch_ctl = CheckBoxWidget(val)
+                cbox = ch_ctl.findChild(QtWidgets.QCheckBox)
+                cbox.stateChanged.connect(self.updateHighlightedSliders)
                 cbox.toggled.connect(partial(value_update, at))
 
             elif at["type"] == "enum":
@@ -414,6 +449,10 @@ class ChannelTable(QtWidgets.QTableWidget):
                     ch_ctl = QtWidgets.QComboBox()
                     ch_ctl.addItems(at["items"])
                     ch_ctl.setCurrentIndex(val)
+                    ch_ctl.setFocusPolicy(QtCore.Qt.NoFocus)
+                    ch_ctl.currentIndexChanged.connect(
+                        self.updateHighlightedSliders
+                    )
 
                     ch_ctl.currentIndexChanged.connect(
                         partial(value_update, at)
@@ -604,6 +643,62 @@ class ChannelTable(QtWidgets.QTableWidget):
         button.clicked.connect(button_clicked)
 
         return button
+
+    def updateHighlightedSliders(self, value):
+        if self.parent().parent().parent().doUpdateHighlightedSliders:
+            selected_rows = set()
+            for index in self.selectedIndexes():
+                selected_rows.add(index.row())
+            # for slider we need to connect the undo when mouse press event
+            # for combobox and check box we do it here befor the loop
+            # with this solution we need to undo 2 times to restore the previous
+            # values
+            if isinstance(self.sender(), (QtWidgets.QComboBox, QtWidgets.QCheckBox)):
+                print("open >>")
+                cmds.undoInfo(openChunk=True)
+
+            for row in selected_rows:
+                slider = self.cellWidget(row, 2)
+                sender_type = type(self.sender())
+                if isinstance(slider, CheckBoxWidget):
+                    slider_type = slider.findChild(QtWidgets.QCheckBox)
+                else:
+                    slider_type = slider
+                if slider != self.sender() and isinstance(
+                    slider_type, sender_type
+                ):
+                    if isinstance(slider, QtWidgets.QComboBox):
+                        signal = slider.currentIndexChanged
+                        set_value = slider.setCurrentIndex
+                    elif isinstance(slider, CheckBoxWidget):
+                        signal = slider.findChild(
+                            QtWidgets.QCheckBox
+                        ).stateChanged
+                        set_value = slider.findChild(
+                            QtWidgets.QCheckBox
+                        ).setChecked
+                        if value > 1:
+                            value = 1
+                    elif isinstance(slider, pyflow_widgets.pyf_Slider):
+                        signal = slider.valueChanged
+                        set_value = slider.setValue
+                    else:
+                        signal = None
+
+                    if signal:
+                        signal.disconnect(self.updateHighlightedSliders)
+                        set_value(value)
+
+                        item = self.item(row, 0)
+                        attr_config = item.data(QtCore.Qt.UserRole)
+                        cmds.setAttr(
+                            self.namespace_sync(attr_config["fullName"]), value
+                        )
+                        signal.connect(self.updateHighlightedSliders)
+            # close the undo chunk after the loop is finish
+            if isinstance(self.sender(), (QtWidgets.QComboBox, QtWidgets.QCheckBox)):
+                print(" >>")
+                cmds.undoInfo(closeChunk=True)
 
 
 ##################

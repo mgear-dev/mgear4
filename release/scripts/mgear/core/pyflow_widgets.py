@@ -394,10 +394,13 @@ class slider(QtWidgets.QSlider):
         QtWidgets.QSlider
     """
     editingFinished = QtCore.Signal()
+    editingStart = QtCore.Signal()
     valueIncremented = QtCore.Signal(object)
     floatValueChanged = QtCore.Signal(object)
 
-    def __init__(self, parent=None,
+    def __init__(self,
+                 custom_signals,
+                 parent=None,
                  draggerSteps=INT_SLIDER_DRAG_STEPS,
                  sliderRange=[-100, 100],
                  *args,
@@ -416,10 +419,21 @@ class slider(QtWidgets.QSlider):
         self.draggers = None
         self._click_offset = 0
         self._prev_x = 0
+        self.custom_signals = custom_signals
 
         self.setRange(self.sliderRange[0], self.sliderRange[1])
 
+    def mouseReleaseEvent(self, event):
+        super().mouseReleaseEvent(event)
+        self.sliderMoved.emit(self.value())  # emit signal with new value
+        self.editingFinished.emit()
+        # if self.parent():
+        #     self.parent().mouseReleaseEvent(event)
+
     def mousePressEvent(self, event):
+        self.editingStart.emit()
+        if self.parent():
+            self.parent().mousePressEvent(event)
         self.prevValue = self.value()
         self.startDragpos = event.pos()
 
@@ -535,7 +549,9 @@ class slider(QtWidgets.QSlider):
 class DoubleSlider(slider):
     doubleValueChanged = QtCore.Signal(float)
 
-    def __init__(self, parent=None,
+    def __init__(self,
+                 custom_signals,
+                 parent=None,
                  sliderRange=(-100.0, 100.0),
                  defaultValue=0.0,
                  dencity=1000000,
@@ -725,8 +741,12 @@ class pyf_Slider(QtWidgets.QWidget):
     sliderPressed = QtCore.Signal()
     sliderReleased = QtCore.Signal()
 
+    # editingStart = QtCore.Signal()
+    # editingFinished = QtCore.Signal()
+
     def __init__(self,
                  parent,
+                 custom_signals,
                  Type="float",
                  style=0,
                  name=None,
@@ -760,11 +780,12 @@ class pyf_Slider(QtWidgets.QWidget):
 
         if self.type in ATTR_SLIDER_TYPES:
             self.sld = DoubleSlider(self,
+                                    custom_signals,
                                     defaultValue=defaultValue,
                                     sliderRange=sliderRange,
                                     draggerSteps=draggerSteps)
         if self.type == "int":
-            self.sld = slider(self, sliderRange=sliderRange)
+            self.sld = slider(self, custom_signals, sliderRange=sliderRange)
         self.sld.valueIncremented.connect(self.incrementValue)
 
         self.input.setRange(sliderRange[0], sliderRange[1])
@@ -800,6 +821,14 @@ class pyf_Slider(QtWidgets.QWidget):
         self.input.valueChanged.connect(self.valBoxValueChanged)
 
         self._value = 0.0
+
+    # def mousePressEvent(self, event):
+    #     super().mousePressEvent(event)
+    #     self.editingStart.emit()
+
+    # def mouseReleaseEvent(self, event):
+    #     super().mouseReleaseEvent(event)
+    #     self.editingFinished.emit()
 
     def signalSliderPressed(self):
         self.sliderPressed.emit()
