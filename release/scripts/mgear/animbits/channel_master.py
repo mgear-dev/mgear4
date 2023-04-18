@@ -19,9 +19,12 @@ from . import channel_master_node as cmn
 import importlib
 
 
-class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
+class ChannelMaster(
+    MayaQWidgetDockableMixin, QtWidgets.QDialog, pyqt.SettingsMixin
+):
     def __init__(self, parent=None):
         super(ChannelMaster, self).__init__(parent)
+        pyqt.SettingsMixin.__init__(self)
 
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose, True)
 
@@ -63,6 +66,41 @@ class ChannelMaster(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.cb_manager = callbackManager.CallbackManager()
 
         self.add_callback()
+
+        # Usert settings to store
+        # Create the user_settings dictionary with tuples containing the
+        # UI elements and their default values.
+        self.user_settings = {
+            "channelMaster_use_node_namespace_action": (
+                self.use_node_namespace_action,
+                True,
+            ),
+            "channelMaster_use_only_local_data_action": (
+                self.use_only_local_data_action,
+                False,
+            ),
+            "channelMaster_display_sync_graph_action": (
+                self.display_sync_graph_action,
+                False,
+            ),
+            "channelMaster_display_fullname_action": (
+                self.display_fullname_action,
+                False,
+            ),
+            "channelMaster_scrubbing_update_action": (
+                self.scrubbing_update_action,
+                False,
+            ),
+            "channelMaster_key_all_tabs_action": (
+                self.key_all_tabs_action,
+                False,
+            ),
+            "channelMaster_copypaste_all_channels_action": (
+                self.copypaste_all_channels_action,
+                False,
+            ),
+        }
+        self.load_settings()
 
     def add_callback(self):
         self.cb_manager.selectionChangedCB(
