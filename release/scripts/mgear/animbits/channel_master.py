@@ -99,6 +99,10 @@ class ChannelMaster(
                 self.copypaste_all_channels_action,
                 False,
             ),
+            "channelMaster_key_only_behavior_action": (
+                self.key_only_behavior_action,
+                False,
+            ),
         }
         self.load_settings()
 
@@ -225,6 +229,8 @@ class ChannelMaster(
         self.key_paste_action.setShortcut(QtGui.QKeySequence("Ctrl+V"))
         self.key_all_tabs_action = QtWidgets.QAction("Keyframe All Tabs", self)
         self.key_all_tabs_action.setCheckable(True)
+        self.key_only_behavior_action = QtWidgets.QAction("Key only (Not Toggle Keyframe)", self)
+        self.key_only_behavior_action.setCheckable(True)
         self.copypaste_all_channels_action = QtWidgets.QAction(
             "Copy/Paste All Channels", self
         )
@@ -292,6 +298,7 @@ class ChannelMaster(
         self.key_menu.addSeparator()
         self.key_menu.addAction(self.key_all_tabs_action)
         self.key_menu.addAction(self.copypaste_all_channels_action)
+        self.key_menu.addAction(self.key_only_behavior_action)
 
         self.tab_menu = self.menu_bar.addMenu("Tab")
         self.tab_menu.addAction(self.tab_new_action)
@@ -846,7 +853,7 @@ class ChannelMaster(
             key_only = True
         else:
             tables = [self.get_current_table()]
-            key_only = False
+            key_only = self.key_only_behavior_action.isChecked()
 
         for table in tables:
             keyed, not_keyed = self.get_key_status(table)
