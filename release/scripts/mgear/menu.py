@@ -16,7 +16,10 @@ def create(menuId=menuId):
     """
 
     if pm.menu(menuId, exists=True):
-        pm.deleteUI(menuId)
+        try:
+            pm.deleteUI(menuId)
+        except RuntimeError:
+            pm.displayInfo("Tried to delete {}, but it was not found".format(menuId))
 
     project_name = os.environ.get("MGEAR_PROJECT_NAME", None)
     if project_name:
