@@ -57,3 +57,16 @@ icons: ../../../../icons
 + MAYAVERSION:2023 PLATFORM:mac   mGear 4.0 ./platforms/2023/osx/x64
 scripts: ../../../../scripts
 icons: ../../../../icons
+
++ MAYAVERSION:2024 PLATFORM:win64 mGear 4.0 ./platforms/2024/windows/x64
+scripts: ../../../../scripts
+icons: ../../../../icons
+
++ MAYAVERSION:2024 PLATFORM:linux mGear 4.0 ./platforms/2024/linux/x64
+scripts: ../../../../scripts
+icons: ../../../../icons
+
++ MAYAVERSION:2024 PLATFORM:mac   mGear 4.0 ./platforms/2024/osx/x64
+scripts: ../../../../scripts
+icons: ../../../../icons
+
