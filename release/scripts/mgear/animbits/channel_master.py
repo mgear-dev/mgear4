@@ -715,7 +715,9 @@ class ChannelMaster(
         """Refresh the channel values of the current table"""
         table = self.get_current_table()
         if table:
+            self.doUpdateHighlightedSliders = False
             table.refresh_channels_values(current_time)
+            self.doUpdateHighlightedSliders = True
 
     def tab_change(self):
         """Slot triggered when tab change"""
