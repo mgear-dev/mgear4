@@ -5,6 +5,7 @@
 #############################################
 import os
 import traceback
+import contextlib
 import maya.OpenMayaUI as omui
 import pymel.core as pm
 from pymel import versions
@@ -295,6 +296,45 @@ def get_top_level_widgets(class_name=None, object_name=None):
             print(e)
 
     return matches
+
+
+def clear_layout(layout):
+    """Removes all the widgets added in the given layout.
+
+    Args:
+         layout (QtWidgets.QLayout): Qt layout to clear.
+    """
+
+    while layout.count():
+        child = layout.takeAt(0)
+        if child.widget() is not None:
+            child.widget().deleteLater()
+        elif child.layout() is not None:
+            clear_layout(child.layout())
+
+
+@contextlib.contextmanager
+def block_signals(widget, children=False):
+    """Python context that block the signals of the widget and unblock them once wrapped code has been executed.
+
+    Args:
+        widget (QtWidgets.QWidget): Widget we want to block signals for.
+        children (bool): Whether signals of given children widgets should be blocked or not.
+    """
+
+    blocked = widget.signalsBlocked()
+    blocked_children = list()
+    widget.blockSignals(True)
+    child_widgets = widget.findChildren(QtWidgets.QWidget) if children else list()
+    for child_widget in child_widgets:
+        blocked_children.append(child_widget.signalsBlocked())
+        child_widget.blockSignals(True)
+    try:
+        yield widget
+    finally:
+        widget.blockSignals(blocked)
+        for i, child_widget in enumerate(child_widgets):
+            child_widget.blockSignals(blocked_children[i])
 
 
 def get_icon_path(icon_name=None):
