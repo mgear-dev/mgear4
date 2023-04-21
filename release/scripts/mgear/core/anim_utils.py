@@ -1029,14 +1029,21 @@ def ikFkMatch_with_namespace(
         arrow_vector = start_mid - proj_vector
         arrow_vector *= start_end.normal().length()
 
-        # ensure that the pole vector distance is a minimun of 1 unit
-        while arrow_vector.length() < 1.0:
-            arrow_vector *= 2.0
+        thre = 1e-4
+        # handle the case where three points lie on a line.
+        if abs(arrow_vector.x) < thre and abs(arrow_vector.y) < thre and abs(arrow_vector.z) < thre:
+            # can make roll and move up ctrl
+            upv_ctrl_target = _get_mth(upv)
+            transform.matchWorldTransform(upv_ctrl_target, upv_ctrl)
+        else:
+            # ensure that the pole vector distance is a minimun of 1 unit
+            while arrow_vector.length() < 1.0:
+                arrow_vector *= 2.0
 
-        final_vector = arrow_vector + fk_targets[1].getTranslation(
-            space="world"
-        )
-        upv_ctrl.setTranslation(final_vector, space="world")
+            final_vector = arrow_vector + fk_targets[1].getTranslation(
+                space="world"
+            )
+            upv_ctrl.setTranslation(final_vector, space="world")
 
         # sets blend attribute new value
         o_attr.set(1.0)
