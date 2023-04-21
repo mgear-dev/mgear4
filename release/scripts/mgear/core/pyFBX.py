@@ -334,7 +334,11 @@ def _py_fbx(mel_cmd, *args, **kwargs):
 
     for ka in kwargs.items():
 
-        if ka[0] != 'q':
+        if ka[0] in ('q', 'query'):
+            kwargs_string += ' -q'
+        elif ka[0] in ('c', 'clear'):
+            kwargs_string += ' -c'
+        else:
             if isinstance(ka[1], str):
                 argu = '{}'.format(string.normalize_path(ka[1]))
             else:
@@ -347,8 +351,6 @@ def _py_fbx(mel_cmd, *args, **kwargs):
                 kwargs_string += ' -{} {}'.format(ka[0], argu)
             else:
                 kwargs_string += ' -{} "{}"'.format(ka[0], argu)
-        else:
-            kwargs_string += ' -q'
 
     mel_format_cmd = '{}{}{};'.format(mel_cmd, kwargs_string, arg_string)
     # print(mel_format_cmd)
