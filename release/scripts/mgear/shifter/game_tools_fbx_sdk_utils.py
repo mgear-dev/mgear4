@@ -249,6 +249,36 @@ class FbxSdkGameToolsWrapper(object):
 
 		return True
 
+	def parent_to_world(self, node_name, remove_top_parent=False):
+
+		node_to_parent_to_world = None
+		scene_nodes = self.get_scene_nodes()
+		for node in scene_nodes:
+			if node.GetName() == node_name:
+				node_to_parent_to_world = node
+				break
+		if not node_to_parent_to_world:
+			return False
+
+		parent = node_to_parent_to_world.GetParent()
+		if parent is not None and parent != self._root_node:
+			self._root_node.AddChild(node_to_parent_to_world)
+
+		top_parent = None
+		if parent and parent != self._root_node and remove_top_parent:
+			_parent = parent.GetParent()
+			while True:
+				top_parent = _parent
+				_parent = _parent.GetParent()
+				if _parent == self._root_node:
+					break
+		if top_parent:
+			self._scene.DisconnectSrcObject(top_parent)
+			self._scene.RemoveNode(top_parent)
+
+		# force the update of the internal cache of scene nodes
+		self.get_scene_nodes()
+
 	def export_skeletal_mesh(self, file_name, mesh_names, hierarchy_joints, deformations=None, skins=None, blendshapes=None):
 
 		if not pfbx.FBX_SDK:
@@ -299,3 +329,10 @@ class FbxSdkGameToolsWrapper(object):
 		save_path = os.path.join(os.path.dirname(self._filename), '{}_{}.fbx'.format(
 			os.path.splitext(os.path.basename(self._filename))[0], file_name))
 		self.save(save_path, deformations=deformations, skins=skins, blendshapes=blendshapes)
+
+	def export_animation_clip(self, root_joint):
+
+		if not pfbx.FBX_SDK:
+			cmds.warning('Export Animation Clip functionality is only available if Python FBX SDK is available!')
+			return None
+
