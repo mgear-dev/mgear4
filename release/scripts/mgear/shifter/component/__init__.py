@@ -413,9 +413,7 @@ class Main(object):
             # for example Mehahuman twist joint already have connections
             if not jnt.translate.listConnections(d=False):
                 # Disconnect inversScale for better preformance
-                if not segComp and isinstance(
-                    self.active_jnt, pm.nodetypes.Joint
-                ):
+                if isinstance(self.active_jnt, pm.nodetypes.Joint):
                     try:
                         pm.disconnectAttr(
                             self.active_jnt.scale, jnt.inverseScale
@@ -446,57 +444,61 @@ class Main(object):
                         rot_off = rot_off
 
                 if driver:
-                    if segComp:
-                        # if segment compensation is active we handle the scale
-                        # outside of the gear matrix contraint
-                        srt = "rt"
-                        mulmat_node = node.createMultMatrixNode(
-                            driver.worldMatrix, self.root.worldInverseMatrix
-                        )
-                        dm_node = node.createDecomposeMatrixNode(
-                            mulmat_node.matrixSum
-                        )
-                        # check if there is negative scaling and compensate
-                        invert_scale = []
-                        for v in dm_node.outputScale.get():
-                            if v < 0:
-                                invert_scale.append(-1.0)
-                            else:
-                                invert_scale.append(1.0)
-                        if -1.0 in invert_scale:
-                            node.createMulNode(
-                                [
-                                    dm_node.outputScaleX,
-                                    dm_node.outputScaleY,
-                                    dm_node.outputScaleZ,
-                                ],
-                                invert_scale,
-                                [jnt.sx, jnt.sy, jnt.sz],
-                            )
-                            # if negative scaling we need to inver rotation
-                            # directions in X and Y
-                            srt = "t"
-                        else:
-                            pm.connectAttr(dm_node.outputScale, jnt.s)
+                    # if segComp:
+                    #     # if segment compensation is active we handle the scale
+                    #     # outside of the gear matrix contraint
+                    #     srt = "rt"
+                    #     mulmat_node = node.createMultMatrixNode(
+                    #         driver.worldMatrix, self.root.worldInverseMatrix
+                    #     )
+                    #     dm_node = node.createDecomposeMatrixNode(
+                    #         mulmat_node.matrixSum
+                    #     )
+                    #     # check if there is negative scaling and compensate
+                    #     invert_scale = []
+                    #     for v in dm_node.outputScale.get():
+                    #         if v < 0:
+                    #             invert_scale.append(-1.0)
+                    #         else:
+                    #             invert_scale.append(1.0)
+                    #     if -1.0 in invert_scale:
+                    #         node.createMulNode(
+                    #             [
+                    #                 dm_node.outputScaleX,
+                    #                 dm_node.outputScaleY,
+                    #                 dm_node.outputScaleZ,
+                    #             ],
+                    #             invert_scale,
+                    #             [jnt.sx, jnt.sy, jnt.sz],
+                    #         )
+                    #         # if negative scaling we need to inver rotation
+                    #         # directions in X and Y
+                    #         srt = "t"
+                    #     else:
+                    #         pm.connectAttr(dm_node.outputScale, jnt.s)
 
-                    else:
-                        srt = "srt"
+                    # else:
+                    #     srt = "srt"
+                    # cns_m = applyop.gear_matrix_cns(
+                    #     driver, jnt, rot_off=rot_off, connect_srt=srt
+                    # )
+
                     cns_m = applyop.gear_matrix_cns(
-                        driver, jnt, rot_off=rot_off, connect_srt=srt
+                        driver, jnt, rot_off=rot_off, connect_srt="srt"
                     )
 
-                    # if negative scaling we need to invert rotation directions
-                    # in X and Y after the constraint matrix is created
-                    if srt == "t":
-                        node.createMulNode(
-                            [
-                                cns_m.rotateX,
-                                cns_m.rotateY,
-                                cns_m.rotateZ,
-                            ],
-                            [-1, -1, 1],
-                            [jnt.rx, jnt.ry, jnt.rz],
-                        )
+                    # # if negative scaling we need to invert rotation directions
+                    # # in X and Y after the constraint matrix is created
+                    # if srt == "t":
+                    #     node.createMulNode(
+                    #         [
+                    #             cns_m.rotateX,
+                    #             cns_m.rotateY,
+                    #             cns_m.rotateZ,
+                    #         ],
+                    #         [-1, -1, 1],
+                    #         [jnt.rx, jnt.ry, jnt.rz],
+                    #     )
 
                     # invert negative scaling in Joints. We only inver Z axis,
                     # so is the only axis that we are checking
@@ -545,8 +547,9 @@ class Main(object):
                 else:
                     cns_m = None
 
-                # Segment scale compensate Off to avoid issues with the
-                # global scale
+                # Segment scale compensate on/Off
+                # TODO: before was always off to avoid issues with the
+                # global scale. Confirm there is no conflicts
                 jnt.setAttr("segmentScaleCompensate", segComp)
 
                 if not keep_off:
