@@ -798,7 +798,7 @@ def get_fbx_export_presets():
             paths_to_check.append(user_path)
 
     if not paths_to_check:
-        return
+        return export_preset_files
 
     for path_to_check in paths_to_check:
         for file_name in os.listdir(path_to_check):
