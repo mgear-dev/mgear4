@@ -413,9 +413,7 @@ class Main(object):
             # for example Mehahuman twist joint already have connections
             if not jnt.translate.listConnections(d=False):
                 # Disconnect inversScale for better preformance
-                if not segComp and isinstance(
-                    self.active_jnt, pm.nodetypes.Joint
-                ):
+                if isinstance(self.active_jnt, pm.nodetypes.Joint):
                     try:
                         pm.disconnectAttr(
                             self.active_jnt.scale, jnt.inverseScale
@@ -481,14 +479,13 @@ class Main(object):
 
                     # else:
                     #     srt = "srt"
-                    srt = "srt"
+                    # cns_m = applyop.gear_matrix_cns(
+                    #     driver, jnt, rot_off=rot_off, connect_srt=srt
+                    # )
+
                     cns_m = applyop.gear_matrix_cns(
-                        driver, jnt, rot_off=rot_off, connect_srt=srt
+                        driver, jnt, rot_off=rot_off, connect_srt="srt"
                     )
-                    if segComp:
-                        jnt.setAttr("inheritsTransform", False)
-                        cns_m.drivenParentInverseMatrix.disconnect()
-                        jnt.inverseScale.disconnect()
 
                     # # if negative scaling we need to invert rotation directions
                     # # in X and Y after the constraint matrix is created
@@ -550,8 +547,9 @@ class Main(object):
                 else:
                     cns_m = None
 
-                # Segment scale compensate Off to avoid issues with the
-                # global scale
+                # Segment scale compensate on/Off
+                # TODO: before was always off to avoid issues with the
+                # global scale. Confirm there is no conflicts
                 jnt.setAttr("segmentScaleCompensate", segComp)
 
                 if not keep_off:

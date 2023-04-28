@@ -643,11 +643,26 @@ class ChannelTable(QtWidgets.QTableWidget):
 
         return button
 
+    def get_selected_rows(self):
+        selected_rows = set()
+        for index in self.selectedIndexes():
+            selected_rows.add(index.row())
+
+        return selected_rows
+
+    def get_fullname_from_selected_rows(self):
+        attrs = set()
+        for row in self.get_selected_rows():
+            item = self.item(row, 0)
+            attr = self.namespace_sync(
+                item.data(QtCore.Qt.UserRole)["fullName"]
+            )
+            attrs.add(attr)
+        return attrs
+
     def updateHighlightedSliders(self, value):
         if self.parent().parent().parent().doUpdateHighlightedSliders:
-            selected_rows = set()
-            for index in self.selectedIndexes():
-                selected_rows.add(index.row())
+            selected_rows = self.get_selected_rows()
             # for slider we need to connect the undo when mouse press event
             # for combobox and check box we do it here befor the loop
             # with this solution we need to undo 2 times to restore the previous
