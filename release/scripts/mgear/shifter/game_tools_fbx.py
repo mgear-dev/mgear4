@@ -523,7 +523,7 @@ class FBXExport(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.up_axis_combobox.setCurrentText(self._settings.value('settings/up axis', '', str))
         self.file_type_combobox.setCurrentText(self._settings.value('settings/file type', '', str))
         self.fbx_version_combobox.setCurrentText(self._settings.value('settings/fbx version', '', str))
-        self.fbx_export_presets_combobox.setCurrentText(self._settings.value('settings/export preset', str))
+        self.fbx_export_presets_combobox.setCurrentText(self._settings.value('settings/export preset', '', str))
 
         self.remove_namespace_checkbox.setChecked(self._settings.value('sdk settings/remove namespace', True, bool))
         self.clean_scene_checkbox.setChecked(self._settings.value('sdk settings/clean up scene', True, bool))
