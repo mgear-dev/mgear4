@@ -170,11 +170,17 @@ def createRivetTweak(
     Returns:
         PyNode: The tweak control
     """
-    blendShape = blendShapes.getBlendShape(mesh)
     if not inputMesh:
-        inputMesh = blendShape.inputTarget.listConnections(
-            sh=True, t="shape", d=False
-        )[0]
+        blendShape = blendShapes.getBlendShape(mesh)
+        if blendShape:
+            inputMesh = blendShape.inputTarget.listConnections(
+                sh=True, t="shape", d=False
+            )[0]
+        else:
+            morph = blendShapes.getMorph(mesh)
+            inputMesh = morph.morphTarget.listConnections(
+                sh=True, t="shape", d=False
+            )[0]
 
     oRivet = rivet.rivet()
     base = oRivet.create(inputMesh, edgePair[0], edgePair[1], parent)
@@ -246,7 +252,6 @@ def createRivetTweak(
 
         # invert negative scaling in Joints. We only inver Z axis, so is
         # the only axis that we are checking
-        print(dm_node.attr("outputScaleZ").get())
         if dm_node.attr("outputScaleZ").get() < 0:
             mul_nod_invert = node.createMulNode(
                 dm_node.attr("outputScaleZ"), -1
