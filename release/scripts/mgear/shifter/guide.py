@@ -1544,9 +1544,9 @@ class GuideSettings(MayaQWidgetDockableMixin, QtWidgets.QDialog, HelperSlots):
             self.guideSettingsTab.force_uniScale_checkBox, "force_uniScale")
         self.populateCheck(
             self.guideSettingsTab.connect_joints_checkBox, "connect_joints")
-        self.populateCheck(
-            self.guideSettingsTab.force_SSC_joints_checkBox, "force_SSC")
-        self.populateAvailableSynopticTabs()
+        # self.populateCheck(
+        #     self.guideSettingsTab.force_SSC_joints_checkBox, "force_SSC")
+        # self.populateAvailableSynopticTabs()
 
         for item in self.root.attr("synoptic").get().split(","):
             self.guideSettingsTab.rigTabs_listWidget.addItem(item)
@@ -1746,10 +1746,10 @@ class GuideSettings(MayaQWidgetDockableMixin, QtWidgets.QDialog, HelperSlots):
             partial(self.updateCheck,
                     tap.connect_joints_checkBox,
                     "connect_joints"))
-        tap.force_SSC_joints_checkBox.stateChanged.connect(
-            partial(self.updateCheck,
-                    tap.force_SSC_joints_checkBox,
-                    "force_SSC"))
+        # tap.force_SSC_joints_checkBox.stateChanged.connect(
+        #     partial(self.updateCheck,
+        #             tap.force_SSC_joints_checkBox,
+        #             "force_SSC"))
         tap.addTab_pushButton.clicked.connect(
             partial(self.moveFromListWidget2ListWidget,
                     tap.available_listWidget,
