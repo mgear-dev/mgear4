@@ -45,6 +45,11 @@ def log_window():
     if mgear.logMode and mgear.use_log_window:
         log_window_name = "mgear_shifter_build_log_window"
         log_window_field_reporter = "mgear_shifter_log_field_reporter"
+
+        # call pm.window(log_window_name, exists=True) 2 times to avoid
+        # false check in Maya 2024
+        pm.window(log_window_name, exists=True)
+
         if not pm.window(log_window_name, exists=True):
             log_win = pm.window(
                 log_window_name,
