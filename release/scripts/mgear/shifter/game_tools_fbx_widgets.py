@@ -140,7 +140,7 @@ class NodeClass(object):
 
 class OutlinerMenu(QtWidgets.QMenu):
 	def __init__(self, title='', parent=None):
-		super().__init__(title, parent)
+		super(OutlinerMenu, self).__init__(title, parent)
 
 		self.hovered.connect(self._on_hovered)
 
