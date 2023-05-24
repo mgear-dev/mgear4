@@ -386,7 +386,6 @@ class FBXExport(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.skeletal_mesh_partitions_outliner.itemRenamed.connect(self.partition_item_renamed)
         self.skeletal_mesh_partitions_outliner.itemRemoved.connect(self.partition_skeletal_mesh_removed)
         self.skeletal_mesh_partitions_outliner.droppedItems.connect(self.partition_items_dropped)
-
         self.export_animations_button.clicked.connect(self.export_animation_clips)
 
     # functions
@@ -466,6 +465,7 @@ class FBXExport(MayaQWidgetDockableMixin, QtWidgets.QDialog):
             self.fbx_sdk_path_action.setText("Python FBX SDK: {}".format(fbx_sdk_path))
 
     def refresh_ue_connection(self):
+        # TODO: Uncomment
         # is_available = bool(uegear.content_project_directory())
         is_available = False
         self.ue_import_collap_wgt.setEnabled(is_available)
@@ -659,6 +659,9 @@ class FBXExport(MayaQWidgetDockableMixin, QtWidgets.QDialog):
 
         print('----- Exporting Skeletal Meshes -----')
 
+        # force creation of the export node
+        fu.FbxExportNode.get() or fu.FbxExportNode.create()
+
         geo_roots = [self.geo_root_list.item(i).text() for i in range(self.geo_root_list.count())]
         if not geo_roots:
             cmds.warning('No geo roots defined!')
@@ -796,7 +799,7 @@ class FBXExport(MayaQWidgetDockableMixin, QtWidgets.QDialog):
             'remove_namespace': self.remove_namespace_checkbox.isChecked(),
             'scene_clean': self.clean_scene_checkbox.isChecked(),
             'file_name': file_name,
-            'file_path': file_path,
+            'file_path': file_path
         }
 
         for anim_clip_data in export_node.get_animation_clips(jnt_root):
@@ -898,9 +901,9 @@ class FBXExport(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         """
         text = self.filter_sel_by_type(type_filter)
         if text:
-            lieneedit.setText(text)
+            lieneedit.setText(text[0])
         if type_filter == 'joint':
-            self.animation_clips_list_widget.refresh(text)
+            self.animation_clips_list_widget.refresh()
 
     def set_list_items_from_sel(self, listwidget, type_filter):
         """Set list widget items from selected element filtered by type

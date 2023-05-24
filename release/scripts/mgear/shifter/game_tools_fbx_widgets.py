@@ -907,6 +907,7 @@ class AnimClipsListWidget(QtWidgets.QWidget):
 
 		anim_clip_option_layout = QtWidgets.QHBoxLayout()
 		self._anim_clips_checkbox = QtWidgets.QCheckBox(parent=self)
+		self._anim_clips_checkbox.setChecked(True)
 		self._add_anim_clip_button = QtWidgets.QPushButton('Add Clip', parent=self)
 		self._delete_all_clips_button = QtWidgets.QPushButton('Delete All Clips', parent=self)
 		anim_clip_option_layout.addWidget(self._anim_clips_checkbox)
@@ -932,6 +933,7 @@ class AnimClipsListWidget(QtWidgets.QWidget):
 		main_layout.addLayout(anim_clip_option_layout)
 		main_layout.addWidget(anim_clip_area)
 
+		self._anim_clips_checkbox.toggled.connect(self._on_toggled_anim_clips_checkbox)
 		self._add_anim_clip_button.clicked.connect(self._on_add_animation_clip_button_clicked)
 		self._delete_all_clips_button.clicked.connect(self._on_delete_all_animation_clips_button_clicked)
 
@@ -965,6 +967,12 @@ class AnimClipsListWidget(QtWidgets.QWidget):
 		self._clips_layout.addWidget(anim_clip_widget)
 
 		return anim_clip_widget
+
+	def _on_toggled_anim_clips_checkbox(self, flag):
+
+		for i in range(self._clips_layout.count()):
+			anim_clip_widget = self._clips_layout.itemAt(i).widget()
+			anim_clip_widget.set_enabled(flag)
 
 	def _on_add_animation_clip_button_clicked(self):
 
@@ -1083,10 +1091,20 @@ class AnimClipWidget(QtWidgets.QFrame):
 		options_layout_3.addWidget(self._end_frame_line_edit)
 		options_layout_3.addWidget(self._frame_rate_combo)
 
+		options_layout_4 = QtWidgets.QHBoxLayout()
+		options_layout_4.setSpacing(2)
+		options_layout_4.setContentsMargins(0, 0, 0, 0)
+		self._anim_layer_label = QtWidgets.QLabel('Animation Layer: ', parent=self)
+		self._anim_layer_combo = QtWidgets.QComboBox(parent=self)
+		self._anim_layer_combo.setSizePolicy(QtWidgets.QSizePolicy.MinimumExpanding, QtWidgets.QSizePolicy.Maximum)
+		options_layout_4.addWidget(self._anim_layer_label)
+		options_layout_4.addWidget(self._anim_layer_combo)
+
 		main_layout.addLayout(close_layout)
 		main_layout.addLayout(options_layout_1)
 		main_layout.addLayout(options_layout_2)
 		main_layout.addLayout(options_layout_3)
+		main_layout.addLayout(options_layout_4)
 
 		self.refresh()
 
@@ -1098,20 +1116,12 @@ class AnimClipWidget(QtWidgets.QFrame):
 		self._start_frame_line_edit.textChanged.connect(self._on_update_anim_clip)
 		self._end_frame_line_edit.textChanged.connect(self._on_update_anim_clip)
 		self._frame_rate_combo.currentIndexChanged.connect(self._on_update_anim_clip)
+		self._anim_layer_combo.currentIndexChanged.connect(self._on_update_anim_clip)
 		self._set_range_button.clicked.connect(self._on_set_range_button_clicked)
 		self._playbast_button.clicked.connect(self._on_playbast_button_clicked)
 		self._play_button.clicked.connect(self._on_play_button_clicked)
 		self._export_button.clicked.connect(self._on_export_button_clicked)
 		self.customContextMenuRequested.connect(self._on_custom_context_menu_requested)
-
-	def _clear(self):
-		self._title_line_edit.setText('Untitled')
-		self._start_frame_line_edit.setText('')
-		self._end_frame_line_edit.setText('')
-		self._frame_rate_combo.setCurrentIndex(0)
-		self._export_checkbox.setChecked(False)
-		# self._start_at_origin_checkbox.setChecked(False)
-		# self._start_at_frame_zero_checkbox.setChecked(False)
 
 	def refresh(self):
 		export_node = fu.FbxExportNode.get()
@@ -1141,15 +1151,42 @@ class AnimClipWidget(QtWidgets.QFrame):
 		# with pyqt.block_signals(self._start_at_frame_zero_checkbox):
 		# 	self._start_at_frame_zero_checkbox.setChecked(anim_clip_data.get('frameZero', False))
 
+		with pyqt.block_signals(self._anim_layer_combo):
+			self._anim_layer_combo.clear()
+			# TODO: Maybe we should filter display layers that are set with override mode?
+			anim_layers = fu.all_anim_layers_ordered(include_base_animation=False)
+			self._anim_layer_combo.addItems(['None'] + anim_layers)
+			self._anim_layer_combo.setCurrentText(anim_clip_data.get('animLayer', 'None'))
+
+	def set_enabled(self, flag):
+		self._export_checkbox.setChecked(flag)
+
+	def toggle_enabled(self):
+		self._export_checkbox.setChecked(not self._export_checkbox.isChecked())
+
+	def _clear(self):
+		self._title_line_edit.setText('Untitled')
+		self._start_frame_line_edit.setText('')
+		self._end_frame_line_edit.setText('')
+		self._frame_rate_combo.setCurrentIndex(0)
+		self._export_checkbox.setChecked(False)
+		# self._start_at_origin_checkbox.setChecked(False)
+		# self._start_at_frame_zero_checkbox.setChecked(False)
+
 	def _on_close_button_clicked(self):
 		export_node = fu.FbxExportNode.get()
 		if not export_node:
 			return
 
-		export_node.delete_animation_clip(self._root_joint, self._clip_name)
+		root_joint = self._game_tools_fbx.get_root_joint() if self._game_tools_fbx else None
+		if not root_joint:
+			return
+
+		export_node.delete_animation_clip(root_joint, self._clip_name)
 
 		self.setParent(None)
 		self.deleteLater()
+
 	def _on_update_anim_clip(self):
 
 		root_joint = self._game_tools_fbx.get_root_joint() if self._game_tools_fbx else None
@@ -1169,6 +1206,8 @@ class AnimClipWidget(QtWidgets.QFrame):
 		anim_clip_data['frameRate'] = self._frame_rate_combo.currentText()
 		anim_clip_data['startFrame'] = int(self._start_frame_line_edit.text())
 		anim_clip_data['endFrame'] = int(self._end_frame_line_edit.text())
+		anim_layer = self._anim_layer_combo.currentText()
+		anim_clip_data['animLayer'] = anim_layer if anim_layer and anim_layer != 'None' else ''
 
 		export_node.update_animation_clip(root_joint, self._previous_name, anim_clip_data)
 		self._previous_name = anim_clip_data['title']
@@ -1218,6 +1257,8 @@ class AnimClipWidget(QtWidgets.QFrame):
 		file_name = self._game_tools_fbx.get_file_name() if self._game_tools_fbx else ''
 		remove_namespace = self._game_tools_fbx.get_remove_namespace() if self._game_tools_fbx else False
 		scene_clean = self._game_tools_fbx.get_scene_clean() if self._game_tools_fbx else False
+		anim_layer = self._anim_layer_combo.currentText()
+		anim_layer = anim_layer if anim_layer and anim_layer != 'None' else ''
 
 		export_kwargs = {
 			'startFrame': int(self._start_frame_line_edit.text()),
@@ -1229,7 +1270,8 @@ class AnimClipWidget(QtWidgets.QFrame):
 			'file_path': export_path,
 			'file_name': '{}_{}'.format(file_name, self._title_line_edit.text().replace(' ', '_')),
 			'remove_namespace': remove_namespace,
-			'scene_clean': scene_clean
+			'scene_clean': scene_clean,
+			'anim_layer': anim_layer
 		}
 		return fu.export_animation_clip(root_joint, **export_kwargs)
 
