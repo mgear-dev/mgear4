@@ -64,6 +64,8 @@ class Guide(guide.ComponentGuide):
             "parentJointIndex", "long", -1, None, None
         )
 
+        self.pDescriptionName = self.addParam("descriptionName", "bool", True)
+
 
 ##########################################################
 # Setting Page
@@ -116,6 +118,8 @@ class componentSettings(MayaQWidgetDockableMixin, guide.componentMainSettings):
         # populate tab
         self.tabs.insertTab(1, self.settingsTab, "Component Settings")
 
+        self.populateCheck(self.settingsTab.descriptionName_checkBox, "descriptionName")
+
         # populate component settings
         refArrayItems = self.root.attr("refArray").get().split(",")
         for item in refArrayItems:
@@ -144,6 +148,14 @@ class componentSettings(MayaQWidgetDockableMixin, guide.componentMainSettings):
                 self.removeSelectedFromListWidget,
                 self.settingsTab.refArray_listWidget,
                 "refArray",
+            )
+        )
+
+        self.settingsTab.descriptionName_checkBox.stateChanged.connect(
+            partial(
+                self.updateCheck,
+                self.settingsTab.descriptionName_checkBox,
+                "descriptionName",
             )
         )
 

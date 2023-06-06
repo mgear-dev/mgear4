@@ -73,10 +73,14 @@ class Component(component.Main):
         attribute.setKeyableAttributes(self.ctl, params)
 
         if self.settings["joint"]:
+            if self.settings["descriptionName"]:
+                jnt_name = self.name
+            else:
+                jnt_name = "0"
             self.jnt_pos.append(
                 {
                     "obj": self.ctl,
-                    "name": self.name,
+                    "name": jnt_name,
                     "guide_relative": "root",
                     "UniScale": self.settings["uniScale"],
                 }

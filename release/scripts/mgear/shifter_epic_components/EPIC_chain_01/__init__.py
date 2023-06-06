@@ -85,7 +85,10 @@ class Component(component.Main):
                     guide_relative_name = "{}_loc".format(str(i - 1))
                 else:
                     guide_relative_name = "root"
-                jnt_name = "_".join([self.name, str(i + 1).zfill(2)])
+                if self.settings["descriptionName"]:
+                    jnt_name = "_".join([self.name, str(i + 1).zfill(2)])
+                else:
+                    jnt_name = str(i)
                 self.jnt_pos.append(
                     {
                         "obj": fk_ctl,

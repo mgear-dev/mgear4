@@ -64,6 +64,7 @@ class Guide(guide.ComponentGuide):
         self.pOverrideNegate = self.addParam("overrideNegate", "bool", False)
         self.pAddJoints = self.addParam("addJoints", "bool", True)
         self.pUseIndex = self.addParam("useIndex", "bool", False)
+        self.pDescriptionName = self.addParam("descriptionName", "bool", True)
         self.pParentJointIndex = self.addParam(
             "parentJointIndex", "long", -1, None, None
         )
@@ -124,6 +125,9 @@ class componentSettings(MayaQWidgetDockableMixin, guide.componentMainSettings):
             self.settingsTab.overrideNegate_checkBox, "overrideNegate"
         )
         self.populateCheck(self.settingsTab.addJoints_checkBox, "addJoints")
+        self.populateCheck(
+            self.settingsTab.descriptionName_checkBox, "descriptionName"
+        )
 
     def create_componentLayout(self):
 
@@ -156,6 +160,14 @@ class componentSettings(MayaQWidgetDockableMixin, guide.componentMainSettings):
                 self.updateCheck,
                 self.settingsTab.addJoints_checkBox,
                 "addJoints",
+            )
+        )
+
+        self.settingsTab.descriptionName_checkBox.stateChanged.connect(
+            partial(
+                self.updateCheck,
+                self.settingsTab.descriptionName_checkBox,
+                "descriptionName",
             )
         )
 

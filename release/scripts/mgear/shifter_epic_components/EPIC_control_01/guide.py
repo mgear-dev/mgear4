@@ -69,7 +69,9 @@ class Guide(guide.ComponentGuide):
         self.pIkRefArray = self.addParam("ikrefarray", "string", "")
 
         self.pJoint = self.addParam("joint", "bool", False)
-        self.pJoint = self.addParam("uniScale", "bool", False)
+        self.pUniScale = self.addParam("uniScale", "bool", False)
+
+        self.pDescriptionName = self.addParam("descriptionName", "bool", True)
 
         for s in ["tx", "ty", "tz", "ro", "rx", "ry", "rz", "sx", "sy", "sz"]:
             self.addParam("k_" + s, "bool", True)
@@ -182,6 +184,9 @@ class componentSettings(MayaQWidgetDockableMixin, guide.componentMainSettings):
         self.populateCheck(self.settingsTab.sy_checkBox, "k_sy")
         self.populateCheck(self.settingsTab.sz_checkBox, "k_sz")
 
+
+        self.populateCheck(self.settingsTab.descriptionName_checkBox, "descriptionName")
+
         self.settingsTab.ro_comboBox.setCurrentIndex(
             self.root.attr("default_rotorder").get())
 
@@ -279,6 +284,14 @@ class componentSettings(MayaQWidgetDockableMixin, guide.componentMainSettings):
             partial(self.updateConnector,
                     self.mainSettingsTab.connector_comboBox,
                     self.connector_items))
+
+        self.settingsTab.descriptionName_checkBox.stateChanged.connect(
+            partial(
+                self.updateCheck,
+                self.settingsTab.descriptionName_checkBox,
+                "descriptionName",
+            )
+        )
 
     def eventFilter(self, sender, event):
         if event.type() == QtCore.QEvent.ChildRemoved:

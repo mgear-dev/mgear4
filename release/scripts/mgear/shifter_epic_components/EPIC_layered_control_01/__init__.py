@@ -144,10 +144,14 @@ class Component(component.Main):
             else:
                 input_transform = self.jnt_lvl
 
+            if self.settings["descriptionName"]:
+                jnt_name = self.name
+            else:
+                jnt_name = "0"
             self.jnt_pos.append(
                 {
                     "obj": input_transform,
-                    "name": self.name,
+                    "name": jnt_name,
                     "guide_relative": "root",
                     "UniScale": self.settings["uniScale"],
                 }

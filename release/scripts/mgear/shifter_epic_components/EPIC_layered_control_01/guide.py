@@ -115,6 +115,7 @@ class Guide(guide.ComponentGuide):
         self.pParentJointIndex = self.addParam(
             "parentJointIndex", "long", -1, None, None
         )
+        self.pDescriptionName = self.addParam("descriptionName", "bool", True)
 
         return
 
@@ -245,6 +246,8 @@ class componentSettings(MayaQWidgetDockableMixin, guide.componentMainSettings):
         self.settingsTab.ro_comboBox.setCurrentIndex(
             self.root.attr("default_rotorder").get()
         )
+
+        self.populateCheck(self.settingsTab.descriptionName_checkBox, "descriptionName")
 
         ikRefArrayItems = self.root.attr("ikrefarray").get().split(",")
         for item in ikRefArrayItems:
@@ -417,6 +420,14 @@ class componentSettings(MayaQWidgetDockableMixin, guide.componentMainSettings):
                 self.updateConnector,
                 self.mainSettingsTab.connector_comboBox,
                 self.connector_items,
+            )
+        )
+
+        self.settingsTab.descriptionName_checkBox.stateChanged.connect(
+            partial(
+                self.updateCheck,
+                self.settingsTab.descriptionName_checkBox,
+                "descriptionName",
             )
         )
 
