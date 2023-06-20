@@ -15,7 +15,10 @@ from mgear.core import widgets
 from mgear.core import string
 from mgear.core import pyFBX as pfbx
 
-from mgear.shifter import game_tools_fbx_utils as fu, game_tools_fbx_widgets as fuw
+from mgear.shifter import (
+    game_tools_fbx_utils as fu,
+    game_tools_fbx_widgets as fuw,
+)
 
 from mgear.uegear import bridge, commands as uegear
 
@@ -43,7 +46,11 @@ class FBXExport(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.refresh_ue_connection()
 
         self._settings = QtCore.QSettings(
-            QtCore.QSettings.IniFormat, QtCore.QSettings.UserScope, 'mcsGear', 'mgearFbxExporter')
+            QtCore.QSettings.IniFormat,
+            QtCore.QSettings.UserScope,
+            "mcsGear",
+            "mgearFbxExporter",
+        )
         self.restore_ui_state()
 
     def closeEvent(self, event):
@@ -60,15 +67,27 @@ class FBXExport(MayaQWidgetDockableMixin, QtWidgets.QDialog):
 
     def create_actions(self):
         # file actions
-        self.file_export_preset_action = QtWidgets.QAction("Export Shifter FBX Preset", self)
+        self.file_export_preset_action = QtWidgets.QAction(
+            "Export Shifter FBX Preset", self
+        )
         self.file_export_preset_action.setIcon(pyqt.get_icon("mgear_log-out"))
-        self.file_import_preset_action = QtWidgets.QAction("Import Shifter FBX Preset", self)
+        self.file_import_preset_action = QtWidgets.QAction(
+            "Import Shifter FBX Preset", self
+        )
         self.file_import_preset_action.setIcon(pyqt.get_icon("mgear_log-in"))
-        self.set_fbx_sdk_path_action = QtWidgets.QAction("Set Python FBX SDK", self)
-        self.fbx_sdk_path_action = QtWidgets.QAction("Python FBX SDK Path: Not set", self)
+        self.set_fbx_sdk_path_action = QtWidgets.QAction(
+            "Set Python FBX SDK", self
+        )
+        self.fbx_sdk_path_action = QtWidgets.QAction(
+            "Python FBX SDK Path: Not set", self
+        )
         self.fbx_sdk_path_action.setEnabled(False)
-        self.refresh_uegear_connection_action = QtWidgets.QAction("Refresh Unreal Engine Connection", self)
-        self.refresh_uegear_connection_action.setIcon(pyqt.get_icon("mgear_refresh-cw"))
+        self.refresh_uegear_connection_action = QtWidgets.QAction(
+            "Refresh Unreal Engine Connection", self
+        )
+        self.refresh_uegear_connection_action.setIcon(
+            pyqt.get_icon("mgear_refresh-cw")
+        )
 
     def create_widgets(self):
 
@@ -89,8 +108,12 @@ class FBXExport(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         # set source roots
         self.geo_root_label = QtWidgets.QLabel("Geo Root")
         self.geo_root_list = QtWidgets.QListWidget()
-        self.geo_root_list.setSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Maximum)
-        self.geo_root_list.setSelectionMode(QtWidgets.QListWidget.ExtendedSelection)
+        self.geo_root_list.setSizePolicy(
+            QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Maximum
+        )
+        self.geo_root_list.setSelectionMode(
+            QtWidgets.QListWidget.ExtendedSelection
+        )
         self.geo_root_set_button = QtWidgets.QPushButton()
         self.geo_root_set_button.setIcon(pyqt.get_icon("mgear_mouse-pointer"))
         self.geo_root_add_button = QtWidgets.QPushButton()
@@ -103,7 +126,9 @@ class FBXExport(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.joint_root_label = QtWidgets.QLabel("Joint Root")
         self.joint_root_lineedit = QtWidgets.QLineEdit()
         self.joint_root_set_button = QtWidgets.QPushButton()
-        self.joint_root_set_button.setIcon(pyqt.get_icon("mgear_mouse-pointer"))
+        self.joint_root_set_button.setIcon(
+            pyqt.get_icon("mgear_mouse-pointer")
+        )
         self.joint_root_auto_set_button = QtWidgets.QPushButton("Auto")
         self.joint_root_auto_set_button.setMaximumWidth(40)
 
@@ -120,16 +145,24 @@ class FBXExport(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.fbx_version_combobox = QtWidgets.QComboBox()
         self.populate_fbx_versions_combobox(self.fbx_version_combobox)
         self.fbx_export_presets_combobox = QtWidgets.QComboBox()
-        self.populate_fbx_export_presets_combobox(self.fbx_export_presets_combobox)
+        self.populate_fbx_export_presets_combobox(
+            self.fbx_export_presets_combobox
+        )
         self.settings_tab.addTab(self.settings_widget, "FBX Settings")
 
         # FBX SDK settings
         self.fbx_sdk_settings_widget = QtWidgets.QWidget()
-        self.remove_namespace_checkbox = QtWidgets.QCheckBox("Remove Namespace")
+        self.remove_namespace_checkbox = QtWidgets.QCheckBox(
+            "Remove Namespace"
+        )
         self.remove_namespace_checkbox.setChecked(True)
-        self.clean_scene_checkbox = QtWidgets.QCheckBox("Joint and Geo Root Child of Scene Root + Clean Up Scene")
+        self.clean_scene_checkbox = QtWidgets.QCheckBox(
+            "Joint and Geo Root Child of Scene Root + Clean Up Scene"
+        )
         self.clean_scene_checkbox.setChecked(True)
-        self.settings_tab.addTab(self.fbx_sdk_settings_widget, "FBX SDK Settings")
+        self.settings_tab.addTab(
+            self.fbx_sdk_settings_widget, "FBX SDK Settings"
+        )
 
         # path and filename
         self.file_path_label = QtWidgets.QLabel("Path")
@@ -149,25 +182,42 @@ class FBXExport(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.use_partitions_checkbox.setChecked(True)
         self.skeletal_mesh_partitions_label = QtWidgets.QLabel("Partitions")
         self.skeletal_mesh_partitions_outliner = PartitionsTreeView()
-        self.skeletal_mesh_partitions_outliner.setSizePolicy(QtWidgets.QSizePolicy.MinimumExpanding, QtWidgets.QSizePolicy.MinimumExpanding)
+        self.skeletal_mesh_partitions_outliner.setSizePolicy(
+            QtWidgets.QSizePolicy.MinimumExpanding,
+            QtWidgets.QSizePolicy.MinimumExpanding,
+        )
         self.skeletal_mesh_partition_add_button = QtWidgets.QPushButton()
-        self.skeletal_mesh_partition_add_button.setIcon(pyqt.get_icon("mgear_plus"))
+        self.skeletal_mesh_partition_add_button.setIcon(
+            pyqt.get_icon("mgear_plus")
+        )
         self.skeletal_mesh_partition_remove_button = QtWidgets.QPushButton()
-        self.skeletal_mesh_partition_remove_button.setIcon(pyqt.get_icon("mgear_minus"))
-        self.export_skeletal_geo_button = QtWidgets.QPushButton("Export SkeletalMesh/SkinnedMesh")
-        self.export_skeletal_geo_button.setStyleSheet("QPushButton {background:rgb(70, 100, 150); }")
+        self.skeletal_mesh_partition_remove_button.setIcon(
+            pyqt.get_icon("mgear_minus")
+        )
+        self.export_skeletal_geo_button = QtWidgets.QPushButton(
+            "Export SkeletalMesh/SkinnedMesh"
+        )
+        self.export_skeletal_geo_button.setStyleSheet(
+            "QPushButton {background:rgb(70, 100, 150); }"
+        )
 
         # export animation
         self.export_animation_widget = QtWidgets.QWidget()
-        self.export_animations_button = QtWidgets.QPushButton("Export Animations")
-        self.export_animations_button.setStyleSheet("QPushButton {background:rgb(150, 35, 50); }")
+        self.export_animations_button = QtWidgets.QPushButton(
+            "Export Animations"
+        )
+        self.export_animations_button.setStyleSheet(
+            "QPushButton {background:rgb(150, 35, 50); }"
+        )
         self.animation_clips_list_widget = fuw.AnimClipsListWidget(parent=self)
 
         # Unreal Engine import
         # path and filename
         self.ue_file_path_label = QtWidgets.QLabel("Path")
         self.ue_file_path_lineedit = QtWidgets.QLineEdit()
-        self.ue_file_path_set_button = widgets.create_button(icon="mgear_folder")
+        self.ue_file_path_set_button = widgets.create_button(
+            icon="mgear_folder"
+        )
 
     def create_layout(self):
 
@@ -190,26 +240,40 @@ class FBXExport(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.joint_root_buttons_layout = QtWidgets.QHBoxLayout()
         self.joint_root_buttons_layout.setContentsMargins(1, 1, 1, 1)
         self.joint_root_buttons_layout.addWidget(self.joint_root_set_button)
-        self.joint_root_buttons_layout.addWidget(self.joint_root_auto_set_button)
+        self.joint_root_buttons_layout.addWidget(
+            self.joint_root_auto_set_button
+        )
         self.joint_root_layout.addLayout(self.joint_root_buttons_layout)
 
         self.set_source_layout = QtWidgets.QGridLayout()
-        self.set_source_layout.addWidget(self.geo_root_label, 0, 0, QtCore.Qt.AlignRight)
+        self.set_source_layout.addWidget(
+            self.geo_root_label, 0, 0, QtCore.Qt.AlignRight
+        )
         self.set_source_layout.addLayout(self.geo_root_layout, 0, 1)
-        self.set_source_layout.addWidget(self.joint_root_label, 1, 0, QtCore.Qt.AlignRight)
+        self.set_source_layout.addWidget(
+            self.joint_root_label, 1, 0, QtCore.Qt.AlignRight
+        )
         self.set_source_layout.addLayout(self.joint_root_layout, 1, 1)
         self.set_source_layout.setSpacing(2)
 
-        self.set_source_collap_wgt = widgets.CollapsibleWidget("Set Source Elements")
-        self.set_source_collap_wgt.setSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Maximum)
+        self.set_source_collap_wgt = widgets.CollapsibleWidget(
+            "Set Source Elements"
+        )
+        self.set_source_collap_wgt.setSizePolicy(
+            QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Maximum
+        )
         self.set_source_collap_wgt.addLayout(self.set_source_layout)
 
         # settings layout
         self.settings_form_layout = QtWidgets.QFormLayout(self.settings_widget)
         self.settings_form_layout.addRow("Up Axis", self.up_axis_combobox)
         self.settings_form_layout.addRow("File Type", self.file_type_combobox)
-        self.settings_form_layout.addRow("File Version", self.fbx_version_combobox)
-        self.settings_form_layout.addRow("FBX Preset", self.fbx_export_presets_combobox)
+        self.settings_form_layout.addRow(
+            "File Version", self.fbx_version_combobox
+        )
+        self.settings_form_layout.addRow(
+            "FBX Preset", self.fbx_export_presets_combobox
+        )
 
         # FBX SDK settings
         if pfbx.FBX_SDK:
@@ -217,13 +281,17 @@ class FBXExport(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         else:
             title = "FBX SDK settings (Disable SDK Not Found)"
 
-        self.sdk_settings_layout = QtWidgets.QVBoxLayout(self.fbx_sdk_settings_widget)
+        self.sdk_settings_layout = QtWidgets.QVBoxLayout(
+            self.fbx_sdk_settings_widget
+        )
         self.sdk_settings_layout.addWidget(self.remove_namespace_checkbox)
         self.sdk_settings_layout.addWidget(self.clean_scene_checkbox)
 
         # general setting collapsible widget
         self.settings_collap_wgt = widgets.CollapsibleWidget("Settings")
-        self.settings_collap_wgt.setSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Maximum)
+        self.settings_collap_wgt.setSizePolicy(
+            QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Maximum
+        )
         self.settings_collap_wgt.addWidget(self.settings_tab)
 
         # export path layout
@@ -247,9 +315,13 @@ class FBXExport(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.file_path_collap_wgt.addLayout(self.path_layout)
 
         # Unreal Engine import layout
-        self.ue_import_collap_wgt = widgets.CollapsibleWidget("Unreal Engine Import")
+        self.ue_import_collap_wgt = widgets.CollapsibleWidget(
+            "Unreal Engine Import"
+        )
 
-        self.ue_import_cbx = QtWidgets.QCheckBox('Enable Unreal Engine Import?')
+        self.ue_import_cbx = QtWidgets.QCheckBox(
+            "Enable Unreal Engine Import?"
+        )
 
         self.ue_file_path_layout = QtWidgets.QHBoxLayout()
         self.ue_file_path_layout.setContentsMargins(1, 1, 1, 1)
@@ -265,7 +337,10 @@ class FBXExport(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.ue_import_collap_wgt.addLayout(self.ue_path_layout)
 
         self.export_collap_wgt = widgets.CollapsibleWidget("Export")
-        self.export_collap_wgt.setSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.MinimumExpanding)
+        self.export_collap_wgt.setSizePolicy(
+            QtWidgets.QSizePolicy.Preferred,
+            QtWidgets.QSizePolicy.MinimumExpanding,
+        )
         self.export_tab = QtWidgets.QTabWidget()
         self.export_collap_wgt.addWidget(self.export_tab)
 
@@ -274,27 +349,45 @@ class FBXExport(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.export_geo_layout.setContentsMargins(1, 1, 1, 1)
         self.export_geo_widget.setLayout(self.export_geo_layout)
         self.model_deformers_groupbox = QtWidgets.QGroupBox("Deformers")
-        self.model_deformers_layout = QtWidgets.QHBoxLayout(self.model_deformers_groupbox)
+        self.model_deformers_layout = QtWidgets.QHBoxLayout(
+            self.model_deformers_groupbox
+        )
         self.model_deformers_layout.addWidget(self.skinning_checkbox)
         self.model_deformers_layout.addWidget(self.blendshapes_checkbox)
         self.model_deformers_layout.addWidget(self.use_partitions_checkbox)
 
         self.export_geo_layout.addWidget(self.model_deformers_groupbox)
         self.skeletal_mesh_partitions_label_layout = QtWidgets.QHBoxLayout()
-        self.skeletal_mesh_partitions_label_layout.setContentsMargins(1, 1, 1, 1)
+        self.skeletal_mesh_partitions_label_layout.setContentsMargins(
+            1, 1, 1, 1
+        )
         self.skeletal_mesh_partitions_label_layout.addStretch()
-        self.skeletal_mesh_partitions_label_layout.addWidget(self.skeletal_mesh_partitions_label)
+        self.skeletal_mesh_partitions_label_layout.addWidget(
+            self.skeletal_mesh_partitions_label
+        )
         self.skeletal_mesh_partitions_label_layout.addStretch()
         self.skeletal_mesh_list_layout = QtWidgets.QHBoxLayout()
         self.skeletal_mesh_list_layout.setContentsMargins(1, 1, 1, 1)
         self.skeletal_mesh_partitions_buttons_layout = QtWidgets.QVBoxLayout()
-        self.skeletal_mesh_partitions_buttons_layout.setContentsMargins(1, 1, 1, 1)
-        self.skeletal_mesh_partitions_buttons_layout.addWidget(self.skeletal_mesh_partition_add_button)
-        self.skeletal_mesh_partitions_buttons_layout.addWidget(self.skeletal_mesh_partition_remove_button)
+        self.skeletal_mesh_partitions_buttons_layout.setContentsMargins(
+            1, 1, 1, 1
+        )
+        self.skeletal_mesh_partitions_buttons_layout.addWidget(
+            self.skeletal_mesh_partition_add_button
+        )
+        self.skeletal_mesh_partitions_buttons_layout.addWidget(
+            self.skeletal_mesh_partition_remove_button
+        )
         self.skeletal_mesh_partitions_buttons_layout.addStretch()
-        self.skeletal_mesh_list_layout.addWidget(self.skeletal_mesh_partitions_outliner)
-        self.skeletal_mesh_list_layout.addLayout(self.skeletal_mesh_partitions_buttons_layout)
-        self.export_geo_layout.addLayout(self.skeletal_mesh_partitions_label_layout)
+        self.skeletal_mesh_list_layout.addWidget(
+            self.skeletal_mesh_partitions_outliner
+        )
+        self.skeletal_mesh_list_layout.addLayout(
+            self.skeletal_mesh_partitions_buttons_layout
+        )
+        self.export_geo_layout.addLayout(
+            self.skeletal_mesh_partitions_label_layout
+        )
         self.export_geo_layout.addLayout(self.skeletal_mesh_list_layout)
         self.export_geo_layout.addWidget(self.export_skeletal_geo_button)
         self.export_tab.addTab(self.export_geo_widget, "Skeletal Mesh")
@@ -303,10 +396,16 @@ class FBXExport(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.export_animation_layout = QtWidgets.QVBoxLayout()
         self.export_animation_layout.setContentsMargins(1, 1, 1, 1)
         self.export_animation_widget.setLayout(self.export_animation_layout)
-        self.export_animation_layout.addWidget(self.animation_clips_list_widget)
+        self.export_animation_layout.addWidget(
+            self.animation_clips_list_widget
+        )
         self.export_animation_buttons_layout = QtWidgets.QHBoxLayout()
-        self.export_animation_buttons_layout.addWidget(self.export_animations_button)
-        self.export_animation_layout.addLayout(self.export_animation_buttons_layout)
+        self.export_animation_buttons_layout.addWidget(
+            self.export_animations_button
+        )
+        self.export_animation_layout.addLayout(
+            self.export_animation_buttons_layout
+        )
         self.export_tab.addTab(self.export_animation_widget, "Animation")
 
         # TODO: Remove this line
@@ -315,7 +414,9 @@ class FBXExport(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         # Scroll Area layout
         self.base_scrollarea_wgt = QtWidgets.QWidget()
 
-        self.scrollarea_layout = QtWidgets.QVBoxLayout(self.base_scrollarea_wgt)
+        self.scrollarea_layout = QtWidgets.QVBoxLayout(
+            self.base_scrollarea_wgt
+        )
         self.scrollarea_layout.setContentsMargins(2, 2, 2, 2)
         self.scrollarea_layout.setSpacing(2)
         self.scrollarea_layout.setAlignment(QtCore.Qt.AlignTop)
@@ -341,7 +442,9 @@ class FBXExport(MayaQWidgetDockableMixin, QtWidgets.QDialog):
     def create_connections(self):
 
         self.set_fbx_sdk_path_action.triggered.connect(self.set_fbx_sdk_path)
-        self.refresh_uegear_connection_action.triggered.connect(self.refresh_ue_connection)
+        self.refresh_uegear_connection_action.triggered.connect(
+            self.refresh_ue_connection
+        )
 
         self.geo_root_set_button.clicked.connect(
             partial(
@@ -352,18 +455,15 @@ class FBXExport(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         )
         self.geo_root_add_button.clicked.connect(
             partial(
-                self.add_list_items_from_sel,
-                self.geo_root_list,
-                "transform"
+                self.add_list_items_from_sel, self.geo_root_list, "transform"
             )
         )
         self.geo_root_remove_button.clicked.connect(
-            partial(
-                self.remove_list_items_from_sel,
-                self.geo_root_list
-            )
+            partial(self.remove_list_items_from_sel, self.geo_root_list)
         )
-        self.geo_root_auto_set_button.clicked.connect(partial(self.auto_set_geo_roots, clear=True))
+        self.geo_root_auto_set_button.clicked.connect(
+            partial(self.auto_set_geo_roots, clear=True)
+        )
 
         self.joint_root_set_button.clicked.connect(
             partial(
@@ -372,21 +472,41 @@ class FBXExport(MayaQWidgetDockableMixin, QtWidgets.QDialog):
                 "joint",
             )
         )
-        self.joint_root_auto_set_button.clicked.connect(partial(self.auto_set_joint_root))
+        self.joint_root_auto_set_button.clicked.connect(
+            partial(self.auto_set_joint_root)
+        )
         self.file_name_lineedit.textChanged.connect(self.normalize_name)
         self.file_path_set_button.clicked.connect(self.set_folder_path)
-        self.export_skeletal_geo_button.clicked.connect(self.export_skeletal_mesh)
+        self.export_skeletal_geo_button.clicked.connect(
+            self.export_skeletal_mesh
+        )
 
         self.ue_file_path_set_button.clicked.connect(self.set_ue_folder_path)
         self.use_partitions_checkbox.toggled.connect(self.set_use_partitions)
-        self.skeletal_mesh_partition_add_button.clicked.connect(self.add_skeletal_mesh_partition)
-        self.skeletal_mesh_partition_remove_button.clicked.connect(self.remove_skeletal_mesh_partition)
-        self.skeletal_mesh_partitions_outliner.itemEnabledChanged.connect(self.partition_item_enabled_changed)
-        self.skeletal_mesh_partitions_outliner.itemAddNode.connect(self.partition_item_add_skeletal_mesh)
-        self.skeletal_mesh_partitions_outliner.itemRenamed.connect(self.partition_item_renamed)
-        self.skeletal_mesh_partitions_outliner.itemRemoved.connect(self.partition_skeletal_mesh_removed)
-        self.skeletal_mesh_partitions_outliner.droppedItems.connect(self.partition_items_dropped)
-        self.export_animations_button.clicked.connect(self.export_animation_clips)
+        self.skeletal_mesh_partition_add_button.clicked.connect(
+            self.add_skeletal_mesh_partition
+        )
+        self.skeletal_mesh_partition_remove_button.clicked.connect(
+            self.remove_skeletal_mesh_partition
+        )
+        self.skeletal_mesh_partitions_outliner.itemEnabledChanged.connect(
+            self.partition_item_enabled_changed
+        )
+        self.skeletal_mesh_partitions_outliner.itemAddNode.connect(
+            self.partition_item_add_skeletal_mesh
+        )
+        self.skeletal_mesh_partitions_outliner.itemRenamed.connect(
+            self.partition_item_renamed
+        )
+        self.skeletal_mesh_partitions_outliner.itemRemoved.connect(
+            self.partition_skeletal_mesh_removed
+        )
+        self.skeletal_mesh_partitions_outliner.droppedItems.connect(
+            self.partition_items_dropped
+        )
+        self.export_animations_button.clicked.connect(
+            self.export_animation_clips
+        )
 
     # functions
 
@@ -421,21 +541,29 @@ class FBXExport(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         fbx_export_file_paths = pfbx.get_fbx_export_presets()
         for fbx_export_file_path in fbx_export_file_paths:
             fbx_export_file_name = os.path.basename(fbx_export_file_path)
-            fbx_export_base_file_name, _ = os.path.splitext(fbx_export_file_name)
-            combobox.addItem(fbx_export_base_file_name, userData=fbx_export_file_path)
+            fbx_export_base_file_name, _ = os.path.splitext(
+                fbx_export_file_name
+            )
+            combobox.addItem(
+                fbx_export_base_file_name, userData=fbx_export_file_path
+            )
 
         # Force user defined as the default preset
-        combobox.setCurrentText('User defined')
+        combobox.setCurrentText("User defined")
 
     def populate_fbx_import_presets_combobox(self, combobox):
         fbx_import_file_paths = pfbx.get_fbx_import_presets()
         for fbx_import_file_path in fbx_import_file_paths:
             fbx_export_file_name = os.path.basename(fbx_import_file_path)
-            fbx_export_base_file_name, _ = os.path.splitext(fbx_export_file_name)
-            combobox.addItem(fbx_export_base_file_name, userData=fbx_import_file_path)
+            fbx_export_base_file_name, _ = os.path.splitext(
+                fbx_export_file_name
+            )
+            combobox.addItem(
+                fbx_export_base_file_name, userData=fbx_import_file_path
+            )
 
         # Force user defined as the default preset
-        combobox.setCurrentText('User defined')
+        combobox.setCurrentText("User defined")
 
     def set_folder_path(self):
         folder_path = pm.fileDialog2(fileMode=3)
@@ -446,7 +574,9 @@ class FBXExport(MayaQWidgetDockableMixin, QtWidgets.QDialog):
 
     def set_fbx_sdk_path(self):
         current_fbx_sdk_path = pfbx.get_fbx_sdk_path()
-        fbx_sdk_path = pm.fileDialog2(fileMode=3, startingDirectory=current_fbx_sdk_path)
+        fbx_sdk_path = pm.fileDialog2(
+            fileMode=3, startingDirectory=current_fbx_sdk_path
+        )
         if fbx_sdk_path:
             pfbx.set_fbx_skd_path(fbx_sdk_path[0], user=True)
 
@@ -462,7 +592,9 @@ class FBXExport(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         if not fbx_sdk_path or not os.path.isdir(fbx_sdk_path):
             self.fbx_sdk_path_action.setText("Python FBX SDK: Not set")
         else:
-            self.fbx_sdk_path_action.setText("Python FBX SDK: {}".format(fbx_sdk_path))
+            self.fbx_sdk_path_action.setText(
+                "Python FBX SDK: {}".format(fbx_sdk_path)
+            )
 
     def refresh_ue_connection(self):
         # TODO: Uncomment
@@ -470,7 +602,9 @@ class FBXExport(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         is_available = False
         self.ue_import_collap_wgt.setEnabled(is_available)
         if not is_available:
-            cmds.warning('Unreal Engine Import functionality not available. Run Unreal Engine and load ueGear plugin.')
+            cmds.warning(
+                "Unreal Engine Import functionality not available. Run Unreal Engine and load ueGear plugin."
+            )
             self.ue_import_cbx.setChecked(False)
 
     def update_settings(self):
@@ -484,32 +618,49 @@ class FBXExport(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         if not self._settings:
             return False
 
-        self._settings.beginGroup('settings')
-        self._settings.setValue('up axis', self.up_axis_combobox.currentText())
-        self._settings.setValue('file type', self.file_type_combobox.currentText())
-        self._settings.setValue('fbx version', self.fbx_version_combobox.currentText())
-        self._settings.setValue('export preset', self.fbx_export_presets_combobox.currentText())
+        self._settings.beginGroup("settings")
+        self._settings.setValue("up axis", self.up_axis_combobox.currentText())
+        self._settings.setValue(
+            "file type", self.file_type_combobox.currentText()
+        )
+        self._settings.setValue(
+            "fbx version", self.fbx_version_combobox.currentText()
+        )
+        self._settings.setValue(
+            "export preset", self.fbx_export_presets_combobox.currentText()
+        )
         self._settings.endGroup()
 
-        self._settings.beginGroup('sdk settings')
-        self._settings.setValue('remove namespace', self.remove_namespace_checkbox.isChecked())
-        self._settings.setValue('clean up scene', self.clean_scene_checkbox.isChecked())
+        self._settings.beginGroup("sdk settings")
+        self._settings.setValue(
+            "remove namespace", self.remove_namespace_checkbox.isChecked()
+        )
+        self._settings.setValue(
+            "clean up scene", self.clean_scene_checkbox.isChecked()
+        )
         self._settings.endGroup()
 
-        self._settings.beginGroup('file path')
-        self._settings.setValue('path', self.file_path_lineedit.text())
-        self._settings.setValue('file name', self.file_name_lineedit.text())
+        self._settings.beginGroup("file path")
+        self._settings.setValue("path", self.file_path_lineedit.text())
+        self._settings.setValue("file name", self.file_name_lineedit.text())
         self._settings.endGroup()
 
-        self._settings.beginGroup('unreal engine')
-        self._settings.setValue('enable', self.ue_import_cbx.isChecked())
-        self._settings.setValue('path', self.ue_file_path_lineedit.text())
+        self._settings.beginGroup("unreal engine")
+        self._settings.setValue("enable", self.ue_import_cbx.isChecked())
+        self._settings.setValue("path", self.ue_file_path_lineedit.text())
         self._settings.endGroup()
 
-        self._settings.beginGroup('export')
-        self._settings.setValue('skeletal mesh/skinning', self.skinning_checkbox.isChecked())
-        self._settings.setValue('skeletal mesh/blendshapes', self.blendshapes_checkbox.isChecked())
-        self._settings.setValue('skeletal mesh/use partitions', self.use_partitions_checkbox.isChecked())
+        self._settings.beginGroup("export")
+        self._settings.setValue(
+            "skeletal mesh/skinning", self.skinning_checkbox.isChecked()
+        )
+        self._settings.setValue(
+            "skeletal mesh/blendshapes", self.blendshapes_checkbox.isChecked()
+        )
+        self._settings.setValue(
+            "skeletal mesh/use partitions",
+            self.use_partitions_checkbox.isChecked(),
+        )
         self._settings.endGroup()
 
         return True
@@ -520,31 +671,65 @@ class FBXExport(MayaQWidgetDockableMixin, QtWidgets.QDialog):
 
         self.update_settings()
 
-        self.up_axis_combobox.setCurrentText(self._settings.value('settings/up axis', '', str))
-        self.file_type_combobox.setCurrentText(self._settings.value('settings/file type', '', str))
-        self.fbx_version_combobox.setCurrentText(self._settings.value('settings/fbx version', '', str))
-        self.fbx_export_presets_combobox.setCurrentText(self._settings.value('settings/export preset', '', str))
+        self.up_axis_combobox.setCurrentText(
+            self._settings.value("settings/up axis", "", str)
+        )
+        self.file_type_combobox.setCurrentText(
+            self._settings.value("settings/file type", "", str)
+        )
+        self.fbx_version_combobox.setCurrentText(
+            self._settings.value("settings/fbx version", "", str)
+        )
+        self.fbx_export_presets_combobox.setCurrentText(
+            self._settings.value("settings/export preset", "", str)
+        )
 
-        self.remove_namespace_checkbox.setChecked(self._settings.value('sdk settings/remove namespace', True, bool))
-        self.clean_scene_checkbox.setChecked(self._settings.value('sdk settings/clean up scene', True, bool))
+        self.remove_namespace_checkbox.setChecked(
+            self._settings.value("sdk settings/remove namespace", True, bool)
+        )
+        self.clean_scene_checkbox.setChecked(
+            self._settings.value("sdk settings/clean up scene", True, bool)
+        )
 
-        self.file_path_lineedit.setText(self._settings.value('file path/path', '', str))
-        self.file_name_lineedit.setText(self._settings.value('file path/file name', '', str))
+        self.file_path_lineedit.setText(
+            self._settings.value("file path/path", "", str)
+        )
+        self.file_name_lineedit.setText(
+            self._settings.value("file path/file name", "", str)
+        )
 
-        self.ue_import_cbx.setChecked(self._settings.value('unreal engine/enable', False, bool))
-        self.ue_file_path_lineedit.setText(self._settings.value('unreal engine/path', '', str))
+        self.ue_import_cbx.setChecked(
+            self._settings.value("unreal engine/enable", False, bool)
+        )
+        self.ue_file_path_lineedit.setText(
+            self._settings.value("unreal engine/path", "", str)
+        )
 
-        self.skinning_checkbox.setChecked(self._settings.value('export/skeletal mesh/skinning', True, bool))
-        self.blendshapes_checkbox.setChecked(self._settings.value('export/skeletal mesh/blendshapes', True, bool))
-        self.use_partitions_checkbox.setChecked(self._settings.value('export/skeletal mesh/use partitions', True, bool))
+        self.skinning_checkbox.setChecked(
+            self._settings.value("export/skeletal mesh/skinning", True, bool)
+        )
+        self.blendshapes_checkbox.setChecked(
+            self._settings.value(
+                "export/skeletal mesh/blendshapes", True, bool
+            )
+        )
+        self.use_partitions_checkbox.setChecked(
+            self._settings.value(
+                "export/skeletal mesh/use partitions", True, bool
+            )
+        )
 
         return True
 
     def set_ue_folder_path(self):
         content_folder = uegear.content_project_directory()
-        folder_path = cmds.fileDialog2(fileMode=3, startingDirectory=content_folder)
+        folder_path = cmds.fileDialog2(
+            fileMode=3, startingDirectory=content_folder
+        )
         if folder_path:
-            self.ue_file_path_lineedit.setText(string.normalize_path(folder_path[0]))
+            self.ue_file_path_lineedit.setText(
+                string.normalize_path(folder_path[0])
+            )
 
     def set_use_partitions(self, flag):
         self.skeletal_mesh_partitions_outliner.setEnabled(flag)
@@ -556,7 +741,12 @@ class FBXExport(MayaQWidgetDockableMixin, QtWidgets.QDialog):
 
         export_node = fu.FbxExportNode.get() or fu.FbxExportNode.create()
         name, ok = QtWidgets.QInputDialog.getText(
-            self, 'New Partition', 'New Partition', QtWidgets.QLineEdit.Normal, 'New Partition')
+            self,
+            "New Partition",
+            "New Partition",
+            QtWidgets.QLineEdit.Normal,
+            "New Partition",
+        )
         if not ok or not name:
             return
         result = export_node.add_new_skeletal_mesh_partition(name, list())
@@ -567,7 +757,9 @@ class FBXExport(MayaQWidgetDockableMixin, QtWidgets.QDialog):
 
     def remove_skeletal_mesh_partition(self):
 
-        selected_partition_items = self.skeletal_mesh_partitions_outliner.selectedItems()
+        selected_partition_items = (
+            self.skeletal_mesh_partitions_outliner.selectedItems()
+        )
         if not selected_partition_items:
             return
 
@@ -576,9 +768,14 @@ class FBXExport(MayaQWidgetDockableMixin, QtWidgets.QDialog):
                 return
 
         response = cmds.confirmDialog(
-            title='Confirm', message='Confirm Deletion',
-            button=['Yes', 'No'], defaultButton='Yes', cancelButton='No', dismissString='No')
-        if response == 'Yes':
+            title="Confirm",
+            message="Confirm Deletion",
+            button=["Yes", "No"],
+            defaultButton="Yes",
+            cancelButton="No",
+            dismissString="No",
+        )
+        if response == "Yes":
             for selected_partition_item in selected_partition_items:
                 selected_partition_item.delete_node()
 
@@ -591,7 +788,9 @@ class FBXExport(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         if not export_node:
             return
 
-        export_node.set_partition_enabled(item.node.node_name, item.is_enabled())
+        export_node.set_partition_enabled(
+            item.node.node_name, item.is_enabled()
+        )
 
     def partition_item_add_skeletal_mesh(self, item):
 
@@ -602,10 +801,16 @@ class FBXExport(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         if not export_node:
             return
 
-        transforms = cmds.ls(sl=True, long=True, type='transform')
-        meshes = [child for child in transforms if cmds.listRelatives(child, shapes=True)]
+        transforms = cmds.ls(sl=True, long=True, type="transform")
+        meshes = [
+            child
+            for child in transforms
+            if cmds.listRelatives(child, shapes=True)
+        ]
 
-        export_node.add_skeletal_meshes_to_partition(item.node.node_name, meshes)
+        export_node.add_skeletal_meshes_to_partition(
+            item.node.node_name, meshes
+        )
 
         self.skeletal_mesh_partitions_outliner.reset_contents()
 
@@ -629,11 +834,15 @@ class FBXExport(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         if not export_node:
             return
 
-        export_node.delete_skeletal_mesh_from_partition(parent_name, removed_name)
+        export_node.delete_skeletal_mesh_from_partition(
+            parent_name, removed_name
+        )
 
         self.skeletal_mesh_partitions_outliner.reset_contents()
 
-    def partition_items_dropped(self, parent_item, dropped_items, duplicate=False):
+    def partition_items_dropped(
+        self, parent_item, dropped_items, duplicate=False
+    ):
 
         if not parent_item or not dropped_items:
             return
@@ -649,35 +858,42 @@ class FBXExport(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         if not duplicate:
             # remove items from their old partitions
             for item in valid_items:
-                export_node.delete_skeletal_mesh_from_partition(item.parent().node.node_name, item.node.node_name)
+                export_node.delete_skeletal_mesh_from_partition(
+                    item.parent().node.node_name, item.node.node_name
+                )
 
         # add items to new partition
         meshes_names = [item.node.node_name for item in valid_items]
-        export_node.add_skeletal_meshes_to_partition(parent_item.node.node_name, meshes_names)
+        export_node.add_skeletal_meshes_to_partition(
+            parent_item.node.node_name, meshes_names
+        )
 
     def export_skeletal_mesh(self):
 
-        print('----- Exporting Skeletal Meshes -----')
+        print("----- Exporting Skeletal Meshes -----")
 
         # force creation of the export node
         fu.FbxExportNode.get() or fu.FbxExportNode.create()
 
-        geo_roots = [self.geo_root_list.item(i).text() for i in range(self.geo_root_list.count())]
+        geo_roots = [
+            self.geo_root_list.item(i).text()
+            for i in range(self.geo_root_list.count())
+        ]
         if not geo_roots:
-            cmds.warning('No geo roots defined!')
+            cmds.warning("No geo roots defined!")
             return False
         jnt_root = self.joint_root_lineedit.text().split(",")
         if not jnt_root[0]:
-            cmds.warning('No Joint Root defined!')
+            cmds.warning("No Joint Root defined!")
             return False
-        print('\t>>> Geo Roots: {}'.format(geo_roots))
-        print('\t>>> Joint Root: {}'.format(jnt_root))
+        print("\t>>> Geo Roots: {}".format(geo_roots))
+        print("\t>>> Joint Root: {}".format(jnt_root))
 
         self.auto_file_path()
         file_path = self.file_path_lineedit.text()
         file_name = self.file_name_lineedit.text()
         if not file_path or not file_name:
-            cmds.warning('Not valid file path and name defined!')
+            cmds.warning("Not valid file path and name defined!")
             return False
 
         partitions = dict()
@@ -686,55 +902,59 @@ class FBXExport(MayaQWidgetDockableMixin, QtWidgets.QDialog):
 
             # Master partition data is retrieved from UI
             # TODO: Should we store master data within FbxExporterNode too?
-            master_partition = self.skeletal_mesh_partitions_outliner.get_master_partition()
+            master_partition = (
+                self.skeletal_mesh_partitions_outliner.get_master_partition()
+            )
 
             export_nodes = fu.FbxExportNode.find()
             if not export_nodes:
-                cmds.warning('No export nodes found within scene!')
+                cmds.warning("No export nodes found within scene!")
                 return False
             if len(export_nodes) > 2:
                 cmds.warning(
-                    'Multiple FBX Export nodes found in scene. Using first one found: "{}"'.format(export_nodes[0]))
+                    'Multiple FBX Export nodes found in scene. Using first one found: "{}"'.format(
+                        export_nodes[0]
+                    )
+                )
             found_partitions = dict()
             found_partitions.update(master_partition)
             found_partitions.update(export_nodes[0].get_partitions())
             for partition_name, partition_data in found_partitions.items():
-                enabled = partition_data.get('enabled', True)
-                skeletal_meshes = partition_data.get('skeletalMeshes', list())
+                enabled = partition_data.get("enabled", True)
+                skeletal_meshes = partition_data.get("skeletalMeshes", list())
                 if not enabled or not skeletal_meshes:
                     continue
                 partitions[partition_name] = skeletal_meshes
-            print('\t>>> Partitions: {}'.format(partitions))
+            print("\t>>> Partitions: {}".format(partitions))
 
         current_export_preset = self.fbx_export_presets_combobox.currentText()
-        preset_file_path = ''
-        if current_export_preset and current_export_preset != 'User defined':
+        preset_file_path = ""
+        if current_export_preset and current_export_preset != "User defined":
             preset_file_path = self.fbx_export_presets_combobox.itemData(
-                self.fbx_export_presets_combobox.currentIndex())
-        print('\t>>> Preset File Path: {}'.format(preset_file_path))
+                self.fbx_export_presets_combobox.currentIndex()
+            )
+        print("\t>>> Preset File Path: {}".format(preset_file_path))
 
         # retrieve export config
         export_config = {
-            'up_axis': self.up_axis_combobox.currentText(),
-            'file_type': self.file_type_combobox.currentText(),
-            'fbx_version': self.fbx_version_combobox.currentText(),
-            'remove_namespace': self.remove_namespace_checkbox.isChecked(),
-            'scene_clean': self.clean_scene_checkbox.isChecked(),
-            'use_partitions': use_partitions,
-            'file_name': file_name,
-            'file_path': file_path,
-            'skinning': self.skinning_checkbox.isChecked(),
-            'blendshapes': self.blendshapes_checkbox.isChecked(),
-            'partitions': partitions
+            "up_axis": self.up_axis_combobox.currentText(),
+            "file_type": self.file_type_combobox.currentText(),
+            "fbx_version": self.fbx_version_combobox.currentText(),
+            "remove_namespace": self.remove_namespace_checkbox.isChecked(),
+            "scene_clean": self.clean_scene_checkbox.isChecked(),
+            "use_partitions": use_partitions,
+            "file_name": file_name,
+            "file_path": file_path,
+            "skinning": self.skinning_checkbox.isChecked(),
+            "blendshapes": self.blendshapes_checkbox.isChecked(),
+            "partitions": partitions,
         }
 
-        result = fu.export_skeletal_mesh(
-            jnt_root,
-            geo_roots,
-            **export_config
-        )
+        result = fu.export_skeletal_mesh(jnt_root, geo_roots, **export_config)
         if not result:
-            cmds.warning('Something went wrong while exporting Skeletal Mesh/es')
+            cmds.warning(
+                "Something went wrong while exporting Skeletal Mesh/es"
+            )
             return False
 
         # # automatically import FBX into Unreal if necessary
@@ -760,46 +980,50 @@ class FBXExport(MayaQWidgetDockableMixin, QtWidgets.QDialog):
 
     def export_animation_clips(self):
 
-        print('----- Exporting Animation Clips -----')
+        print("----- Exporting Animation Clips -----")
 
-        jnt_root = self.joint_root_lineedit.text().split(',')
+        jnt_root = self.joint_root_lineedit.text().split(",")
         if not jnt_root[0]:
-            cmds.warning('No Joint Root defined')
+            cmds.warning("No Joint Root defined")
             return False
         jnt_root = jnt_root[0]
-        print('\t>>> Joint Root: {}'.format(jnt_root))
+        print("\t>>> Joint Root: {}".format(jnt_root))
 
         self.auto_file_path()
         file_path = self.file_path_lineedit.text()
         file_name = self.file_name_lineedit.text()
         if not file_path or not file_name:
-            cmds.warning('Not valid file path and name defined!')
+            cmds.warning("Not valid file path and name defined!")
             return False
 
         current_export_preset = self.fbx_export_presets_combobox.currentText()
-        preset_file_path = ''
-        if current_export_preset and current_export_preset != 'User defined':
+        preset_file_path = ""
+        if current_export_preset and current_export_preset != "User defined":
             preset_file_path = self.fbx_export_presets_combobox.itemData(
-                self.fbx_export_presets_combobox.currentIndex())
-        print('\t>>> Preset File Path: {}'.format(preset_file_path))
+                self.fbx_export_presets_combobox.currentIndex()
+            )
+        print("\t>>> Preset File Path: {}".format(preset_file_path))
 
         export_nodes = fu.FbxExportNode.find()
         if not export_nodes:
             return False
         if len(export_nodes) > 2:
             cmds.warning(
-                'Multiple FBX Export nodes found in scene. Using first one found: "{}"'.format(export_nodes[0]))
+                'Multiple FBX Export nodes found in scene. Using first one found: "{}"'.format(
+                    export_nodes[0]
+                )
+            )
         export_node = export_nodes[0]
 
         # retrieve export config
         base_export_config = {
-            'up_axis': self.up_axis_combobox.currentText(),
-            'file_type': self.file_type_combobox.currentText(),
-            'fbx_version': self.fbx_version_combobox.currentText(),
-            'remove_namespace': self.remove_namespace_checkbox.isChecked(),
-            'scene_clean': self.clean_scene_checkbox.isChecked(),
-            'file_name': file_name,
-            'file_path': file_path
+            "up_axis": self.up_axis_combobox.currentText(),
+            "file_type": self.file_type_combobox.currentText(),
+            "fbx_version": self.fbx_version_combobox.currentText(),
+            "remove_namespace": self.remove_namespace_checkbox.isChecked(),
+            "scene_clean": self.clean_scene_checkbox.isChecked(),
+            "file_name": file_name,
+            "file_path": file_path,
         }
 
         for anim_clip_data in export_node.get_animation_clips(jnt_root):
@@ -837,7 +1061,11 @@ class FBXExport(MayaQWidgetDockableMixin, QtWidgets.QDialog):
                 self.geo_root_list.addItem(g_root.name())
 
         self.skeletal_mesh_partitions_outliner.set_geo_roots(
-            [self.geo_root_list.item(i).text() for i in range(self.geo_root_list.count())])
+            [
+                self.geo_root_list.item(i).text()
+                for i in range(self.geo_root_list.count())
+            ]
+        )
 
     def auto_set_joint_root(self):
         j_roots = fu.get_joint_root() or list()
@@ -884,7 +1112,9 @@ class FBXExport(MayaQWidgetDockableMixin, QtWidgets.QDialog):
                 sel_type = sel[0].type()
                 if not type_filter == sel_type:
                     pm.displayWarning(
-                        "Selected element is not of type: {}".format(type_filter)
+                        "Selected element is not of type: {}".format(
+                            type_filter
+                        )
                     )
                     continue
             filter_sel.append(node.name())
@@ -902,7 +1132,7 @@ class FBXExport(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         text = self.filter_sel_by_type(type_filter)
         if text:
             lieneedit.setText(text[0])
-        if type_filter == 'joint':
+        if type_filter == "joint":
             self.animation_clips_list_widget.refresh()
 
     def set_list_items_from_sel(self, listwidget, type_filter):
@@ -921,7 +1151,8 @@ class FBXExport(MayaQWidgetDockableMixin, QtWidgets.QDialog):
 
         if listwidget == self.geo_root_list:
             self.skeletal_mesh_partitions_outliner.set_geo_roots(
-                [listwidget.item(i).text() for i in range(listwidget.count())])
+                [listwidget.item(i).text() for i in range(listwidget.count())]
+            )
 
     def add_list_items_from_sel(self, listwidget, type_filter):
         """Adds list widget items from selected element filtered by type
@@ -932,7 +1163,9 @@ class FBXExport(MayaQWidgetDockableMixin, QtWidgets.QDialog):
                                or "transform"
         """
 
-        item_names = [listwidget.item(i).text() for i in range(listwidget.count())]
+        item_names = [
+            listwidget.item(i).text() for i in range(listwidget.count())
+        ]
         node_names = self.filter_sel_by_type(type_filter)
         for node_name in node_names:
             if node_name in item_names:
@@ -941,7 +1174,8 @@ class FBXExport(MayaQWidgetDockableMixin, QtWidgets.QDialog):
 
         if listwidget == self.geo_root_list:
             self.skeletal_mesh_partitions_outliner.set_geo_roots(
-                [listwidget.item(i).text() for i in range(listwidget.count())])
+                [listwidget.item(i).text() for i in range(listwidget.count())]
+            )
 
     def remove_list_items_from_sel(self, listwidget):
         """Removes list widget items from selected list items
@@ -956,14 +1190,29 @@ class FBXExport(MayaQWidgetDockableMixin, QtWidgets.QDialog):
 
         if listwidget == self.geo_root_list:
             self.skeletal_mesh_partitions_outliner.set_geo_roots(
-                [listwidget.item(i).text() for i in range(listwidget.count())])
+                [listwidget.item(i).text() for i in range(listwidget.count())]
+            )
 
 
 class PartitionNodeClass(fuw.NodeClass):
-    def __init__(self, node_name, node_type, is_root, icon, enabled, network_enabled, is_master=False):
+    def __init__(
+        self,
+        node_name,
+        node_type,
+        is_root,
+        icon,
+        enabled,
+        network_enabled,
+        is_master=False,
+    ):
         super(PartitionNodeClass, self).__init__(
-            node_name=node_name, node_type=node_type, is_root=is_root, icon=icon, enabled=enabled,
-            network_enabled=network_enabled)
+            node_name=node_name,
+            node_type=node_type,
+            is_root=is_root,
+            icon=icon,
+            enabled=enabled,
+            network_enabled=network_enabled,
+        )
 
         self._is_master = is_master
 
@@ -977,9 +1226,10 @@ class PartitionNodeClass(fuw.NodeClass):
 
 
 class PartitionTreeItem(fuw.TreeItem):
-
     def __init__(self, node, header, show_enabled, parent=None):
-        super(PartitionTreeItem, self).__init__(node=node, header=header, show_enabled=show_enabled, parent=parent)
+        super(PartitionTreeItem, self).__init__(
+            node=node, header=header, show_enabled=show_enabled, parent=parent
+        )
 
     def is_master(self):
         return self.node.is_master
@@ -1029,13 +1279,15 @@ class PartitionsTreeView(fuw.OutlinerTreeView):
 
     def get_master_partition(self):
         master_partition = dict()
-        master_partition['Master'] = {'enabled': True, 'skeletalMeshes': []}
+        master_partition["Master"] = {"enabled": True, "skeletalMeshes": []}
         if not self._master_item:
             return master_partition
 
         for i in range(self._master_item.childCount()):
             item = self._master_item.child(i)
-            master_partition['Master']['skeletalMeshes'].append(item.get_name())
+            master_partition["Master"]["skeletalMeshes"].append(
+                item.get_name()
+            )
 
         return master_partition
 
@@ -1045,7 +1297,11 @@ class PartitionsTreeView(fuw.OutlinerTreeView):
         if not export_nodes:
             return dict()
         if len(export_nodes) > 2:
-            cmds.warning('Multiple FBX Export nodes found in scene. Using first one found: "{}"'.format(export_nodes[0]))
+            cmds.warning(
+                'Multiple FBX Export nodes found in scene. Using first one found: "{}"'.format(
+                    export_nodes[0]
+                )
+            )
 
         return export_nodes[0].get_partitions()
 
@@ -1055,18 +1311,30 @@ class PartitionsTreeView(fuw.OutlinerTreeView):
             self.cleanup()
 
         self._master_item = self._create_master_root_item()
-        self._master_item.setFlags(self._master_item.flags() | QtCore.Qt.ItemIsEditable | QtCore.Qt.ItemIsDropEnabled)
-        self._master_item.setFlags(self._master_item.flags() & ~QtCore.Qt.ItemIsDragEnabled)
+        self._master_item.setFlags(
+            self._master_item.flags()
+            | QtCore.Qt.ItemIsEditable
+            | QtCore.Qt.ItemIsDropEnabled
+        )
+        self._master_item.setFlags(
+            self._master_item.flags() & ~QtCore.Qt.ItemIsDragEnabled
+        )
         self.addTopLevelItem(self._master_item)
 
         all_items = self.find_items()
 
         for item_name, item_data in all_items.items():
             root_item = self._create_root_item(item_name)
-            root_item.setFlags(root_item.flags() | QtCore.Qt.ItemIsEditable | QtCore.Qt.ItemIsDropEnabled)
-            root_item.setFlags(root_item.flags() & ~QtCore.Qt.ItemIsDragEnabled)
+            root_item.setFlags(
+                root_item.flags()
+                | QtCore.Qt.ItemIsEditable
+                | QtCore.Qt.ItemIsDropEnabled
+            )
+            root_item.setFlags(
+                root_item.flags() & ~QtCore.Qt.ItemIsDragEnabled
+            )
             self.addTopLevelItem(root_item)
-            child_items = item_data.get('skeletalMeshes', list())
+            child_items = item_data.get("skeletalMeshes", list())
             for child_node in child_items:
                 child = self._add_partition_item(child_node, root_item)
                 child.setFlags(child.flags() | QtCore.Qt.ItemIsEditable)
@@ -1074,8 +1342,8 @@ class PartitionsTreeView(fuw.OutlinerTreeView):
                 root_item.addChild(child)
                 if add_callbacks:
                     pass
-            enabled = item_data.get('enabled', True)
-            color = item_data.get('color', None)
+            enabled = item_data.get("enabled", True)
+            color = item_data.get("color", None)
             if not enabled:
                 root_item.set_enabled()
             if color is not None:
@@ -1093,25 +1361,34 @@ class PartitionsTreeView(fuw.OutlinerTreeView):
 
     def _create_master_root_item(self):
 
-        node_icon = pyqt.get_icon('mgear_package')
-        root_node = self.NODE_CLASS('Master', 'Root', True, node_icon, True, True, is_master=True)
+        node_icon = pyqt.get_icon("mgear_package")
+        root_node = self.NODE_CLASS(
+            "Master", "Root", True, node_icon, True, True, is_master=True
+        )
         root_node.can_be_disabled = False
         root_node.can_be_deleted = False
         root_node.can_add_children = False
         root_node.can_be_duplicated = False
 
-        item = self.TREE_ITEM_CLASS(root_node, 'Master', True, parent=self)
+        item = self.TREE_ITEM_CLASS(root_node, "Master", True, parent=self)
 
         return item
 
     def _add_master_partition_item(self, node, partition_item):
 
-        node_icon = pyqt.get_icon('mgear_box')
-        item_node = self.NODE_CLASS(node, 'Geometry', False, node_icon, True, partition_item.node.network_enabled)
+        node_icon = pyqt.get_icon("mgear_box")
+        item_node = self.NODE_CLASS(
+            node,
+            "Geometry",
+            False,
+            node_icon,
+            True,
+            partition_item.node.network_enabled,
+        )
         item_node.can_be_disabled = False
         item_node.can_be_deleted = False
 
-        item = self.TREE_ITEM_CLASS(item_node, '', True, partition_item)
+        item = self.TREE_ITEM_CLASS(item_node, "", True, partition_item)
 
         return item
 
@@ -1121,8 +1398,20 @@ class PartitionsTreeView(fuw.OutlinerTreeView):
 
         found_meshes = list()
         for geo_root in self._geo_roots:
-            children = cmds.listRelatives(geo_root, allDescendents=True, fullPath=True, type='transform') or list()
-            meshes = [child for child in children if cmds.listRelatives(child, shapes=True) or list()]
+            children = (
+                cmds.listRelatives(
+                    geo_root,
+                    allDescendents=True,
+                    fullPath=True,
+                    type="transform",
+                )
+                or list()
+            )
+            meshes = [
+                child
+                for child in children
+                if cmds.listRelatives(child, shapes=True) or list()
+            ]
             found_meshes.extend(meshes)
         if not found_meshes:
             return
@@ -1139,8 +1428,14 @@ class PartitionsTreeView(fuw.OutlinerTreeView):
         for found_mesh in found_meshes:
             if found_mesh in partition_meshes:
                 continue
-            child = self._add_master_partition_item(found_mesh, self._master_item)
-            child.setFlags(child.flags() | QtCore.Qt.ItemIsEditable | QtCore.Qt.ItemIsDropEnabled)
+            child = self._add_master_partition_item(
+                found_mesh, self._master_item
+            )
+            child.setFlags(
+                child.flags()
+                | QtCore.Qt.ItemIsEditable
+                | QtCore.Qt.ItemIsDropEnabled
+            )
             self._master_item.addChild(child)
 
 
