@@ -28,8 +28,9 @@ def curvecns_op(crv, inputs=[]):
     for i, item in enumerate(inputs):
         node = pm.createNode("decomposeMatrix")
         pm.connectAttr(item + ".worldMatrix[0]", node + ".inputMatrix")
-        pm.connectAttr(node + ".outputTranslate",
-                       crv + ".controlPoints[%s]" % i)
+        pm.connectAttr(
+            node + ".outputTranslate", crv + ".controlPoints[%s]" % i
+        )
 
     return node
 
@@ -113,8 +114,9 @@ def oriCns(driver, driven, maintainOffset=False):
     """
     oriCns = pm.orientConstraint(driver, driven, maintainOffset=maintainOffset)
     for axis in "XYZ":
-        pm.disconnectAttr(oriCns + ".constraintRotate" + axis,
-                          driven + ".rotate" + axis)
+        pm.disconnectAttr(
+            oriCns + ".constraintRotate" + axis, driven + ".rotate" + axis
+        )
     pm.connectAttr(oriCns + ".constraintRotate", driven + ".rotate", f=True)
 
     return oriCns
@@ -149,16 +151,19 @@ def pathCns(obj, curve, cnsType=False, u=0, tangent=False):
 
     return node
 
+
 # TODO: review function to make wupObject optional
 
 
-def aimCns(obj,
-           master,
-           axis="xy",
-           wupType="objectrotation",
-           wupVector=[0, 1, 0],
-           wupObject=None,
-           maintainOffset=False):
+def aimCns(
+    obj,
+    master,
+    axis="xy",
+    wupType="objectrotation",
+    wupVector=[0, 1, 0],
+    wupObject=None,
+    maintainOffset=False,
+):
     """Apply a direction constraint
 
     Arguments:
@@ -175,12 +180,14 @@ def aimCns(obj,
         pyNode: Newly created constraint.
 
     """
-    node = pm.aimConstraint(master,
-                            obj,
-                            worldUpType=wupType,
-                            worldUpVector=wupVector,
-                            worldUpObject=wupObject,
-                            maintainOffset=maintainOffset)
+    node = pm.aimConstraint(
+        master,
+        obj,
+        worldUpType=wupType,
+        worldUpVector=wupVector,
+        worldUpObject=wupObject,
+        maintainOffset=maintainOffset,
+    )
 
     if axis == "xy":
         a = [1, 0, 0, 0, 1, 0]
@@ -234,27 +241,30 @@ def aimCns(obj,
     elif axis == "-z-y":
         a = [0, 0, -1, 0, -1, 0]
 
-    for i, name in enumerate(["aimVectorX",
-                              "aimVectorY",
-                              "aimVectorZ",
-                              "upVectorX",
-                              "upVectorY",
-                              "upVectorZ"]):
+    for i, name in enumerate(
+        [
+            "aimVectorX",
+            "aimVectorY",
+            "aimVectorZ",
+            "upVectorX",
+            "upVectorY",
+            "upVectorZ",
+        ]
+    ):
 
         pm.setAttr(node + "." + name, a[i])
 
     return node
+
 
 #############################################
 # CUSTOM NODES
 #############################################
 
 
-def gear_raycast(in_mesh,
-                 ray_source,
-                 ray_direction,
-                 out_obj=None,
-                 connect_srt='t'):
+def gear_raycast(
+    in_mesh, ray_source, ray_direction, out_obj=None, connect_srt="t"
+):
     """Create and connect mraycast  node
 
     Args:
@@ -269,26 +279,27 @@ def gear_raycast(in_mesh,
     """
     node = pm.createNode("mgear_rayCastPosition")
     pm.connectAttr(
-        ray_source + ".worldMatrix[0]", node + ".raySource", force=True)
+        ray_source + ".worldMatrix[0]", node + ".raySource", force=True
+    )
     pm.connectAttr(
-        ray_direction + ".worldMatrix[0]", node + ".rayDirection", force=True)
-    pm.connectAttr(
-        in_mesh + ".outMesh", node + ".meshInput", force=True)
+        ray_direction + ".worldMatrix[0]", node + ".rayDirection", force=True
+    )
+    pm.connectAttr(in_mesh + ".outMesh", node + ".meshInput", force=True)
 
     if out_obj:
-        gear_matrix_cns(node.output,
-                        out_obj=out_obj,
-                        connect_srt=connect_srt)
+        gear_matrix_cns(node.output, out_obj=out_obj, connect_srt=connect_srt)
 
     return node
 
 
-def gear_matrix_cns(in_obj,
-                    out_obj=None,
-                    connect_srt='srt',
-                    rot_off=[0, 0, 0],
-                    rot_mult=[1, 1, 1],
-                    scl_mult=[1, 1, 1]):
+def gear_matrix_cns(
+    in_obj,
+    out_obj=None,
+    connect_srt="srt",
+    rot_off=[0, 0, 0],
+    rot_mult=[1, 1, 1],
+    scl_mult=[1, 1, 1],
+):
     """Create and connect matrix constraint node
 
     Args:
@@ -304,11 +315,11 @@ def gear_matrix_cns(in_obj,
     """
     node = pm.createNode("mgear_matrixConstraint")
     if isinstance(in_obj, pm.PyNode) and in_obj.type() == "matrix":
-        pm.connectAttr(
-            in_obj, node + ".driverMatrix", force=True)
+        pm.connectAttr(in_obj, node + ".driverMatrix", force=True)
     else:
         pm.connectAttr(
-            in_obj + ".worldMatrix[0]", node + ".driverMatrix", force=True)
+            in_obj + ".worldMatrix[0]", node + ".driverMatrix", force=True
+        )
 
     # setting rot and scl config
     node.driverRotationOffsetX.set(rot_off[0])
@@ -324,31 +335,28 @@ def gear_matrix_cns(in_obj,
     node.scaleMultZ.set(scl_mult[2])
 
     if out_obj:
-        pm.connectAttr(out_obj + ".parentInverseMatrix[0]",
-                       node + ".drivenParentInverseMatrix", force=True)
+        pm.connectAttr(
+            out_obj + ".parentInverseMatrix[0]",
+            node + ".drivenParentInverseMatrix",
+            force=True,
+        )
 
         # calculate rest pose
         # we use the  outputDriverOffsetMatrix to have in account the offset
         # rotation when the rest pose is calculated
-        driver_m = om.MMatrix(pm.getAttr(
-            node + ".outputDriverOffsetMatrix"))
-        driven_m = om.MMatrix(pm.getAttr(
-            out_obj + ".parentInverseMatrix[0]"))
+        driver_m = om.MMatrix(pm.getAttr(node + ".outputDriverOffsetMatrix"))
+        driven_m = om.MMatrix(pm.getAttr(out_obj + ".parentInverseMatrix[0]"))
         mult = driver_m * driven_m
         pm.setAttr(node + ".drivenRestMatrix", mult, type="matrix")
 
         # connect srt (scale, rotation, translation)
-        if 't' in connect_srt:
-            pm.connectAttr(node.translate,
-                           out_obj.attr("translate"), f=True)
-        if 'r' in connect_srt:
-            pm.connectAttr(node.rotate,
-                           out_obj.attr("rotate"), f=True)
-        if 's' in connect_srt:
-            pm.connectAttr(node.scale,
-                           out_obj.attr("scale"), f=True)
-            pm.connectAttr(node.shear,
-                           out_obj.attr("shear"), f=True)
+        if "t" in connect_srt:
+            pm.connectAttr(node.translate, out_obj.attr("translate"), f=True)
+        if "r" in connect_srt:
+            pm.connectAttr(node.rotate, out_obj.attr("rotate"), f=True)
+        if "s" in connect_srt:
+            pm.connectAttr(node.scale, out_obj.attr("scale"), f=True)
+            pm.connectAttr(node.shear, out_obj.attr("shear"), f=True)
 
     return node
 
@@ -391,7 +399,7 @@ def gear_spring_op(in_obj, goal=False):
     return node
 
 
-def gear_mulmatrix_op(mA, mB, target=False, transform='srt'):
+def gear_mulmatrix_op(mA, mB, target=False, transform="srt"):
     """Create mGear multiply Matrix node.
 
     Note:
@@ -410,7 +418,7 @@ def gear_mulmatrix_op(mA, mB, target=False, transform='srt'):
 
     """
     node = pm.createNode("mgear_mulMatrix")
-    for m, mi in zip([mA, mB], ['matrixA', 'matrixB']):
+    for m, mi in zip([mA, mB], ["matrixA", "matrixB"]):
         if isinstance(m, datatypes.Matrix):
             pm.setAttr(node.attr(mi), m)
         else:
@@ -418,15 +426,18 @@ def gear_mulmatrix_op(mA, mB, target=False, transform='srt'):
     if target:
         dm_node = pm.createNode("decomposeMatrix")
         pm.connectAttr(node + ".output", dm_node + ".inputMatrix")
-        if 't' in transform:
-            pm.connectAttr(dm_node + ".outputTranslate",
-                           target.attr("translate"), f=True)
-        if 'r' in transform:
-            pm.connectAttr(dm_node + ".outputRotate",
-                           target.attr("rotate"), f=True)
-        if 's' in transform:
-            pm.connectAttr(dm_node + ".outputScale",
-                           target.attr("scale"), f=True)
+        if "t" in transform:
+            pm.connectAttr(
+                dm_node + ".outputTranslate", target.attr("translate"), f=True
+            )
+        if "r" in transform:
+            pm.connectAttr(
+                dm_node + ".outputRotate", target.attr("rotate"), f=True
+            )
+        if "s" in transform:
+            pm.connectAttr(
+                dm_node + ".outputScale", target.attr("scale"), f=True
+            )
 
     return node
 
@@ -448,8 +459,7 @@ def gear_intmatrix_op(mA, mB, blend=0):
     pm.connectAttr(mA, node + ".matrixA")
     pm.connectAttr(mB, node + ".matrixB")
 
-    if (isinstance(blend, string_types)
-            or isinstance(blend, pm.Attribute)):
+    if isinstance(blend, string_types) or isinstance(blend, pm.Attribute):
         pm.connectAttr(blend, node + ".blend")
     else:
         pm.setAttr(node + ".blend", blend)
@@ -479,12 +489,9 @@ def gear_curvecns_op(crv, inputs=[]):
     return node
 
 
-def gear_curveslide2_op(outcrv,
-                        incrv,
-                        position=0,
-                        maxstretch=1,
-                        maxsquash=1,
-                        softness=0):
+def gear_curveslide2_op(
+    outcrv, incrv, position=0, maxstretch=1, maxsquash=1, softness=0
+):
     """Apply a sn_curveslide2_op operator
 
     Arguments:
@@ -514,7 +521,7 @@ def gear_curveslide2_op(outcrv,
     return node
 
 
-def gear_spinePointAtOp(cns, startobj, endobj, blend=.5, axis="-Z"):
+def gear_spinePointAtOp(cns, startobj, endobj, blend=0.5, axis="-Z"):
     """
     Apply a SpinePointAt operator
 
@@ -546,7 +553,7 @@ def gear_spinePointAtOp(cns, startobj, endobj, blend=.5, axis="-Z"):
     return node
 
 
-def gear_spinePointAtOpWM(cns, startobj, endobj, blend=.5, axis="-Z"):
+def gear_spinePointAtOpWM(cns, startobj, endobj, blend=0.5, axis="-Z"):
     """
     Apply a SpinePointAt operator using world matrix
 
@@ -583,17 +590,19 @@ def gear_spinePointAtOpWM(cns, startobj, endobj, blend=.5, axis="-Z"):
     return node
 
 
-def gear_ikfk2bone_op(out=[],
-                      root=None,
-                      eff=None,
-                      upv=None,
-                      fk0=None,
-                      fk1=None,
-                      fk2=None,
-                      lengthA=5,
-                      lengthB=3,
-                      negate=False,
-                      blend=0):
+def gear_ikfk2bone_op(
+    out=[],
+    root=None,
+    eff=None,
+    upv=None,
+    fk0=None,
+    fk1=None,
+    fk2=None,
+    lengthA=5,
+    lengthB=3,
+    negate=False,
+    blend=0,
+):
     """Apply a sn_ikfk2bone_op operator
 
     Arguments:
@@ -675,7 +684,7 @@ def gear_ikfk2bone_op(out=[],
     return node
 
 
-def gear_rollsplinekine_op(out, controlers=[], u=.5, subdiv=10):
+def gear_rollsplinekine_op(out, controlers=[], u=0.5, subdiv=10):
     """Apply a sn_rollsplinekine_op operator
 
     Arguments:
@@ -713,11 +722,9 @@ def gear_rollsplinekine_op(out, controlers=[], u=.5, subdiv=10):
     return node
 
 
-def gear_squashstretch2_op(out,
-                           sclref=None,
-                           length=5,
-                           axis="x",
-                           scaleComp=None):
+def gear_squashstretch2_op(
+    out, sclref=None, length=5, axis="x", scaleComp=None
+):
     """Apply a sn_squashstretch2_op operator
 
     Arguments:
@@ -776,3 +783,53 @@ def gear_inverseRotorder_op(out_obj, in_obj):
     pm.connectAttr(node + ".output", out_obj + ".ro")
 
     return node
+
+
+def create_proximity_constraint(shape, in_trans):
+    """Create a proximity constraint between a shape and a transform.
+
+    Args:
+        shape (PyNode or str): Driver shape
+        in_trans (PyNode or str): in transform
+
+    Returns:
+        TYPE: Description
+    """
+    # Convert to PyNodes if necessary
+    if isinstance(shape, str):
+        shape = pm.PyNode(shape)
+    if isinstance(in_trans, str):
+        in_trans = pm.PyNode(in_trans)
+
+    # Try to get the original shape node
+    shape_orig_connections = shape.inMesh.listConnections(d=True)
+    if not shape_orig_connections:
+        # If there's no original shape node, create one
+        dup = pm.duplicate(shape, n="{}OrigTrans".format(shape), rc=True)[0]
+        shape_orig = pm.listRelatives(dup, s=True)[0]
+        shape_orig.rename("{}Orig".format(shape))
+        dup.visibility.set(0)
+        shape_orig.intermediateObject.set(1)
+        shape_orig.worldMesh[0] >> shape.inMesh
+    else:
+        shape_orig = shape_orig_connections[0]
+        if not isinstance(shape_orig, pm.nt.Mesh):
+            shape_orig = shape_orig.originalGeometry[0].listConnections(
+                d=True, sh=True
+            )[0]
+
+    # Create the proximity pin node
+    pin = pm.createNode("proximityPin", n="{}_proximityPin".format(shape))
+
+    # Set the input connections for the proximity pin
+    shape.worldMesh[0] >> pin.deformedGeometry
+    shape_orig.outMesh >> pin.originalGeometry
+    in_trans.matrix >> pin.inputMatrix[0]
+
+    # Create the output transform
+    out_trans = pm.createNode("transform", n="{}_pinTrans".format(shape))
+
+    # Set the input connections for the output transform
+    pin.outputMatrix[0] >> out_trans.offsetParentMatrix
+
+    return out_trans

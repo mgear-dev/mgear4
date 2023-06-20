@@ -5,13 +5,14 @@
 #############################################
 import pymel.core as pm
 import pymel.core.datatypes as datatypes
-from maya import OpenMaya
+from maya import OpenMaya as om
 from . import utils
 
 
 #############################################
 # Vertex
 #############################################
+
 
 def getExtremeVertexFromLoop(edgeList=None, sideRange=False, z_up=False):
     """Get extreme vertex X and  Y
@@ -57,7 +58,7 @@ def getExtremeVertexFromLoop(edgeList=None, sideRange=False, z_up=False):
         if axisIndex == 2:
             axisIndex = 1
     for x in vertexList:
-        pos = x.getPosition(space='world')
+        pos = x.getPosition(space="world")
         if maxX is None or pos[axisIndex] > maxX:
             maxX = pos[axisIndex]
             outPos = x
@@ -151,6 +152,7 @@ def getVertexRowsFromLoops(loopList):
 # EDGE LOOPS and ROWS
 #################################################
 
+
 def edgeRangeInLoopFromMid(edgeList, midPos, endA, endB):
     """Return a range of edges in the same loop from a mid position
 
@@ -185,8 +187,10 @@ def edgeRangeInLoopFromMid(edgeList, midPos, endA, endB):
                         midEdges.append(e)
                     cv = e.connectedVertices()
                     for v in cv:
-                        if (v.index() in [endA.index(), endB.index()]
-                                and e not in extremeEdges):
+                        if (
+                            v.index() in [endA.index(), endB.index()]
+                            and e not in extremeEdges
+                        ):
                             # extra check to ensure that the 2 edges
                             # selected are not attach to the same vertex
                             if v.index() not in indexcheck:
@@ -217,7 +221,7 @@ def edgeRangeInLoopFromMid(edgeList, midPos, endA, endB):
 
 
 def edgeLoopBetweenVertices(startPos, endPos):
-    """ Computes edge loop between two vertices.
+    """Computes edge loop between two vertices.
 
     Arguments:
         startPos (vertex): Start of edge loop
@@ -233,22 +237,22 @@ def edgeLoopBetweenVertices(startPos, endPos):
     edgeLoops = []
     for startEdge in startPos.connectedEdges():
         for endEdge in endPos.connectedEdges():
-            testEdgeLoop = pm.polySelect(mesh,
-                                         edgeLoopPath=[startEdge.index(),
-                                                       endEdge.index()])
+            testEdgeLoop = pm.polySelect(
+                mesh, edgeLoopPath=[startEdge.index(), endEdge.index()]
+            )
             if testEdgeLoop:
                 edgeLoops.append(pm.selected())
     pm.select(oldSelection, r=1)
     if edgeLoops:
-        edgeLoops.sort(key = len)
+        edgeLoops.sort(key=len)
         return edgeLoops[0]
     return None
-
 
 
 #################################################
 # Bounding box info
 #################################################
+
 
 def bboxCenter(obj, radius=False):
     """Get bounding box center of mesh object
@@ -263,7 +267,7 @@ def bboxCenter(obj, radius=False):
     >>> center = mnav.bboxCenter(source, radius=False)
 
     """
-    bbx = obj.getBoundingBox(invisible=True, space='world')
+    bbx = obj.getBoundingBox(invisible=True, space="world")
     center = [(bbx[0][x] + bbx[1][x]) / 2.0 for x in range(3)]
     if radius:
         r = abs((bbx[0][0] - bbx[1][0]) / 2)
@@ -302,6 +306,7 @@ def bBoxData(obj=None, yZero=False, *args):
 # CLOSEST LOCATIONS
 #################################################
 
+
 def getClosestPolygonFromTransform(geo, loc):
     """Get closest polygon from transform
 
@@ -314,32 +319,33 @@ def getClosestPolygonFromTransform(geo, loc):
 
     """
     if isinstance(loc, pm.nodetypes.Transform):
-        pos = loc.getTranslation(space='world')
+        pos = loc.getTranslation(space="world")
     else:
         pos = datatypes.Vector(loc[0], loc[1], loc[2])
 
-    nodeDagPath = OpenMaya.MObject()
+    nodeDagPath = om.MObject()
     try:
-        selectionList = OpenMaya.MSelectionList()
+        selectionList = om.MSelectionList()
         selectionList.add(geo.name())
-        nodeDagPath = OpenMaya.MDagPath()
+        nodeDagPath = om.MDagPath()
         selectionList.getDagPath(0, nodeDagPath)
     except Exception as e:
-        raise RuntimeError("OpenMaya.MDagPath() failed "
-                           "on {}. \n {}".format(geo.name(), e))
+        raise RuntimeError(
+            "om.MDagPath() failed " "on {}. \n {}".format(geo.name(), e)
+        )
 
-    mfnMesh = OpenMaya.MFnMesh(nodeDagPath)
+    mfnMesh = om.MFnMesh(nodeDagPath)
 
-    pointA = OpenMaya.MPoint(pos.x, pos.y, pos.z)
-    pointB = OpenMaya.MPoint()
-    space = OpenMaya.MSpace.kWorld
+    pointA = om.MPoint(pos.x, pos.y, pos.z)
+    pointB = om.MPoint()
+    space = om.MSpace.kWorld
 
-    util = OpenMaya.MScriptUtil()
+    util = om.MScriptUtil()
     util.createFromInt(0)
     idPointer = util.asIntPtr()
 
     mfnMesh.getClosestPoint(pointA, pointB, space, idPointer)
-    idx = OpenMaya.MScriptUtil(idPointer).asInt()
+    idx = om.MScriptUtil(idPointer).asInt()
 
     return geo.f[idx], pos
 
@@ -364,7 +370,7 @@ def getClosestVertexFromTransform(geo, loc):
     closestVert = None
     minLength = None
     for v in faceVerts:
-        thisLength = (pos - v.getPosition(space='world')).length()
+        thisLength = (pos - v.getPosition(space="world")).length()
         if minLength is None or thisLength < minLength:
             minLength = thisLength
             closestVert = v
@@ -384,17 +390,15 @@ def find_mirror_edge(obj, edgeIndx):
     obj = utils.as_pynode(obj)
 
     edge = pm.PyNode(obj.name() + ".e[{}]".format(str(edgeIndx)))
-    v1 = edge.getPoint(0, space='world')
-    v2 = edge.getPoint(1, space='world')
+    v1 = edge.getPoint(0, space="world")
+    v2 = edge.getPoint(1, space="world")
 
     # mirror vectors in X axis
     mv1 = [v1[0] * -1, v1[1], v1[2]]
     mv2 = [v2[0] * -1, v2[1], v2[2]]
 
-    vtx1 = getClosestVertexFromTransform(obj.getShape(),
-                                         mv1)
-    vtx2 = getClosestVertexFromTransform(obj.getShape(),
-                                         mv2)
+    vtx1 = getClosestVertexFromTransform(obj.getShape(), mv1)
+    vtx2 = getClosestVertexFromTransform(obj.getShape(), mv2)
     for ee in vtx1.connectedEdges():
         if ee in vtx2.connectedEdges():
             return ee
@@ -421,7 +425,8 @@ def get_closes_edge_index(sourceGeo, targetGeo, edgeIndx):
     closes_v = []
     for v in verts:
         vv = getClosestVertexFromTransform(
-            targetGeo, v.getPosition(space="world"))
+            targetGeo, v.getPosition(space="world")
+        )
         closes_v.append(vv)
 
     v1_edges = closes_v[0].connectedEdges()
@@ -429,3 +434,106 @@ def get_closes_edge_index(sourceGeo, targetGeo, edgeIndx):
     for e in v1_edges:
         if e in v2_edges:
             return e.index()
+
+
+def get_selected_mesh():
+    """Get the selected mesh dag path.
+
+    Returns:
+        seleted mesh: selected mesh dag path
+
+    Raises:
+        ValueError: Non selected object
+
+    """
+    selection = om.MSelectionList()
+    om.MGlobal.getActiveSelectionList(selection)
+
+    if selection.length() == 0:
+        raise ValueError("No object selected. Please select a polygon mesh.")
+
+    mesh_dag_path = om.MDagPath()
+    selection.getDagPath(0, mesh_dag_path)
+
+    if mesh_dag_path.apiType() == om.MFn.kTransform:
+        child_count = mesh_dag_path.childCount()
+        for i in range(child_count):
+            child = mesh_dag_path.child(i)
+            if child.hasFn(om.MFn.kMesh):
+                mesh_dag_path.push(child)
+                break
+
+    return mesh_dag_path
+
+def get_mesh_dag_path(node):
+    """Get the mesh dag path from a given node.
+
+    Args:
+        node (str or PyNode): The name of the node or the PyNode itself
+
+    Returns:
+        mesh_dag_path: The dag path to the mesh
+
+    Raises:
+        ValueError: If the node does not exist or is not a mesh
+    """
+    # Ensure node is a PyNode
+    if isinstance(node, str):
+        try:
+            node = pm.PyNode(node)
+        except pm.MayaNodeError:
+            raise ValueError("No such node: {}".format(node))
+
+    selection_list = om.MSelectionList()
+    selection_list.add(str(node))
+
+    mesh_dag_path = om.MDagPath()
+
+    selection_list.getDagPath(0, mesh_dag_path)
+    if mesh_dag_path.apiType() == om.MFn.kTransform:
+        child_count = mesh_dag_path.childCount()
+        for i in range(child_count):
+            child = mesh_dag_path.child(i)
+            if child.apiType() == om.MFn.kMesh:
+                mesh_dag_path.push(child)
+                break
+    elif mesh_dag_path.apiType() != om.MFn.kMesh:
+        raise ValueError("Node is not a mesh: {}".format(node))
+
+    return mesh_dag_path
+
+
+def get_edge_center(mesh_dag_path, edge_indices):
+    """Summary
+
+    Args:
+        mesh_dag_path (dag paht): mesh dag path
+        edge_indices (TYPE): edge index tuple
+
+    Returns:
+        vector: position
+
+    Usage example:
+        mesh_dag_path = get_selected_mesh()
+        edge_indices = [40, 60]  # Replace with your desired edge indices
+        center_position = get_edge_center(mesh_dag_path, edge_indices)
+    """
+    mesh_fn = om.MFnMesh(mesh_dag_path)
+    edge_iter = om.MItMeshEdge(mesh_dag_path)
+
+    point_sum = om.MVector()
+    point_count = 0
+
+    for edge_index in edge_indices:
+        prev_index = om.MScriptUtil().asIntPtr()
+        edge_iter.setIndex(edge_index, prev_index)
+        vertex_indices = [edge_iter.index(0), edge_iter.index(1)]
+        for vertex_index in vertex_indices:
+            point = om.MPoint()
+            mesh_fn.getPoint(vertex_index, point, om.MSpace.kWorld)
+            point_sum += om.MVector(
+                point
+            )  # Convert MPoint to MVector before adding
+            point_count += 1
+
+    return om.MPoint(point_sum / point_count)  # Convert MVector back to MPoint
