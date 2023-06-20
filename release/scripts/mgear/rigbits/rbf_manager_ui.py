@@ -829,10 +829,10 @@ class RBFManagerUI(MayaQWidgetDockableMixin, QtWidgets.QMainWindow):
         rbfNode = getattr(drivenWidget, "rbfNode")
         rbfNodes = [rbfNode]
         for rbfNode in rbfNodes:
-            print(f"rbfNode: {rbfNode}")
-            print(f"poseInputs: {poseInputs}")
-            print(f"New pose values: {newValues}")
-            print(f"poseIndex: {drivenRow}")
+            print("rbfNode: {}".format(rbfNode))
+            print("poseInputs: {}".format(poseInputs))
+            print("New pose values: {}".format(newValues))
+            print("poseIndex: {}".format(drivenRow))
             rbfNode.addPose(poseInput=poseInputs,
                             poseValue=newValues,
                             posesIndex=drivenRow)
