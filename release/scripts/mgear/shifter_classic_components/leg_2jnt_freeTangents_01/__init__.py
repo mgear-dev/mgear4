@@ -675,7 +675,7 @@ class Component(component.Main):
             "roundness", "Roundness", "double", 0, 0, 1
         )
         self.volume_att = self.addAnimParam(
-            "volume", "Volume", "double", 1, 0, 1
+            "volume", "Volume", "double", 0, 0, 1
         )
         self.tangentVis_att = self.addAnimParam(
             "Tangent_vis", "Tangent vis", "bool", False
