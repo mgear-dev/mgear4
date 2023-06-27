@@ -1,26 +1,3 @@
-"""
-MIT License
-
-Copyright (c) 2011-2018 Jeremie Passerin, Miquel Campos - from 2018 The mGear-Dev Organization
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-"""
 import ast
 import pymel.core as pm
 from pymel.core import datatypes
@@ -104,18 +81,6 @@ class Component(component.Main):
             tp=self.parentCtlTag,
         )
 
-        self.gimbal0_ctl = self.addCtl(
-            self.fk0_ctl,
-            "gimbal0_ctl",
-            t,
-            self.color_offset_fk,
-            "cube",
-            w=self.size * 0.2,
-            h=self.size * 0.2,
-            d=self.size * 0.2,
-            tp=self.fk0_ctl,
-        )
-
         # FK 1
         t = transform.getTransformLookingAt(
             self.guide.apos[1],
@@ -125,7 +90,7 @@ class Component(component.Main):
             self.negate,
         )
         self.fk1_npo = primitive.addTransform(
-            self.gimbal0_ctl, self.getName("fk1_npo"), t
+            self.fk0_ctl, self.getName("fk1_npo"), t
         )
 
         self.fk1_ctl = self.addCtl(
@@ -139,23 +104,9 @@ class Component(component.Main):
             tp=self.fk0_ctl,
         )
 
-        self.gimbal1_ctl = self.addCtl(
-            self.fk1_ctl,
-            "gimbal1_ctl",
-            t,
-            self.color_offset_fk,
-            "cube",
-            w=self.size * 0.2,
-            h=self.size * 0.2,
-            d=self.size * 0.2,
-            tp=self.fk1_ctl,
-        )
-
         for f_ctl in [
             self.fk0_ctl,
             self.fk1_ctl,
-            self.gimbal0_ctl,
-            self.gimbal1_ctl,
         ]:
             attribute.setKeyableAttributes(
                 f_ctl, ["tx", "ty", "tz", "ro", "rx", "ry", "rz"]
@@ -170,7 +121,7 @@ class Component(component.Main):
             self.negate,
         )
         self.fk2_npo = primitive.addTransform(
-            self.gimbal1_ctl, self.getName("fk2_npo"), t
+            self.fk1_ctl, self.getName("fk2_npo"), t
         )
 
         self.fk2_ctl = self.addCtl(
@@ -186,25 +137,7 @@ class Component(component.Main):
 
         attribute.setKeyableAttributes(self.fk2_ctl)
 
-        self.gimbal2_ctl = self.addCtl(
-            self.fk2_ctl,
-            "gimbal2_ctl",
-            t,
-            self.color_offset_fk,
-            "cube",
-            w=self.size * 0.2,
-            h=self.size * 0.2,
-            d=self.size * 0.2,
-            tp=self.fk2_ctl,
-        )
-
         self.fk_ctl = [self.fk0_ctl, self.fk1_ctl, self.fk2_ctl]
-        self.gimbal_fk_ctl = [
-            self.gimbal0_ctl,
-            self.gimbal1_ctl,
-            self.gimbal2_ctl,
-        ]
-
         for x in self.fk_ctl:
             attribute.setInvertMirror(x, ["tx", "ty", "tz"])
 
@@ -326,21 +259,9 @@ class Component(component.Main):
             d=self.size * 0.15,
             tp=self.roll_ctl,
         )
-        self.gimbal_ik_ctl = self.addCtl(
-            self.ik_ctl,
-            "gimbalIK_ctl",
-            m,
-            self.color_offset_fk,
-            "cube",
-            w=self.size * 0.11,
-            h=self.size * 0.11,
-            d=self.size * 0.11,
-            tp=self.ik_ctl,
-        )
 
         if not self.settings["mirrorIK"]:
             attribute.setInvertMirror(self.ik_ctl, ["tx", "ry", "rz"])
-            attribute.setInvertMirror(self.gimbal_ik_ctl, ["tx", "ry", "rz"])
         attribute.setKeyableAttributes(self.ik_ctl)
         # we use same as fk2_ctl
         ik_ref_t = transform.getTransformLookingAt(
@@ -351,7 +272,7 @@ class Component(component.Main):
             self.negate,
         )
         self.ik_ctl_ref = primitive.addTransform(
-            self.gimbal_ik_ctl, self.getName("ikCtl_ref"), ik_ref_t
+            self.ik_ctl, self.getName("ikCtl_ref"), ik_ref_t
         )
 
         # IK rotation controls
@@ -374,7 +295,6 @@ class Component(component.Main):
             attribute.setKeyableAttributes(self.ikRot_ctl, self.r_params)
 
         self.fk_ik_ctls = self.fk_ctl + [self.ik_ctl]
-        self.gimbal_fk_ik_ctls = self.gimbal_fk_ctl + [self.gimbal_ik_ctl]
 
         # References --------------------------------------
         # Calculate  again the transfor for the IK ref. This way align with FK
@@ -389,7 +309,7 @@ class Component(component.Main):
             self.ik_ctl_ref, self.getName("ik_ref"), trnIK_ref
         )
         self.fk_ref = primitive.addTransform(
-            self.gimbal_fk_ctl[2], self.getName("fk_ref"), trnIK_ref
+            self.fk_ctl[2], self.getName("fk_ref"), trnIK_ref
         )
 
         # Chain --------------------------------------------
@@ -470,26 +390,6 @@ class Component(component.Main):
 
         self.match_ikUpv = self.add_match_ref(
             self.upv_ctl, self.fk0_ctl, "upv_mth"
-        )
-
-        self.match_gimbal_fk0 = self.add_match_ref(
-            self.gimbal_fk_ctl[0], self.match_fk0_off, "gimbal_fk0_mth"
-        )
-
-        self.match_gimbal_fk1_off = self.add_match_ref(
-            self.gimbal_fk_ctl[2], self.root, "matchgimbal_Fk1_npo", False
-        )
-
-        self.match_gimbal_fk1 = self.add_match_ref(
-            self.gimbal_fk_ctl[1], self.match_fk1_off, "gimbal_fk1_mth"
-        )
-
-        self.match_gimbal_fk2 = self.add_match_ref(
-            self.gimbal_fk_ctl[2], self.ik_ctl, "gimbal_fk2_mth"
-        )
-
-        self.match_gimbal_ik = self.add_match_ref(
-            self.gimbal_ik_ctl, self.fk2_ctl, "gimbal_ik_mth"
         )
 
         # Eff locator
@@ -662,7 +562,6 @@ class Component(component.Main):
         self.div_cns = []
         self.roll_offset = []
         for i in range(self.divisions):
-
             div_cns = primitive.addTransform(
                 self.root, self.getName("div%s_loc" % i)
             )
@@ -972,15 +871,6 @@ class Component(component.Main):
             "volume", "Volume Joint Scale", "double", 0, 0, 1
         )
 
-        self.volume_blenshape_mult_att = self.addAnimParam(
-            "volume_blendshape",
-            "Volume Blendshape Mult",
-            "double",
-            1,
-            0,
-            10,
-        )
-
         self.bendyVis_att = self.addAnimParam(
             "Bendy_vis", "Bendy vis", "bool", False
         )
@@ -1005,48 +895,6 @@ class Component(component.Main):
         self.ikCnsCtl_att = self.addAnimParam(
             "ik_cns_ctl_vis", "IK Cns Ctl Vis", "bool", False
         )
-
-        self.armRoll_att = self.addAnimParam(
-            "roll", "Roll", "double", 0, uihost=self.armBendyA_ctl
-        )
-        self.midRoll_att = self.addAnimParam(
-            "roll", "Roll", "double", 0, uihost=self.mid_ctl
-        )
-        self.foreRoll_att = self.addAnimParam(
-            "roll", "Roll", "double", 0, uihost=self.forearmBendyB_ctl
-        )
-        # section scale
-        self.armWide_att = self.addAnimParam(
-            "wide", "Wide", "double", 0, -0.9, uihost=self.armBendyA_ctl
-        )
-
-        self.midWide_att = self.addAnimParam(
-            "wide", "Wide", "double", 0, -0.9, uihost=self.mid_ctl
-        )
-
-        self.foreWide_att = self.addAnimParam(
-            "wide", "Wide", "double", 0, -0.9, uihost=self.forearmBendyB_ctl
-        )
-
-        self.armHigh_att = self.addAnimParam(
-            "high", "High", "double", 0, -0.9, uihost=self.armBendyA_ctl
-        )
-
-        self.midHigh_att = self.addAnimParam(
-            "high", "High", "double", 0, -0.9, uihost=self.mid_ctl
-        )
-
-        self.foreHigh_att = self.addAnimParam(
-            "high", "High", "double", 0, -0.9, uihost=self.forearmBendyB_ctl
-        )
-
-        # gimbal vis attr
-        self.gimbal_vis_attrs = []
-        for c in self.fk_ik_ctls:
-            at = self.addAnimParam(
-                "gimbal_ctl_vis", "Gimbal Crl Vis", "bool", False, uihost=c
-            )
-            self.gimbal_vis_attrs.append(at)
 
         # Ref
         if self.settings["ikrefarray"]:
@@ -1244,28 +1092,11 @@ class Component(component.Main):
         for shp in self.elbowBendy_ctl.getShapes():
             pm.connectAttr(self.elbowBendyVis_att, shp.attr("visibility"))
 
-        # gimbal ctls
-        cond_att = ([fkvis_node.outputX] * 3) + [self.blend_att]
-        for i, c in enumerate(self.gimbal_fk_ik_ctls):
-            add_node = node.createPlusMinusAverage1D(
-                [self.gimbal_vis_attrs[i], cond_att[i]]
-            )
-            cond_node = node.createConditionNode(
-                add_node.output1D, 1.5, 3, 1, 0
-            )
-            cond_node.colorIfFalseR.set(0)
-            for shp in c.getShapes():
-                pm.connectAttr(cond_node.outColorR, shp.attr("visibility"))
-
         # Controls ROT order -----------------------------------
         attribute.setRotOrder(self.fk0_ctl, "XZY")
         attribute.setRotOrder(self.fk1_ctl, "XYZ")
         attribute.setRotOrder(self.fk2_ctl, "YZX")
         attribute.setRotOrder(self.ik_ctl, "XYZ")
-
-        attribute.setRotOrder(self.gimbal0_ctl, "XZY")
-        attribute.setRotOrder(self.gimbal1_ctl, "XYZ")
-        attribute.setRotOrder(self.gimbal2_ctl, "YZX")
 
         # IK Solver -----------------------------------------
         out = [self.bone0, self.bone1, self.ctrn_loc, self.eff_loc]
@@ -1274,8 +1105,8 @@ class Component(component.Main):
             self.root,
             self.ik_ref,
             self.upv_ctl,
-            self.gimbal_fk_ctl[0],
-            self.gimbal_fk_ctl[1],
+            self.fk_ctl[0],
+            self.fk_ctl[1],
             self.fk_ref,
             self.length0,
             self.length1,
@@ -1670,13 +1501,11 @@ class Component(component.Main):
                     self.armRollRef[0] + ".worldMatrix",
                     div_cns + ".parentInverseMatrix",
                 )
-                lastArmDiv = div_cns
             elif i < (self.settings["div0"] + div_offset):
                 mulmat_node = applyop.gear_mulmatrix_op(
                     self.armTwistChain[i] + ".worldMatrix",
                     div_cns + ".parentInverseMatrix",
                 )
-                lastArmDiv = div_cns
             elif (
                 i == (self.settings["div0"] + div_offset)
                 and self.settings["div1"] == 0
@@ -1685,7 +1514,6 @@ class Component(component.Main):
                     self.elbow_ref + ".worldMatrix",
                     div_cns + ".parentInverseMatrix",
                 )
-                lastArmDiv = div_cns
             else:
                 ftc = self.forearmTwistChain[
                     i - (self.settings["div0"] + div_offset)
@@ -1693,7 +1521,6 @@ class Component(component.Main):
                 mulmat_node = applyop.gear_mulmatrix_op(
                     ftc + ".worldMatrix", div_cns + ".parentInverseMatrix"
                 )
-                lastForeDiv = div_cns
 
             dm_node = node.createDecomposeMatrixNode(mulmat_node + ".output")
             pm.connectAttr(dm_node + ".outputTranslate", div_cns + ".t")
@@ -1711,146 +1538,6 @@ class Component(component.Main):
             pm.connectAttr(self.st_att[i], o_node + ".stretch")
             pm.connectAttr(self.sq_att[i], o_node + ".squash")
 
-        # roll offsets
-        arm_roll_inc = 1.0 / (self.settings["div0"] + 1)
-        fore_roll_inc = 1.0 / (self.settings["div1"] + 1)
-        arm_mid = int(self.settings["div0"] / 2)
-        fore_mid = int(self.settings["div1"] / 2)
-        arm_ite = 0
-        fore_ite = 0
-        armpit_ite = 1
-        mid_ite = 0
-        mid2_ite = 1
-        if self.negate:
-            invert = -1
-        else:
-            invert = 1
-
-        inv_armpitRoll_att = node.createMulNode(invert, self.armpitRoll_att)
-        inv_midRoll_att = node.createMulNode(invert, self.midRoll_att)
-        inv_armRoll_att = node.createMulNode(invert, self.armRoll_att)
-        inv_foreRoll_att = node.createMulNode(invert, self.foreRoll_att)
-        inv_armpitRoll_att = inv_armpitRoll_att.outputX
-        inv_midRoll_att = inv_midRoll_att.outputX
-        inv_armRoll_att = inv_armRoll_att.outputX
-        inv_foreRoll_att = inv_foreRoll_att.outputX
-        for i, off in enumerate(self.roll_offset):
-            if i < (self.settings["div0"] + div_offset):
-                if i >= 1:
-
-                    # armpit
-                    mult1 = node.createMulNode(armpit_ite, inv_armpitRoll_att)
-
-                    # midRoll
-                    mult2 = node.createMulNode(mid_ite, inv_midRoll_att)
-
-                    # arm roll
-                    if i < (self.settings["div0"] + 1):
-                        mult3 = node.createMulNode(arm_ite, inv_armRoll_att)
-                        arm_mul = mult3.outputX
-                    else:
-                        arm_mul = 0
-
-                    node.createPlusMinusAverage1D(
-                        [mult1.outputX, mult2.outputX, arm_mul], output=off.rx
-                    )
-
-                    # scale
-                    scl_mult1 = node.createMulNode(
-                        [arm_ite, arm_ite],
-                        [self.armWide_att, self.armHigh_att],
-                    )
-                    scl_mult2 = node.createMulNode(
-                        [mid_ite, mid_ite],
-                        [self.midWide_att, self.midHigh_att],
-                    )
-                    node.createPlusMinusAverage1D(
-                        [1, scl_mult1.outputX, scl_mult2.outputX],
-                        1,
-                        off.attr("sy"),
-                    )
-                    node.createPlusMinusAverage1D(
-                        [1, scl_mult1.outputY, scl_mult2.outputY],
-                        1,
-                        off.attr("sz"),
-                    )
-
-                else:
-                    inv_armpitRoll_att >> off.rx
-
-                armpit_ite -= arm_roll_inc
-                mid_ite += arm_roll_inc
-                if i <= arm_mid:
-                    arm_ite += arm_roll_inc * 2
-                else:
-                    arm_ite -= arm_roll_inc * 2
-
-            else:
-                # midRoll
-                mult1 = node.createMulNode(mid2_ite, inv_midRoll_att)
-
-                # fore roll
-                extra = 2
-                if i < (self.settings["div0"] + self.settings["div1"] + extra):
-                    mult3 = node.createMulNode(fore_ite, inv_foreRoll_att)
-                    fore_mul = mult3.outputX
-                else:
-                    fore_mul = 0
-
-                node.createPlusMinusAverage1D(
-                    [mult1.outputX, fore_mul], output=off.rx
-                )
-
-                # scale
-                scl_mult1 = node.createMulNode(
-                    [fore_ite, fore_ite],
-                    [self.foreWide_att, self.foreHigh_att],
-                )
-                scl_mult2 = node.createMulNode(
-                    [mid2_ite, mid2_ite], [self.midWide_att, self.midHigh_att]
-                )
-                node.createPlusMinusAverage1D(
-                    [1, scl_mult1.outputX, scl_mult2.outputX],
-                    1,
-                    off.attr("sy"),
-                )
-                node.createPlusMinusAverage1D(
-                    [1, scl_mult1.outputY, scl_mult2.outputY],
-                    1,
-                    off.attr("sz"),
-                )
-
-                mid2_ite -= fore_roll_inc
-                if i <= (self.settings["div0"] + fore_mid + div_offset):
-                    fore_ite += fore_roll_inc * 2
-                else:
-                    fore_ite -= fore_roll_inc * 2
-
-        # scale gradient
-        fore_scale_inc = 1.0 / (self.settings["div1"] + div_offset)
-        fore_ite = 0
-        for i, off in enumerate(self.roll_offset):
-            if i > (self.settings["div0"] + 1):
-                off.attr("sy").listConnections(p=True)
-                fore_ite += fore_scale_inc
-                mul_node = node.createMulNode(
-                    [self.eff_loc.sy, self.eff_loc.sz], [fore_ite, fore_ite]
-                )
-                previus_cnx = off.attr("sy").listConnections(p=True)[0]
-                off.attr("sy").disconnect()
-                node.createPlusMinusAverage1D(
-                    [mul_node.outputX, previus_cnx, 1.0 - fore_ite, -1],
-                    1,
-                    off.attr("sy"),
-                )
-                previus_cnx = off.attr("sz").listConnections(p=True)[0]
-                off.attr("sz").disconnect()
-                node.createPlusMinusAverage1D(
-                    [mul_node.outputY, previus_cnx, 1.0 - fore_ite, -1],
-                    1,
-                    off.attr("sz"),
-                )
-
         # TODO: check for a more clean and elegant solution instead of re-match
         # the world matrix again
         transform.matchWorldTransform(self.fk_ctl[0], self.match_fk0_off)
@@ -1864,19 +1551,6 @@ class Component(component.Main):
         if self.settings["ikTR"]:
             transform.matchWorldTransform(self.ikRot_ctl, self.match_ikRot)
             transform.matchWorldTransform(self.fk_ctl[2], self.match_fk2)
-
-        # volume blendshape driver
-        # this attribute is meant to drive an squash and stretch corrective
-        # blendshape
-        div_node = node.createDivNode(
-            self.volDriver_att, self.volDriver_att.get()
-        )
-        sub_node = node.createSubNode(div_node.outputX, 1)
-        mul_node = node.createMulNode(
-            sub_node.output,
-            self.volume_blenshape_mult_att,
-            self.volume_blenshape_att,
-        )
 
         # recover hand offset transform
         if self.settings["use_blade"]:
