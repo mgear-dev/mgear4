@@ -1261,21 +1261,22 @@ class HelperSlots(object):
         return fullpath
 
     def editFile(self, widgetList):
-        try:
-            cs_data = widgetList.selectedItems()[0].text()
-            fullpath = self.get_cs_file_fullpath(cs_data)
+        for cs in widgetList.selectedItems():
+            try:
+                cs_data = cs.text()
+                fullpath = self.get_cs_file_fullpath(cs_data)
 
-            if fullpath:
-                if sys.platform.startswith('darwin'):
-                    subprocess.call(('open', fullpath))
-                elif os.name == 'nt':
-                    os.startfile(fullpath)
-                elif os.name == 'posix':
-                    subprocess.call(('xdg-open', fullpath))
-            else:
-                pm.displayWarning("Please select one item from the list")
-        except Exception:
-            pm.displayError("The step can't be find or does't exists")
+                if fullpath:
+                    if sys.platform.startswith('darwin'):
+                        subprocess.call(('open', fullpath))
+                    elif os.name == 'nt':
+                        os.startfile(fullpath)
+                    elif os.name == 'posix':
+                        subprocess.call(('xdg-open', fullpath))
+                else:
+                    pm.displayWarning("Please select one item from the list")
+            except Exception:
+                pm.displayError("The step can't be find or does't exists")
 
     def format_info(self, data):
         data_parts = data.split("|")
