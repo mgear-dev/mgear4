@@ -41,6 +41,7 @@ class Guide(guide.ComponentGuide):
 
     connectors = [
         "EPIC_leg_01",
+        "EPIC_leg_02",
         "leg_2jnt_01",
         "leg_ms_2jnt_01",
         "leg_3jnt_01",

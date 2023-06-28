@@ -451,6 +451,7 @@ class Component(component.Main):
         """Add more connection definition to the set"""
 
         self.connections["EPIC_leg_01"] = self.connect_leg_2jnt_01
+        self.connections["EPIC_leg_02"] = self.connect_leg_2jnt_01
         self.connections["leg_2jnt_01"] = self.connect_leg_2jnt_01
         self.connections["leg_ms_2jnt_01"] = self.connect_leg_ms_2jnt_01
         self.connections["leg_3jnt_01"] = self.connect_leg_3jnt_01
