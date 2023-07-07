@@ -289,5 +289,6 @@ def metahuman_snap():
             for comp in ["arm", "leg"]:
                 try:
                     pm.setAttr("{}_{}0_root.div0".format(comp, side), 0)
+                    pm.setAttr("{}_{}0_root.div1".format(comp, side), 0)
                 except pm.MayaAttributeError:
                     pass

@@ -1295,6 +1295,118 @@ def getSelectedObjectChannels(oSel=None, userDefine=False, animatable=False):
     return channels
 
 
+def has_in_connections(
+    node,
+    attributes=[
+        "translate",
+        "tx",
+        "ty",
+        "tz",
+        "rotate",
+        "rx",
+        "ry",
+        "rz",
+        "scale",
+        "sx",
+        "sy",
+        "sz",
+    ],
+):
+    """
+    Checks if the provided node has any input connections on the specified attributes.
+
+    Args:
+        node (PyNode): The PyNode object for which to check connections.
+        attributes (list, optional): A list of attributes to check for connections.
+                    Defaults to checking all translation,
+        rotation, and scale attributes in all directions.
+
+    Returns:
+        bool: True if any connections are found, False otherwise.
+
+    Examples:
+        >>> jnt = pm.PyNode('myJoint')
+        >>> has_connections(jnt)
+        Found some connections.
+        >>> has_connections(jnt, ['visibility'])
+        No connections found.
+    """
+
+    for attr in attributes:
+        if node.attr(attr).listConnections(d=False):
+            return True
+    return False
+
+
+def disconnect_inputs(
+    node,
+    attributes=[
+        "scale",
+        "sx",
+        "sy",
+        "sz",
+        "translate",
+        "tx",
+        "ty",
+        "tz",
+        "rotate",
+        "rx",
+        "ry",
+        "rz",
+    ],
+):
+    """
+    Disconnects only the input connections of the specified attributes of
+    the provided node.
+
+    Args:
+        node (PyNode): The PyNode object for which to disconnect input
+        connections.
+        attributes (list, optional): A list of attributes to disconnect
+        input connections from. Defaults to disconnecting all translation,
+        rotation, and scale attributes in all directions.
+    """
+    for attr in attributes:
+        connections = node.attr(attr).listConnections(d=False, plugs=True)
+        for conn in connections:
+            pm.disconnectAttr(conn, node.attr(attr))
+
+
+def disconnect_outputs(
+    node,
+    attributes=[
+        "scale",
+        "sx",
+        "sy",
+        "sz",
+        "translate",
+        "tx",
+        "ty",
+        "tz",
+        "rotate",
+        "rx",
+        "ry",
+        "rz",
+    ],
+):
+    """
+    Disconnects only the output connections of the specified attributes of
+    the provided node.
+
+    Args:
+        node (PyNode): The PyNode object for which to disconnect output
+        connections.
+        attributes (list, optional): A list of attributes to disconnect
+        output connections from. Defaults to disconnecting all translation,
+        rotation, and scale attributes in all directions.
+    """
+
+    for attr in attributes:
+        connections = node.attr(attr).listConnections(plugs=True)
+        for conn in connections:
+            pm.disconnectAttr(node.attr(attr), conn)
+
+
 ##########################################################
 # UTIL
 ##########################################################

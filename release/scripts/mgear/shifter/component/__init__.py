@@ -411,7 +411,7 @@ class Main(object):
 
             # check if already have connections
             # for example Mehahuman twist joint already have connections
-            if not jnt.translate.listConnections(d=False):
+            if not attribute.has_in_connections(jnt):
                 # Disconnect inversScale for better preformance
                 if isinstance(self.active_jnt, pm.nodetypes.Joint):
                     try:
@@ -512,7 +512,7 @@ class Main(object):
                     if self.options["force_uniScale"]:
                         UniScale = True
                     if UniScale:
-                        jnt.disconnectAttr("scale")
+                        attribute.disconnect_inputs(jnt, ["scale"])
                         pm.connectAttr(cns_m.scaleZ, jnt.sx)
                         pm.connectAttr(cns_m.scaleZ, jnt.sy)
                         pm.connectAttr(cns_m.scaleZ, jnt.sz)

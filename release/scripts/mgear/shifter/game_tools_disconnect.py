@@ -49,23 +49,38 @@ def disconnect_joints():
     for g in grps:
         cnx, mcons_nodes = get_connections(g.members(), embed_info=True)
         # disconnect (input and output connections from mgear_matrixConstraint)
-        disconnect(cnx)
-        pm.displayInfo(
-            "Joint from group {} has been disconnected".format(g.name())
-        )
+        if cnx:
+            disconnect(cnx)
+            pm.displayInfo(
+                "Joint from group {} has been disconnected".format(g.name())
+            )
+        else:
+            pm.displayWarning(
+                "Rig disconnect is not possible, if it is a MetaHuman try to delete the rig and build again."
+            )
 
 
 @mutils.one_undo
 def connect_joints_from_matrixConstraint():
     # Note: not using message connection in case the rig and the joint are not
     # keep in the same scene
-    for mcon in pm.ls(type="mgear_matrixConstraint"):
+    connected = False
+    cnx_nodes = pm.ls(type="mgear_matrixConstraint")
+    if not cnx_nodes:
+        cnx_nodes = pm.ls(type="decomposeMatrix")
+    for mcon in cnx_nodes:
         if mcon.hasAttr(DRIVEN_JOINT_ATTR) and mcon.getAttr(DRIVEN_JOINT_ATTR):
             jnt_name = mcon.getAttr(DRIVEN_JOINT_ATTR)
             if pm.objExists(jnt_name):
+                connected = True
                 jnt = pm.PyNode(jnt_name)
                 driver_attrs = ast.literal_eval(mcon.getAttr(DRIVER_ATTRS))
                 connect_joint(mcon, jnt, driver_attrs)
+
+    if connected:
+        pm.displayInfo("Joints has been connected")
+    else:
+        pm.displayInfo("Nothing to connected")
 
 
 @mutils.one_undo
@@ -83,6 +98,7 @@ def delete_rig_keep_joints():
             if joints:
                 pm.parent(joints, world=True)
             pm.delete(rig_root.rigGroups.listConnections(type="objectSet"))
+            pm.delete(pm.ls(type="mgear_matrixConstraint"))
             pm.delete(rig_root)
 
             pm.displayInfo("{} deleted.".format(rig_name))
@@ -116,7 +132,7 @@ def connect_joint(matrixConstraint, joint, driver_attrs):
                 pm.connectAttr(driver_attrs[e], joint.attr(chn))
     pm.connectAttr(
         joint.parentInverseMatrix[0],
-        matrixConstraint.drivenParentInverseMatrix,
+        driver_attrs[-2],
     )
 
 
@@ -294,6 +310,13 @@ def get_connections(source=None, embed_info=False):
             parentMtx_attr = pm.listConnections(
                 jnt.parentMatrix[0], d=True, p=True
             )
+            # ensure that only defaul mgear connected rigs are disconnected
+            # this will return none if a none supported connection is found
+            if parentMtx_attr and parentMtx_attr[0].node().nodeType() not in [
+                "mgear_mulMatrix",
+                "mgear_matrixConstraint",
+            ]:
+                return None, None
             attrs_list.append(parentMtx_attr)
 
             attrs_list_checked = []
