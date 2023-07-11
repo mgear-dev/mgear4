@@ -542,7 +542,9 @@ class Main(object):
                         self.addToGroup(leaf_jnt, "deformers")
                         # connect scale
                         jnt.disconnectAttr("scale")
+                        jnt.disconnectAttr("shear")
                         pm.connectAttr(cns_m.scale, leaf_jnt.scale)
+                        pm.connectAttr(cns_m.shear, leaf_jnt.shear)
 
                 else:
                     cns_m = None
