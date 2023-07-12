@@ -417,8 +417,15 @@ class SettingsMixin(object):
     def load_settings(self):
         for key, (widget, default_value) in self.user_settings.items():
             value = self.settings.value(
-                key, defaultValue=default_value, type=type(default_value)
+                key, defaultValue=default_value
             )
+            # in Maya using python 2 will return string and we need to conver to  bool
+            if value in ['true', 'True']:
+                value = True
+            elif value in ['false', 'False']:
+                value = False
+            else:
+                value = False
             self._set_widget_value(widget, value)
             self._connect_widget_signal(widget)
 

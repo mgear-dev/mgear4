@@ -668,60 +668,73 @@ class FBXExport(MayaQWidgetDockableMixin, QtWidgets.QDialog):
     def restore_ui_state(self):
         if not self._settings:
             return False
-        # TODO: fix restore setttings
-        try:
 
-            self.update_settings()
+        def value_comp(value):
+            # Convert string to bool to fix compatibility with older Maya python 2.
+            if value in ["true", "True"]:
+                value = True
+            elif value in ["false", "False"]:
+                value = False
+            else:
+                value = False
+            return value
 
-            self.up_axis_combobox.setCurrentText(
-                self._settings.value("settings/up axis", "", str)
-            )
-            self.file_type_combobox.setCurrentText(
-                self._settings.value("settings/file type", "", str)
-            )
-            self.fbx_version_combobox.setCurrentText(
-                self._settings.value("settings/fbx version", "", str)
-            )
-            self.fbx_export_presets_combobox.setCurrentText(
-                self._settings.value("settings/export preset", "", str)
-            )
+        self.update_settings()
 
-            self.remove_namespace_checkbox.setChecked(
-                self._settings.value("sdk settings/remove namespace", True, bool)
+        self.up_axis_combobox.setCurrentText(
+            self._settings.value("settings/up axis", "")
+        )
+        self.file_type_combobox.setCurrentText(
+            self._settings.value("settings/file type", "")
+        )
+        self.fbx_version_combobox.setCurrentText(
+            self._settings.value("settings/fbx version", "")
+        )
+        self.fbx_export_presets_combobox.setCurrentText(
+            self._settings.value("settings/export preset", "")
+        )
+        self.remove_namespace_checkbox.setChecked(
+            value_comp(
+                self._settings.value("sdk settings/remove namespace", True)
             )
-            self.clean_scene_checkbox.setChecked(
-                self._settings.value("sdk settings/clean up scene", True, bool)
+        )
+        self.clean_scene_checkbox.setChecked(
+            value_comp(
+                self._settings.value("sdk settings/clean up scene", True)
             )
+        )
 
-            self.file_path_lineedit.setText(
-                self._settings.value("file path/path", "", str)
-            )
-            self.file_name_lineedit.setText(
-                self._settings.value("file path/file name", "", str)
-            )
+        self.file_path_lineedit.setText(
+            self._settings.value("file path/path", "")
+        )
+        self.file_name_lineedit.setText(
+            self._settings.value("file path/file name", "")
+        )
 
-            self.ue_import_cbx.setChecked(
-                self._settings.value("unreal engine/enable", False, bool)
-            )
-            self.ue_file_path_lineedit.setText(
-                self._settings.value("unreal engine/path", "", str)
-            )
+        self.ue_import_cbx.setChecked(
+            value_comp(self._settings.value("unreal engine/enable", False))
+        )
+        self.ue_file_path_lineedit.setText(
+            self._settings.value("unreal engine/path", "")
+        )
 
-            self.skinning_checkbox.setChecked(
-                self._settings.value("export/skeletal mesh/skinning", True, bool)
+        self.skinning_checkbox.setChecked(
+            value_comp(
+                self._settings.value("export/skeletal mesh/skinning", True)
             )
-            self.blendshapes_checkbox.setChecked(
+        )
+        self.blendshapes_checkbox.setChecked(
+            value_comp(
+                self._settings.value("export/skeletal mesh/blendshapes", True)
+            )
+        )
+        self.use_partitions_checkbox.setChecked(
+            value_comp(
                 self._settings.value(
-                    "export/skeletal mesh/blendshapes", True, bool
+                    "export/skeletal mesh/use partitions", True
                 )
             )
-            self.use_partitions_checkbox.setChecked(
-                self._settings.value(
-                    "export/skeletal mesh/use partitions", True, bool
-                )
-            )
-        except:
-            pass
+        )
 
         return True
 
