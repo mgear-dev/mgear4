@@ -70,6 +70,7 @@ def connect_joints_from_matrixConstraint():
         cnx_nodes = pm.ls(type="decomposeMatrix")
     for mcon in cnx_nodes:
         if mcon.hasAttr(DRIVEN_JOINT_ATTR) and mcon.getAttr(DRIVEN_JOINT_ATTR):
+            print(mcon)
             jnt_name = mcon.getAttr(DRIVEN_JOINT_ATTR)
             if pm.objExists(jnt_name):
                 connected = True
@@ -108,6 +109,8 @@ def delete_rig_keep_joints():
 
 def get_deformers_sets():
     grps = pm.ls("*_deformers_grp", type="objectSet")
+    if not grps:
+        grps = pm.ls("*:*_deformers_grp", type="objectSet")
     return grps
 
 
@@ -156,11 +159,18 @@ def disconnect(cnxDict):
             for e, chn in enumerate(SRT_CHANNELS):
                 if leaf_jnt and chn in S_CHANNELS:
                     plug = leaf_jnt[0].attr(chn)
-                    pm.disconnectAttr(plug)
+                    # pm.disconnectAttr(plug)
                 else:
                     plug = oJnt.attr(chn)
-                    if cnxDict["attrs"][i][e]:
+                print(oJnt)
+                print(plug)
+                if cnxDict["attrs"][i][e]:
+                    try:
                         pm.disconnectAttr(cnxDict["attrs"][i][e], plug)
+                    except RuntimeError:
+                        pm.displayWarning(
+                            "Plug: {} already disconnected".format(plug.name())
+                        )
 
             if cnxDict["attrs"][i][13]:
                 pm.disconnectAttr(
@@ -198,13 +208,20 @@ def connect(cnxDict, nsRig=None, nsSkin=None):
                 )
 
     for i, jnt in enumerate(cnxDict["joints"]):
-        # try:
+        leaf_jnt = None
         if nsSkin:
             oJnt = pm.PyNode(nsSkin + ":" + jnt)
         else:
             oJnt = pm.PyNode(jnt)
+
+        if oJnt.hasAttr("leaf_joint"):
+            leaf_jnt = oJnt.leaf_joint.listConnections()
         for e, chn in enumerate(SRT_CHANNELS):
-            plug = oJnt.attr(chn)
+            if leaf_jnt and chn in S_CHANNELS:
+                plug = leaf_jnt[0].attr(chn)
+            else:
+                plug = oJnt.attr(chn)
+
             if cnxDict["attrs"][i][e]:
                 if nsRig:
                     pm.connectAttr(
@@ -664,7 +681,6 @@ class GameToolsDisconnect(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.resize(300, 330)
 
     def gameTools_layout(self):
-
         self.gt_layout = QtWidgets.QVBoxLayout()
         self.gt_layout.addWidget(self.gtUIInst)
 
@@ -800,5 +816,4 @@ def openGameToolsDisconnect(*args):
 
 
 if __name__ == "__main__":
-
     pyqt.showDialog(GameToolsDisconnect)
