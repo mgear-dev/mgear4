@@ -43,6 +43,8 @@ def rig(
     aim_controller="",
     deformers_group="",
     everyNVertex=1,
+    fixedJoints=False,
+    fixedJointsNumber=3,
 ):
     """Create eyelid and eye rig
 
