@@ -17,16 +17,16 @@ import mgear.rigbits.sdk_manager.core as sdk_m
 
 """
 TO DO:
-	- Add source Driver Button
-	- Update Driver Attr comboBox
-	- Logic to Add drivers to tree widget
-		- Get What Driver attrs to move. Default is all. [driver.attr]
-	- Logic to Add all driven under them
-	- Add Destination Driver
-	- Add right click menu to remove Tree items
-	- Source Children grey out when in move mode
-	- Drag and Drop functionality from one tree to another
-		- Posible button for this in case?
+    - Add source Driver Button
+    - Update Driver Attr comboBox
+    - Logic to Add drivers to tree widget
+        - Get What Driver attrs to move. Default is all. [driver.attr]
+    - Logic to Add all driven under them
+    - Add Destination Driver
+    - Add right click menu to remove Tree items
+    - Source Children grey out when in move mode
+    - Drag and Drop functionality from one tree to another
+        - Posible button for this in case?
 
 
 """
@@ -41,7 +41,6 @@ def maya_main_window():
 
 
 class SDK_transfer(QtWidgets.QDialog):
-
     def __init__(self, ui_path=None, parent=maya_main_window()):
         super(SDK_transfer, self).__init__(parent)
         self.setWindowTitle("SDK Transfer")
@@ -72,10 +71,12 @@ class SDK_transfer(QtWidgets.QDialog):
         self.<>_action = QtWidgets.QAction("<>", self)
         """
         # File
-        self.export_settings_action = QtWidgets.QAction("Export settings",
-                                                        self)
-        self.import_settings_action = QtWidgets.QAction("Import settings",
-                                                        self)
+        self.export_settings_action = QtWidgets.QAction(
+            "Export settings", self
+        )
+        self.import_settings_action = QtWidgets.QAction(
+            "Import settings", self
+        )
 
     def create_menu_bar(self, parent_layout):
         """
@@ -111,15 +112,16 @@ class SDK_transfer(QtWidgets.QDialog):
         # Create connection hooks to the Ui.
 
         self.ui.addSourceDriver_pushButton.clicked.connect(
-            partial(self.add_driver, self.ui.source_treeWidget, True))
+            partial(self.add_driver, self.ui.source_treeWidget, True)
+        )
         self.ui.addDestinationDriver_pushButton.clicked.connect(
-            partial(self.add_driver, self.ui.destination_treeWidget, False))
+            partial(self.add_driver, self.ui.destination_treeWidget, False)
+        )
 
         return
 
     def create_item(self, name):
-        """
-        """
+        """ """
         item = QtWidgets.QTreeWidgetItem([name])
         return item
 
@@ -148,11 +150,11 @@ class SDK_transfer(QtWidgets.QDialog):
     # ============================================================== #
 
     def add_children(self, item):
-        """
-        """
+        """ """
         driverCtl = pm.PyNode(item.text(0))
         connectedSDK_ctls = sdk_m.getDrivenFromAttr(
-            driverCtl.attr("translateY"), is_SDK=False)
+            driverCtl.attr("translateY"), is_SDK=False
+        )
 
         if connectedSDK_ctls:
             for SDK_ctl in connectedSDK_ctls:
@@ -162,9 +164,7 @@ class SDK_transfer(QtWidgets.QDialog):
         # children =
 
     def add_driver(self, treewidget, children=False):
-        """
-
-        """
+        """ """
         userSel = pm.ls(sl=True)
 
         itemsToAdd = []
@@ -204,7 +204,9 @@ if __name__ == "__main__":
     except:
         pass
     import mgear.rigbits.sdk_manager.SDK_manager_ui as sdkui
+
     path = os.path.sep.join(
-        [os.path.dirname(sdkui.__file__), "SDK_transfer.ui"])
+        [os.path.dirname(sdkui.__file__), "SDK_transfer.ui"]
+    )
     sdk_transfer_dialog = SDK_transfer(path)
     sdk_transfer_dialog.show()

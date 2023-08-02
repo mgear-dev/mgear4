@@ -1,4 +1,5 @@
 import os
+
 # from pprint import pprint
 
 # Pyside -------------
@@ -19,6 +20,7 @@ from mgear.vendor.Qt import QtCore, QtWidgets
 # mGear core ---------
 import mgear.core.utils as utils
 import mgear.core.attribute as attribute
+
 # import mgear.core.pickWalk as pickWalk
 
 # mGear rigbits ------
@@ -54,7 +56,8 @@ class SDKManagerDialog(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         super(SDKManagerDialog, self).__init__(parent)
         self.setWindowTitle(self.toolName)
         self.setWindowFlags(
-            self.windowFlags() ^ QtCore.Qt.WindowContextHelpButtonHint)
+            self.windowFlags() ^ QtCore.Qt.WindowContextHelpButtonHint
+        )
         self.setObjectName(self.toolName)
 
         # Vars ---------------------
@@ -102,14 +105,18 @@ class SDKManagerDialog(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.import_SDKs_action = QtWidgets.QAction("Import SDK's", self)
 
         # Select
-        self.select_all_sdk_ctls = QtWidgets.QAction("Select All SDK Ctls",
-                                                     self)
-        self.select_all_anim_ctls = QtWidgets.QAction("Select All Anim Ctls",
-                                                      self)
-        self.select_all_sdk_jnts = QtWidgets.QAction("Select All SDK Jnts",
-                                                     self)
-        self.select_all_sdk_nodes = QtWidgets.QAction("Select All SDK Nodes",
-                                                      self)
+        self.select_all_sdk_ctls = QtWidgets.QAction(
+            "Select All SDK Ctls", self
+        )
+        self.select_all_anim_ctls = QtWidgets.QAction(
+            "Select All Anim Ctls", self
+        )
+        self.select_all_sdk_jnts = QtWidgets.QAction(
+            "Select All SDK Jnts", self
+        )
+        self.select_all_sdk_nodes = QtWidgets.QAction(
+            "Select All SDK Nodes", self
+        )
 
         # Tools
         self.tgl_pre_infinity_action = QtWidgets.QAction("Pre-infinity", self)
@@ -129,19 +136,24 @@ class SDKManagerDialog(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.set_tgnt_out_stepnext_action = QtWidgets.QAction("Stepped", self)
 
         self.set_control_limits_action = QtWidgets.QAction(
-            "Auto Set Limits On Selected Controls", self)
+            "Auto Set Limits On Selected Controls", self
+        )
         self.remove_control_limits_action = QtWidgets.QAction(
-            "Auto Remove Limits On Selected Controls", self)
+            "Auto Remove Limits On Selected Controls", self
+        )
         self.rescale_driver_driven_action = QtWidgets.QAction(
-            'Rescale Driver range to fit Driven', self)
+            "Rescale Driver range to fit Driven", self
+        )
         self.lock_unlock_anim_ctls_action = QtWidgets.QAction(
-            'Lock/Unlock Animation Ctls', self)
+            "Lock/Unlock Animation Ctls", self
+        )
         self.lock_unlock_SDK_ctls_action = QtWidgets.QAction(
-            'Lock/Unlock SDK Ctls', self)
-
+            "Lock/Unlock SDK Ctls", self
+        )
 
         self.prune_SDK_nodes_action = QtWidgets.QAction(
-            'Prune SDKs with no input/output', self)
+            "Prune SDKs with no input/output", self
+        )
 
         # Reset
         self.reset_all_ctls = QtWidgets.QAction("Reset All Ctls", self)
@@ -255,25 +267,27 @@ class SDKManagerDialog(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.pop_menu = QtWidgets.QMenu(self)
 
         # Popup menu items
-        self.pm_selectSDKCtl = QtWidgets.QAction('Select SDK Ctl', self)
-        self.pm_selectAnimCtl = QtWidgets.QAction('Select Anim Ctl', self)
-        self.pm_selectJnt = QtWidgets.QAction('Select Joint', self)
+        self.pm_selectSDKCtl = QtWidgets.QAction("Select SDK Ctl", self)
+        self.pm_selectAnimCtl = QtWidgets.QAction("Select Anim Ctl", self)
+        self.pm_selectJnt = QtWidgets.QAction("Select Joint", self)
 
-        self.pm_selectSDK = QtWidgets.QAction('Select SDKs', self)
-        self.pm_selectTx = QtWidgets.QAction('Select Tx Curves', self)
-        self.pm_selectTy = QtWidgets.QAction('Select Ty Curves', self)
-        self.pm_selectTz = QtWidgets.QAction('Select Tz Curves', self)
-        self.pm_selectRx = QtWidgets.QAction('Select Rx Curves', self)
-        self.pm_selectRy = QtWidgets.QAction('Select Ry Curves', self)
-        self.pm_selectRz = QtWidgets.QAction('Select Rz Curves', self)
+        self.pm_selectSDK = QtWidgets.QAction("Select SDKs", self)
+        self.pm_selectTx = QtWidgets.QAction("Select Tx Curves", self)
+        self.pm_selectTy = QtWidgets.QAction("Select Ty Curves", self)
+        self.pm_selectTz = QtWidgets.QAction("Select Tz Curves", self)
+        self.pm_selectRx = QtWidgets.QAction("Select Rx Curves", self)
+        self.pm_selectRy = QtWidgets.QAction("Select Ry Curves", self)
+        self.pm_selectRz = QtWidgets.QAction("Select Rz Curves", self)
 
         self.pm_offset_selected = QtWidgets.QAction(
-            'Apply Control Offset to Selected', self)
+            "Apply Control Offset to Selected", self
+        )
 
         self.pm_DeleteAtCurVal = QtWidgets.QAction(
-            'Delete All Keys at current Value', self)
-        self.pm_deleteSDK = QtWidgets.QAction('Delete All SDKs', self)
-        self.pm_removeDriven = QtWidgets.QAction('Remove From Driven', self)
+            "Delete All Keys at current Value", self
+        )
+        self.pm_deleteSDK = QtWidgets.QAction("Delete All SDKs", self)
+        self.pm_removeDriven = QtWidgets.QAction("Remove From Driven", self)
 
         # Adding the items to the menu
         self.pop_menu.addSeparator()
@@ -307,68 +321,92 @@ class SDKManagerDialog(MayaQWidgetDockableMixin, QtWidgets.QDialog):
 
         # Select
         self.select_all_sdk_ctls.triggered.connect(
-            partial(sdk_m.select_all, "drv"))
+            partial(sdk_m.select_all, "drv")
+        )
         self.select_all_anim_ctls.triggered.connect(
-            partial(sdk_m.select_all, "anim"))
+            partial(sdk_m.select_all, "anim")
+        )
         self.select_all_sdk_jnts.triggered.connect(
-            partial(sdk_m.select_all, "jnts"))
+            partial(sdk_m.select_all, "jnts")
+        )
         self.select_all_sdk_nodes.triggered.connect(
-            partial(sdk_m.select_all, "nodes"))
+            partial(sdk_m.select_all, "nodes")
+        )
 
         # Tools
         self.tgl_pre_infinity_action.triggered.connect(
-            partial(self.toggle_infinty, 0))
+            partial(self.toggle_infinty, 0)
+        )
         self.tgl_pst_infinity_action.triggered.connect(
-            partial(self.toggle_infinty, 1))
+            partial(self.toggle_infinty, 1)
+        )
 
         # - tangent in
         self.set_tgnt_in_auto_action.triggered.connect(
-            partial(self.set_tangent_type, "in", "auto"))
+            partial(self.set_tangent_type, "in", "auto")
+        )
         self.set_tgnt_in_spline_action.triggered.connect(
-            partial(self.set_tangent_type, "in", "spline"))
+            partial(self.set_tangent_type, "in", "spline")
+        )
         self.set_tgnt_in_flat_action.triggered.connect(
-            partial(self.set_tangent_type, "in", "flat"))
+            partial(self.set_tangent_type, "in", "flat")
+        )
         self.set_tgnt_in_linear_action.triggered.connect(
-            partial(self.set_tangent_type, "in", "linear"))
+            partial(self.set_tangent_type, "in", "linear")
+        )
         self.set_tgnt_in_plateau_action.triggered.connect(
-            partial(self.set_tangent_type, "in", "plateau"))
+            partial(self.set_tangent_type, "in", "plateau")
+        )
         self.set_tgnt_in_stepnext_action.triggered.connect(
-            partial(self.set_tangent_type, "in", "stepnext"))
+            partial(self.set_tangent_type, "in", "stepnext")
+        )
 
         # - tangent out
         self.set_tgnt_out_auto_action.triggered.connect(
-            partial(self.set_tangent_type, "out", "auto"))
+            partial(self.set_tangent_type, "out", "auto")
+        )
         self.set_tgnt_out_spline_action.triggered.connect(
-            partial(self.set_tangent_type, "out", "spline"))
+            partial(self.set_tangent_type, "out", "spline")
+        )
         self.set_tgnt_out_flat_action.triggered.connect(
-            partial(self.set_tangent_type, "out", "flat"))
+            partial(self.set_tangent_type, "out", "flat")
+        )
         self.set_tgnt_out_linear_action.triggered.connect(
-            partial(self.set_tangent_type, "out", "linear"))
+            partial(self.set_tangent_type, "out", "linear")
+        )
         self.set_tgnt_out_plateau_action.triggered.connect(
-            partial(self.set_tangent_type, "out", "plateau"))
+            partial(self.set_tangent_type, "out", "plateau")
+        )
         self.set_tgnt_out_stepnext_action.triggered.connect(
-            partial(self.set_tangent_type, "out", "stepnext"))
+            partial(self.set_tangent_type, "out", "stepnext")
+        )
 
         self.set_control_limits_action.triggered.connect(
-            self.set_limits_on_selected)
-        self.remove_control_limits_action.triggered.connect(
-            self.dummy)
+            self.set_limits_on_selected
+        )
+        self.remove_control_limits_action.triggered.connect(self.dummy)
         self.rescale_driver_driven_action.triggered.connect(
-            self.rescale_driver_driven)
+            self.rescale_driver_driven
+        )
         self.lock_unlock_anim_ctls_action.triggered.connect(
-            partial(self.lock_unlock_ctls, 0))
+            partial(self.lock_unlock_ctls, 0)
+        )
         self.lock_unlock_SDK_ctls_action.triggered.connect(
-            partial(self.lock_unlock_ctls, 1))
+            partial(self.lock_unlock_ctls, 1)
+        )
 
         self.prune_SDK_nodes_action.triggered.connect(sdk_m.prune_DK_nodes)
 
         # Reset
         self.reset_all_ctls.triggered.connect(
-            partial(sdk_m.reset_to_default, "all"))
+            partial(sdk_m.reset_to_default, "all")
+        )
         self.reset_sdk_ctls.triggered.connect(
-            partial(sdk_m.reset_to_default, "drv"))
+            partial(sdk_m.reset_to_default, "drv")
+        )
         self.reset_anim_ctls.triggered.connect(
-            partial(sdk_m.reset_to_default, "anim"))
+            partial(sdk_m.reset_to_default, "anim")
+        )
 
         # About
         self.about_action.triggered.connect(self.dummy)
@@ -377,24 +415,33 @@ class SDKManagerDialog(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         #                  - C O N T R O L S - M E N U -                  #
         # ================================================================#
         self.ui.lock_limits_X.clicked.connect(
-            partial(sdk_m.toggle_limits, "x"))
+            partial(sdk_m.toggle_limits, "x")
+        )
         self.ui.lock_limits_Y.clicked.connect(
-            partial(sdk_m.toggle_limits, "y"))
+            partial(sdk_m.toggle_limits, "y")
+        )
         self.ui.lock_limits_Z.clicked.connect(
-            partial(sdk_m.toggle_limits, "z"))
+            partial(sdk_m.toggle_limits, "z")
+        )
 
         self.ui.upper_limits_X.clicked.connect(
-            partial(sdk_m.set_limits_from_current, "x", None, True, False))
+            partial(sdk_m.set_limits_from_current, "x", None, True, False)
+        )
         self.ui.upper_limits_Y.clicked.connect(
-            partial(sdk_m.set_limits_from_current, "y", None, True, False))
+            partial(sdk_m.set_limits_from_current, "y", None, True, False)
+        )
         self.ui.upper_limits_Z.clicked.connect(
-            partial(sdk_m.set_limits_from_current, "z", None, True, False))
+            partial(sdk_m.set_limits_from_current, "z", None, True, False)
+        )
         self.ui.lower_limits_X.clicked.connect(
-            partial(sdk_m.set_limits_from_current, "x", None, False, True))
+            partial(sdk_m.set_limits_from_current, "x", None, False, True)
+        )
         self.ui.lower_limits_Y.clicked.connect(
-            partial(sdk_m.set_limits_from_current, "y", None, False, True))
+            partial(sdk_m.set_limits_from_current, "y", None, False, True)
+        )
         self.ui.lower_limits_Z.clicked.connect(
-            partial(sdk_m.set_limits_from_current, "z", None, False, True))
+            partial(sdk_m.set_limits_from_current, "z", None, False, True)
+        )
 
         # ================================================================#
         #                       - S D K - M E N U -                       #
@@ -402,103 +449,137 @@ class SDKManagerDialog(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         # Buttons =====================
         self.ui.Driver_pushButton.clicked.connect(self.load_driver)
         self.ui.AddJntsToDriven_pushButton.clicked.connect(
-            self.add_selected_to_driven)
-        self.ui.SetDrivenKey_pushButton.clicked.connect(
-            self.set_driven_key)
+            self.add_selected_to_driven
+        )
+        self.ui.SetDrivenKey_pushButton.clicked.connect(self.set_driven_key)
         self.ui.driverReset_pushButton.clicked.connect(
-            self.update_slider_range)
+            self.update_slider_range
+        )
         self.ui.driverReset_pushButton.clicked.connect(
-            self.update_spin_box_range)
+            self.update_spin_box_range
+        )
 
         # Skip Key Buttons =====================
         self.ui.firstKey_pushButton.clicked.connect(
-            partial(self.skip_key, firstKey=True))
+            partial(self.skip_key, firstKey=True)
+        )
         self.ui.prevKey_pushButton.clicked.connect(
-            partial(self.skip_key, prevKey=True))
+            partial(self.skip_key, prevKey=True)
+        )
         self.ui.resetKey_pushButton.clicked.connect(
-            partial(self.skip_key, reset=True))
+            partial(self.skip_key, reset=True)
+        )
         self.ui.nextKey_pushButton.clicked.connect(
-            partial(self.skip_key, nextKey=True))
+            partial(self.skip_key, nextKey=True)
+        )
         self.ui.lastKey_pushButton.clicked.connect(
-            partial(self.skip_key, lastKey=True))
+            partial(self.skip_key, lastKey=True)
+        )
 
         # Sliders =====================
         self.ui.driverVal_Slider.valueChanged.connect(
-            partial(self.update_spin_box))
+            partial(self.update_spin_box)
+        )
         self.ui.driverVal_Slider.valueChanged.connect(
-            partial(self.update_driver_val))
+            partial(self.update_driver_val)
+        )
         self.ui.driverVal_SpinBox.valueChanged.connect(
-            partial(self.update_slider))
+            partial(self.update_slider)
+        )
 
         # Spin Box Math buttons =====================
         self.ui.driverMinus_1_pushButton.clicked.connect(
-            partial(self.spin_box_val, -1.0))
+            partial(self.spin_box_val, -1.0)
+        )
         self.ui.driverMinus_05_pushButton.clicked.connect(
-            partial(self.spin_box_val, -0.5))
+            partial(self.spin_box_val, -0.5)
+        )
         self.ui.driverReset_0_pushButton.clicked.connect(
-            partial(self.skip_key, reset=True))
+            partial(self.skip_key, reset=True)
+        )
         self.ui.driverAdd_05_pushButton.clicked.connect(
-            partial(self.spin_box_val, 0.5))
+            partial(self.spin_box_val, 0.5)
+        )
         self.ui.driverAdd_1_pushButton.clicked.connect(
-            partial(self.spin_box_val, 1.0))
+            partial(self.spin_box_val, 1.0)
+        )
 
         # Save slots =====================
         self.ui.Save_00_pushButton.clicked.connect(
-            partial(self.save_slot, 0, self.ui.Save_00_pushButton))
+            partial(self.save_slot, 0, self.ui.Save_00_pushButton)
+        )
         self.ui.Save_01_pushButton.clicked.connect(
-            partial(self.save_slot, 1, self.ui.Save_01_pushButton))
+            partial(self.save_slot, 1, self.ui.Save_01_pushButton)
+        )
         self.ui.Save_02_pushButton.clicked.connect(
-            partial(self.save_slot, 2, self.ui.Save_02_pushButton))
+            partial(self.save_slot, 2, self.ui.Save_02_pushButton)
+        )
         self.ui.Save_03_pushButton.clicked.connect(
-            partial(self.save_slot, 3, self.ui.Save_03_pushButton))
+            partial(self.save_slot, 3, self.ui.Save_03_pushButton)
+        )
         self.ui.Save_04_pushButton.clicked.connect(
-            partial(self.save_slot, 4, self.ui.Save_04_pushButton))
+            partial(self.save_slot, 4, self.ui.Save_04_pushButton)
+        )
 
         # Ui =====================
         self.ui.Driven_listWidget.itemDoubleClicked.connect(
-            self.select_list_item)
+            self.select_list_item
+        )
         self.ui.DriverAttribute_comboBox.currentIndexChanged.connect(
-            self.update_list_widget)
+            self.update_list_widget
+        )
         self.ui.ShowOnlyDriverAtt.stateChanged.connect(
-            self.driver_attr_drop_down)
+            self.driver_attr_drop_down
+        )
 
         # Mirror  =====================
         self.ui.Mirror_SDK_selected_ctls_pushButton.clicked.connect(
-            self.mirror_selected_SDK)
+            self.mirror_selected_SDK
+        )
 
         # ================================================================#
         #                    - P O P - U P - M E N U -                    #
         # ================================================================#
         # set listWidget context menu policy
         self.ui.Driven_listWidget.customContextMenuRequested.connect(
-            self.on_context_menu)
+            self.on_context_menu
+        )
         # connecting popup menu items to defs
         # select components ------------------
         self.pm_selectSDKCtl.triggered.connect(
-            partial(self.select_item, SDK=True))
+            partial(self.select_item, SDK=True)
+        )
         self.pm_selectAnimCtl.triggered.connect(
-            partial(self.select_item, anim=True))
+            partial(self.select_item, anim=True)
+        )
         self.pm_selectJnt.triggered.connect(
-            partial(self.select_item, joint=True))
+            partial(self.select_item, joint=True)
+        )
 
         # select sdk ------------------------
         self.pm_selectSDK.triggered.connect(self.select_SDKS)
 
         # select transtaltes ----------------
         self.pm_selectTx.triggered.connect(
-            partial(self.select_SDKS, ['translateX']))
+            partial(self.select_SDKS, ["translateX"])
+        )
         self.pm_selectTy.triggered.connect(
-            partial(self.select_SDKS, ['translateY']))
+            partial(self.select_SDKS, ["translateY"])
+        )
         self.pm_selectTz.triggered.connect(
-            partial(self.select_SDKS, ['translateZ']))
+            partial(self.select_SDKS, ["translateZ"])
+        )
 
         # select rotates --------------------
         self.pm_selectRx.triggered.connect(
-            partial(self.select_SDKS, ['rotateX']))
+            partial(self.select_SDKS, ["rotateX"])
+        )
         self.pm_selectRy.triggered.connect(
-            partial(self.select_SDKS, ['rotateY']))
+            partial(self.select_SDKS, ["rotateY"])
+        )
         self.pm_selectRz.triggered.connect(
-            partial(self.select_SDKS, ['rotateZ']))
+            partial(self.select_SDKS, ["rotateZ"])
+        )
 
         # offset ---------------------------
         self.pm_offset_selected.triggered.connect(self.apply_control_offset)
@@ -509,7 +590,8 @@ class SDKManagerDialog(MayaQWidgetDockableMixin, QtWidgets.QDialog):
 
         # remove ---------------------------
         self.pm_removeDriven.triggered.connect(
-            self.remove_selected_from_driven)
+            self.remove_selected_from_driven
+        )
 
     def on_context_menu(self, point):
         """show context menu if there are is something selected"""
@@ -541,8 +623,9 @@ class SDKManagerDialog(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         """
         returns a list of all the items in the QlistWidget
         """
-        return [str(listWidget.item(i).text())
-                for i in range(listWidget.count())]
+        return [
+            str(listWidget.item(i).text()) for i in range(listWidget.count())
+        ]
 
     def select_list_item(self):
         """
@@ -572,8 +655,11 @@ class SDKManagerDialog(MayaQWidgetDockableMixin, QtWidgets.QDialog):
             clickMode = 2  # shift
         elif modifiers == QtCore.Qt.AltModifier:
             clickMode = 3  # alt
-        elif modifiers == (QtCore.Qt.ControlModifier | QtCore.Qt.ShiftModifier
-                           | QtCore.Qt.AltModifier):
+        elif modifiers == (
+            QtCore.Qt.ControlModifier
+            | QtCore.Qt.ShiftModifier
+            | QtCore.Qt.AltModifier
+        ):
             clickMode = 4  # ctrl+shift+alt
         elif modifiers == QtCore.Qt.ControlModifier | QtCore.Qt.AltModifier:
             clickMode = 5  # ctrl+alt
@@ -606,8 +692,8 @@ class SDKManagerDialog(MayaQWidgetDockableMixin, QtWidgets.QDialog):
             if self.driver_att:
                 watched_attr = "{0}.{1}".format(self.driver, self.driver_att)
                 new_script = pm.scriptJob(
-                    attributeChange=(watched_attr,
-                                     partial(self.update_slider)))
+                    attributeChange=(watched_attr, partial(self.update_slider))
+                )
                 self.script_jobs.append(new_script)
 
     def delete_script_jobs(self):
@@ -634,8 +720,9 @@ class SDKManagerDialog(MayaQWidgetDockableMixin, QtWidgets.QDialog):
             if self.ui.ShowOnlyDriverAtt.isChecked():
                 connectedAttrs = []
                 for attr in driverAttrs:
-                    if sdk_m.get_driven_from_attr(self.driver.attr(attr),
-                                                  is_SDK=False):
+                    if sdk_m.get_driven_from_attr(
+                        self.driver.attr(attr), is_SDK=False
+                    ):
                         connectedAttrs.append(attr)
                 driverAttrs = connectedAttrs
 
@@ -651,12 +738,14 @@ class SDKManagerDialog(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         driverAtt = self.ui.DriverAttribute_comboBox.currentText()
         if driverAtt:
             connectedSDK_ctls = sdk_m.get_driven_from_attr(
-                self.driver.attr(driverAtt), is_SDK=False)
+                self.driver.attr(driverAtt), is_SDK=False
+            )
             self.ui.Driven_listWidget.addItems(connectedSDK_ctls)
 
             # updating the Range
             self.driver_range = sdk_m.get_driver_keys(
-                self.driver.attr(driverAtt))
+                self.driver.attr(driverAtt)
+            )
             self.driver_att = self.ui.DriverAttribute_comboBox.currentText()
 
             # Updating Driver Range Slider
@@ -734,14 +823,16 @@ class SDKManagerDialog(MayaQWidgetDockableMixin, QtWidgets.QDialog):
             for selectedItem in selectedItems:
                 # Select the Anim Ctls
                 if anim:
-                    pm.select(sdk_m.get_info(
-                        utils.as_pynode(selectedItem))[1], add=True)
+                    pm.select(
+                        sdk_m.get_info(utils.as_pynode(selectedItem))[1],
+                        add=True,
+                    )
                 # Select the Joints
                 if joint:
-                    SDKcompInfo = sdk_m.get_info(
-                        utils.as_pynode(selectedItem))
-                    pm.select(sdk_m.joint_from_driver_ctl(SDKcompInfo[1]),
-                              add=True)
+                    SDKcompInfo = sdk_m.get_info(utils.as_pynode(selectedItem))
+                    pm.select(
+                        sdk_m.joint_from_driver_ctl(SDKcompInfo[1]), add=True
+                    )
 
     def delete_all_current_SDK(self):
         """
@@ -749,8 +840,9 @@ class SDKManagerDialog(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         """
         selectedItems = self.__list_widget_selection()
         for selectedItem in selectedItems:
-            sdk_io.removeSDKs(node=pm.PyNode(selectedItem),
-                              sourceDriverFilter=[self.driver])
+            sdk_io.removeSDKs(
+                node=pm.PyNode(selectedItem), sourceDriverFilter=[self.driver]
+            )
 
         om.MGlobal.displayInfo("Key Deletion Complete")
 
@@ -763,9 +855,11 @@ class SDKManagerDialog(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         selectedItems = self.__list_widget_selection()
         for selectedItem in selectedItems:
             dvr = self.driver.attr(self.driver_att).get()
-            sdk_m.delete_current_value_keys(dvr,
-                                            node=pm.PyNode(selectedItem),
-                                            sourceDriverFilter=[self.driver])
+            sdk_m.delete_current_value_keys(
+                dvr,
+                node=pm.PyNode(selectedItem),
+                sourceDriverFilter=[self.driver],
+            )
 
     def select_SDKS(self, drivenAttrFilter=[]):
         """
@@ -802,11 +896,12 @@ class SDKManagerDialog(MayaQWidgetDockableMixin, QtWidgets.QDialog):
                         pm.select(sdk, add=True)
                     # Filter what nodes are selected.
                     else:
-                        if sdkInfo['drivenAttr'] in drivenAttrFilter:
+                        if sdkInfo["drivenAttr"] in drivenAttrFilter:
                             pm.select(sdk, add=True)
             except:  # noqa: E722
-                pm.warning("Could not select SDK's for"
-                           " {}".format(selectedItem))
+                pm.warning(
+                    "Could not select SDK's for" " {}".format(selectedItem)
+                )
 
     @utils.one_undo
     def apply_control_offset(self):
@@ -886,18 +981,22 @@ class SDKManagerDialog(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         SDKs_to_set = sdk_m.get_current_SDKs()
         # Setting tangent types on the SDK nodes
         for animNode in SDKs_to_set:
-            numberOfKeys = len(pm.listAttr("{0}.ktv".format(animNode),
-                                           multi=True)) / 3
+            numberOfKeys = (
+                len(pm.listAttr("{0}.ktv".format(animNode), multi=True)) / 3
+            )
             for index in range(0, numberOfKeys):
                 if tangent == "in":
                     pm.keyTangent(
-                        animNode, index=[index, index], inTangentType=tanType)
+                        animNode, index=[index, index], inTangentType=tanType
+                    )
                 if tangent == "out":
                     pm.keyTangent(
-                        animNode, index=[index, index], outTangentType=tanType)
+                        animNode, index=[index, index], outTangentType=tanType
+                    )
 
-        om.MGlobal.displayInfo("{} tangents have been set to"
-                               " {}".format(tangent, tanType))
+        om.MGlobal.displayInfo(
+            "{} tangents have been set to" " {}".format(tangent, tanType)
+        )
 
     def rescale_driver_driven(self):
         """
@@ -928,10 +1027,18 @@ class SDKManagerDialog(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         Returns:
             None
         """
-        attributes = ["tx", "ty", "tz",
-                      "rx", "ry", "rz",
-                      "sx", "sy", "sz",
-                      "v"]
+        attributes = [
+            "tx",
+            "ty",
+            "tz",
+            "rx",
+            "ry",
+            "rz",
+            "sx",
+            "sy",
+            "sz",
+            "v",
+        ]
 
         if mode == 0:
             AllCtls = [x.node() for x in pm.ls("*.is_tweak")]
@@ -948,10 +1055,12 @@ class SDKManagerDialog(MayaQWidgetDockableMixin, QtWidgets.QDialog):
                     else:
                         newLockStatus = True
 
-                    attribute._lockUnlockAttribute(ctl,
-                                                   attributes=[attr],
-                                                   lock=newLockStatus,
-                                                   keyable=True)
+                    attribute._lockUnlockAttribute(
+                        ctl,
+                        attributes=[attr],
+                        lock=newLockStatus,
+                        keyable=True,
+                    )
 
         # User Feedback
         ctlType = "SDK" if mode == 1 else "Anim"
@@ -961,12 +1070,12 @@ class SDKManagerDialog(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         else:
             lockMode = "unlocked"
 
-        om.MGlobal.displayInfo("{} Ctl Channels have been {}".format(ctlType,
-                                                                     lockMode))
+        om.MGlobal.displayInfo(
+            "{} Ctl Channels have been {}".format(ctlType, lockMode)
+        )
 
     def set_limits_on_selected(self):
-        """
-        """
+        """ """
         # userSel = pm.ls(sl=True)
         print("TO DO: set_limits_on_selected")
         return
@@ -1025,9 +1134,9 @@ class SDKManagerDialog(MayaQWidgetDockableMixin, QtWidgets.QDialog):
             str - path as defined by user
         """
         fileFilter = "JSON (*.json);;All Files (*.*)"
-        file_path = pm.fileDialog2(fileFilter=fileFilter,
-                                   fm=mode,
-                                   caption=caption + caption)
+        file_path = pm.fileDialog2(
+            fileFilter=fileFilter, fm=mode, caption=caption + caption
+        )
         if file_path:
             return file_path[0]
         else:
@@ -1077,7 +1186,8 @@ class SDKManagerDialog(MayaQWidgetDockableMixin, QtWidgets.QDialog):
 
             # Making sure not to add duplicate labels
             current_SDK_labels = self.get_QList_widget_items(
-                self.ui.Driven_listWidget)
+                self.ui.Driven_listWidget
+            )
             newLabels = []
             for label in SDK_labels:
                 if label not in current_SDK_labels:
@@ -1161,8 +1271,9 @@ class SDKManagerDialog(MayaQWidgetDockableMixin, QtWidgets.QDialog):
                     for driver_ctl in driver_ctls:
                         driver_ctl_node = pm.PyNode(driver_ctl)
                         # Getting all the driver_ctl_attrs
-                        driver_ctl_attrs = pm.listAttr(driver_ctl_node,
-                                                       keyable=True)
+                        driver_ctl_attrs = pm.listAttr(
+                            driver_ctl_node, keyable=True
+                        )
                         # If its the current driver, remove the current driver
                         # attr to avoid false positives
                         if driver_ctl_node.name() == self.driver.name():
@@ -1172,12 +1283,14 @@ class SDKManagerDialog(MayaQWidgetDockableMixin, QtWidgets.QDialog):
                             # Checking if an attr on the Driver has values
                             # on it
                             driver_node_val = pm.getAttr(
-                                driver_ctl_node.attr(driver_ctl_attr))
+                                driver_ctl_node.attr(driver_ctl_attr)
+                            )
                             # If there are values, check if there are any
                             # connected SDK's
                             if driver_node_val != 0:
                                 connected_nodes = pm.listConnections(
-                                    driver_ctl_node.attr(driver_ctl_attr))
+                                    driver_ctl_node.attr(driver_ctl_attr)
+                                )
                                 # If there is something connected, make check
                                 # if its an SDK node
                                 if connected_nodes:
@@ -1196,12 +1309,13 @@ class SDKManagerDialog(MayaQWidgetDockableMixin, QtWidgets.QDialog):
                     driver_val = pm.getAttr(self.driver.attr(driverAtt))
                     set_zero_key = True if driver_val != 0 else False
                     # Set Driven Key
-                    sdk_m.key_at_current_values(drivenCtls=drivenCtls,
-                                                keyChannels=keyChannels,
-                                                driver=self.driver,
-                                                driverAtt=driverAtt,
-                                                zeroKey=set_zero_key
-                                                )
+                    sdk_m.key_at_current_values(
+                        drivenCtls=drivenCtls,
+                        keyChannels=keyChannels,
+                        driver=self.driver,
+                        driverAtt=driverAtt,
+                        zeroKey=set_zero_key,
+                    )
 
                 # ------------------------------------------------------------
                 # SDK MODE : 1
@@ -1214,16 +1328,19 @@ class SDKManagerDialog(MayaQWidgetDockableMixin, QtWidgets.QDialog):
                 # updating the Range and UI
                 # ------------------------------------------------------------
                 self.driver_range = sdk_m.get_driver_keys(
-                    self.driver.attr(driverAtt))
+                    self.driver.attr(driverAtt)
+                )
                 self.update_slider_range()
                 self.update_spin_box_range()
 
-    def skip_key(self,
-                 firstKey=False,
-                 prevKey=False,
-                 nextKey=False,
-                 lastKey=False,
-                 reset=False):
+    def skip_key(
+        self,
+        firstKey=False,
+        prevKey=False,
+        nextKey=False,
+        lastKey=False,
+        reset=False,
+    ):
         """
         Will skip the driver Value to the defined key frame.
 
@@ -1239,17 +1356,21 @@ class SDKManagerDialog(MayaQWidgetDockableMixin, QtWidgets.QDialog):
             driverAtt = self.ui.DriverAttribute_comboBox.currentText()
 
             if firstKey:
-                Attr = sdk_m.get_driver_keys(self.driver.attr(driverAtt),
-                                             firstKey=True)
+                Attr = sdk_m.get_driver_keys(
+                    self.driver.attr(driverAtt), firstKey=True
+                )
             if prevKey:
-                Attr = sdk_m.get_driver_keys(self.driver.attr(driverAtt),
-                                             prevKey=True)
+                Attr = sdk_m.get_driver_keys(
+                    self.driver.attr(driverAtt), prevKey=True
+                )
             if nextKey:
-                Attr = sdk_m.get_driver_keys(self.driver.attr(driverAtt),
-                                             nextKey=True)
+                Attr = sdk_m.get_driver_keys(
+                    self.driver.attr(driverAtt), nextKey=True
+                )
             if lastKey:
-                Attr = sdk_m.get_driver_keys(self.driver.attr(driverAtt),
-                                             lastKey=True)
+                Attr = sdk_m.get_driver_keys(
+                    self.driver.attr(driverAtt), lastKey=True
+                )
             if reset:
                 Attr = 0.0
 
@@ -1329,8 +1450,9 @@ class SDKManagerDialog(MayaQWidgetDockableMixin, QtWidgets.QDialog):
                         try:
                             transform.attr(attr).set(val)
                         except:  # noqa: E722
-                            failedSets.append("{}.{}".format(transform.name(),
-                                                             attr))
+                            failedSets.append(
+                                "{}.{}".format(transform.name(), attr)
+                            )
 
                 if failedSets:
                     for item in failedSets:
