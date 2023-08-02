@@ -5,12 +5,12 @@ from PySide2 import QtCore
 from PySide2 import QtUiTools
 from PySide2 import QtWidgets
 from PySide2 import QtGui
-from shiboken2 import wrapInstance
 
 from functools import partial
 
 import pymel.core as pm
-import maya.OpenMayaUI as omui
+
+from mgear.core import pyqt
 
 
 import mgear.rigbits.sdk_manager.core as sdk_m
@@ -32,16 +32,8 @@ TO DO:
 """
 
 
-def maya_main_window():
-    """
-    Return the Maya main window widget as a Python object
-    """
-    main_window_ptr = omui.MQtUtil.mainWindow()
-    return wrapInstance(long(main_window_ptr), QtWidgets.QWidget)
-
-
 class SDK_transfer(QtWidgets.QDialog):
-    def __init__(self, ui_path=None, parent=maya_main_window()):
+    def __init__(self, ui_path=None, parent=pyqt.maya_main_window()):
         super(SDK_transfer, self).__init__(parent)
         self.setWindowTitle("SDK Transfer")
         bh_flag = QtCore.Qt.WindowContextHelpButtonHint

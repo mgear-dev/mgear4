@@ -5,12 +5,10 @@ import os
 # Pyside -------------
 from PySide2 import QtUiTools
 from functools import partial
-from shiboken2 import wrapInstance
 
 # Maya ---------------
 import pymel.core as pm
 import maya.OpenMaya as om
-import maya.OpenMayaUI as omui
 from maya.app.general.mayaMixin import MayaQWidgetDockableMixin
 
 # mGear QT -----------
@@ -30,17 +28,6 @@ import mgear.rigbits.sdk_manager.core as sdk_m
 __author__ = "Justin Pedersen"
 __email__ = "Justin@tcgcape.co.za"
 __version__ = [0, 0, 1]
-
-reload(sdk_m)
-reload(sdk_io)
-
-
-def maya_main_window():
-    """
-    Return the Maya main window widget as a Python object
-    """
-    main_window_ptr = omui.MQtUtil.mainWindow()
-    return wrapInstance(long(main_window_ptr), QtWidgets.QWidget)
 
 
 class SDKManagerDialog(MayaQWidgetDockableMixin, QtWidgets.QDialog):
