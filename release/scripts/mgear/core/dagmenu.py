@@ -436,6 +436,7 @@ def __switch_xray_ctl_callback(*args):
                 else:
                     rig_root.ctl_x_ray.set(True)
 
+
 def get_option_var_state():
     """Gets dag menu option variable
 
@@ -628,15 +629,18 @@ def mgear_dagmenu_fill(parent_menu, current_control):
 
     child_controls.append(current_control)
     attrs = _get_switch_node_attrs(current_control, "_blend")
-    if attrs:
+    attrs2 = _get_switch_node_attrs(current_control, "ref")
+    if attrs or attrs2:
         ui_host = current_control
+
     else:
         try:
             ui_host = cmds.listConnections(
                 "{}.uiHost_cnx".format(current_control)
             )[0]
             attrs = _get_switch_node_attrs(ui_host, "_blend")
-            if not attrs:
+            attrs2 = _get_switch_node_attrs(ui_host, "ref")
+            if not attrs and not attrs2:
                 ui_host = None
         except ValueError:
             ui_host = None
