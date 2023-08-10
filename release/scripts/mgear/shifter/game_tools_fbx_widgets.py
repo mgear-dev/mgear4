@@ -1,9 +1,11 @@
 import copy
 import weakref
 from functools import partial
+import traceback
 
 from mgear.core import pyqt, utils
 from mgear.shifter import game_tools_fbx_utils as fu
+from mgear.shifter.game_tools_fbx.fbx_export_node import FbxExportNode
 from mgear.vendor.Qt import QtWidgets
 from mgear.vendor.Qt import QtCore
 from mgear.vendor.Qt import QtGui
@@ -228,7 +230,7 @@ class TreeItem(QtWidgets.QTreeWidgetItem):
             child.node.label_color = color
 
         value = [color.red(), color.green(), color.blue()]
-        export_node = fu.FbxExportNode.get()
+        export_node = FbxExportNode.get()
         if not export_node:
             return
         export_node.set_partition_color(self.node.node_name, value)
@@ -262,7 +264,7 @@ class TreeItem(QtWidgets.QTreeWidgetItem):
         return None
 
     def delete_node(self):
-        export_node = fu.FbxExportNode.get()
+        export_node = FbxExportNode.get()
         if not export_node:
             return
         if self.is_root():
@@ -297,7 +299,7 @@ class OutlinerTreeView(QtWidgets.QTreeWidget):
     droppedItems = QtCore.Signal(object, list, bool)
 
     def __init__(self, parent=None):
-        super(OutlinerTreeView, self).__init__(parent)
+        super(OutlinerTreeView, self).__init__(parent=parent)
 
         self._last_hit_action = None
         self._selection_parent = None
@@ -319,7 +321,7 @@ class OutlinerTreeView(QtWidgets.QTreeWidget):
         self.resizeColumnToContents(0)
         delegate = TreeViewDelegate(self)
         self.setItemDelegate(delegate)
-        self.setStyle(ItemStyle())
+        # self.setStyle(ItemStyle())
         self.setRootIsDecorated(False)
         self.expandAll()
         self.setExpandsOnDoubleClick(False)
@@ -521,7 +523,7 @@ class OutlinerTreeView(QtWidgets.QTreeWidget):
         """
         Forces the repopulation the tree widget
         """
-
+        traceback.print_stack()
         self._selection_parent = None
         self._selection_node = None
 
@@ -1086,7 +1088,7 @@ class AnimClipsListWidget(QtWidgets.QWidget):
 
         if not self._root_joint:
             return
-        export_node = fu.FbxExportNode.get()
+        export_node = FbxExportNode.get()
         if not export_node:
             return
 
@@ -1123,7 +1125,7 @@ class AnimClipsListWidget(QtWidgets.QWidget):
             )
             return
 
-        export_node = fu.FbxExportNode.get() or fu.FbxExportNode.create()
+        export_node = FbxExportNode.get() or FbxExportNode.create()
         anim_clip_name = export_node.add_animation_clip(self._root_joint)
         if not anim_clip_name:
             cmds.warning("Was not possible to add new animation clip")
@@ -1136,7 +1138,7 @@ class AnimClipsListWidget(QtWidgets.QWidget):
         if not self._root_joint:
             return
 
-        export_node = fu.FbxExportNode.get()
+        export_node = FbxExportNode.get()
         if not export_node:
             return
 
@@ -1287,7 +1289,7 @@ class AnimClipWidget(QtWidgets.QFrame):
         )
 
     def refresh(self):
-        export_node = fu.FbxExportNode.get()
+        export_node = FbxExportNode.get()
         if not export_node:
             self._clear()
             return
@@ -1355,7 +1357,7 @@ class AnimClipWidget(QtWidgets.QFrame):
         # self._start_at_frame_zero_checkbox.setChecked(False)
 
     def _on_close_button_clicked(self):
-        export_node = fu.FbxExportNode.get()
+        export_node = FbxExportNode.get()
         if not export_node:
             return
 
@@ -1382,11 +1384,11 @@ class AnimClipWidget(QtWidgets.QFrame):
         if not root_joint:
             return
 
-        export_node = fu.FbxExportNode.get()
+        export_node = FbxExportNode.get()
         if not export_node:
             return
 
-        anim_clip_data = fu.FbxExportNode.ANIM_CLIP_DATA.copy()
+        anim_clip_data = FbxExportNode.ANIM_CLIP_DATA.copy()
         anim_clip_data["title"] = self._title_line_edit.text()
         # anim_clip_data['path'] = self._export_path_line_edit.text()
         anim_clip_data["enabled"] = self._export_checkbox.isChecked()
@@ -1406,7 +1408,7 @@ class AnimClipWidget(QtWidgets.QFrame):
         self._previous_name = anim_clip_data["title"]
 
     def _on_delete_anim_clip(self):
-        export_node = fu.FbxExportNode.get()
+        export_node = FbxExportNode.get()
         if not export_node:
             return
 

@@ -15,21 +15,21 @@ from mgear.core import widgets
 from mgear.core import string
 from mgear.core import pyFBX as pfbx
 
-from mgear.shifter import (
+from mgear.shifter.game_tools_fbx import (
+    fbx_export_node,
     game_tools_fbx_utils as fu,
     game_tools_fbx_widgets as fuw,
+    partitions_outliner
 )
 
-from mgear.uegear import bridge, commands as uegear
+from mgear.uegear import commands as uegear
 
 
 class FBXExport(MayaQWidgetDockableMixin, QtWidgets.QDialog):
     def __init__(self, parent=None):
         super(FBXExport, self).__init__(parent)
-
         self.setWindowFlags(QtCore.Qt.Tool)
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose, True)
-
         self.setWindowTitle("Shifter's FBX Export")
         min_w = 300
         default_w = 400
@@ -38,7 +38,6 @@ class FBXExport(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.resize(default_w, default_h)
 
         self.create_actions()
-        self.create_widgets()
         self.create_layout()
         self.create_connections()
 
@@ -54,15 +53,12 @@ class FBXExport(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.restore_ui_state()
 
     def closeEvent(self, event):
-
         # make sure UI is stored, even if UI is launched without docking functionality
         self.save_ui_state()
-
         super(FBXExport, self).closeEvent(event)
 
     def dockCloseEventTriggered(self):
         super(FBXExport, self).dockCloseEventTriggered()
-
         self.save_ui_state()
 
     def create_actions(self):
@@ -88,184 +84,121 @@ class FBXExport(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.refresh_uegear_connection_action.setIcon(
             pyqt.get_icon("mgear_refresh-cw")
         )
+    
+    def create_layout(self):
+        self.main_layout = QtWidgets.QVBoxLayout(self)
+        self.main_layout.setContentsMargins(2, 2, 2, 2)
+        self.main_layout.setSpacing(2)
 
-    def create_widgets(self):
+        self.create_menu_bar()
+        self.create_source_elements_widget()
+        self.create_settings_widget()
+        self.create_file_path_widget()
+        self.create_unreal_import_widget()
+        self.create_export_widget()
 
+    def create_menu_bar(self):
         # menu bar
         self.menu_bar = QtWidgets.QMenuBar()
+        self.main_layout.setMenuBar(self.menu_bar)
+
         self.file_menu = self.menu_bar.addMenu("File")
         self.file_menu.addAction(self.file_export_preset_action)
-        self.file_menu.addSeparator()
         self.file_menu.addAction(self.file_import_preset_action)
-        self.file_menu.addSeparator()
+
         self.fbx_sdk_menu = self.menu_bar.addMenu("FBX SDK")
         self.fbx_sdk_menu.addAction(self.set_fbx_sdk_path_action)
-        self.fbx_sdk_menu.addSeparator()
         self.fbx_sdk_menu.addAction(self.fbx_sdk_path_action)
+
         self.uegear_menu = self.menu_bar.addMenu("ueGear")
         self.uegear_menu.addAction(self.refresh_uegear_connection_action)
 
-        # set source roots
-        self.geo_root_label = QtWidgets.QLabel("Geo Root")
+    def create_source_elements_widget(self):
+        def create_button(layout, label="", icon=None, max_width=40,
+                          max_height=20):
+            button = QtWidgets.QPushButton(label)
+            button.setMaximumSize(max_width, max_height)
+            if icon:
+                button.setIcon(pyqt.get_icon(icon))
+            layout.addWidget(button)
+            return button
+
+        def create_subgrid_vlayout(row, col):
+            layout = QtWidgets.QVBoxLayout()
+            source_layout.addLayout(layout, row, col)
+            return layout
+
+        # main collapsible widget layout
+        source_collap_wgt = widgets.CollapsibleWidget("Source Elements")
+        source_collap_wgt.setSizePolicy(QtWidgets.QSizePolicy.Preferred,
+                                        QtWidgets.QSizePolicy.Maximum)
+        self.main_layout.addWidget(source_collap_wgt)
+
+        source_layout = QtWidgets.QGridLayout()
+        source_layout.setSpacing(2)
+        source_collap_wgt.addLayout(source_layout)
+
+        # geo root layout
+        geo_layout = create_subgrid_vlayout(0, 0)
+        geo_label = QtWidgets.QLabel("Geo Root")
+        geo_layout.addWidget(geo_label)
         self.geo_root_list = QtWidgets.QListWidget()
-        self.geo_root_list.setSizePolicy(
+        self.geo_root_list.setSizePolicy(QtWidgets.QSizePolicy.MinimumExpanding,
+                                         QtWidgets.QSizePolicy.MinimumExpanding)
+        self.geo_root_list.setSelectionMode(QtWidgets.QListWidget.ExtendedSelection)
+        geo_layout.addWidget(self.geo_root_list)
+
+        geo_buttons_layout = create_subgrid_vlayout(0, 1)
+        geo_buttons_layout.addStretch()
+        self.geo_set_btn = create_button(geo_buttons_layout,
+                                         icon="mgear_mouse-pointer")
+        self.geo_add_btn = create_button(geo_buttons_layout,
+                                         icon="mgear_plus")
+        self.geo_rem_btn = create_button(geo_buttons_layout,
+                                         icon="mgear_minus")
+        self.geo_auto_set_btn = create_button(geo_buttons_layout,
+                                              label="Auto")
+        geo_buttons_layout.addStretch()
+
+        # joint root layout
+        joint_layout = create_subgrid_vlayout(1, 0)
+        joint_label = QtWidgets.QLabel("Joint Root")
+        joint_layout.addWidget(joint_label)
+        self.joint_root_lineedit = QtWidgets.QLineEdit()
+        joint_layout.addWidget(self.joint_root_lineedit)
+
+        joint_buttons_layout = create_subgrid_vlayout(1, 1)
+        self.joint_set_btn = create_button(joint_buttons_layout,
+                                           icon="mgear_mouse-pointer")
+        self.joint_auto_set_btn = create_button(joint_buttons_layout,
+                                                label="Auto")
+
+
+    def create_settings_widget(self):
+        # main collapsible widget layout
+        settings_collap_wgt = widgets.CollapsibleWidget("Settings")
+        settings_collap_wgt.setSizePolicy(
             QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Maximum
         )
-        self.geo_root_list.setSelectionMode(
-            QtWidgets.QListWidget.ExtendedSelection
-        )
-        self.geo_root_set_button = QtWidgets.QPushButton()
-        self.geo_root_set_button.setIcon(pyqt.get_icon("mgear_mouse-pointer"))
-        self.geo_root_add_button = QtWidgets.QPushButton()
-        self.geo_root_add_button.setIcon(pyqt.get_icon("mgear_plus"))
-        self.geo_root_remove_button = QtWidgets.QPushButton()
-        self.geo_root_remove_button.setIcon(pyqt.get_icon("mgear_minus"))
-        self.geo_root_auto_set_button = QtWidgets.QPushButton("Auto")
-        self.geo_root_auto_set_button.setMaximumWidth(40)
+        self.main_layout.addWidget(settings_collap_wgt)
+        settings_tab = QtWidgets.QTabWidget()
+        settings_collap_wgt.addWidget(settings_tab)
 
-        self.joint_root_label = QtWidgets.QLabel("Joint Root")
-        self.joint_root_lineedit = QtWidgets.QLineEdit()
-        self.joint_root_set_button = QtWidgets.QPushButton()
-        self.joint_root_set_button.setIcon(
-            pyqt.get_icon("mgear_mouse-pointer")
-        )
-        self.joint_root_auto_set_button = QtWidgets.QPushButton("Auto")
-        self.joint_root_auto_set_button.setMaximumWidth(40)
+        # fbx settings tab
+        fbx_tab = QtWidgets.QWidget()
+        settings_tab.addTab(fbx_tab, "FBX")
 
-        # settings
-        self.settings_tab = QtWidgets.QTabWidget()
-
-        self.settings_widget = QtWidgets.QWidget()
         self.up_axis_combobox = QtWidgets.QComboBox()
-        self.up_axis_combobox.addItem("Y")
-        self.up_axis_combobox.addItem("Z")
+        self.up_axis_combobox.addItems(["Y", "Z"])
         self.file_type_combobox = QtWidgets.QComboBox()
-        self.file_type_combobox.addItem("Binary")
-        self.file_type_combobox.addItem("ASCII")
+        self.file_type_combobox.addItems(["Binary", "ASCII"])
         self.fbx_version_combobox = QtWidgets.QComboBox()
-        self.populate_fbx_versions_combobox(self.fbx_version_combobox)
+        self.fbx_version_combobox.addItems(pfbx.get_fbx_versions())
         self.fbx_export_presets_combobox = QtWidgets.QComboBox()
         self.populate_fbx_export_presets_combobox(
             self.fbx_export_presets_combobox
         )
-        self.settings_tab.addTab(self.settings_widget, "FBX Settings")
-
-        # FBX SDK settings
-        self.fbx_sdk_settings_widget = QtWidgets.QWidget()
-        self.remove_namespace_checkbox = QtWidgets.QCheckBox(
-            "Remove Namespace"
-        )
-        self.remove_namespace_checkbox.setChecked(True)
-        self.clean_scene_checkbox = QtWidgets.QCheckBox(
-            "Joint and Geo Root Child of Scene Root + Clean Up Scene"
-        )
-        self.clean_scene_checkbox.setChecked(True)
-        self.settings_tab.addTab(
-            self.fbx_sdk_settings_widget, "FBX SDK Settings"
-        )
-
-        # path and filename
-        self.file_path_label = QtWidgets.QLabel("Path")
-        self.file_path_lineedit = QtWidgets.QLineEdit()
-        self.file_path_set_button = widgets.create_button(icon="mgear_folder")
-
-        self.file_name_label = QtWidgets.QLabel("File Name")
-        self.file_name_lineedit = QtWidgets.QLineEdit()
-
-        # export skeletalMesh settings
-        self.export_geo_widget = QtWidgets.QWidget()
-        self.skinning_checkbox = QtWidgets.QCheckBox("Skinning")
-        self.skinning_checkbox.setChecked(True)
-        self.blendshapes_checkbox = QtWidgets.QCheckBox("Blendshapes")
-        self.blendshapes_checkbox.setChecked(True)
-        self.use_partitions_checkbox = QtWidgets.QCheckBox("Use Partitions")
-        self.use_partitions_checkbox.setChecked(True)
-        self.skeletal_mesh_partitions_label = QtWidgets.QLabel("Partitions")
-        self.skeletal_mesh_partitions_outliner = PartitionsTreeView()
-        self.skeletal_mesh_partitions_outliner.setSizePolicy(
-            QtWidgets.QSizePolicy.MinimumExpanding,
-            QtWidgets.QSizePolicy.MinimumExpanding,
-        )
-        self.skeletal_mesh_partition_add_button = QtWidgets.QPushButton()
-        self.skeletal_mesh_partition_add_button.setIcon(
-            pyqt.get_icon("mgear_plus")
-        )
-        self.skeletal_mesh_partition_remove_button = QtWidgets.QPushButton()
-        self.skeletal_mesh_partition_remove_button.setIcon(
-            pyqt.get_icon("mgear_minus")
-        )
-        self.export_skeletal_geo_button = QtWidgets.QPushButton(
-            "Export SkeletalMesh/SkinnedMesh"
-        )
-        self.export_skeletal_geo_button.setStyleSheet(
-            "QPushButton {background:rgb(70, 100, 150); }"
-        )
-
-        # export animation
-        self.export_animation_widget = QtWidgets.QWidget()
-        self.export_animations_button = QtWidgets.QPushButton(
-            "Export Animations"
-        )
-        self.export_animations_button.setStyleSheet(
-            "QPushButton {background:rgb(150, 35, 50); }"
-        )
-        self.animation_clips_list_widget = fuw.AnimClipsListWidget(parent=self)
-
-        # Unreal Engine import
-        # path and filename
-        self.ue_file_path_label = QtWidgets.QLabel("Path")
-        self.ue_file_path_lineedit = QtWidgets.QLineEdit()
-        self.ue_file_path_set_button = widgets.create_button(
-            icon="mgear_folder"
-        )
-
-    def create_layout(self):
-
-        # set source layout
-        self.geo_root_layout = QtWidgets.QHBoxLayout()
-        self.geo_root_layout.setContentsMargins(1, 1, 1, 1)
-        self.geo_root_layout.addWidget(self.geo_root_list)
-        self.geo_root_buttons_layout = QtWidgets.QVBoxLayout()
-        self.geo_root_buttons_layout.setContentsMargins(1, 1, 1, 1)
-        self.geo_root_buttons_layout.addWidget(self.geo_root_set_button)
-        self.geo_root_buttons_layout.addWidget(self.geo_root_add_button)
-        self.geo_root_buttons_layout.addWidget(self.geo_root_remove_button)
-        self.geo_root_buttons_layout.addWidget(self.geo_root_auto_set_button)
-        self.geo_root_buttons_layout.addStretch()
-        self.geo_root_layout.addLayout(self.geo_root_buttons_layout)
-
-        self.joint_root_layout = QtWidgets.QHBoxLayout()
-        self.joint_root_layout.setContentsMargins(1, 1, 1, 1)
-        self.joint_root_layout.addWidget(self.joint_root_lineedit)
-        self.joint_root_buttons_layout = QtWidgets.QHBoxLayout()
-        self.joint_root_buttons_layout.setContentsMargins(1, 1, 1, 1)
-        self.joint_root_buttons_layout.addWidget(self.joint_root_set_button)
-        self.joint_root_buttons_layout.addWidget(
-            self.joint_root_auto_set_button
-        )
-        self.joint_root_layout.addLayout(self.joint_root_buttons_layout)
-
-        self.set_source_layout = QtWidgets.QGridLayout()
-        self.set_source_layout.addWidget(
-            self.geo_root_label, 0, 0, QtCore.Qt.AlignRight
-        )
-        self.set_source_layout.addLayout(self.geo_root_layout, 0, 1)
-        self.set_source_layout.addWidget(
-            self.joint_root_label, 1, 0, QtCore.Qt.AlignRight
-        )
-        self.set_source_layout.addLayout(self.joint_root_layout, 1, 1)
-        self.set_source_layout.setSpacing(2)
-
-        self.set_source_collap_wgt = widgets.CollapsibleWidget(
-            "Set Source Elements"
-        )
-        self.set_source_collap_wgt.setSizePolicy(
-            QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Maximum
-        )
-        self.set_source_collap_wgt.addLayout(self.set_source_layout)
-
-        # settings layout
-        self.settings_form_layout = QtWidgets.QFormLayout(self.settings_widget)
+        self.settings_form_layout = QtWidgets.QFormLayout(fbx_tab)
         self.settings_form_layout.addRow("Up Axis", self.up_axis_combobox)
         self.settings_form_layout.addRow("File Type", self.file_type_combobox)
         self.settings_form_layout.addRow(
@@ -275,238 +208,199 @@ class FBXExport(MayaQWidgetDockableMixin, QtWidgets.QDialog):
             "FBX Preset", self.fbx_export_presets_combobox
         )
 
-        # FBX SDK settings
-        if pfbx.FBX_SDK:
-            title = "FBX SDK settings"
-        else:
-            title = "FBX SDK settings (Disable SDK Not Found)"
+        # fbx sdk settings tab
+        fbx_sdk_tab = QtWidgets.QWidget()
+        settings_tab.addTab(fbx_sdk_tab, "FBX SDK")
+        fbx_sdk_layout = QtWidgets.QVBoxLayout(fbx_sdk_tab)
 
-        self.sdk_settings_layout = QtWidgets.QVBoxLayout(
-            self.fbx_sdk_settings_widget
-        )
-        self.sdk_settings_layout.addWidget(self.remove_namespace_checkbox)
-        self.sdk_settings_layout.addWidget(self.clean_scene_checkbox)
+        self.remove_namespace_checkbox = QtWidgets.QCheckBox("Remove Namespace")
+        self.remove_namespace_checkbox.setChecked(True)
+        self.clean_scene_checkbox = QtWidgets.QCheckBox(
+            "Joint and Geo Root Child of Scene Root + Clean Up Scene")
+        self.clean_scene_checkbox.setChecked(True)
+        fbx_sdk_layout.addWidget(self.remove_namespace_checkbox)
+        fbx_sdk_layout.addWidget(self.clean_scene_checkbox)
 
-        # general setting collapsible widget
-        self.settings_collap_wgt = widgets.CollapsibleWidget("Settings")
-        self.settings_collap_wgt.setSizePolicy(
-            QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Maximum
-        )
-        self.settings_collap_wgt.addWidget(self.settings_tab)
+    def create_file_path_widget(self):
+        # main collapsible widget layout
+        file_path_collap_wgt = widgets.CollapsibleWidget("File Path")
+        self.main_layout.addWidget(file_path_collap_wgt)
+        self.path_layout = QtWidgets.QVBoxLayout()
+        self.path_layout.setSpacing(2)
+        file_path_collap_wgt.addLayout(self.path_layout)
 
-        # export path layout
+        # export path
         self.file_path_layout = QtWidgets.QHBoxLayout()
         self.file_path_layout.setContentsMargins(1, 1, 1, 1)
-        self.file_path_layout.addWidget(self.file_path_label)
+        self.path_layout.addLayout(self.file_path_layout)
+
+        file_path_label = QtWidgets.QLabel("Path")
+        self.file_path_lineedit = QtWidgets.QLineEdit()
+        self.file_path_set_button = widgets.create_button(icon="mgear_folder")
+        self.file_path_layout.addWidget(file_path_label)
         self.file_path_layout.addWidget(self.file_path_lineedit)
         self.file_path_layout.addWidget(self.file_path_set_button)
 
+        # export file name
         self.file_name_layout = QtWidgets.QHBoxLayout()
         self.file_name_layout.setContentsMargins(1, 1, 1, 1)
-        self.file_name_layout.addWidget(self.file_name_label)
+        self.path_layout.addLayout(self.file_name_layout)
+
+        file_name_label = QtWidgets.QLabel("File Name")
+        self.file_name_lineedit = QtWidgets.QLineEdit()
+        self.file_name_layout.addWidget(file_name_label)
         self.file_name_layout.addWidget(self.file_name_lineedit)
 
-        self.path_layout = QtWidgets.QVBoxLayout()
-        self.path_layout.addLayout(self.file_path_layout)
-        self.path_layout.addLayout(self.file_name_layout)
-        self.path_layout.setSpacing(2)
+    def create_unreal_import_widget(self):
+        self.ue_import_collap_wgt = widgets.CollapsibleWidget("Unreal Engine Import")
+        self.main_layout.addWidget(self.ue_import_collap_wgt)
+        self.ue_path_layout = QtWidgets.QVBoxLayout()
+        self.ue_path_layout.addSpacing(2)
+        self.ue_import_collap_wgt.addLayout(self.ue_path_layout)
 
-        self.file_path_collap_wgt = widgets.CollapsibleWidget("File Path")
-        self.file_path_collap_wgt.addLayout(self.path_layout)
-
-        # Unreal Engine import layout
-        self.ue_import_collap_wgt = widgets.CollapsibleWidget(
-            "Unreal Engine Import"
-        )
-
-        self.ue_import_cbx = QtWidgets.QCheckBox(
-            "Enable Unreal Engine Import?"
-        )
+        self.ue_import_cbx = QtWidgets.QCheckBox("Enable Unreal Engine Import?")
+        self.ue_import_collap_wgt.addWidget(self.ue_import_cbx)
 
         self.ue_file_path_layout = QtWidgets.QHBoxLayout()
         self.ue_file_path_layout.setContentsMargins(1, 1, 1, 1)
-        self.ue_file_path_layout.addWidget(self.ue_file_path_label)
+        self.ue_path_layout.addLayout(self.ue_file_path_layout)
+
+        self.ue_file_path_label = QtWidgets.QLabel("Path")
+        self.ue_file_path_lineedit = QtWidgets.QLineEdit()
+        self.ue_file_path_set_button = widgets.create_button(icon="mgear_folder")
         self.ue_file_path_layout.addWidget(self.ue_file_path_lineedit)
+        self.ue_file_path_layout.addWidget(self.ue_file_path_label)
         self.ue_file_path_layout.addWidget(self.ue_file_path_set_button)
 
-        self.ue_path_layout = QtWidgets.QVBoxLayout()
-        self.ue_path_layout.addLayout(self.ue_file_path_layout)
-        self.ue_path_layout.addSpacing(2)
-
-        self.ue_import_collap_wgt.addWidget(self.ue_import_cbx)
-        self.ue_import_collap_wgt.addLayout(self.ue_path_layout)
-
-        self.export_collap_wgt = widgets.CollapsibleWidget("Export")
-        self.export_collap_wgt.setSizePolicy(
-            QtWidgets.QSizePolicy.Preferred,
-            QtWidgets.QSizePolicy.MinimumExpanding,
-        )
+    def create_export_widget(self):
+        export_collap_wgt = widgets.CollapsibleWidget("Export")
+        export_collap_wgt.setSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.MinimumExpanding)
+        self.main_layout.addWidget(export_collap_wgt)
+        
         self.export_tab = QtWidgets.QTabWidget()
-        self.export_collap_wgt.addWidget(self.export_tab)
+        export_collap_wgt.addWidget(self.export_tab)
 
-        # export skeletalMesh layout
-        self.export_geo_layout = QtWidgets.QVBoxLayout()
-        self.export_geo_layout.setContentsMargins(1, 1, 1, 1)
-        self.export_geo_widget.setLayout(self.export_geo_layout)
-        self.model_deformers_groupbox = QtWidgets.QGroupBox("Deformers")
-        self.model_deformers_layout = QtWidgets.QHBoxLayout(
-            self.model_deformers_groupbox
-        )
-        self.model_deformers_layout.addWidget(self.skinning_checkbox)
-        self.model_deformers_layout.addWidget(self.blendshapes_checkbox)
-        self.model_deformers_layout.addWidget(self.use_partitions_checkbox)
+        self.create_skeletal_mesh_tab()
+        self.create_animation_tab()
 
-        self.export_geo_layout.addWidget(self.model_deformers_groupbox)
-        self.skeletal_mesh_partitions_label_layout = QtWidgets.QHBoxLayout()
-        self.skeletal_mesh_partitions_label_layout.setContentsMargins(
-            1, 1, 1, 1
-        )
-        self.skeletal_mesh_partitions_label_layout.addStretch()
-        self.skeletal_mesh_partitions_label_layout.addWidget(
-            self.skeletal_mesh_partitions_label
-        )
-        self.skeletal_mesh_partitions_label_layout.addStretch()
-        self.skeletal_mesh_list_layout = QtWidgets.QHBoxLayout()
-        self.skeletal_mesh_list_layout.setContentsMargins(1, 1, 1, 1)
-        self.skeletal_mesh_partitions_buttons_layout = QtWidgets.QVBoxLayout()
-        self.skeletal_mesh_partitions_buttons_layout.setContentsMargins(
-            1, 1, 1, 1
-        )
-        self.skeletal_mesh_partitions_buttons_layout.addWidget(
-            self.skeletal_mesh_partition_add_button
-        )
-        self.skeletal_mesh_partitions_buttons_layout.addWidget(
-            self.skeletal_mesh_partition_remove_button
-        )
-        self.skeletal_mesh_partitions_buttons_layout.addStretch()
-        self.skeletal_mesh_list_layout.addWidget(
-            self.skeletal_mesh_partitions_outliner
-        )
-        self.skeletal_mesh_list_layout.addLayout(
-            self.skeletal_mesh_partitions_buttons_layout
-        )
-        self.export_geo_layout.addLayout(
-            self.skeletal_mesh_partitions_label_layout
-        )
-        self.export_geo_layout.addLayout(self.skeletal_mesh_list_layout)
-        self.export_geo_layout.addWidget(self.export_skeletal_geo_button)
-        self.export_tab.addTab(self.export_geo_widget, "Skeletal Mesh")
+    def create_skeletal_mesh_tab(self):
+        # main collapsible widget layout
+        skeletal_mesh_tab = QtWidgets.QWidget()
+        self.export_tab.addTab(skeletal_mesh_tab, "Skeletal Mesh")
+        skeletal_mesh_layout = QtWidgets.QVBoxLayout(skeletal_mesh_tab)
 
-        # export Animation layout
-        self.export_animation_layout = QtWidgets.QVBoxLayout()
-        self.export_animation_layout.setContentsMargins(1, 1, 1, 1)
-        self.export_animation_widget.setLayout(self.export_animation_layout)
-        self.export_animation_layout.addWidget(
-            self.animation_clips_list_widget
-        )
-        self.export_animation_buttons_layout = QtWidgets.QHBoxLayout()
-        self.export_animation_buttons_layout.addWidget(
-            self.export_animations_button
-        )
-        self.export_animation_layout.addLayout(
-            self.export_animation_buttons_layout
-        )
-        self.export_tab.addTab(self.export_animation_widget, "Animation")
+        # deformers options
+        deformers_label = QtWidgets.QLabel("Deformers")
+        skeletal_mesh_layout.addWidget(deformers_label)
 
-        # TODO: Remove this line
-        self.export_tab.setCurrentIndex(1)
+        deformers_layout = QtWidgets.QHBoxLayout()
+        skeletal_mesh_layout.addLayout(deformers_layout)
 
-        # Scroll Area layout
-        self.base_scrollarea_wgt = QtWidgets.QWidget()
+        self.skinning_checkbox = QtWidgets.QCheckBox("Skinning")
+        self.skinning_checkbox.setChecked(True)
+        self.blendshapes_checkbox = QtWidgets.QCheckBox("Blendshapes")
+        self.blendshapes_checkbox.setChecked(True)
+        self.use_partitions_checkbox = QtWidgets.QCheckBox("Use Partitions")
+        self.use_partitions_checkbox.setChecked(True)
+        deformers_layout.addWidget(self.skinning_checkbox)
+        deformers_layout.addWidget(self.blendshapes_checkbox)
+        deformers_layout.addWidget(self.use_partitions_checkbox)
 
-        self.scrollarea_layout = QtWidgets.QVBoxLayout(
-            self.base_scrollarea_wgt
-        )
-        self.scrollarea_layout.setContentsMargins(2, 2, 2, 2)
-        self.scrollarea_layout.setSpacing(2)
-        self.scrollarea_layout.setAlignment(QtCore.Qt.AlignTop)
-        self.scrollarea_layout.addWidget(self.set_source_collap_wgt)
-        self.scrollarea_layout.addWidget(self.settings_collap_wgt)
-        self.scrollarea_layout.addWidget(self.file_path_collap_wgt)
-        self.scrollarea_layout.addWidget(self.ue_import_collap_wgt)
-        self.scrollarea_layout.addWidget(self.export_collap_wgt)
+        skeletal_mesh_layout.addStretch()
 
-        self.scrollarea_wgt = QtWidgets.QScrollArea(self)
-        self.scrollarea_wgt.setFrameShape(QtWidgets.QFrame.NoFrame)
-        self.scrollarea_wgt.setWidgetResizable(True)
-        self.scrollarea_wgt.setWidget(self.base_scrollarea_wgt)
+        # partitions layout
+        self.partitions_label = QtWidgets.QLabel("Partitions")
+        skeletal_mesh_layout.addWidget(self.partitions_label)
+        partitions_layout = QtWidgets.QHBoxLayout()
+        skeletal_mesh_layout.addLayout(partitions_layout)
 
-        # Main layout
-        self.main_layout = QtWidgets.QVBoxLayout(self)
-        self.main_layout.setContentsMargins(2, 2, 2, 2)
-        self.main_layout.setSpacing(2)
-        self.main_layout.setMenuBar(self.menu_bar)
+        # partitions outliner
+        self.partitions_outliner = partitions_outliner.PartitionsOutliner()
+        self.partitions_outliner.setSizePolicy(
+            QtWidgets.QSizePolicy.MinimumExpanding,
+            QtWidgets.QSizePolicy.MinimumExpanding)
+        partitions_layout.addWidget(self.partitions_outliner)
 
-        self.main_layout.addWidget(self.scrollarea_wgt)
+        # partition buttons
+        partition_buttons_layout = QtWidgets.QVBoxLayout()
+        partition_buttons_layout.addStretch()
+        partitions_layout.addLayout(partition_buttons_layout)
+
+        self.skmesh_add_btn = QtWidgets.QPushButton()
+        self.skmesh_add_btn.setIcon(pyqt.get_icon("mgear_plus"))
+        partition_buttons_layout.addWidget(self.skmesh_add_btn)
+
+        self.skmesh_rem_btn = QtWidgets.QPushButton()
+        self.skmesh_rem_btn.setIcon(pyqt.get_icon("mgear_minus"))
+        partition_buttons_layout.addWidget(self.skmesh_rem_btn)
+        partition_buttons_layout.addStretch()
+
+        # export button
+        self.skmesh_export_btn = QtWidgets.QPushButton("Export SkeletalMesh/SkinnedMesh")
+        self.skmesh_export_btn.setStyleSheet("QPushButton {background:rgb(70, 100, 150);}")
+        skeletal_mesh_layout.addWidget(self.skmesh_export_btn)
+
+    def create_animation_tab(self):
+        # export animation
+        animation_tab = QtWidgets.QWidget()
+        self.export_tab.addTab(animation_tab, "Animation")
+        animation_layout = QtWidgets.QVBoxLayout(animation_tab)
+
+        self.animation_clips_list_widget = fuw.AnimClipsListWidget(parent=self)
+        animation_layout.addWidget(self.animation_clips_list_widget)
+
+        self.anim_export_btn = QtWidgets.QPushButton("Export Animations")
+        self.anim_export_btn.setStyleSheet("QPushButton {background:rgb(150, 35, 50);}")
+        animation_layout.addWidget(self.anim_export_btn)
 
     def create_connections(self):
 
+        # menu connections
         self.set_fbx_sdk_path_action.triggered.connect(self.set_fbx_sdk_path)
         self.refresh_uegear_connection_action.triggered.connect(
             self.refresh_ue_connection
         )
 
-        self.geo_root_set_button.clicked.connect(
-            partial(
-                self.set_list_items_from_sel,
-                self.geo_root_list,
-                "transform",
-            )
-        )
-        self.geo_root_add_button.clicked.connect(
-            partial(
-                self.add_list_items_from_sel, self.geo_root_list, "transform"
-            )
-        )
-        self.geo_root_remove_button.clicked.connect(
-            partial(self.remove_list_items_from_sel, self.geo_root_list)
-        )
-        self.geo_root_auto_set_button.clicked.connect(
-            partial(self.auto_set_geo_roots, clear=True)
-        )
+        # source element connections
+        self.geo_set_btn.clicked.connect(
+            partial(self.set_list_items_from_sel, self.geo_root_list,
+                    "transform"))
+        self.geo_add_btn.clicked.connect(
+            partial(self.add_list_items_from_sel, self.geo_root_list,
+                    "transform"))
+        self.geo_rem_btn.clicked.connect(
+            partial(self.remove_list_items_from_sel, self.geo_root_list))
+        self.geo_auto_set_btn.clicked.connect(
+            partial(self.auto_set_geo_roots, clear=True))
 
-        self.joint_root_set_button.clicked.connect(
-            partial(
-                self.set_line_edit_text_from_sel,
-                self.joint_root_lineedit,
-                "joint",
-            )
-        )
-        self.joint_root_auto_set_button.clicked.connect(
+        self.joint_set_btn.clicked.connect(
+            partial(self.set_line_edit_text_from_sel, self.joint_root_lineedit,
+                    "joint"))
+        self.joint_auto_set_btn.clicked.connect(
             partial(self.auto_set_joint_root)
         )
-        self.file_name_lineedit.textChanged.connect(self.normalize_name)
-        self.file_path_set_button.clicked.connect(self.set_folder_path)
-        self.export_skeletal_geo_button.clicked.connect(
-            self.export_skeletal_mesh
-        )
 
+        # file path connections
+        self.file_path_set_button.clicked.connect(self.set_folder_path)
+        self.file_name_lineedit.textChanged.connect(self.normalize_name)
+
+        # ue file path connection
         self.ue_file_path_set_button.clicked.connect(self.set_ue_folder_path)
+
+        # skeletal mesh connections
         self.use_partitions_checkbox.toggled.connect(self.set_use_partitions)
-        self.skeletal_mesh_partition_add_button.clicked.connect(
-            self.add_skeletal_mesh_partition
-        )
-        self.skeletal_mesh_partition_remove_button.clicked.connect(
-            self.remove_skeletal_mesh_partition
-        )
-        self.skeletal_mesh_partitions_outliner.itemEnabledChanged.connect(
-            self.partition_item_enabled_changed
-        )
-        self.skeletal_mesh_partitions_outliner.itemAddNode.connect(
-            self.partition_item_add_skeletal_mesh
-        )
-        self.skeletal_mesh_partitions_outliner.itemRenamed.connect(
-            self.partition_item_renamed
-        )
-        self.skeletal_mesh_partitions_outliner.itemRemoved.connect(
-            self.partition_skeletal_mesh_removed
-        )
-        self.skeletal_mesh_partitions_outliner.droppedItems.connect(
-            self.partition_items_dropped
-        )
-        self.export_animations_button.clicked.connect(
-            self.export_animation_clips
-        )
+        self.skmesh_add_btn.clicked.connect(self.add_skeletal_mesh_partition)
+        self.skmesh_rem_btn.clicked.connect(self.remove_skeletal_mesh_partition)
+        self.skmesh_export_btn.clicked.connect(self.export_skeletal_mesh)
+
+        # animation connection
+        self.anim_export_btn.clicked.connect(self.export_animation_clips)
+
+        self.partitions_outliner.itemEnabledChanged.connect(self.partition_item_enabled_changed)
+        self.partitions_outliner.itemAddNode.connect(self.partition_item_add_skeletal_mesh)
+        self.partitions_outliner.itemRenamed.connect(self.partition_item_renamed)
+        self.partitions_outliner.itemRemoved.connect(self.partition_skeletal_mesh_removed)
+        self.partitions_outliner.droppedItems.connect(self.partition_items_dropped)
 
     # functions
 
@@ -531,11 +425,6 @@ class FBXExport(MayaQWidgetDockableMixin, QtWidgets.QDialog):
     def normalize_name(self):
         name = string.removeInvalidCharacter2(self.file_name_lineedit.text())
         self.file_name_lineedit.setText(name)
-
-    def populate_fbx_versions_combobox(self, combobox):
-        fbx_versions = pfbx.get_fbx_versions()
-        for v in fbx_versions:
-            combobox.addItem(v)
 
     def populate_fbx_export_presets_combobox(self, combobox):
         fbx_export_file_paths = pfbx.get_fbx_export_presets()
@@ -749,14 +638,14 @@ class FBXExport(MayaQWidgetDockableMixin, QtWidgets.QDialog):
             )
 
     def set_use_partitions(self, flag):
-        self.skeletal_mesh_partitions_outliner.setEnabled(flag)
-        self.skeletal_mesh_partitions_label.setEnabled(flag)
-        self.skeletal_mesh_partition_add_button.setEnabled(flag)
-        self.skeletal_mesh_partition_remove_button.setEnabled(flag)
+        self.partitions_outliner.setEnabled(flag)
+        self.partitions_label.setEnabled(flag)
+        self.skmesh_add_btn.setEnabled(flag)
+        self.skmesh_rem_btn.setEnabled(flag)
 
     def add_skeletal_mesh_partition(self):
 
-        export_node = fu.FbxExportNode.get() or fu.FbxExportNode.create()
+        export_node = fbx_export_node.FbxExportNode.get() or fbx_export_node.FbxExportNode.create()
         name, ok = QtWidgets.QInputDialog.getText(
             self,
             "New Partition",
@@ -764,18 +653,20 @@ class FBXExport(MayaQWidgetDockableMixin, QtWidgets.QDialog):
             QtWidgets.QLineEdit.Normal,
             "New Partition",
         )
+        print(name)
+        print(ok)
         if not ok or not name:
             return
         result = export_node.add_new_skeletal_mesh_partition(name, list())
         if not result:
             return
 
-        self.skeletal_mesh_partitions_outliner.reset_contents()
+        self.partitions_outliner.reset_contents()
 
     def remove_skeletal_mesh_partition(self):
 
         selected_partition_items = (
-            self.skeletal_mesh_partitions_outliner.selectedItems()
+            self.partitions_outliner.selectedItems()
         )
         if not selected_partition_items:
             return
@@ -801,7 +692,7 @@ class FBXExport(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         if not item:
             return
 
-        export_node = fu.FbxExportNode.get()
+        export_node = fbx_export_node.FbxExportNode.get()
         if not export_node:
             return
 
@@ -814,7 +705,7 @@ class FBXExport(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         if not item:
             return
 
-        export_node = fu.FbxExportNode.get()
+        export_node = fbx_export_node.FbxExportNode.get()
         if not export_node:
             return
 
@@ -829,14 +720,14 @@ class FBXExport(MayaQWidgetDockableMixin, QtWidgets.QDialog):
             item.node.node_name, meshes
         )
 
-        self.skeletal_mesh_partitions_outliner.reset_contents()
+        self.partitions_outliner.reset_contents()
 
     def partition_item_renamed(self, old_name, new_name):
 
         if not old_name or not new_name or old_name == new_name:
             return
 
-        export_node = fu.FbxExportNode.get()
+        export_node = fbx_export_node.FbxExportNode.get()
         if not export_node:
             return
 
@@ -847,7 +738,7 @@ class FBXExport(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         if not parent_name or not removed_name:
             return
 
-        export_node = fu.FbxExportNode.get()
+        export_node = fbx_export_node.FbxExportNode.get()
         if not export_node:
             return
 
@@ -855,7 +746,7 @@ class FBXExport(MayaQWidgetDockableMixin, QtWidgets.QDialog):
             parent_name, removed_name
         )
 
-        self.skeletal_mesh_partitions_outliner.reset_contents()
+        self.partitions_outliner.reset_contents()
 
     def partition_items_dropped(
         self, parent_item, dropped_items, duplicate=False
@@ -864,7 +755,7 @@ class FBXExport(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         if not parent_item or not dropped_items:
             return
 
-        export_node = fu.FbxExportNode.get()
+        export_node = fbx_export_node.FbxExportNode.get()
         if not export_node:
             return
 
@@ -885,12 +776,13 @@ class FBXExport(MayaQWidgetDockableMixin, QtWidgets.QDialog):
             parent_item.node.node_name, meshes_names
         )
 
+
     def export_skeletal_mesh(self):
 
         print("----- Exporting Skeletal Meshes -----")
 
         # force creation of the export node
-        fu.FbxExportNode.get() or fu.FbxExportNode.create()
+        fbx_export_node.FbxExportNode.get() or fbx_export_node.FbxExportNode.create()
 
         geo_roots = [
             self.geo_root_list.item(i).text()
@@ -920,10 +812,10 @@ class FBXExport(MayaQWidgetDockableMixin, QtWidgets.QDialog):
             # Master partition data is retrieved from UI
             # TODO: Should we store master data within FbxExporterNode too?
             master_partition = (
-                self.skeletal_mesh_partitions_outliner.get_master_partition()
+                self.partitions_outliner.get_master_partition()
             )
 
-            export_nodes = fu.FbxExportNode.find()
+            export_nodes = fbx_export_node.FbxExportNode.find()
             if not export_nodes:
                 cmds.warning("No export nodes found within scene!")
                 return False
@@ -1021,7 +913,7 @@ class FBXExport(MayaQWidgetDockableMixin, QtWidgets.QDialog):
             )
         print("\t>>> Preset File Path: {}".format(preset_file_path))
 
-        export_nodes = fu.FbxExportNode.find()
+        export_nodes = fbx_export_node.FbxExportNode.find()
         if not export_nodes:
             return False
         if len(export_nodes) > 2:
@@ -1077,7 +969,7 @@ class FBXExport(MayaQWidgetDockableMixin, QtWidgets.QDialog):
             for g_root in g_roots:
                 self.geo_root_list.addItem(g_root.name())
 
-        self.skeletal_mesh_partitions_outliner.set_geo_roots(
+        self.partitions_outliner.set_geo_roots(
             [
                 self.geo_root_list.item(i).text()
                 for i in range(self.geo_root_list.count())
@@ -1167,7 +1059,7 @@ class FBXExport(MayaQWidgetDockableMixin, QtWidgets.QDialog):
             listwidget.addItem(node_name)
 
         if listwidget == self.geo_root_list:
-            self.skeletal_mesh_partitions_outliner.set_geo_roots(
+            self.partitions_outliner.set_geo_roots(
                 [listwidget.item(i).text() for i in range(listwidget.count())]
             )
 
@@ -1190,7 +1082,7 @@ class FBXExport(MayaQWidgetDockableMixin, QtWidgets.QDialog):
             listwidget.addItem(node_name)
 
         if listwidget == self.geo_root_list:
-            self.skeletal_mesh_partitions_outliner.set_geo_roots(
+            self.partitions_outliner.set_geo_roots(
                 [listwidget.item(i).text() for i in range(listwidget.count())]
             )
 
@@ -1206,254 +1098,9 @@ class FBXExport(MayaQWidgetDockableMixin, QtWidgets.QDialog):
             listwidget.takeItem(listwidget.row(selected_item))
 
         if listwidget == self.geo_root_list:
-            self.skeletal_mesh_partitions_outliner.set_geo_roots(
+            self.partitions_outliner.set_geo_roots(
                 [listwidget.item(i).text() for i in range(listwidget.count())]
             )
-
-
-class PartitionNodeClass(fuw.NodeClass):
-    def __init__(
-        self,
-        node_name,
-        node_type,
-        is_root,
-        icon,
-        enabled,
-        network_enabled,
-        is_master=False,
-    ):
-        super(PartitionNodeClass, self).__init__(
-            node_name=node_name,
-            node_type=node_type,
-            is_root=is_root,
-            icon=icon,
-            enabled=enabled,
-            network_enabled=network_enabled,
-        )
-
-        self._is_master = is_master
-
-    @property
-    def is_master(self):
-        return self._is_master
-
-    @is_master.setter
-    def is_master(self, flag):
-        self._is_master = flag
-
-
-class PartitionTreeItem(fuw.TreeItem):
-    def __init__(self, node, header, show_enabled, parent=None):
-        super(PartitionTreeItem, self).__init__(
-            node=node, header=header, show_enabled=show_enabled, parent=parent
-        )
-
-    def is_master(self):
-        return self.node.is_master
-
-
-class PartitionsTreeView(fuw.OutlinerTreeView):
-
-    NODE_CLASS = PartitionNodeClass
-    TREE_ITEM_CLASS = PartitionTreeItem
-
-    def __init__(self, parent=None):
-
-        self._master_item = None
-        self._geo_roots = list()
-
-        super(PartitionsTreeView, self).__init__(parent=parent)
-
-    def mouseDoubleClickEvent(self, event):
-
-        if event.button() == QtCore.Qt.LeftButton:
-            index = self.indexAt(event.pos())
-            if index.row() == -1:
-                self._action_button_pressed = False
-                super(PartitionsTreeView, self).mousePressEvent(event)
-                self.clearSelection()
-                self.window().repaint()
-                return
-            item = self._get_corresponding_item(index)
-            if item and not item.is_root():
-                cmds.select(item.get_name())
-
-        super(PartitionsTreeView, self).mouseDoubleClickEvent(event)
-
-    def can_be_dropped(self, index):
-
-        valid = super(PartitionsTreeView, self).can_be_dropped(index)
-        if not valid:
-            return valid
-
-        # only root nodes can accept drop events
-        item = self.itemFromIndex(index)
-        return False if not item.is_master else True
-
-    def set_geo_roots(self, geo_roots):
-        self._geo_roots = geo_roots
-        self.reset_contents()
-
-    def get_master_partition(self):
-        master_partition = dict()
-        master_partition["Master"] = {"enabled": True, "skeletalMeshes": []}
-        if not self._master_item:
-            return master_partition
-
-        for i in range(self._master_item.childCount()):
-            item = self._master_item.child(i)
-            master_partition["Master"]["skeletalMeshes"].append(
-                item.get_name()
-            )
-
-        return master_partition
-
-    def find_items(self):
-
-        export_nodes = fu.FbxExportNode.find()
-        if not export_nodes:
-            return dict()
-        if len(export_nodes) > 2:
-            cmds.warning(
-                'Multiple FBX Export nodes found in scene. Using first one found: "{}"'.format(
-                    export_nodes[0]
-                )
-            )
-
-        return export_nodes[0].get_partitions()
-
-    def populate_items(self, add_callbacks=True):
-
-        if add_callbacks:
-            self.cleanup()
-
-        self._master_item = self._create_master_root_item()
-        self._master_item.setFlags(
-            self._master_item.flags()
-            | QtCore.Qt.ItemIsEditable
-            | QtCore.Qt.ItemIsDropEnabled
-        )
-        self._master_item.setFlags(
-            self._master_item.flags() & ~QtCore.Qt.ItemIsDragEnabled
-        )
-        self.addTopLevelItem(self._master_item)
-
-        all_items = self.find_items()
-
-        for item_name, item_data in all_items.items():
-            root_item = self._create_root_item(item_name)
-            root_item.setFlags(
-                root_item.flags()
-                | QtCore.Qt.ItemIsEditable
-                | QtCore.Qt.ItemIsDropEnabled
-            )
-            root_item.setFlags(
-                root_item.flags() & ~QtCore.Qt.ItemIsDragEnabled
-            )
-            self.addTopLevelItem(root_item)
-            child_items = item_data.get("skeletalMeshes", list())
-            for child_node in child_items:
-                child = self._add_partition_item(child_node, root_item)
-                child.setFlags(child.flags() | QtCore.Qt.ItemIsEditable)
-                child.setFlags(child.flags() & ~QtCore.Qt.ItemIsDropEnabled)
-                root_item.addChild(child)
-                if add_callbacks:
-                    pass
-            enabled = item_data.get("enabled", True)
-            color = item_data.get("color", None)
-            if not enabled:
-                root_item.set_enabled()
-            if color is not None:
-                root_item.set_label_color(color)
-
-        self._update_master_partition()
-
-    def _on_custom_context_menu_requested(self, pos):
-
-        item = self._get_current_item()
-        if not item or item.is_master():
-            return
-
-        super(PartitionsTreeView, self)._on_custom_context_menu_requested(pos)
-
-    def _create_master_root_item(self):
-
-        node_icon = pyqt.get_icon("mgear_package")
-        root_node = self.NODE_CLASS(
-            "Master", "Root", True, node_icon, True, True, is_master=True
-        )
-        root_node.can_be_disabled = False
-        root_node.can_be_deleted = False
-        root_node.can_add_children = False
-        root_node.can_be_duplicated = False
-
-        item = self.TREE_ITEM_CLASS(root_node, "Master", True, parent=self)
-
-        return item
-
-    def _add_master_partition_item(self, node, partition_item):
-
-        node_icon = pyqt.get_icon("mgear_box")
-        item_node = self.NODE_CLASS(
-            node,
-            "Geometry",
-            False,
-            node_icon,
-            True,
-            partition_item.node.network_enabled,
-        )
-        item_node.can_be_disabled = False
-        item_node.can_be_deleted = False
-
-        item = self.TREE_ITEM_CLASS(item_node, "", True, partition_item)
-
-        return item
-
-    def _update_master_partition(self):
-        if not self._master_item or not self._geo_roots:
-            return
-
-        found_meshes = list()
-        for geo_root in self._geo_roots:
-            children = (
-                cmds.listRelatives(
-                    geo_root,
-                    allDescendents=True,
-                    fullPath=True,
-                    type="transform",
-                )
-                or list()
-            )
-            meshes = [
-                child
-                for child in children
-                if cmds.listRelatives(child, shapes=True) or list()
-            ]
-            found_meshes.extend(meshes)
-        if not found_meshes:
-            return
-
-        partition_meshes = list()
-        for i in range(self.topLevelItemCount()):
-            item = self.topLevelItem(i)
-            if not item or item == self._master_item:
-                continue
-            for j in range(item.childCount()):
-                child = item.child(j)
-                partition_meshes.append(child.get_name())
-
-        for found_mesh in found_meshes:
-            if found_mesh in partition_meshes:
-                continue
-            child = self._add_master_partition_item(
-                found_mesh, self._master_item
-            )
-            child.setFlags(
-                child.flags()
-                | QtCore.Qt.ItemIsEditable
-                | QtCore.Qt.ItemIsDropEnabled
-            )
-            self._master_item.addChild(child)
 
 
 def openFBXExport(*args):
