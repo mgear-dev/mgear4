@@ -1,16 +1,14 @@
 import maya.cmds as cmds
-import pymel.core as pm
-import traceback
 
 from mgear.vendor.Qt import QtCore
 
 from mgear.core import pyqt
 from mgear.shifter.game_tools_fbx import (
-    game_tools_fbx_widgets,
-    fbx_export_node
+    fbx_export_node,
+    widgets
 )
 
-class PartitionNodeClass(game_tools_fbx_widgets.NodeClass):
+class PartitionNodeClass(widgets.NodeClass):
     def __init__(self, node_name, node_type, is_root, icon, enabled,
         network_enabled, is_master=False):
         super(PartitionNodeClass, self).__init__(
@@ -31,7 +29,7 @@ class PartitionNodeClass(game_tools_fbx_widgets.NodeClass):
     def is_master(self, flag):
         self._is_master = flag
 
-class PartitionTreeItem(game_tools_fbx_widgets.TreeItem):
+class PartitionTreeItem(widgets.TreeItem):
     def __init__(self, node, header, show_enabled, parent=None):
         super(PartitionTreeItem, self).__init__(
             node=node, header=header, show_enabled=show_enabled, parent=parent
@@ -40,7 +38,7 @@ class PartitionTreeItem(game_tools_fbx_widgets.TreeItem):
     def is_master(self):
         return self.node.is_master
 
-class PartitionsOutliner(game_tools_fbx_widgets.OutlinerTreeView):
+class PartitionsOutliner(widgets.OutlinerTreeView):
 
     NODE_CLASS = PartitionNodeClass
     TREE_ITEM_CLASS = PartitionTreeItem
@@ -48,7 +46,6 @@ class PartitionsOutliner(game_tools_fbx_widgets.OutlinerTreeView):
     def __init__(self, parent=None):
         self._master_item = None
         self._geo_roots = list()
-
         super(PartitionsOutliner, self).__init__(parent=parent)
         self.create_connections()
 
@@ -116,7 +113,6 @@ class PartitionsOutliner(game_tools_fbx_widgets.OutlinerTreeView):
         return export_nodes[0].get_partitions()
 
     def populate_items(self, add_callbacks=True):
-        traceback.print_stack()
 
         if add_callbacks:
             self.cleanup()

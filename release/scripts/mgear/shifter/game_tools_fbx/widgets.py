@@ -1,14 +1,16 @@
 import copy
 import weakref
 from functools import partial
-import traceback
 
-from mgear.core import pyqt, utils
-from mgear.shifter import game_tools_fbx_utils as fu
-from mgear.shifter.game_tools_fbx.fbx_export_node import FbxExportNode
 from mgear.vendor.Qt import QtWidgets
 from mgear.vendor.Qt import QtCore
 from mgear.vendor.Qt import QtGui
+
+from mgear.core import pyqt, utils
+from mgear.shifter.game_tools_fbx import (
+    fbx_export_node,
+    utils as fbx_utils
+)
 
 import maya.cmds as cmds
 
@@ -230,7 +232,7 @@ class TreeItem(QtWidgets.QTreeWidgetItem):
             child.node.label_color = color
 
         value = [color.red(), color.green(), color.blue()]
-        export_node = FbxExportNode.get()
+        export_node = fbx_export_node.FbxExportNode.get()
         if not export_node:
             return
         export_node.set_partition_color(self.node.node_name, value)
@@ -264,7 +266,7 @@ class TreeItem(QtWidgets.QTreeWidgetItem):
         return None
 
     def delete_node(self):
-        export_node = FbxExportNode.get()
+        export_node = fbx_export_node.FbxExportNode.get()
         if not export_node:
             return
         if self.is_root():
@@ -523,7 +525,7 @@ class OutlinerTreeView(QtWidgets.QTreeWidget):
         """
         Forces the repopulation the tree widget
         """
-        traceback.print_stack()
+
         self._selection_parent = None
         self._selection_node = None
 
@@ -1088,7 +1090,7 @@ class AnimClipsListWidget(QtWidgets.QWidget):
 
         if not self._root_joint:
             return
-        export_node = FbxExportNode.get()
+        export_node = fbx_export_node.FbxExportNode.get()
         if not export_node:
             return
 
@@ -1125,7 +1127,7 @@ class AnimClipsListWidget(QtWidgets.QWidget):
             )
             return
 
-        export_node = FbxExportNode.get() or FbxExportNode.create()
+        export_node = fbx_export_node.FbxExportNode.get() or fbx_export_node.FbxExportNode.create()
         anim_clip_name = export_node.add_animation_clip(self._root_joint)
         if not anim_clip_name:
             cmds.warning("Was not possible to add new animation clip")
@@ -1138,7 +1140,7 @@ class AnimClipsListWidget(QtWidgets.QWidget):
         if not self._root_joint:
             return
 
-        export_node = FbxExportNode.get()
+        export_node = fbx_export_node.FbxExportNode.get()
         if not export_node:
             return
 
@@ -1289,7 +1291,7 @@ class AnimClipWidget(QtWidgets.QFrame):
         )
 
     def refresh(self):
-        export_node = FbxExportNode.get()
+        export_node = fbx_export_node.FbxExportNode.get()
         if not export_node:
             self._clear()
             return
@@ -1333,7 +1335,7 @@ class AnimClipWidget(QtWidgets.QFrame):
         with pyqt.block_signals(self._anim_layer_combo):
             self._anim_layer_combo.clear()
             # TODO: Maybe we should filter display layers that are set with override mode?
-            anim_layers = fu.all_anim_layers_ordered(
+            anim_layers = fbx_utils.all_anim_layers_ordered(
                 include_base_animation=False
             )
             self._anim_layer_combo.addItems(["None"] + anim_layers)
@@ -1357,7 +1359,7 @@ class AnimClipWidget(QtWidgets.QFrame):
         # self._start_at_frame_zero_checkbox.setChecked(False)
 
     def _on_close_button_clicked(self):
-        export_node = FbxExportNode.get()
+        export_node = fbx_export_node.FbxExportNode.get()
         if not export_node:
             return
 
@@ -1384,11 +1386,11 @@ class AnimClipWidget(QtWidgets.QFrame):
         if not root_joint:
             return
 
-        export_node = FbxExportNode.get()
+        export_node = fbx_export_node.FbxExportNode.get()
         if not export_node:
             return
 
-        anim_clip_data = FbxExportNode.ANIM_CLIP_DATA.copy()
+        anim_clip_data = fbx_export_node.FbxExportNode.ANIM_CLIP_DATA.copy()
         anim_clip_data["title"] = self._title_line_edit.text()
         # anim_clip_data['path'] = self._export_path_line_edit.text()
         anim_clip_data["enabled"] = self._export_checkbox.isChecked()
@@ -1408,7 +1410,7 @@ class AnimClipWidget(QtWidgets.QFrame):
         self._previous_name = anim_clip_data["title"]
 
     def _on_delete_anim_clip(self):
-        export_node = FbxExportNode.get()
+        export_node = fbx_export_node.FbxExportNode.get()
         if not export_node:
             return
 
@@ -1439,7 +1441,7 @@ class AnimClipWidget(QtWidgets.QFrame):
         start_frame, end_frame = int(self._start_frame_line_edit.text()), int(
             self._end_frame_line_edit.text()
         )
-        fu.create_mgear_playblast(
+        fbx_utils.create_mgear_playblast(
             folder=self._export_path_line_edit.text(),
             start_frame=start_frame,
             end_frame=end_frame,
@@ -1509,7 +1511,7 @@ class AnimClipWidget(QtWidgets.QFrame):
             "scene_clean": scene_clean,
             "anim_layer": anim_layer,
         }
-        return fu.export_animation_clip(root_joint, **export_kwargs)
+        return fbx_utils.export_animation_clip(root_joint, **export_kwargs)
 
     def _on_custom_context_menu_requested(self, pos):
 
@@ -1530,19 +1532,19 @@ class AnimClipWidget(QtWidgets.QFrame):
 
         delete_anim_clip_action.triggered.connect(self._on_delete_anim_clip)
         playblast_25_action.triggered.connect(
-            partial(fu.create_mgear_playblast, scale=25)
+            partial(fbx_utils.create_mgear_playblast, scale=25)
         )
         playblast_50_action.triggered.connect(
-            partial(fu.create_mgear_playblast, scale=50)
+            partial(fbx_utils.create_mgear_playblast, scale=50)
         )
         playblast_75_action.triggered.connect(
-            partial(fu.create_mgear_playblast, scale=75)
+            partial(fbx_utils.create_mgear_playblast, scale=75)
         )
         playblast_100_action.triggered.connect(
-            partial(fu.create_mgear_playblast, scale=100)
+            partial(fbx_utils.create_mgear_playblast, scale=100)
         )
         open_playblasts_folder_action.triggered.connect(
-            fu.open_mgear_playblast_folder
+            fbx_utils.open_mgear_playblast_folder
         )
 
         context_menu.exec_(self.mapToGlobal(pos))

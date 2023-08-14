@@ -15,7 +15,7 @@ from mgear.vendor.Qt import QtWidgets
 from mgear.vendor.Qt import QtCore
 
 from mgear.core import string, pyqt, pyFBX as pfbx
-from mgear.shifter.game_tools_fbx import game_tools_fbx_sdk_utils, fbx_export_node
+from mgear.shifter.game_tools_fbx import utils
 
 NO_EXPORT_TAG = "no_export"
 WORLD_CONTROL_NAME = "world_ctl"
@@ -134,7 +134,7 @@ def export_skeletal_mesh(jnt_roots, geo_roots, **export_data):
 
     fbx_modified = False
     pfbx.FBXExport(f=path, s=True)
-    fbx_file = game_tools_fbx_sdk_utils.FbxSdkGameToolsWrapper(path)
+    fbx_file = utils.FbxSdkGameToolsWrapper(path)
 
     # Make sure root joints are parented to world
     for jnt_root in jnt_roots:
@@ -271,7 +271,7 @@ def export_skeletal_mesh_partitions(jnt_roots, **export_data):
 
     try:
         for partition_name, partition_data in partitions_data.items():
-            fbx_file = game_tools_fbx_sdk_utils.FbxSdkGameToolsWrapper(path)
+            fbx_file = utils.FbxSdkGameToolsWrapper(path)
             partition_meshes = partitions.get(partition_name)
             fbx_file.export_skeletal_mesh(
                 file_name=partition_name,
@@ -452,7 +452,7 @@ def export_animation_clip(root_joint, **export_data):
         pfbx.FBXExport(f=path, s=True)
 
         fbx_modified = False
-        fbx_file = game_tools_fbx_sdk_utils.FbxSdkGameToolsWrapper(path)
+        fbx_file = utils.FbxSdkGameToolsWrapper(path)
         fbx_file.parent_to_world(root_joint, remove_top_parent=True)
         if remove_namespaces:
             fbx_file.remove_namespaces()

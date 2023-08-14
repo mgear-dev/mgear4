@@ -258,9 +258,6 @@ class Synoptic(MayaQWidgetDockableMixin, QtWidgets.QDialog):
                     pm.displayWarning(mes)
 
             except Exception as e:
-                import traceback
-                traceback.print_exc()
-
                 mes = "Synoptic tab: %s Loading fail {0}\n{1}".format(
                     tab_name, e)
 

@@ -66,7 +66,6 @@ class FbxExportNode(object):
     def get(cls, name=EXPORT_NODE_NAME):
         if not cls.exists_in_scene(name):
             return None
-
         return cls(name)
 
     @classmethod
@@ -287,7 +286,6 @@ class FbxExportNode(object):
             cmds.setAttr(attr_namespace, value)
 
     def _save_data(self, data):
-        print('save data')
         if not self._node or not cmds.objExists(self._node):
             return False
 
@@ -307,7 +305,6 @@ class FbxExportNode(object):
         return True
 
     def _parse_export_data(self):
-        print('parse export data')
         if not cmds.objExists(self._node):
             return self._export_data
         if not cmds.attributeQuery(self.EXPORT_DATA_ATTR,
@@ -317,7 +314,6 @@ class FbxExportNode(object):
         export_data_str = self._get_attr_namespace(self._node,
                                                    self.EXPORT_DATA_ATTR)
         export_data = cmds.getAttr(export_data_str)
-        print('parsed data: ', export_data)
         try:
             self._export_data = json.loads(export_data)
         except Exception:

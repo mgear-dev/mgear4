@@ -17,9 +17,9 @@ from mgear.core import pyFBX as pfbx
 
 from mgear.shifter.game_tools_fbx import (
     fbx_export_node,
-    game_tools_fbx_utils as fu,
-    game_tools_fbx_widgets as fuw,
-    partitions_outliner
+    partitions_outliner,
+    utils,
+    widgets as fbx_widgets
 )
 
 from mgear.uegear import commands as uegear
@@ -123,11 +123,6 @@ class FBXExport(MayaQWidgetDockableMixin, QtWidgets.QDialog):
             layout.addWidget(button)
             return button
 
-        def create_subgrid_vlayout(row, col):
-            layout = QtWidgets.QVBoxLayout()
-            source_layout.addLayout(layout, row, col)
-            return layout
-
         # main collapsible widget layout
         source_collap_wgt = widgets.CollapsibleWidget("Source Elements")
         source_collap_wgt.setSizePolicy(QtWidgets.QSizePolicy.Preferred,
@@ -139,7 +134,9 @@ class FBXExport(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         source_collap_wgt.addLayout(source_layout)
 
         # geo root layout
-        geo_layout = create_subgrid_vlayout(0, 0)
+        geo_layout = QtWidgets.QVBoxLayout()
+        source_layout.addLayout(geo_layout, 0, 0)
+
         geo_label = QtWidgets.QLabel("Geo Root")
         geo_layout.addWidget(geo_label)
         self.geo_root_list = QtWidgets.QListWidget()
@@ -148,7 +145,9 @@ class FBXExport(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.geo_root_list.setSelectionMode(QtWidgets.QListWidget.ExtendedSelection)
         geo_layout.addWidget(self.geo_root_list)
 
-        geo_buttons_layout = create_subgrid_vlayout(0, 1)
+        geo_buttons_layout = QtWidgets.QVBoxLayout()
+        source_layout.addLayout(geo_buttons_layout, 0, 1)
+
         geo_buttons_layout.addStretch()
         self.geo_set_btn = create_button(geo_buttons_layout,
                                          icon="mgear_mouse-pointer")
@@ -161,13 +160,16 @@ class FBXExport(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         geo_buttons_layout.addStretch()
 
         # joint root layout
-        joint_layout = create_subgrid_vlayout(1, 0)
+        joint_layout = QtWidgets.QVBoxLayout()
+        source_layout.addLayout(joint_layout, 1, 0)
+
         joint_label = QtWidgets.QLabel("Joint Root")
         joint_layout.addWidget(joint_label)
         self.joint_root_lineedit = QtWidgets.QLineEdit()
         joint_layout.addWidget(self.joint_root_lineedit)
 
-        joint_buttons_layout = create_subgrid_vlayout(1, 1)
+        joint_buttons_layout = QtWidgets.QVBoxLayout()
+        source_layout.addLayout(joint_buttons_layout, 1, 1)
         self.joint_set_btn = create_button(joint_buttons_layout,
                                            icon="mgear_mouse-pointer")
         self.joint_auto_set_btn = create_button(joint_buttons_layout,
@@ -306,8 +308,6 @@ class FBXExport(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         deformers_layout.addWidget(self.blendshapes_checkbox)
         deformers_layout.addWidget(self.use_partitions_checkbox)
 
-        skeletal_mesh_layout.addStretch()
-
         # partitions layout
         self.partitions_label = QtWidgets.QLabel("Partitions")
         skeletal_mesh_layout.addWidget(self.partitions_label)
@@ -346,7 +346,7 @@ class FBXExport(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.export_tab.addTab(animation_tab, "Animation")
         animation_layout = QtWidgets.QVBoxLayout(animation_tab)
 
-        self.animation_clips_list_widget = fuw.AnimClipsListWidget(parent=self)
+        self.animation_clips_list_widget = fbx_widgets.AnimClipsListWidget(parent=self)
         animation_layout.addWidget(self.animation_clips_list_widget)
 
         self.anim_export_btn = QtWidgets.QPushButton("Export Animations")
@@ -395,12 +395,6 @@ class FBXExport(MayaQWidgetDockableMixin, QtWidgets.QDialog):
 
         # animation connection
         self.anim_export_btn.clicked.connect(self.export_animation_clips)
-
-        self.partitions_outliner.itemEnabledChanged.connect(self.partition_item_enabled_changed)
-        self.partitions_outliner.itemAddNode.connect(self.partition_item_add_skeletal_mesh)
-        self.partitions_outliner.itemRenamed.connect(self.partition_item_renamed)
-        self.partitions_outliner.itemRemoved.connect(self.partition_skeletal_mesh_removed)
-        self.partitions_outliner.droppedItems.connect(self.partition_items_dropped)
 
     # functions
 
@@ -653,15 +647,11 @@ class FBXExport(MayaQWidgetDockableMixin, QtWidgets.QDialog):
             QtWidgets.QLineEdit.Normal,
             "New Partition",
         )
-        print(name)
-        print(ok)
         if not ok or not name:
             return
         result = export_node.add_new_skeletal_mesh_partition(name, list())
         if not result:
             return
-
-        self.partitions_outliner.reset_contents()
 
     def remove_skeletal_mesh_partition(self):
 
@@ -686,96 +676,6 @@ class FBXExport(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         if response == "Yes":
             for selected_partition_item in selected_partition_items:
                 selected_partition_item.delete_node()
-
-    def partition_item_enabled_changed(self, item):
-
-        if not item:
-            return
-
-        export_node = fbx_export_node.FbxExportNode.get()
-        if not export_node:
-            return
-
-        export_node.set_partition_enabled(
-            item.node.node_name, item.is_enabled()
-        )
-
-    def partition_item_add_skeletal_mesh(self, item):
-
-        if not item:
-            return
-
-        export_node = fbx_export_node.FbxExportNode.get()
-        if not export_node:
-            return
-
-        transforms = cmds.ls(sl=True, long=True, type="transform")
-        meshes = [
-            child
-            for child in transforms
-            if cmds.listRelatives(child, shapes=True)
-        ]
-
-        export_node.add_skeletal_meshes_to_partition(
-            item.node.node_name, meshes
-        )
-
-        self.partitions_outliner.reset_contents()
-
-    def partition_item_renamed(self, old_name, new_name):
-
-        if not old_name or not new_name or old_name == new_name:
-            return
-
-        export_node = fbx_export_node.FbxExportNode.get()
-        if not export_node:
-            return
-
-        export_node.set_partition_name(old_name, new_name)
-
-    def partition_skeletal_mesh_removed(self, parent_name, removed_name):
-
-        if not parent_name or not removed_name:
-            return
-
-        export_node = fbx_export_node.FbxExportNode.get()
-        if not export_node:
-            return
-
-        export_node.delete_skeletal_mesh_from_partition(
-            parent_name, removed_name
-        )
-
-        self.partitions_outliner.reset_contents()
-
-    def partition_items_dropped(
-        self, parent_item, dropped_items, duplicate=False
-    ):
-
-        if not parent_item or not dropped_items:
-            return
-
-        export_node = fbx_export_node.FbxExportNode.get()
-        if not export_node:
-            return
-
-        valid_items = [item for item in dropped_items if item.is_master]
-        if not valid_items:
-            return
-
-        if not duplicate:
-            # remove items from their old partitions
-            for item in valid_items:
-                export_node.delete_skeletal_mesh_from_partition(
-                    item.parent().node.node_name, item.node.node_name
-                )
-
-        # add items to new partition
-        meshes_names = [item.node.node_name for item in valid_items]
-        export_node.add_skeletal_meshes_to_partition(
-            parent_item.node.node_name, meshes_names
-        )
-
 
     def export_skeletal_mesh(self):
 
@@ -859,7 +759,7 @@ class FBXExport(MayaQWidgetDockableMixin, QtWidgets.QDialog):
             "partitions": partitions,
         }
 
-        result = fu.export_skeletal_mesh(jnt_root, geo_roots, **export_config)
+        result = utils.export_skeletal_mesh(jnt_root, geo_roots, **export_config)
         if not result:
             cmds.warning(
                 "Something went wrong while exporting Skeletal Mesh/es"
@@ -938,7 +838,7 @@ class FBXExport(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         for anim_clip_data in export_node.get_animation_clips(jnt_root):
             anim_clip_export_data = base_export_config.copy()
             anim_clip_export_data.update(anim_clip_data)
-            fu.export_animation_clip(jnt_root, **anim_clip_export_data)
+            utils.export_animation_clip(jnt_root, **anim_clip_export_data)
 
         return True
 
@@ -965,7 +865,7 @@ class FBXExport(MayaQWidgetDockableMixin, QtWidgets.QDialog):
             self.geo_root_list.clear()
 
         if not self.geo_root_list.count():
-            g_roots = fu.get_geo_root() or list()
+            g_roots = utils.get_geo_root() or list()
             for g_root in g_roots:
                 self.geo_root_list.addItem(g_root.name())
 
@@ -977,7 +877,7 @@ class FBXExport(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         )
 
     def auto_set_joint_root(self):
-        j_roots = fu.get_joint_root() or list()
+        j_roots = utils.get_joint_root() or list()
         if j_roots:
             joint_name = j_roots[0].name()
             self.joint_root_lineedit.setText(joint_name)
@@ -1109,14 +1009,14 @@ def openFBXExport(*args):
 
 if __name__ == "__main__":
 
-    from mgear.shifter import game_tools_fbx_widgets
+    from mgear.shifter import widgets
 
     import sys
 
     if sys.version_info[0] == 2:
-        reload(game_tools_fbx_widgets)
+        reload(widgets)
     else:
-        importlib.reload(game_tools_fbx_widgets)
+        importlib.reload(widgets)
 
     start = timeit.default_timer()
 
