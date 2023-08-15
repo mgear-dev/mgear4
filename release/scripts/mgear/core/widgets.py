@@ -374,7 +374,7 @@ def create_button(size=17,
                   toolTip=None,
                   width=None,
                   setMax=True):
-    """Create and configure a QPsuhButton
+    """Create and configure a QPushButton
 
     Args:
         size (int, optional): Size of the button
