@@ -1,3 +1,4 @@
+from maya import cmds
 import pymel.core as pm
 import mgear
 import os
@@ -15,7 +16,7 @@ def create(menuId=menuId):
         str: main manu name
     """
 
-    if pm.menu(menuId, exists=True):
+    if cmds.menu(menuId, exists=True):
         try:
             pm.deleteUI(menuId)
         except RuntimeError:
