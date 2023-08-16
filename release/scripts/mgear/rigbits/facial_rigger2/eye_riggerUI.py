@@ -116,6 +116,11 @@ class ui(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.fixedJointsNumber.setSingleStep(1)
         self.fixedJointsNumber.setValue(3)
 
+        self.orderFromCenter = QtWidgets.QCheckBox(
+            "Right side Joints order starts from center"
+        )
+        self.orderFromCenter.setChecked(False)
+
         # Topological Autoskin
         self.topoSkin_group = QtWidgets.QGroupBox("Skin")
         self.rigidLoops_label = QtWidgets.QLabel("Rigid Loops:")
@@ -232,6 +237,7 @@ class ui(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         joints_layout.addLayout(headJnt_layout)
         joints_layout.addLayout(everyNVertex_layout)
         joints_layout.addLayout(fixedJoints_layout)
+        joints_layout.addWidget(self.orderFromCenter)
         self.joints_group.setLayout(joints_layout)
 
         # topological autoskin Layout

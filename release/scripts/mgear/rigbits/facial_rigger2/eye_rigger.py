@@ -45,6 +45,7 @@ def rig(
     everyNVertex=1,
     fixedJoints=False,
     fixedJointsNumber=3,
+    orderFromCenter=False,
 ):
     """Create eyelid and eye rig
 
@@ -73,6 +74,10 @@ def rig(
         aim_controller (None, optional): Description
         deformers_group (None, optional): Description
         everyNVertex (int, optional): Will create a joint every N vertex
+        fixedJoints (bool, optional): If True use a fixed number of joint
+        fixedJointsNumber (int, optional): fixed Number og joint
+        orderFromCenter (bool, optional): if True the order will be from
+            center, and not from right to left
 
     No Longer Returned:
         TYPE: Description
@@ -198,12 +203,16 @@ def rig(
         upEyelid_edge = meshNavigation.edgeRangeInLoopFromMid(
             edgeList, upPos, inPos, outPos
         )
+
         up_crv = curve.createCurveFromOrderedEdges(
             upEyelid_edge, inPos, setName("upperEyelid"), parent=eyeCrv_root
         )
         upCtl_crv = curve.createCurveFromOrderedEdges(
             upEyelid_edge, inPos, setName("upCtl_crv"), parent=eyeCrv_root
         )
+        if side == "R" and orderFromCenter:
+            pm.reverseCurve(up_crv, ch=False)
+            pm.reverseCurve(upCtl_crv, ch=False)
         pm.rebuildCurve(upCtl_crv, s=2, rt=0, rpo=True, ch=False)
 
         lowEyelid_edge = meshNavigation.edgeRangeInLoopFromMid(
@@ -215,6 +224,9 @@ def rig(
         lowCtl_crv = curve.createCurveFromOrderedEdges(
             lowEyelid_edge, inPos, setName("lowCtl_crv"), parent=eyeCrv_root
         )
+        if side == "R" and orderFromCenter:
+            pm.reverseCurve(low_crv, ch=False)
+            pm.reverseCurve(lowCtl_crv, ch=False)
 
         pm.rebuildCurve(lowCtl_crv, s=2, rt=0, rpo=True, ch=False)
 
@@ -459,7 +471,7 @@ def rig(
     # upper eyelid controls
     upperCtlNames = ["inCorner", "upInMid", "upMid", "upOutMid", "outCorner"]
     cvs = upCtl_crv.getCVs(space="world")
-    if side == "R" and not sideRange:
+    if side == "R" and not sideRange and not orderFromCenter:
         # if side == "R":
         cvs = [cv for cv in reversed(cvs)]
         # offset = offset * -1
@@ -590,7 +602,7 @@ def rig(
     ]
 
     cvs = lowCtl_crv.getCVs(space="world")
-    if side == "R" and not sideRange:
+    if side == "R" and not sideRange and not orderFromCenter:
         cvs = [cv for cv in reversed(cvs)]
     for i, cv in enumerate(cvs):
         # we skip the first and last point since is already in the uper eyelid
