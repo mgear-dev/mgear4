@@ -1,5 +1,4 @@
 import json
-import pprint
 
 import pymel.core as pm
 import maya.cmds as cmds
@@ -42,7 +41,8 @@ class FbxExportNode(object):
     def __init__(self, node=None):
         self._node = node
         self._export_data = dict()  # internal export data
-        self._save_data(self.EXPORT_DATA)
+        data = self._parse_export_data()
+        self._save_data(data)
 
     @property
     def export_data(self):
@@ -86,6 +86,12 @@ class FbxExportNode(object):
         if not cmds.attributeQuery(cls.TYPE_ATTR, node=name, exists=True):
             return False
         return True
+
+    def save_root_data(self, root_type, root_names):
+        # root type = geo_root or joint_root
+        data = self._parse_export_data()
+        data[root_type] = root_names
+        return self._save_data(data)
 
     def add_new_skeletal_mesh_partition(self, name, node_names):
         data = self._parse_export_data()
@@ -270,7 +276,7 @@ class FbxExportNode(object):
     def _add_attr(self, node, attr, value):
         # create attribute
         if not cmds.attributeQuery(attr, node=node, exists=True):
-            if isinstance(value, (str, dict)):
+            if isinstance(value, (str, list, dict)):
                 cmds.addAttr(node, longName=attr, dataType="string")
             else:
                 attr_type = type(value).__name__
@@ -280,7 +286,7 @@ class FbxExportNode(object):
 
         # set attribute value
         attr_namespace = self._get_attr_namespace(node, attr)
-        if isinstance(value, (str, dict)):
+        if isinstance(value, (str, list, dict)):
             cmds.setAttr(attr_namespace, value, type="string")
         else:
             cmds.setAttr(attr_namespace, value)
@@ -317,5 +323,5 @@ class FbxExportNode(object):
         try:
             self._export_data = json.loads(export_data)
         except Exception:
-            cmds.warning("Error while parsing FbxExportNode export data")
+            cmds.warning("Error while parsing FbxExportNode export data.")
         return self._export_data
