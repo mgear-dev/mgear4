@@ -27,17 +27,26 @@ class UeGearBridge(object):
     Unreal Engine Gear Bridge
     """
 
-    def __init__(self, port=30010, host_address='127.0.0.1'):
+    def __init__(self, port=30010, host_address="127.0.0.1"):
         super(UeGearBridge, self).__init__()
 
         self._host_address = host_address
         self._port = port
-        self._timeout = 1000                    # connection to the server will time out after this value.
-        self._echo_execution = True             # whether client should print the response coming from server.
-        self._echo_payload = True               # whether client should print the JSON payload it's sending to server.
-        self._is_executing = False              # whether client is still executing a command.
-        self._commands_object_path = '/Engine/PythonTypes.Default__PyUeGearCommands'
-        self._headers = {'Content-type': 'application/json', 'Accept': 'text/plain'}
+        self._timeout = (
+            1000  # connection to the server will time out after this value.
+        )
+        self._echo_execution = True  # whether client should print the response coming from server.
+        self._echo_payload = True  # whether client should print the JSON payload it's sending to server.
+        self._is_executing = (
+            False  # whether client is still executing a command.
+        )
+        self._commands_object_path = (
+            "/Engine/PythonTypes.Default__PyUeGearCommands"
+        )
+        self._headers = {
+            "Content-type": "application/json",
+            "Accept": "text/plain",
+        }
 
     # =================================================================================================================
     # PROPERTIES
@@ -107,22 +116,29 @@ class UeGearBridge(object):
         timeout = timeout if timeout > 0 else self._timeout
         parameters = parameters or dict()
 
-        url = 'http://{}:{}/remote/object/call'.format(self._host_address, self._port)
+        url = "http://{}:{}/remote/object/call".format(
+            self._host_address, self._port
+        )
         payload = {
-            'objectPath': self._commands_object_path,
-            'functionName': command,
-            'parameters': parameters,
-            'generateTransaction': True
+            "objectPath": self._commands_object_path,
+            "functionName": command,
+            "parameters": parameters,
+            "generateTransaction": True,
         }
         try:
-            request = Request(url, json.dumps(payload).encode('ascii'), self._headers, method='PUT')
+            request = Request(
+                url,
+                json.dumps(payload).encode("ascii"),
+                self._headers,
+                method="PUT",
+            )
             with urlopen(request, timeout=timeout) as response:
                 response = json.load(response)
         except Exception:
-            response = {'return': False}
+            response = {"return": False}
         try:
-            evaluated_return = eval(response.get('return'))
-            response = {'return': evaluated_return}
+            evaluated_return = eval(response.get("return"))
+            response = {"return": evaluated_return}
         except Exception:
             pass
 

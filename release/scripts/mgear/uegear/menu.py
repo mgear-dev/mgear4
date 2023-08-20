@@ -7,32 +7,26 @@ menuID = "ueGear"
 
 
 def install():
-	"""Installs ueGear sub-menu"""
+    """Installs ueGear sub-menu"""
 
-	cmds.setParent(mgear.menu_id, menu=True)
-	cmds.menuItem(divider=True)
-	commands = (
-		(
-			"Apply ueGear Tag to selected nodes",
-			str_auto_tag
-		),
-		(
-			"Remove ueGear Tags from selected nodes",
-			str_remove_tag
-		),
-		("-----", None),
-		(
-			"Import Selected Assets from Unreal",
-			str_import_selected_assets_from_unreal,
-		),
-		(
-			"Export Selected Assets to Unreal",
-			str_export_selected_assets_to_unreal,
-		),
-		("-----", None),
-	)
+    cmds.setParent(mgear.menu_id, menu=True)
+    cmds.menuItem(divider=True)
+    commands = (
+        ("Apply ueGear Tag to selected nodes", str_auto_tag),
+        ("Remove ueGear Tags from selected nodes", str_remove_tag),
+        ("-----", None),
+        (
+            "Import Selected Assets from Unreal",
+            str_import_selected_assets_from_unreal,
+        ),
+        (
+            "Export Selected Assets to Unreal",
+            str_export_selected_assets_to_unreal,
+        ),
+        ("-----", None),
+    )
 
-	mgear.menu.install(menuID, commands, image="UE5.svg")
+    mgear.menu.install(menuID, commands, image="UE5.svg")
 
 
 str_auto_tag = """

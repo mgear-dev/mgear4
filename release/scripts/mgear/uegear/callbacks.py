@@ -15,29 +15,40 @@ logger = log.uegear_logger
 
 
 def register_callbacks():
-
-	try:
-		UeGearExternalDropCallback.instance = UeGearExternalDropCallback()
-		OpenMayaUI.MExternalDropCallback.addCallback(UeGearExternalDropCallback.instance)
-		logger.info('Successfully registered callback: UeGearExternalDropCallback')
-	except Exception:
-		logger.error('Failed to register callback: UeGearExternalDropCallback')
-		raise
+    try:
+        UeGearExternalDropCallback.instance = UeGearExternalDropCallback()
+        OpenMayaUI.MExternalDropCallback.addCallback(
+            UeGearExternalDropCallback.instance
+        )
+        logger.info(
+            "Successfully registered callback: UeGearExternalDropCallback"
+        )
+    except Exception:
+        logger.error("Failed to register callback: UeGearExternalDropCallback")
+        raise
 
 
 def unregister_callbacks():
-	try:
-		OpenMayaUI.MExternalDropCallback.removeCallback(UeGearExternalDropCallback.instance)
-		logger.info('Successfully deregistered callback: UeGearExternalDropCallback')
-	except Exception:
-		logger.erro('Failed to deregister callback: UeGearExternalDropCallback')
-		raise
+    try:
+        OpenMayaUI.MExternalDropCallback.removeCallback(
+            UeGearExternalDropCallback.instance
+        )
+        logger.info(
+            "Successfully deregistered callback: UeGearExternalDropCallback"
+        )
+    except Exception:
+        logger.erro(
+            "Failed to deregister callback: UeGearExternalDropCallback"
+        )
+        raise
 
 
 class UeGearExternalDropCallback(OpenMayaUI.MExternalDropCallback):
+    instance = None
 
-	instance = None
-
-	def externalDropCallback( self, doDrop, controlName, data ):
-		str = ("External Drop:  doDrop = %d,  controlName = %s" % (doDrop, controlName))
-		print(str)
+    def externalDropCallback(self, doDrop, controlName, data):
+        str = "External Drop:  doDrop = %d,  controlName = %s" % (
+            doDrop,
+            controlName,
+        )
+        print(str)
