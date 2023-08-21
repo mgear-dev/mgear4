@@ -710,6 +710,7 @@ def create_proximity_tweak(
     attach_rot=False,
     inputMesh=None,
     ctlShape="sphere",
+    existing_pin=None,
 ):
     """Create a tweak joint attached to the mesh using a proximity pin
 
@@ -718,8 +719,8 @@ def create_proximity_tweak(
         edgePair (pair list): The edge pair to create the proximity pin
         name (str): The name for the tweak
         parent (None or dagNode, optional): The parent for the tweak
-        jntParent (None or dagNode, optional): The parent for the joints
         ctlParent (None or dagNode, optional): The parent for the tweak control
+        jntParent (None or dagNode, optional): The parent for the joints
         color (list, optional): The color for the control
         size (float, optional): Size of the control
         defSet (None or set, optional): Deformer set to add the joints
@@ -729,9 +730,14 @@ def create_proximity_tweak(
             set automatically based on the world position
         gearMulMatrix (bool, optional): If False will use Maya default multiply
             matrix node
+        attach_rot (bool, optional): Description
+        inputMesh (None, optional): Description
+        ctlShape (str, optional): Description
+        existing_pin (None, optional): Description
 
     Returns:
-        PyNode: The tweak control
+        list: o_icon and pin node
+
     """
     if not inputMesh:
         blendShape = blendShapes.getBlendShape(mesh)
@@ -745,27 +751,30 @@ def create_proximity_tweak(
                 sh=True, t="shape", d=False
             )[0]
 
-    oRivet = rivet.rivet()
-    in_trans = oRivet.create(inputMesh, edgePair[0], edgePair[1], parent)
-    in_trans.translate.listConnections()[0]
+    # oRivet = rivet.rivet()
+    # in_trans = oRivet.create(inputMesh, edgePair[0], edgePair[1], parent)
+    # in_trans.translate.listConnections()[0]
 
-    # # get edge center
-    # mesh_dag_path = mesh_navi.get_mesh_dag_path(inputMesh)
-    # center_position = mesh_navi.get_edge_center(
-    #     mesh_dag_path, [edgePair[0], edgePair[1]]
-    # )
+    # get edge center
+    mesh_dag_path = mesh_navi.get_mesh_dag_path(inputMesh)
+    center_position = mesh_navi.get_edge_center(
+        mesh_dag_path, [edgePair[0], edgePair[1]]
+    )
 
-    # # in_trans
-    # in_trans = cmds.spaceLocator(name="EdgeCenterLocator")[0]
-    # pm.parent(in_trans, parent)
-    # cmds.xform(
-    #     in_trans,
-    #     translation=(center_position.x, center_position.y, center_position.z),
-    #     worldSpace=True,
-    # )
+    # in_trans
+    in_trans = pm.spaceLocator(name="inTrans_tempName")
+    pm.xform(
+        in_trans,
+        translation=(center_position.x, center_position.y, center_position.z),
+        worldSpace=True,
+    )
+    pm.parent(in_trans, parent)
 
     # tweak base
-    base = applyop.create_proximity_constraint(inputMesh, in_trans)
+    base, pin = applyop.create_proximity_constraint(
+        inputMesh, in_trans, existing_pin=existing_pin
+    )
+    pm.parent(base, parent)
 
     # get side
     if not side or side not in ["L", "R", "C"]:
@@ -778,6 +787,7 @@ def create_proximity_tweak(
 
     nameSide = name + "_tweak_" + side
     pm.rename(base, nameSide)
+    pm.rename(in_trans, name + "_inTrans_" + side)
 
     if not ctlParent:
         ctlParent = base
@@ -959,4 +969,77 @@ def create_proximity_tweak(
             ctlSet = pm.PyNode("rig_controllers_grp")
     pm.sets(ctlSet, add=o_icon)
 
-    return o_icon
+    return o_icon, pin
+
+
+def create_mirror_proximity_tweak(
+    mesh,
+    edgePair,
+    name,
+    parent=None,
+    ctlParent=None,
+    jntParent=None,
+    color=[0, 0, 0],
+    size=0.04,
+    defSet=None,
+    ctlSet=None,
+    side=None,
+    gearMulMatrix=True,
+    attach_rot=False,
+    inputMesh=None,
+    ctlShape="sphere",
+    existing_pin=None,
+):
+    """Create a tweak joint attached to the mesh using a proximity pin.
+    The edge pair will be used to find the mirror position on the mesh
+
+    Args:
+        mesh (mesh): The object to add the tweak
+        edgePair (pair list): The edge pair to create the rivet
+        name (str): The name for the tweak
+        parent (None or dagNode, optional): The parent for the tweak
+        ctlParent (None or dagNode, optional): The parent for the tweak control
+        jntParent (None or dagNode, optional): The parent for the joints
+        color (list, optional): The color for the control
+        size (float, optional): Size of the control
+        defSet (None or set, optional): Deformer set to add the joints
+        ctlSet (None or set, optional): the set to add the controls
+        side (None, str): String to set the side. Valid values are L, R or C.
+            If the side is not set or the value is not valid, the side will be
+            set automatically based on the world position
+        gearMulMatrix (bool, optional): If False will use Maya default multiply
+            matrix node
+        attach_rot (bool, optional): Description
+        inputMesh (None, optional): Description
+        ctlShape (str, optional): Description
+        existing_pin (None, optional): Description
+
+    Returns:
+        PyNode: The tweak control and pin node
+    """
+    if not inputMesh:
+        navi_mesh = mesh
+    else:
+        navi_mesh = inputMesh
+    mirror_edge_pair = [
+        mesh_navi.find_mirror_edge(navi_mesh, edgePair[1]).index(),
+        mesh_navi.find_mirror_edge(navi_mesh, edgePair[0]).index(),
+    ]
+    return create_proximity_tweak(
+        mesh,
+        mirror_edge_pair,
+        name,
+        parent,
+        ctlParent,
+        jntParent,
+        color,
+        size,
+        defSet,
+        ctlSet,
+        side,
+        gearMulMatrix,
+        attach_rot,
+        inputMesh,
+        ctlShape,
+        existing_pin=existing_pin,
+    )

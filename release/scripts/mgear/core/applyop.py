@@ -785,21 +785,93 @@ def gear_inverseRotorder_op(out_obj, in_obj):
     return node
 
 
-def create_proximity_constraint(shape, in_trans):
+def create_proximity_constraint(shape, in_trans, existing_pin=None):
     """Create a proximity constraint between a shape and a transform.
 
     Args:
         shape (PyNode or str): Driver shape
         in_trans (PyNode or str): in transform
+        existing_pin (PyNode, optional): Existing proximityPin node to connect to. Defaults to None.
 
     Returns:
-        TYPE: Description
+        Tuple[PyNode, PyNode]: out_trans, pin
     """
-    # Convert to PyNodes if necessary
+
+    def find_next_available_index(node, attribute):
+        """Find the next available index for a multi-attribute on a node."""
+        idx = 0
+        while node.attr(attribute)[idx].isConnected():
+            idx += 1
+        return idx
+
+    # Convert shape to PyNode if necessary
     if isinstance(shape, str):
         shape = pm.PyNode(shape)
     if isinstance(in_trans, str):
         in_trans = pm.PyNode(in_trans)
+
+    # Try to get the original shape node
+    shape_orig_connections = shape.inMesh.listConnections(d=True)
+    if not shape_orig_connections:
+        # If there's no original shape node, create one
+        dup = pm.duplicate(shape, n="{}OrigTrans".format(shape), rc=True)[0]
+        shape_orig = pm.listRelatives(dup, s=True)[0]
+        shape_orig.rename("{}Orig".format(shape))
+        dup.visibility.set(0)
+        shape_orig.intermediateObject.set(1)
+        shape_orig.worldMesh[0] >> shape.inMesh
+    else:
+        shape_orig = shape_orig_connections[0]
+        if not isinstance(shape_orig, pm.nt.Mesh):
+            shape_orig = shape_orig.originalGeometry[0].listConnections(
+                d=True, sh=True
+            )[0]
+
+    if existing_pin:
+        pin = existing_pin
+        idx = find_next_available_index(pin, "inputMatrix")
+    else:
+        # Create a new proximity pin node
+        pin = pm.createNode("proximityPin", n="{}_proximityPin".format(shape))
+        idx = 0
+
+        # Set the input connections for the proximity pin
+        shape.worldMesh[0] >> pin.deformedGeometry
+        shape_orig.outMesh >> pin.originalGeometry
+
+    # Connect in_trans to the found or default idx
+    in_trans.matrix >> pin.inputMatrix[idx]
+
+    # Create the output transform
+    out_trans = pm.createNode(
+        "transform", n="{}_pinTrans{}".format(shape, idx)
+    )
+
+    # Set the input connections for the output transform
+    pin.outputMatrix[idx] >> out_trans.offsetParentMatrix
+
+    return out_trans, pin
+
+
+def create_proximity_constraints(shape, in_trans_list):
+    """Create a proximity constraint between a shape and a list of transforms.
+
+    Args:
+        shape (PyNode or str): Driver shape
+        in_trans_list (List[PyNode] or List[str]): List of in transforms
+
+    Returns:
+        List[PyNode]: List of output transforms
+    """
+    # Convert shape to PyNode if necessary
+    if isinstance(shape, str):
+        shape = pm.PyNode(shape)
+
+    # Convert each in_trans in the list to PyNode if necessary
+    in_trans_list = [
+        pm.PyNode(in_trans) if isinstance(in_trans, str) else in_trans
+        for in_trans in in_trans_list
+    ]
 
     # Try to get the original shape node
     shape_orig_connections = shape.inMesh.listConnections(d=True)
@@ -824,12 +896,17 @@ def create_proximity_constraint(shape, in_trans):
     # Set the input connections for the proximity pin
     shape.worldMesh[0] >> pin.deformedGeometry
     shape_orig.outMesh >> pin.originalGeometry
-    in_trans.matrix >> pin.inputMatrix[0]
 
-    # Create the output transform
-    out_trans = pm.createNode("transform", n="{}_pinTrans".format(shape))
+    # Create output transforms for each in_trans in the list
+    out_trans_list = []
+    for idx, in_trans in enumerate(in_trans_list):
+        in_trans.matrix >> pin.inputMatrix[idx]
 
-    # Set the input connections for the output transform
-    pin.outputMatrix[0] >> out_trans.offsetParentMatrix
+        # Create the output transform for this in_trans
+        out_trans = pm.createNode(
+            "transform", n="{}_pinTrans{}".format(shape, idx)
+        )
+        pin.outputMatrix[idx] >> out_trans.offsetParentMatrix
+        out_trans_list.append(out_trans)
 
-    return out_trans
+    return out_trans_list
