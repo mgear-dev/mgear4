@@ -42,6 +42,8 @@ class FbxExportNode(object):
         self._node = node
         self._export_data = dict()  # internal export data
         data = self._parse_export_data()
+        if data is None:
+            data = self.EXPORT_DATA
         self._save_data(data)
 
     @property
@@ -311,12 +313,11 @@ class FbxExportNode(object):
         return True
 
     def _parse_export_data(self):
-        if not cmds.objExists(self._node):
-            return self._export_data
-        if not cmds.attributeQuery(self.EXPORT_DATA_ATTR,
-                                   node=self._node,
-                                   exists=True):
-            return self._export_data
+        if not (cmds.objExists(self._node) and
+                cmds.attributeQuery(self.EXPORT_DATA_ATTR,
+                                    node=self._node,
+                                    exists=True)):
+            return None
         export_data_str = self._get_attr_namespace(self._node,
                                                    self.EXPORT_DATA_ATTR)
         export_data = cmds.getAttr(export_data_str)

@@ -715,11 +715,12 @@ class FBXExporter(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         export_node.save_root_data("geo_root", item_names)
 
     def _auto_set_geo_roots(self, clear=False):
+        geo_roots = list()
         if clear:
             self.geo_root_list.clear()
         if not self.geo_root_list.count():
-            g_roots = utils.get_geo_root() or list()
-            self.geo_root_list.addItems(g_roots)
+            geo_roots.append(utils.get_geo_root())
+        self.geo_root_list.addItems(geo_roots)
         self._update_geo_root_data()
 
     def _auto_set_joint_root(self):
@@ -821,8 +822,8 @@ class FBXExporter(MayaQWidgetDockableMixin, QtWidgets.QDialog):
             self.animation_clips_list_widget.refresh()
 
 
-def openFBXExport(*args):
-    return pyqt.showDialog(FBXExport, dockable=True)
+def openFBXExporter(*args):
+    return pyqt.showDialog(FBXExporter, dockable=True)
 
 
 if __name__ == "__main__":
@@ -835,7 +836,7 @@ if __name__ == "__main__":
         importlib.reload(widgets)
 
     start = timeit.default_timer()
-    openFBXExport()
+    openFBXExporter()
     end = timeit.default_timer()
     timeConsumed = end - start
     print("{} time elapsed running".format(timeConsumed))
