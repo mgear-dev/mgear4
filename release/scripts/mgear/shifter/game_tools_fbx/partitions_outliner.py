@@ -8,6 +8,7 @@ from mgear.shifter.game_tools_fbx import (
     widgets
 )
 
+
 class PartitionNodeClass(widgets.NodeClass):
     def __init__(self, node_name, node_type, is_root, icon, enabled,
         network_enabled, is_master=False):

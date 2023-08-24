@@ -1,9 +1,11 @@
 import json
 
-import pymel.core as pm
 import maya.cmds as cmds
+import pymel.core as pm
+
 
 EXPORT_NODE_NAME = "mgearFbxExportNode"
+
 
 class FbxExportNode(object):
     VERSION = 0

@@ -8,6 +8,7 @@ import pymel.core as pm
 from maya.app.general.mayaMixin import MayaQWidgetDockableMixin
 
 from mgear.vendor.Qt import QtWidgets, QtCore
+
 from mgear.core import (
     pyqt,
     pyFBX as pfbx,
@@ -16,10 +17,10 @@ from mgear.core import (
     widgets
 )
 from mgear.shifter.game_tools_fbx import (
+    anim_clip_widgets,
     fbx_export_node,
     partitions_outliner,
-    utils,
-    widgets as fbx_widgets
+    utils
 )
 from mgear.uegear import commands as uegear
 
@@ -153,9 +154,8 @@ class FBXExporter(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         geo_label = QtWidgets.QLabel("Geo Root")
         geo_layout.addWidget(geo_label)
         self.geo_root_list = QtWidgets.QListWidget()
-        self.geo_root_list.setSizePolicy(QtWidgets.QSizePolicy.MinimumExpanding,
-                                         QtWidgets.QSizePolicy.MinimumExpanding)
-        self.geo_root_list.setSelectionMode(QtWidgets.QListWidget.ExtendedSelection)
+        self.geo_root_list.setSelectionMode(
+            QtWidgets.QListWidget.ExtendedSelection)
         geo_layout.addWidget(self.geo_root_list)
 
         geo_buttons_layout = QtWidgets.QVBoxLayout()
@@ -188,7 +188,6 @@ class FBXExporter(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.joint_auto_set_btn = create_button(joint_buttons_layout,
                                                 label="Auto")
 
-
     def create_settings_widget(self):
         # main collapsible widget layout
         settings_collap_wgt = widgets.CollapsibleWidget("Settings")
@@ -202,33 +201,41 @@ class FBXExporter(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         # fbx settings tab
         fbx_tab = QtWidgets.QWidget()
         settings_tab.addTab(fbx_tab, "FBX")
+        settings_layout = QtWidgets.QGridLayout(fbx_tab)
 
+        up_label = QtWidgets.QLabel("Up Axis")
         self.up_axis_combobox = QtWidgets.QComboBox()
         self.up_axis_combobox.addItems(["Y", "Z"])
+        settings_layout.addWidget(up_label, 0, 0)
+        settings_layout.addWidget(self.up_axis_combobox, 0, 1)
+
+        file_type_label = QtWidgets.QLabel("File Type")
         self.file_type_combobox = QtWidgets.QComboBox()
         self.file_type_combobox.addItems(["Binary", "ASCII"])
+        settings_layout.addWidget(file_type_label, 0, 2)
+        settings_layout.addWidget(self.file_type_combobox, 0, 3)
+
+        fbx_version_label = QtWidgets.QLabel("FBX Version")
         self.fbx_version_combobox = QtWidgets.QComboBox()
         self.fbx_version_combobox.addItems(pfbx.get_fbx_versions())
+        settings_layout.addWidget(fbx_version_label, 1, 0)
+        settings_layout.addWidget(self.fbx_version_combobox, 1, 1)
+
+        fbx_preset_label = QtWidgets.QLabel("FBX Preset")
         self.fbx_export_presets_combobox = QtWidgets.QComboBox()
         self.populate_fbx_presets_combobox(
             self.fbx_export_presets_combobox, pfbx.get_fbx_export_presets()
         )
-        self.settings_form_layout = QtWidgets.QFormLayout(fbx_tab)
-        self.settings_form_layout.addRow("Up Axis", self.up_axis_combobox)
-        self.settings_form_layout.addRow("File Type", self.file_type_combobox)
-        self.settings_form_layout.addRow(
-            "File Version", self.fbx_version_combobox
-        )
-        self.settings_form_layout.addRow(
-            "FBX Preset", self.fbx_export_presets_combobox
-        )
+        settings_layout.addWidget(fbx_preset_label, 1, 2)
+        settings_layout.addWidget(self.fbx_export_presets_combobox, 1, 3)
 
         # fbx sdk settings tab
         fbx_sdk_tab = QtWidgets.QWidget()
         settings_tab.addTab(fbx_sdk_tab, "FBX SDK")
         fbx_sdk_layout = QtWidgets.QVBoxLayout(fbx_sdk_tab)
 
-        self.remove_namespace_checkbox = QtWidgets.QCheckBox("Remove Namespace")
+        self.remove_namespace_checkbox = QtWidgets.QCheckBox(
+            "Remove Namespace")
         self.remove_namespace_checkbox.setChecked(True)
         self.clean_scene_checkbox = QtWidgets.QCheckBox(
             "Joint and Geo Root Child of Scene Root + Clean Up Scene")
@@ -240,52 +247,54 @@ class FBXExporter(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         # main collapsible widget layout
         file_path_collap_wgt = widgets.CollapsibleWidget("File Path")
         self.main_layout.addWidget(file_path_collap_wgt)
-        self.path_layout = QtWidgets.QVBoxLayout()
-        self.path_layout.setSpacing(2)
-        file_path_collap_wgt.addLayout(self.path_layout)
+        path_main_layout = QtWidgets.QVBoxLayout()
+        path_main_layout.setSpacing(2)
+        file_path_collap_wgt.addLayout(path_main_layout)
 
         # export path
-        self.file_path_layout = QtWidgets.QHBoxLayout()
-        self.file_path_layout.setContentsMargins(1, 1, 1, 1)
-        self.path_layout.addLayout(self.file_path_layout)
+        file_path_layout = QtWidgets.QHBoxLayout()
+        file_path_layout.setContentsMargins(1, 1, 1, 1)
+        path_main_layout.addLayout(file_path_layout)
 
-        file_path_label = QtWidgets.QLabel("Path")
+        directory_label = QtWidgets.QLabel("Directory ")
         self.file_path_lineedit = QtWidgets.QLineEdit()
         self.file_set_btn = widgets.create_button(icon="mgear_folder")
-        self.file_path_layout.addWidget(file_path_label)
-        self.file_path_layout.addWidget(self.file_path_lineedit)
-        self.file_path_layout.addWidget(self.file_set_btn)
+        file_path_layout.addWidget(directory_label)
+        file_path_layout.addWidget(self.file_path_lineedit)
+        file_path_layout.addWidget(self.file_set_btn)
 
         # export file name
-        self.file_name_layout = QtWidgets.QHBoxLayout()
-        self.file_name_layout.setContentsMargins(1, 1, 1, 1)
-        self.path_layout.addLayout(self.file_name_layout)
+        file_name_layout = QtWidgets.QHBoxLayout()
+        file_name_layout.setContentsMargins(1, 1, 1, 1)
+        path_main_layout.addLayout(file_name_layout)
 
         file_name_label = QtWidgets.QLabel("File Name")
         self.file_name_lineedit = QtWidgets.QLineEdit()
-        self.file_name_layout.addWidget(file_name_label)
-        self.file_name_layout.addWidget(self.file_name_lineedit)
+        file_name_layout.addWidget(file_name_label)
+        file_name_layout.addWidget(self.file_name_lineedit)
 
     def create_unreal_import_widget(self):
-        self.ue_import_collap_wgt = widgets.CollapsibleWidget("Unreal Engine Import")
+        self.ue_import_collap_wgt = widgets.CollapsibleWidget(
+            "Unreal Engine Import")
         self.main_layout.addWidget(self.ue_import_collap_wgt)
-        self.ue_path_layout = QtWidgets.QVBoxLayout()
-        self.ue_path_layout.addSpacing(2)
-        self.ue_import_collap_wgt.addLayout(self.ue_path_layout)
+        ue_path_main_layout = QtWidgets.QVBoxLayout()
+        ue_path_main_layout.addSpacing(2)
+        self.ue_import_collap_wgt.addLayout(ue_path_main_layout)
 
-        self.ue_import_cbx = QtWidgets.QCheckBox("Enable Unreal Engine Import?")
+        self.ue_import_cbx = QtWidgets.QCheckBox(
+            "Enable Unreal Engine Import")
         self.ue_import_collap_wgt.addWidget(self.ue_import_cbx)
 
-        self.ue_file_path_layout = QtWidgets.QHBoxLayout()
-        self.ue_file_path_layout.setContentsMargins(1, 1, 1, 1)
-        self.ue_path_layout.addLayout(self.ue_file_path_layout)
+        ue_file_path_layout = QtWidgets.QHBoxLayout()
+        ue_file_path_layout.setContentsMargins(1, 1, 1, 1)
+        ue_path_main_layout.addLayout(ue_file_path_layout)
 
-        self.ue_file_path_label = QtWidgets.QLabel("Path")
+        ue_directory_label = QtWidgets.QLabel("Directory ")
         self.ue_file_path_lineedit = QtWidgets.QLineEdit()
         self.ue_file_set_btn = widgets.create_button(icon="mgear_folder")
-        self.ue_file_path_layout.addWidget(self.ue_file_path_lineedit)
-        self.ue_file_path_layout.addWidget(self.ue_file_path_label)
-        self.ue_file_path_layout.addWidget(self.ue_file_set_btn)
+        ue_file_path_layout.addWidget(ue_directory_label)
+        ue_file_path_layout.addWidget(self.ue_file_path_lineedit)
+        ue_file_path_layout.addWidget(self.ue_file_set_btn)
 
     def create_export_widget(self):
         export_collap_wgt = widgets.CollapsibleWidget("Export")
@@ -298,6 +307,8 @@ class FBXExporter(MayaQWidgetDockableMixin, QtWidgets.QDialog):
 
         self.create_skeletal_mesh_tab()
         self.create_animation_tab()
+
+        self.export_tab.setCurrentIndex(1) # temp for testing anim clips
 
     def create_skeletal_mesh_tab(self):
         # main collapsible widget layout
@@ -350,8 +361,10 @@ class FBXExporter(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         partition_buttons_layout.addStretch()
 
         # export button
-        self.skmesh_export_btn = QtWidgets.QPushButton("Export SkeletalMesh/SkinnedMesh")
-        self.skmesh_export_btn.setStyleSheet("QPushButton {background:rgb(70, 100, 150);}")
+        self.skmesh_export_btn = QtWidgets.QPushButton(
+            "Export SkeletalMesh/SkinnedMesh")
+        self.skmesh_export_btn.setStyleSheet(
+            "QPushButton {background:rgb(70, 100, 150);}")
         skeletal_mesh_layout.addWidget(self.skmesh_export_btn)
 
     def create_animation_tab(self):
@@ -360,11 +373,12 @@ class FBXExporter(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.export_tab.addTab(animation_tab, "Animation")
         animation_layout = QtWidgets.QVBoxLayout(animation_tab)
 
-        self.animation_clips_list_widget = fbx_widgets.AnimClipsListWidget(parent=self)
-        animation_layout.addWidget(self.animation_clips_list_widget)
+        self.anim_clips_listwidget = anim_clip_widgets.AnimClipsListWidget(parent=self)
+        animation_layout.addWidget(self.anim_clips_listwidget)
 
         self.anim_export_btn = QtWidgets.QPushButton("Export Animations")
-        self.anim_export_btn.setStyleSheet("QPushButton {background:rgb(150, 35, 50);}")
+        self.anim_export_btn.setStyleSheet(
+            "QPushButton {background:rgb(150, 35, 50);}")
         animation_layout.addWidget(self.anim_export_btn)
 
     def create_connections(self):
@@ -435,7 +449,6 @@ class FBXExporter(MayaQWidgetDockableMixin, QtWidgets.QDialog):
             fbx_filename = os.path.basename(path)
             fbx_base_filename, _ = os.path.splitext(fbx_filename)
             combobox.addItem(fbx_base_filename, userData=path)
-
         # Force user defined as the default preset
         combobox.setCurrentText("User defined")
 
@@ -477,14 +490,10 @@ class FBXExporter(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.ue_import_collap_wgt.setEnabled(is_available)
         if not is_available:
             cmds.warning(
-                "Unreal Engine Import functionality not available. Run Unreal Engine and load ueGear plugin."
+                "Unreal Engine Import functionality not available. \
+                    Run Unreal Engine and load ueGear plugin."
             )
             self.ue_import_cbx.setChecked(False)
-
-    def update_settings(self):
-        # Function that can be used to update settings file before loading them.
-        # Useful in case we change the way UI settings are stored, so we can update old setting files.
-        pass
 
     def set_ue_folder_path(self):
         content_folder = uegear.content_project_directory()
@@ -676,9 +685,8 @@ class FBXExporter(MayaQWidgetDockableMixin, QtWidgets.QDialog):
             return False
         if len(export_nodes) > 2:
             cmds.warning(
-                'Multiple FBX Export nodes found in scene. Using first one found: "{}"'.format(
-                    export_nodes[0]
-                )
+                'Multiple FBX Export nodes found in scene. \
+                    Using first one found: "{}"'.format(export_nodes[0])
             )
         export_node = export_nodes[0]
 
@@ -727,7 +735,7 @@ class FBXExporter(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         joint_roots = utils.get_joint_root()
         joint_name = joint_roots[0].name() if joint_roots else ""
         self.joint_root_lineedit.setText(joint_name)
-        self.animation_clips_list_widget.refresh()
+        self.anim_clips_listwidget.refresh()
         export_node = self._get_or_create_export_node()
         export_node.save_root_data("joint_root", joint_name)
 
@@ -819,7 +827,7 @@ class FBXExporter(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         export_node = self._get_or_create_export_node()
         export_node.save_root_data("joint_root", text)
         if type_filter == "joint":
-            self.animation_clips_list_widget.refresh()
+            self.anim_clips_listwidget.refresh()
 
 
 def openFBXExporter(*args):

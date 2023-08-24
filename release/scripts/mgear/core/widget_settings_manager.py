@@ -35,7 +35,6 @@ class WidgetSettingsManager(QtCore.QSettings):
                 return
             get_function = getattr(widget, getter)
             value = get_function()
-            print("name: ", name, "value: ", value, "type: ", type(value))
             if value is not None:
                 self.settings.setValue(name, value)
 
