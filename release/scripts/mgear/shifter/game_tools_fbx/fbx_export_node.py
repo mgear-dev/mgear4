@@ -77,7 +77,9 @@ class FbxExportNode(object):
         found_export_nodes = list()
         network_nodes = cmds.ls(type="network")
         for network_node in network_nodes:
-            if not cmds.attributeQuery(cls.TYPE_ATTR, node=network_node, exists=True):
+            if not cmds.attributeQuery(
+                cls.TYPE_ATTR, node=network_node, exists=True
+            ):
                 continue
             found_export_nodes.append(cls(network_node))
 
@@ -200,7 +202,7 @@ class FbxExportNode(object):
             .get(root_joint_name, list())
         )
 
-    def get_animation_clip(self, root_joint_name, clip_name):
+    def find_animation_clip(self, root_joint_name, clip_name):
         anim_clips = self.get_animation_clips(root_joint_name)
         if not anim_clips:
             return dict()
@@ -315,13 +317,16 @@ class FbxExportNode(object):
         return True
 
     def _parse_export_data(self):
-        if not (cmds.objExists(self._node) and
-                cmds.attributeQuery(self.EXPORT_DATA_ATTR,
-                                    node=self._node,
-                                    exists=True)):
+        if not (
+            cmds.objExists(self._node)
+            and cmds.attributeQuery(
+                self.EXPORT_DATA_ATTR, node=self._node, exists=True
+            )
+        ):
             return None
-        export_data_str = self._get_attr_namespace(self._node,
-                                                   self.EXPORT_DATA_ATTR)
+        export_data_str = self._get_attr_namespace(
+            self._node, self.EXPORT_DATA_ATTR
+        )
         export_data = cmds.getAttr(export_data_str)
         try:
             self._export_data = json.loads(export_data)
