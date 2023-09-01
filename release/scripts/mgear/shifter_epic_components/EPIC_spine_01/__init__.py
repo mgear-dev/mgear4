@@ -433,6 +433,24 @@ class Component(component.Main):
             for x in self.fk_ctl[:-1]:
                 attribute.setInvertMirror(x, ["tx", "rz", "ry"])
 
+        # chest control
+        t = transform.getTransform(self.scl_transforms[-1])
+        t = transform.setMatrixPosition(t, self.guide.apos[-1])
+        self.chest_npo = primitive.addTransform(
+            self.scl_transforms[-1], self.getName("chest_npo"), t
+        )
+        self.chest_ctl = self.addCtl(
+            self.chest_npo,
+            "chest",
+            t,
+            self.color_fk,
+            "cube",
+            w=self.size,
+            h=self.size * 0.05,
+            d=self.size,
+            tp=self.preiviousCtlTag,
+        )
+
         # Connections (Hooks) ------------------------------
         self.cnx0 = primitive.addTransform(self.root, self.getName("0_cnx"))
         self.cnx1 = primitive.addTransform(self.root, self.getName("1_cnx"))
@@ -509,6 +527,10 @@ class Component(component.Main):
                 "frontBend", "Front Bend", "double", 0.5, 0, 2
             )
 
+        self.chestCtlVis_att = self.addAnimParam(
+            "chest_vis", "Chest Ctl Vis", "bool", False
+        )
+
         # Setup ------------------------------------------
         # Eval Fcurve
         if self.guide.paramDefs["st_profile"].value:
@@ -557,6 +579,10 @@ class Component(component.Main):
         we shouldn't create any new object in this method.
 
         """
+
+        # chest ctl vis
+        for shp in self.chest_ctl.getShapes():
+            pm.connectAttr(self.chestCtlVis_att, shp.attr("visibility"))
 
         # Auto bend ----------------------------
         if self.settings["autoBend"]:
@@ -797,8 +823,8 @@ class Component(component.Main):
             transform.getTransform(self.cnx1), self.guide.apos[-1]
         )
         self.cnx1.setMatrix(t, worldSpace=True)
-        pm.parentConstraint(self.scl_transforms[-1], self.cnx1, mo=True)
-        pm.scaleConstraint(self.scl_transforms[-1], self.cnx1)
+        pm.parentConstraint(self.chest_ctl, self.cnx1, mo=True)
+        pm.scaleConstraint(self.chest_ctl, self.cnx1)
 
     # =====================================================
     # CONNECTOR
@@ -811,7 +837,7 @@ class Component(component.Main):
         self.relatives["tan0"] = self.fk_ctl[1]
         self.controlRelatives["root"] = self.fk_ctl[0]
         self.controlRelatives["spineTop"] = self.fk_ctl[-2]
-        self.controlRelatives["chest"] = self.fk_ctl[-2]
+        self.controlRelatives["chest"] = self.chest_ctl
 
         self.jointRelatives["root"] = 0
         self.jointRelatives["tan0"] = 1
