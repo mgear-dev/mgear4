@@ -1259,14 +1259,14 @@ def getSelectedChannels(userDefine=False):
 
     """
     # fetch core's main channelbox
-    attrs = pm.channelBox(get_channelBox(), q=True, sma=True)
+    attrs = pm.channelBox(get_channelBox(), q=True, sma=True) or []
     if userDefine:
         oSel = pm.selected()[0]
         uda = oSel.listAttr(ud=True)
         if attrs:
             attrs = [x for x in attrs if oSel.attr(x) in uda]
         else:
-            return None
+            return []
 
     return attrs
 

@@ -199,7 +199,9 @@ def __range_switch_callback(*args):
     # ik_controls, fk_controls = _get_controls(switch_control, blend_attr)
     # search criteria to find all the components sharing the blend
     criteria = blend_attr.replace("_blend", "") + "_id*_ctl_cnx"
-    component_ctl = cmds.listAttr(switch_control, ud=True, string=criteria)
+    component_ctl = (
+        cmds.listAttr(switch_control, ud=True, string=criteria) or []
+    )
     if component_ctl:
         ik_list = []
         ikRot_list = []
@@ -285,7 +287,9 @@ def __switch_fkik_callback(*args):
 
     # search criteria to find all the components sharing the blend
     criteria = blend_attr.replace("_blend", "") + "_id*_ctl_cnx"
-    component_ctl = cmds.listAttr(switch_control, ud=True, string=criteria)
+    component_ctl = (
+        cmds.listAttr(switch_control, ud=True, string=criteria) or []
+    )
     blend_fullname = "{}.{}".format(switch_control, blend_attr)
     for i, comp_ctl_list in enumerate(component_ctl):
         # we need to need to set the original blend value for each ik/fk match
@@ -339,7 +343,9 @@ def __switch_parent_callback(*args):
         attr_name = "_".join(attr_split_name[:-1])
     # search criteria to find all the components sharing the name
     criteria = attr_name + "_id*_ctl_cnx"
-    component_ctl = cmds.listAttr(switch_control, ud=True, string=criteria)
+    component_ctl = (
+        cmds.listAttr(switch_control, ud=True, string=criteria) or []
+    )
 
     target_control_list = []
     for comp_ctl_list in component_ctl:
@@ -717,7 +723,7 @@ def mgear_dagmenu_fill(parent_menu, current_control):
     )
 
     # add transform resets
-    k_attrs = cmds.listAttr(current_control, keyable=True)
+    k_attrs = cmds.listAttr(current_control, keyable=True) or []
     for attr in ("translate", "rotate", "scale"):
         # checks if the attribute is a maya transform attribute
         if [x for x in k_attrs if attr in x and len(x) == len(attr) + 1]:
