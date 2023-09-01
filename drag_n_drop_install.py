@@ -2,6 +2,7 @@ import os
 import sys
 import shutil
 import re
+import traceback
 from datetime import datetime
 
 try:
@@ -275,13 +276,18 @@ class InstallUI(QtWidgets.QDialog):
             cmds.loadModule(allModules=True)
 
             # -- force load the plugins just in-case it does not happen
-            self.load_plugins()
+            failed_list = self.load_plugins()
 
             # -- reload user setup files
             basic.executeUserSetup()
 
-        self.update_logging_widget("Installation Successful!")
-        om.MGlobal.displayInfo("Installation Complete")
+        if len(failed_list):
+            self.update_logging_widget(
+                "Installation Unsuccessful, errors occurred!")
+            om.MGlobal.displayWarning("Installation Incomplete")
+        else:
+            self.update_logging_widget("Installation Successful!")
+            om.MGlobal.displayInfo("Installation Complete")
 
     def start_uninstall(self, destination):
         """
@@ -289,7 +295,7 @@ class InstallUI(QtWidgets.QDialog):
         :param destination: folder to remove files from.
         """
 
-        self.unload_plugins()
+        failed_list = self.unload_plugins()
 
         # -- iterate over folders and remove them
         for item in DEFAULT_ITEMS:
@@ -300,7 +306,11 @@ class InstallUI(QtWidgets.QDialog):
                 elif os.path.isdir(os.path.join(destination, item)):
                     self.remove_directory(os.path.join(destination, item))
 
-        self.update_logging_widget("Uninstalled Successfully!")
+        if len(failed_list):
+            self.update_logging_widget(
+                "Uninstall Unsuccessful, errors occurred!")
+        else:
+            self.update_logging_widget("Uninstalled Successfully!")
 
     def update_env_file(self, env_file, install_path):
         """
@@ -514,33 +524,70 @@ class InstallUI(QtWidgets.QDialog):
         return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
     def unload_plugins(self):
-        """Unload all of our plugins."""
-
+        """
+        Unload all of our plugins.
+        :return: List of plugins that failed to load, if any
+        :rtype: list
+        """
+        failed_list = []
         for p in PLUGINS:
             if self.is_plugin_loaded(p):
-                self.unload_plugin(p)
-                self.update_logging_widget("Unloaded {0} plugin".format(p))
+                status = self.unload_plugin(p)
+                if status == True:
+                    self.update_logging_widget("Unloaded '{0}' plugin".format(p))
+                else:
+                    self.update_logging_widget(
+                        "Error: unable to unload '{0}' plugin!".format(p))
+                    failed_list.append(p)
+
+        return failed_list
 
     def load_plugins(self):
-        """Load in all of our plugins if they are not already."""
+        """
+        Load in all of our plugins if they are not already.
+        :return: List of plugins that failed to load, if any
+        :rtype: list
+        """
+        failed_list = []
         for p in PLUGINS:
             if not self.is_plugin_loaded(p):
-                self.load_plugin(p)
-                self.update_logging_widget("Loaded {0} plugin".format(p))
+                status = self.load_plugin(p)
+                if status == True:
+                    self.update_logging_widget("Loaded '{0}' plugin".format(p))
+                else:
+                    self.update_logging_widget(
+                        "Error: unable to load '{0}' plugin!".format(p))
+                    failed_list.append(p)
+
+        return failed_list
 
     def unload_plugin(self, plugin_name):
-        """Helper function to unload the specified plugins."""
+        """
+        Helper function to unload the specified plugins.
+        :param str plugin_name: the name of the plugin to unload
+        :return: True, if plugin sucessfully unloaded
+        :rtype: bool
+        """
         try:
             cmds.unloadPlugin(plugin_name, force=True)
+            return True
         except:
-            pass
+            self.update_logging_widget(traceback.format_exc())
+            return False
 
     def load_plugin(self, plugin_name):
-        """Helper function to load the specified plugins."""
+        """
+        Helper function to load the specified plugins.
+        :param str plugin_name: the name of the plugin to load
+        :return: True, if plugin sucessfully loaded
+        :rtype: bool
+        """
         try:
             cmds.loadPlugin(plugin_name)
+            return True
         except:
-            pass
+            self.update_logging_widget(traceback.format_exc())
+            return False
 
     def is_plugin_loaded(self, plugin_name):
         """
@@ -648,6 +695,7 @@ def _dropped_install():
 
     installer_window = InstallUI()
     installer_window.show()
+
 
 if is_maya:
     _dropped_install()
