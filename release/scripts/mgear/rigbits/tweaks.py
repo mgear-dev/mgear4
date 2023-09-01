@@ -751,10 +751,6 @@ def create_proximity_tweak(
                 sh=True, t="shape", d=False
             )[0]
 
-    # oRivet = rivet.rivet()
-    # in_trans = oRivet.create(inputMesh, edgePair[0], edgePair[1], parent)
-    # in_trans.translate.listConnections()[0]
-
     # get edge center
     mesh_dag_path = mesh_navi.get_mesh_dag_path(inputMesh)
     center_position = mesh_navi.get_edge_center(
@@ -821,7 +817,6 @@ def create_proximity_tweak(
     for axis in "XYZ":
         pm.setAttr(jointBase + ".jointOrient" + axis, 0)
         pm.setAttr(npo + ".translate" + axis, 0)
-        # pm.setAttr(jointBase + ".translate" + axis, 0)
 
     pp = npo.getParent()
     pm.parent(npo, w=True)
