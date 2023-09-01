@@ -1547,7 +1547,7 @@ class GuideSettings(MayaQWidgetDockableMixin, QtWidgets.QDialog, HelperSlots):
             self.guideSettingsTab.connect_joints_checkBox, "connect_joints")
         # self.populateCheck(
         #     self.guideSettingsTab.force_SSC_joints_checkBox, "force_SSC")
-        # self.populateAvailableSynopticTabs()
+        self.populateAvailableSynopticTabs()
 
         for item in self.root.attr("synoptic").get().split(","):
             self.guideSettingsTab.rigTabs_listWidget.addItem(item)
