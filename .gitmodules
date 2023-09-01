@@ -1,9 +1,0 @@
-[submodule "vendor/Qt.py"]
-	path = vendor/Qt.py
-	url = https://github.com/mottosso/Qt.py
-[submodule "vendor/weightDriver"]
-	path = vendor/weightDriver
-	url = https://github.com/IngoClemens/weightDriver.git
-[submodule "vendor/QJsonModel"]
-	path = vendor/QJsonModel
-	url = https://github.com/dridk/QJsonModel.git
