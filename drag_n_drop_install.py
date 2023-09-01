@@ -19,7 +19,7 @@ except ImportError():
 
 # -- constants
 TITLE = "Install mGear"
-VERSION = 1.1
+VERSION = 1.2
 MGEAR_MOD_PATH = "MGEAR_MODULE_PATH"
 MAYA_MOD_PATH = "MAYA_MODULE_PATH"
 PLUGINS = ["mgear_solvers.mll", "weightDriver.mll"]
@@ -41,7 +41,7 @@ def maya_main_window():
     """
     main_window_ptr = OpenMayaUI.MQtUtil.mainWindow()
 
-    if sys.version_info.major <= 3:
+    if sys.version_info.major >= 3:
         return wrapInstance(int(main_window_ptr), QtWidgets.QWidget)
     else:
         return wrapInstance(long(main_window_ptr), QtWidgets.QWidget)
@@ -53,7 +53,7 @@ class InstallUI(QtWidgets.QDialog):
         super(InstallUI, self).__init__(parent)
 
         self.setWindowTitle(TITLE)
-        self.setFixedSize(550, 380)
+        self.setFixedSize(550, 580)
         self.setWindowFlags(QtCore.Qt.WindowType.Window)
 
         self.create_widgets()
@@ -81,7 +81,7 @@ class InstallUI(QtWidgets.QDialog):
 
         self.logging_widget = QtWidgets.QPlainTextEdit()
         self.logging_widget.setReadOnly(True)
-        self.logging_widget.setMaximumHeight(120)
+        self.logging_widget.setMaximumHeight(320)
 
     def create_layout(self):
         """Layout of all widgets goes under this section."""
