@@ -1,6 +1,3 @@
-[submodule "excons"]
-	path = excons
-	url = https://github.com/gatgui/excons.git
 [submodule "vendor/Qt.py"]
 	path = vendor/Qt.py
 	url = https://github.com/mottosso/Qt.py
