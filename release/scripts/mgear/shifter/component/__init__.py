@@ -858,9 +858,6 @@ class Main(object):
         if "degree" not in kwargs.keys():
             kwargs["degree"] = 1
 
-        # print name
-        # fullName = self.getName(name)
-
         # remove the _ctl hardcoded in component name
         if name.endswith("_ctl"):
             name = name[:-4]
@@ -870,15 +867,16 @@ class Main(object):
             name = name[:-3]
 
         # NOTE: this is a dirty workaround to keep backwards compatibility on
-        # control_01 component where the description of the cotrol was just
-        # the ctl suffix.
+        # control_01 and other component where the description of the cotrol
+        # was just the ctl suffix.
         rule = self.options["ctl_name_rule"]
         if not name:
-            if rule == naming.DEFAULT_NAMING_RULE:
-                rule = r"{component}_{side}{index}_{extension}"
-            else:
-                # this ensure we always have name if the naming rule is custom
-                name = "control"
+            # Replace '{description}_' with ''
+            rule = rule.replace(r"{description}_", "")
+            # Replace '_{description}' with ''
+            rule = rule.replace(r"_{description}", "")
+            # Replace '{description}' with ''
+            rule = rule.replace(r"{description}", "")
 
         fullName = self.getName(
             name,
