@@ -215,10 +215,14 @@ class InstallUI(QtWidgets.QDialog):
 
         for item in os.listdir(mgear_folder):
             # -- move the folder to the install path
-            shutil.move(os.path.join(
-                install_path, "mgear", item), install_path)
-            self.update_logging_widget("Moved: {0}".format(
-                os.path.join(install_path, item)))
+            try:
+                shutil.move(os.path.join(
+                    install_path, "mgear", item), install_path)
+                self.update_logging_widget("Moved: {0}".format(
+                    os.path.join(install_path, item)))
+            except OSError as err:
+                self.update_logging_widget("Warning: Failed to move {0}".format(
+                    os.path.join(install_path, item)))
 
         self.remove_directory(mgear_install_path)
 
