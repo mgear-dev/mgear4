@@ -23,21 +23,21 @@ class AnimClipsListWidget(QtWidgets.QWidget):
         main_layout = QtWidgets.QVBoxLayout()
         self.setLayout(main_layout)
 
-        anim_clip_option_layout = QtWidgets.QHBoxLayout()
-        main_layout.addLayout(anim_clip_option_layout)
+        anim_clip_options_layout = QtWidgets.QHBoxLayout()
+        main_layout.addLayout(anim_clip_options_layout)
 
-        self._anim_clips_checkbox = QtWidgets.QCheckBox()
-        self._anim_clips_checkbox.setChecked(True)
-        anim_clip_option_layout.addWidget(self._anim_clips_checkbox)
-
-        anim_clip_option_layout.addStretch()
         self._add_anim_clip_button = QtWidgets.QPushButton("Add Clip")
-        anim_clip_option_layout.addWidget(self._add_anim_clip_button)
+        anim_clip_options_layout.addWidget(self._add_anim_clip_button)
 
         self._delete_all_clips_button = QtWidgets.QPushButton(
             "Delete All Clips"
         )
-        anim_clip_option_layout.addWidget(self._delete_all_clips_button)
+        anim_clip_options_layout.addWidget(self._delete_all_clips_button)
+        anim_clip_options_layout.addStretch()
+
+        self._anim_clips_checkbox = QtWidgets.QCheckBox()
+        self._anim_clips_checkbox.setChecked(True)
+        anim_clip_options_layout.addWidget(self._anim_clips_checkbox)
 
         anim_clip_area = QtWidgets.QScrollArea()
         anim_clip_area.setWidgetResizable(True)
@@ -45,16 +45,16 @@ class AnimClipsListWidget(QtWidgets.QWidget):
         anim_clip_area.setWidget(anim_clip_content)
         main_layout.addWidget(anim_clip_area)
 
-        anim_clip_stretch_layout = QtWidgets.QVBoxLayout()
-        anim_clip_stretch_layout.setSpacing(0)
-        anim_clip_stretch_layout.setContentsMargins(0, 0, 0, 0)
-        anim_clip_content.setLayout(anim_clip_stretch_layout)
+        anim_clips_main_layout = QtWidgets.QVBoxLayout()
+        anim_clips_main_layout.setSpacing(0)
+        anim_clips_main_layout.setContentsMargins(0, 0, 0, 0)
+        anim_clip_content.setLayout(anim_clips_main_layout)
 
         self._clips_layout = QtWidgets.QVBoxLayout()
         self._clips_layout.setSpacing(0)
         self._clips_layout.setContentsMargins(0, 0, 0, 0)
-        anim_clip_stretch_layout.addLayout(self._clips_layout)
-        anim_clip_stretch_layout.addStretch()
+        anim_clips_main_layout.addLayout(self._clips_layout)
+        anim_clips_main_layout.addStretch()
 
     def create_connections(self):
         self._anim_clips_checkbox.toggled.connect(
@@ -131,8 +131,6 @@ class AnimClipsListWidget(QtWidgets.QWidget):
 
 
 class AnimClipWidget(QtWidgets.QFrame):
-    FRAME_MIN, FRAME_MAX = (0, 1000)
-
     def __init__(self, clip_name=None, parent=None):
         super(AnimClipWidget, self).__init__(parent)
 
@@ -140,104 +138,81 @@ class AnimClipWidget(QtWidgets.QFrame):
         self._clip_name = clip_name
         self._previous_name = clip_name
 
-        self.setFixedHeight(100)
         self.window().setAttribute(QtCore.Qt.WA_AlwaysShowToolTips, True)
         self.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
+        self.setFixedHeight(40)
 
         self.create_layout()
         self.create_connections()
         self.refresh()
 
     def create_layout(self):
+        def set_transparent_button(button):
+            button.setStyleSheet(
+                "QPushButton {background:transparent;border:0px;}"
+            )
+            return button
+
         main_layout = QtWidgets.QVBoxLayout()
         self.setLayout(main_layout)
 
         clip_name_layout = QtWidgets.QHBoxLayout()
+        clip_name_layout.setSpacing(1)
         clip_name_layout.setContentsMargins(0, 0, 0, 0)
         main_layout.addLayout(clip_name_layout)
 
-        self._export_checkbox = QtWidgets.QCheckBox()
-        self._export_checkbox.setChecked(True)
-        clip_name_layout.addWidget(self._export_checkbox)
+        self._delete_button = QtWidgets.QPushButton()
+        self._delete_button.setIcon(QtGui.QIcon(":trash.png"))
+        self._delete_button.setStatusTip("Delete Clip")
+        self._delete_button.setMaximumSize(25, 25)
+        set_transparent_button(self._delete_button)
+        clip_name_layout.addWidget(self._delete_button)
 
         self._clip_name_lineedit = QtWidgets.QLineEdit()
-        self._clip_name_lineedit.setSizePolicy(
-            QtWidgets.QSizePolicy.MinimumExpanding,
-            QtWidgets.QSizePolicy.Preferred,
-        )
+        self._clip_name_lineedit.setStatusTip("Clip Name")
         clip_name_layout.addWidget(self._clip_name_lineedit)
 
-        self._close_button = QtWidgets.QPushButton("X")
-        self._close_button.setMaximumSize(20, 20)
-        clip_name_layout.addWidget(self._close_button)
-
-        # frame range settings
-        frame_settings_layout = QtWidgets.QHBoxLayout()
-        frame_settings_layout.setContentsMargins(0, 0, 0, 0)
-        main_layout.addLayout(frame_settings_layout)
-
-        start_frame_label = QtWidgets.QLabel("Start:")
-        self._start_frame_box = QtWidgets.QSpinBox()
-        self._start_frame_box.setRange(self.FRAME_MIN, self.FRAME_MAX)
-        # self._start_frame_box.setValidator(QtGui.QIntValidator())
-        frame_settings_layout.addWidget(start_frame_label)
-        frame_settings_layout.addWidget(self._start_frame_box)
-
-        end_frame_label = QtWidgets.QLabel("End:")
-        self._end_frame_box = QtWidgets.QSpinBox()
-        self._end_frame_box.setRange(self.FRAME_MIN, self.FRAME_MAX)
-        # self._end_frame_box.setValidator(QtGui.QIntValidator())
-        frame_settings_layout.addWidget(end_frame_label)
-        frame_settings_layout.addWidget(self._end_frame_box)
-
-        self._frame_rate_combo = QtWidgets.QComboBox()
-        self._frame_rate_combo.addItems(["30 fps", "60 fps", "120 fps"])
-        frame_settings_layout.addWidget(self._frame_rate_combo)
-
-        self._set_range_button = QtWidgets.QPushButton("Set")
-        self._set_range_button.setStatusTip("Set Frame Range")
-        self._set_range_button.setMaximumSize(48, 20)
-        frame_settings_layout.addWidget(self._set_range_button)
-
-        # sequence and playblast settings
-        sequence_settings_layout = QtWidgets.QHBoxLayout()
-        sequence_settings_layout.setContentsMargins(0, 0, 0, 0)
-        main_layout.addLayout(sequence_settings_layout)
-
-        anim_layer_label = QtWidgets.QLabel("Animation Layer:")
         self._anim_layer_combo = QtWidgets.QComboBox()
-        self._anim_layer_combo.setSizePolicy(
-            QtWidgets.QSizePolicy.MinimumExpanding,
-            QtWidgets.QSizePolicy.Maximum,
-        )
-        sequence_settings_layout.addWidget(anim_layer_label)
-        sequence_settings_layout.addWidget(self._anim_layer_combo)
+        self._anim_layer_combo.setStatusTip("Animation Layer")
+        clip_name_layout.addWidget(self._anim_layer_combo)
+
+        self._start_frame_box = QtWidgets.QLineEdit()
+        self._start_frame_box.setValidator(QtGui.QIntValidator())
+        self._start_frame_box.setStatusTip("Start Frame")
+        self._start_frame_box.setFixedSize(40, 20)
+        clip_name_layout.addWidget(self._start_frame_box)
+
+        self._end_frame_box = QtWidgets.QLineEdit()
+        self._end_frame_box.setValidator(QtGui.QIntValidator())
+        self._end_frame_box.setStatusTip("End Frame")
+        self._end_frame_box.setFixedSize(40, 20)
+        clip_name_layout.addWidget(self._end_frame_box)
+
+        self._set_range_button = QtWidgets.QPushButton()
+        self._set_range_button.setIcon(QtGui.QIcon(":adjustTimeline.png"))
+        self._set_range_button.setStatusTip("Set Frame Range")
+        self._set_range_button.setMaximumSize(25, 25)
+        set_transparent_button(self._set_range_button)
+        clip_name_layout.addWidget(self._set_range_button)
 
         self._play_button = QtWidgets.QPushButton()
         self._play_button.setIcon(QtGui.QIcon(":playClip.png"))
         self._play_button.setStatusTip("Play Sequence")
-        self._play_button.setMaximumHeight(20)
-        sequence_settings_layout.addWidget(self._play_button)
+        self._play_button.setMaximumSize(25, 25)
+        set_transparent_button(self._play_button)
+        clip_name_layout.addWidget(self._play_button)
 
-        self._playblast_button = QtWidgets.QPushButton()
-        self._playblast_button.setIcon(QtGui.QIcon(":playblast.png"))
-        self._playblast_button.setStatusTip("Playblast")
-        self._playblast_button.setMaximumSize(48, 20)
-        sequence_settings_layout.addWidget(self._playblast_button)
-
-        self._export_button = QtWidgets.QPushButton("Export")
-        self._export_button.setMaximumWidth(48)
-        sequence_settings_layout.addWidget(self._export_button)
+        self._export_checkbox = QtWidgets.QCheckBox()
+        self._export_checkbox.setChecked(True)
+        self._export_checkbox.setStatusTip("Export Clip")
+        clip_name_layout.addWidget(self._export_checkbox)
 
     def create_connections(self):
         self._export_checkbox.toggled.connect(self._on_update_anim_clip)
         self._clip_name_lineedit.textChanged.connect(self._on_update_anim_clip)
-        self._close_button.clicked.connect(self._on_close_button_clicked)
+        self._delete_button.clicked.connect(self._on_delete_button_clicked)
         self._start_frame_box.textChanged.connect(self._on_update_anim_clip)
         self._end_frame_box.textChanged.connect(self._on_update_anim_clip)
-        self._frame_rate_combo.currentIndexChanged.connect(
-            self._on_update_anim_clip
-        )
         self._set_range_button.clicked.connect(
             self._on_set_range_button_clicked
         )
@@ -245,10 +220,6 @@ class AnimClipWidget(QtWidgets.QFrame):
             self._on_update_anim_clip
         )
         self._play_button.clicked.connect(self._on_play_button_clicked)
-        self._playblast_button.clicked.connect(
-            self._on_playblast_button_clicked
-        )
-        self._export_button.clicked.connect(self._on_export_button_clicked)
         self.customContextMenuRequested.connect(
             self._on_custom_context_menu_requested
         )
@@ -269,18 +240,12 @@ class AnimClipWidget(QtWidgets.QFrame):
                 anim_clip_data.get("title", "Untitled")
             )
         with pyqt.block_signals(self._start_frame_box):
-            self._start_frame_box.setValue(
-                anim_clip_data.get("startFrame", self.FRAME_MIN)
+            self._start_frame_box.setText(
+                str(anim_clip_data.get("start_frame", ""))
             )
         with pyqt.block_signals(self._end_frame_box):
-            self._end_frame_box.setValue(
-                anim_clip_data.get("endFrame", self.FRAME_MIN)
-            )
-        with pyqt.block_signals(self._frame_rate_combo):
-            self._frame_rate_combo.setCurrentIndex(
-                self._frame_rate_combo.findText(
-                    anim_clip_data.get("frameRate", "")
-                )
+            self._end_frame_box.setText(
+                str(anim_clip_data.get("end_frame", ""))
             )
         with pyqt.block_signals(self._export_checkbox):
             self._export_checkbox.setChecked(
@@ -302,12 +267,11 @@ class AnimClipWidget(QtWidgets.QFrame):
 
     def _clear(self):
         self._clip_name_lineedit.setText("Untitled")
-        self._start_frame_box.setValue(self.FRAME_MIN)
-        self._end_frame_box.setValue(self.FRAME_MIN)
-        self._frame_rate_combo.setCurrentIndex(0)
+        self._start_frame_box.setText("")
+        self._end_frame_box.setText("")
         self._export_checkbox.setChecked(False)
 
-    def _on_close_button_clicked(self):
+    def _on_delete_button_clicked(self):
         export_node = fbx_export_node.FbxExportNode.get()
         if not export_node:
             return
@@ -335,11 +299,10 @@ class AnimClipWidget(QtWidgets.QFrame):
 
         anim_clip_data = fbx_export_node.FbxExportNode.ANIM_CLIP_DATA.copy()
         anim_clip_data["title"] = self._clip_name_lineedit.text()
-        # anim_clip_data['path'] = self._export_path_line_edit.text()
         anim_clip_data["enabled"] = self._export_checkbox.isChecked()
-        anim_clip_data["frameRate"] = self._frame_rate_combo.currentText()
-        anim_clip_data["startFrame"] = int(self._start_frame_box.value())
-        anim_clip_data["endFrame"] = int(self._end_frame_box.value())
+        # anim_clip_data["frame_rate"] = self._frame_rate_combo.currentText()
+        anim_clip_data["start_frame"] = int(self._start_frame_box.text())
+        anim_clip_data["end_frame"] = int(self._end_frame_box.text())
         anim_layer = self._anim_layer_combo.currentText()
         anim_clip_data["animLayer"] = (
             anim_layer if anim_layer and anim_layer != "None" else ""
@@ -365,8 +328,8 @@ class AnimClipWidget(QtWidgets.QFrame):
         self.deleteLater()
 
     def _on_set_range_button_clicked(self):
-        start_frame = self._start_frame_box.value()
-        end_frame = self._end_frame_box.value()
+        start_frame = self._start_frame_box.text()
+        end_frame = self._end_frame_box.text()
         cmds.playbackOptions(
             animationStartTime=start_frame,
             minTime=start_frame,
@@ -375,18 +338,9 @@ class AnimClipWidget(QtWidgets.QFrame):
         )
         cmds.currentTime(start_frame, edit=True)
 
-    def _on_playblast_button_clicked(self):
-        start_frame = self._start_frame_box.value()
-        end_frame = self._end_frame_box.value()
-        fbx_utils.create_mgear_playblast(
-            folder=self._export_path_line_edit.text(),
-            start_frame=start_frame,
-            end_frame=end_frame,
-        )
-
     def _on_play_button_clicked(self):
-        start_frame = self._start_frame_box.value()
-        end_frame = self._end_frame_box.value()
+        start_frame = self._start_frame_box.text()
+        end_frame = self._end_frame_box.text()
         cmds.playbackOptions(
             animationStartTime=start_frame,
             minTime=start_frame,
@@ -397,48 +351,6 @@ class AnimClipWidget(QtWidgets.QFrame):
             cmds.play(state=False)
         else:
             cmds.play(forward=True)
-
-    def _on_export_button_clicked(self):
-        root_joint = (
-            self._fbx_exporter.get_root_joint() if self._fbx_exporter else None
-        )
-        if not root_joint:
-            cmds.error("No valid root joint defined!")
-            return False
-
-        export_path = (
-            self._fbx_exporter.get_export_path() if self._fbx_exporter else ""
-        )
-        file_name = (
-            self._fbx_exporter.get_file_name() if self._fbx_exporter else ""
-        )
-        remove_namespace = (
-            self._fbx_exporter.get_remove_namespace()
-            if self._fbx_exporter
-            else False
-        )
-        scene_clean = (
-            self._fbx_exporter.get_scene_clean()
-            if self._fbx_exporter
-            else False
-        )
-        anim_layer = self._anim_layer_combo.currentText()
-        anim_layer = anim_layer if anim_layer and anim_layer != "None" else ""
-
-        export_kwargs = {
-            "startFrame": self._start_frame_box.value(),
-            "endFrame": self._end_frame_box.value(),
-            "enabled": self._export_checkbox.isChecked(),
-            "frameRate": self._frame_rate_combo.currentText(),
-            "file_path": export_path,
-            "file_name": "{}_{}".format(
-                file_name, self._clip_name_lineedit.text().replace(" ", "_")
-            ),
-            "remove_namespace": remove_namespace,
-            "scene_clean": scene_clean,
-            "anim_layer": anim_layer,
-        }
-        return fbx_utils.export_animation_clip(root_joint, **export_kwargs)
 
     def _on_custom_context_menu_requested(self, pos):
         context_menu = QtWidgets.QMenu(parent=self)
@@ -472,5 +384,4 @@ class AnimClipWidget(QtWidgets.QFrame):
         open_playblasts_folder_action.triggered.connect(
             fbx_utils.open_mgear_playblast_folder
         )
-
         context_menu.exec_(self.mapToGlobal(pos))
