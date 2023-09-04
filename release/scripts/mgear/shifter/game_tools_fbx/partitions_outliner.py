@@ -52,7 +52,7 @@ class PartitionsOutliner(partition_widgets.OutlinerTreeView):
 
     def __init__(self, parent=None):
         self._master_item = None
-        self._geo_roots = list()
+        self._geo_roots = []
         super(PartitionsOutliner, self).__init__(parent=parent)
         self.create_connections()
 
@@ -92,14 +92,14 @@ class PartitionsOutliner(partition_widgets.OutlinerTreeView):
         self.reset_contents()
 
     def get_master_partition(self):
-        master_partition = dict()
-        master_partition["Master"] = {"enabled": True, "skeletalMeshes": []}
+        master_partition = {}
+        master_partition["Master"] = {"enabled": True, "skeletal_meshes": []}
         if not self._master_item:
             return master_partition
 
         for i in range(self._master_item.childCount()):
             item = self._master_item.child(i)
-            master_partition["Master"]["skeletalMeshes"].append(
+            master_partition["Master"]["skeletal_meshes"].append(
                 item.get_name()
             )
 
@@ -108,9 +108,9 @@ class PartitionsOutliner(partition_widgets.OutlinerTreeView):
     def find_items(self):
         export_nodes = fbx_export_node.FbxExportNode.find()
         if not export_nodes:
-            return dict()
+            return {}
         export_node = export_nodes[0]
-        if len(export_nodes) > 2:
+        if len(export_nodes) > 1:
             cmds.warning(
                 'Multiple FBX Export nodes found in scene. \
                          Using first one found: "{}"'.format(
@@ -147,7 +147,7 @@ class PartitionsOutliner(partition_widgets.OutlinerTreeView):
                 root_item.flags() & ~QtCore.Qt.ItemIsDragEnabled
             )
             self.addTopLevelItem(root_item)
-            child_items = item_data.get("skeletalMeshes", list())
+            child_items = item_data.get("skeletal_meshes", [])
             for child_node in child_items:
                 child = self._add_partition_item(child_node, root_item)
                 child.setFlags(child.flags() | QtCore.Qt.ItemIsEditable)
@@ -206,7 +206,7 @@ class PartitionsOutliner(partition_widgets.OutlinerTreeView):
         if not self._master_item or not self._geo_roots:
             return
 
-        found_meshes = list()
+        found_meshes = []
         for geo_root in self._geo_roots:
             if not geo_root:
                 return
@@ -217,18 +217,18 @@ class PartitionsOutliner(partition_widgets.OutlinerTreeView):
                     fullPath=True,
                     type="transform",
                 )
-                or list()
+                or []
             )
             meshes = [
                 child
                 for child in children
-                if cmds.listRelatives(child, shapes=True) or list()
+                if cmds.listRelatives(child, shapes=True) or []
             ]
             found_meshes.extend(meshes)
         if not found_meshes:
             return
 
-        partition_meshes = list()
+        partition_meshes = []
         for i in range(self.topLevelItemCount()):
             item = self.topLevelItem(i)
             if not item or item == self._master_item:

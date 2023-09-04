@@ -160,7 +160,7 @@ class TreeItem(QtWidgets.QTreeWidgetItem):
 
         self._node = node  # type: NodeClass
         self._header = header
-        self._connected_nodes = list()
+        self._connected_nodes = []
         self._show_enabled = show_enabled
 
         self.set_parent(parent)
@@ -301,7 +301,7 @@ class OutlinerTreeView(QtWidgets.QTreeWidget):
         self._selection_parent = None
         self._selection_node = None
         self._action_button_pressed = False
-        self._registered_node_callbacks = list()
+        self._registered_node_callbacks = []
         self._button_pressed = None
 
         self.setHeaderHidden(True)
@@ -470,7 +470,7 @@ class OutlinerTreeView(QtWidgets.QTreeWidget):
         return indent
 
     def find_items(self):
-        return dict()
+        return {}
 
     def populate_items(self, add_callbacks=True):
         if add_callbacks:
@@ -528,7 +528,7 @@ class OutlinerTreeView(QtWidgets.QTreeWidget):
             self.expandAll()
 
     def cleanup(self):
-        self._registered_node_callbacks = list()
+        self._registered_node_callbacks = []
 
     def _create_root_item(self, partition):
         node_icon = pyqt.get_icon("mgear_package")
