@@ -3,14 +3,20 @@ import maya.cmds as cmds
 from mgear.vendor.Qt import QtCore
 
 from mgear.core import pyqt
-from mgear.shifter.game_tools_fbx import (
-    fbx_export_node,
-    widgets
-)
+from mgear.shifter.game_tools_fbx import fbx_export_node, partition_widgets
 
-class PartitionNodeClass(widgets.NodeClass):
-    def __init__(self, node_name, node_type, is_root, icon, enabled,
-        network_enabled, is_master=False):
+
+class PartitionNodeClass(partition_widgets.NodeClass):
+    def __init__(
+        self,
+        node_name,
+        node_type,
+        is_root,
+        icon,
+        enabled,
+        network_enabled,
+        is_master=False,
+    ):
         super(PartitionNodeClass, self).__init__(
             node_name=node_name,
             node_type=node_type,
@@ -29,7 +35,8 @@ class PartitionNodeClass(widgets.NodeClass):
     def is_master(self, flag):
         self._is_master = flag
 
-class PartitionTreeItem(widgets.TreeItem):
+
+class PartitionTreeItem(partition_widgets.TreeItem):
     def __init__(self, node, header, show_enabled, parent=None):
         super(PartitionTreeItem, self).__init__(
             node=node, header=header, show_enabled=show_enabled, parent=parent
@@ -38,14 +45,14 @@ class PartitionTreeItem(widgets.TreeItem):
     def is_master(self):
         return self.node.is_master
 
-class PartitionsOutliner(widgets.OutlinerTreeView):
 
+class PartitionsOutliner(partition_widgets.OutlinerTreeView):
     NODE_CLASS = PartitionNodeClass
     TREE_ITEM_CLASS = PartitionTreeItem
 
     def __init__(self, parent=None):
         self._master_item = None
-        self._geo_roots = list()
+        self._geo_roots = []
         super(PartitionsOutliner, self).__init__(parent=parent)
         self.create_connections()
 
@@ -57,7 +64,6 @@ class PartitionsOutliner(widgets.OutlinerTreeView):
         self.droppedItems.connect(self.partition_items_dropped)
 
     def mouseDoubleClickEvent(self, event):
-
         if event.button() == QtCore.Qt.LeftButton:
             index = self.indexAt(event.pos())
             if index.row() == -1:
@@ -73,7 +79,6 @@ class PartitionsOutliner(widgets.OutlinerTreeView):
         super(PartitionsOutliner, self).mouseDoubleClickEvent(event)
 
     def can_be_dropped(self, index):
-
         valid = super(PartitionsOutliner, self).can_be_dropped(index)
         if not valid:
             return valid
@@ -87,14 +92,14 @@ class PartitionsOutliner(widgets.OutlinerTreeView):
         self.reset_contents()
 
     def get_master_partition(self):
-        master_partition = dict()
-        master_partition["Master"] = {"enabled": True, "skeletalMeshes": []}
+        master_partition = {}
+        master_partition["Master"] = {"enabled": True, "skeletal_meshes": []}
         if not self._master_item:
             return master_partition
 
         for i in range(self._master_item.childCount()):
             item = self._master_item.child(i)
-            master_partition["Master"]["skeletalMeshes"].append(
+            master_partition["Master"]["skeletal_meshes"].append(
                 item.get_name()
             )
 
@@ -103,17 +108,18 @@ class PartitionsOutliner(widgets.OutlinerTreeView):
     def find_items(self):
         export_nodes = fbx_export_node.FbxExportNode.find()
         if not export_nodes:
-            return dict()
-        if len(export_nodes) > 2:
+            return {}
+        export_node = export_nodes[0]
+        if len(export_nodes) > 1:
             cmds.warning(
-                'Multiple FBX Export nodes found in scene. Using first one found: "{}"'.format(
-                    export_nodes[0]
+                'Multiple FBX Export nodes found in scene. \
+                         Using first one found: "{}"'.format(
+                    export_node
                 )
             )
-        return export_nodes[0].get_partitions()
+        return export_node.get_partitions()
 
     def populate_items(self, add_callbacks=True):
-
         if add_callbacks:
             self.cleanup()
 
@@ -141,7 +147,7 @@ class PartitionsOutliner(widgets.OutlinerTreeView):
                 root_item.flags() & ~QtCore.Qt.ItemIsDragEnabled
             )
             self.addTopLevelItem(root_item)
-            child_items = item_data.get("skeletalMeshes", list())
+            child_items = item_data.get("skeletal_meshes", [])
             for child_node in child_items:
                 child = self._add_partition_item(child_node, root_item)
                 child.setFlags(child.flags() | QtCore.Qt.ItemIsEditable)
@@ -159,7 +165,6 @@ class PartitionsOutliner(widgets.OutlinerTreeView):
         self._update_master_partition()
 
     def _on_custom_context_menu_requested(self, pos):
-
         item = self._get_current_item()
         if not item or item.is_master():
             return
@@ -167,7 +172,6 @@ class PartitionsOutliner(widgets.OutlinerTreeView):
         super(PartitionsOutliner, self)._on_custom_context_menu_requested(pos)
 
     def _create_master_root_item(self):
-
         node_icon = pyqt.get_icon("mgear_package")
         root_node = self.NODE_CLASS(
             "Master", "Root", True, node_icon, True, True, is_master=True
@@ -182,7 +186,6 @@ class PartitionsOutliner(widgets.OutlinerTreeView):
         return item
 
     def _add_master_partition_item(self, node, partition_item):
-
         node_icon = pyqt.get_icon("mgear_box")
         item_node = self.NODE_CLASS(
             node,
@@ -203,8 +206,10 @@ class PartitionsOutliner(widgets.OutlinerTreeView):
         if not self._master_item or not self._geo_roots:
             return
 
-        found_meshes = list()
+        found_meshes = []
         for geo_root in self._geo_roots:
+            if not geo_root:
+                return
             children = (
                 cmds.listRelatives(
                     geo_root,
@@ -212,18 +217,18 @@ class PartitionsOutliner(widgets.OutlinerTreeView):
                     fullPath=True,
                     type="transform",
                 )
-                or list()
+                or []
             )
             meshes = [
                 child
                 for child in children
-                if cmds.listRelatives(child, shapes=True) or list()
+                if cmds.listRelatives(child, shapes=True) or []
             ]
             found_meshes.extend(meshes)
         if not found_meshes:
             return
 
-        partition_meshes = list()
+        partition_meshes = []
         for i in range(self.topLevelItemCount()):
             item = self.topLevelItem(i)
             if not item or item == self._master_item:
@@ -246,7 +251,6 @@ class PartitionsOutliner(widgets.OutlinerTreeView):
             self._master_item.addChild(child)
 
     def partition_item_enabled_changed(self, item):
-
         if not item:
             return
 
@@ -259,7 +263,6 @@ class PartitionsOutliner(widgets.OutlinerTreeView):
         )
 
     def partition_item_add_skeletal_mesh(self, item):
-
         if not item:
             return
 
@@ -281,7 +284,6 @@ class PartitionsOutliner(widgets.OutlinerTreeView):
         self.reset_contents()
 
     def partition_item_renamed(self, old_name, new_name):
-
         if not old_name or not new_name or old_name == new_name:
             return
 
@@ -292,7 +294,6 @@ class PartitionsOutliner(widgets.OutlinerTreeView):
         export_node.set_partition_name(old_name, new_name)
 
     def partition_skeletal_mesh_removed(self, parent_name, removed_name):
-
         if not parent_name or not removed_name:
             return
 
@@ -309,7 +310,6 @@ class PartitionsOutliner(widgets.OutlinerTreeView):
     def partition_items_dropped(
         self, parent_item, dropped_items, duplicate=False
     ):
-
         if not parent_item or not dropped_items:
             return
 

@@ -1,6 +1,5 @@
 import os
 import sys
-import json
 import ctypes
 import ctypes.wintypes
 import traceback
@@ -11,11 +10,10 @@ import pymel.core as pm
 import maya.cmds as cmds
 import maya.mel as mel
 
-from mgear.vendor.Qt import QtWidgets
-from mgear.vendor.Qt import QtCore
+from mgear.vendor.Qt import QtWidgets, QtCore
 
-from mgear.core import string, pyqt, pyFBX as pfbx
-from mgear.shifter.game_tools_fbx import utils
+from mgear.core import pyFBX as pfbx, pyqt, string
+from mgear.shifter.game_tools_fbx import sdk_utils
 
 NO_EXPORT_TAG = "no_export"
 WORLD_CONTROL_NAME = "world_ctl"
@@ -88,8 +86,7 @@ class SelectorDialog(QtWidgets.QDialog):
         self.item = item.text()
 
 
-def export_skeletal_mesh(jnt_roots, geo_roots, **export_data):
-
+def export_skeletal_mesh(jnt_roots, geo_roots, export_data):
     file_path = export_data.get("file_path", "")
     file_name = export_data.get("file_name", "")
     preset_path = export_data.get("preset_path", None)
@@ -106,8 +103,8 @@ def export_skeletal_mesh(jnt_roots, geo_roots, **export_data):
 
     if not file_name.endswith(".fbx"):
         file_name = "{}.fbx".format(file_name)
-    path = string.normalize_path(os.path.join(file_path, file_name))
-    print("\t>>> Export Path: {}".format(path))
+    export_path = string.normalize_path(os.path.join(file_path, file_name))
+    print("\t>>> Export Path: {}".format(export_path))
 
     # export settings config
     pfbx.FBXResetExport()
@@ -133,8 +130,8 @@ def export_skeletal_mesh(jnt_roots, geo_roots, **export_data):
     pm.select(jnt_roots + geo_roots)
 
     fbx_modified = False
-    pfbx.FBXExport(f=path, s=True)
-    fbx_file = utils.FbxSdkGameToolsWrapper(path)
+    pfbx.FBXExport(f=export_path, s=True)
+    fbx_file = sdk_utils.FbxSdkGameToolsWrapper(export_path)
 
     # Make sure root joints are parented to world
     for jnt_root in jnt_roots:
@@ -181,24 +178,23 @@ def export_skeletal_mesh(jnt_roots, geo_roots, **export_data):
     # post process with FBX SDK if available
     if pfbx.FBX_SDK:
         if use_partitions:
-            export_skeletal_mesh_partitions(jnt_roots=jnt_roots, **export_data)
+            export_skeletal_mesh_partitions(jnt_roots, export_data)
 
             # when using partitions, we remove full FBX file
-            if os.path.isfile(path):
+            if os.path.isfile(export_path):
                 try:
-                    os.remove(path)
+                    os.remove(export_path)
                 except OSError:
                     cmds.warning(
                         'Was not possible to remove temporal FBX file "{}"'.format(
-                            path
+                            export_path
                         )
                     )
 
     return True
 
 
-def export_skeletal_mesh_partitions(jnt_roots, **export_data):
-
+def export_skeletal_mesh_partitions(jnt_roots, export_data):
     if not pfbx.FBX_SDK:
         cmds.warning(
             "Python FBX SDK is not available. Skeletal Mesh partitions export functionality is not available!"
@@ -225,10 +221,8 @@ def export_skeletal_mesh_partitions(jnt_roots, **export_data):
     partitions_data = OrderedDict()
 
     for partition_name, meshes in partitions.items():
-
         joint_hierarchy = OrderedDict()
         for mesh in meshes:
-
             # we retrieve all end joints from the influenced joints
             influences = pm.skinCluster(mesh, query=True, influence=True)
 
@@ -271,7 +265,7 @@ def export_skeletal_mesh_partitions(jnt_roots, **export_data):
 
     try:
         for partition_name, partition_data in partitions_data.items():
-            fbx_file = utils.FbxSdkGameToolsWrapper(path)
+            fbx_file = sdk_utils.FbxSdkGameToolsWrapper(path)
             partition_meshes = partitions.get(partition_name)
             fbx_file.export_skeletal_mesh(
                 file_name=partition_name,
@@ -294,7 +288,6 @@ def export_skeletal_mesh_partitions(jnt_roots, **export_data):
 
 
 def export_animation_clip(root_joint, **export_data):
-
     if not root_joint or not cmds.objExists(root_joint):
         cmds.warning(
             'Was not possible to export animation clip because root joint "{}" was not found within scene'.format(
@@ -452,7 +445,7 @@ def export_animation_clip(root_joint, **export_data):
         pfbx.FBXExport(f=path, s=True)
 
         fbx_modified = False
-        fbx_file = utils.FbxSdkGameToolsWrapper(path)
+        fbx_file = sdk_utils.FbxSdkGameToolsWrapper(path)
         fbx_file.parent_to_world(root_joint, remove_top_parent=True)
         if remove_namespaces:
             fbx_file.remove_namespaces()
@@ -475,7 +468,6 @@ def export_animation_clip(root_joint, **export_data):
     except Exception as exc:
         raise exc
     finally:
-
         # setup again original anim layer weights
         if anim_layer and original_anim_layer_weights:
             for name, weight in original_anim_layer_weights.items():
@@ -509,7 +501,6 @@ def export_animation_clip(root_joint, **export_data):
 def create_mgear_playblast(
     file_name="", folder=None, start_frame=None, end_frame=None, scale=75
 ):
-
     file_name = file_name or "playblast"
     file_name = os.path.splitext(os.path.basename(file_name))[0]
     file_name = "{}.avi".format(file_name)
@@ -556,7 +547,6 @@ def create_mgear_playblast(
 
 
 def get_mgear_playblasts_folder():
-
     CSIDL_PERSONAL = 5  # My Documents
     SHGFP_TYPE_CURRENT = 0  # Get current, not default value
     buf = ctypes.create_unicode_buffer(ctypes.wintypes.MAX_PATH)
@@ -727,7 +717,6 @@ def get_joint_list(start_joint, end_joint):
 
 
 def get_end_joint(start_joint):
-
     end_joint = None
     next_joint = start_joint
     while next_joint:
@@ -773,11 +762,11 @@ def all_anim_layers_ordered(include_base_animation=True):
 
 
 if __name__ == "__main__":
-
     if sys.version_info[0] == 2:
         reload(pfbx)
     else:
         import importlib
+
         importlib.reload(pfbx)
 
     # export_skeletal_mesh(

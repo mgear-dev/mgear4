@@ -1,16 +1,18 @@
 import json
 
-import pymel.core as pm
 import maya.cmds as cmds
+import pymel.core as pm
+
 
 EXPORT_NODE_NAME = "mgearFbxExportNode"
+
 
 class FbxExportNode(object):
     VERSION = 0
     TYPE_ATTR = "fbxExportNode"
     EXPORT_DATA_ATTR = "exportData"
     EXPORT_DATA = {
-        "geo_root": "",
+        "geo_roots": "",
         "joint_root": "",
         "version": VERSION,
         "up_axis": "Y",
@@ -18,31 +20,31 @@ class FbxExportNode(object):
         "fbx_version": "FBX 2020",
         "remove_namespace": True,
         "scene_clean": True,
-        "use_partitions": True,
-        "file_name": "",
         "file_path": "",
+        "file_name": "",
         "skinning": True,
         "blendshapes": True,
+        "use_partitions": True,
         "deformations": True,
-        "partitions": dict(),
-        "animClips": dict(),
+        "partitions": {},
+        "anim_clips": {},
     }
     ANIM_CLIP_DATA = {
         "title": "Untitled",
         "path": "",
         "enabled": True,
-        "startOrigin": True,
-        "frameZero": False,
-        "frameRate": "30 FPS",
-        "startFrame": int(pm.playbackOptions(min=True, query=True)),
-        "endFrame": int(pm.playbackOptions(max=True, query=True)),
+        "frame_rate": "30 fps",
+        "start_frame": int(pm.playbackOptions(min=True, query=True)),
+        "end_frame": int(pm.playbackOptions(max=True, query=True)),
     }
 
     def __init__(self, node=None):
         self._node = node
-        self._export_data = dict()  # internal export data
-        data = self._parse_export_data()
-        self._save_data(data)
+        self._export_data = {}  # internal export data
+        data = self.parse_export_data()
+        if data is None:
+            data = self.EXPORT_DATA
+        self.save_data(data)
 
     @property
     def export_data(self):
@@ -70,10 +72,12 @@ class FbxExportNode(object):
 
     @classmethod
     def find(cls):
-        found_export_nodes = list()
+        found_export_nodes = []
         network_nodes = cmds.ls(type="network")
         for network_node in network_nodes:
-            if not cmds.attributeQuery(cls.TYPE_ATTR, node=network_node, exists=True):
+            if not cmds.attributeQuery(
+                cls.TYPE_ATTR, node=network_node, exists=True
+            ):
                 continue
             found_export_nodes.append(cls(network_node))
 
@@ -88,14 +92,14 @@ class FbxExportNode(object):
         return True
 
     def save_root_data(self, root_type, root_names):
-        # root type = geo_root or joint_root
-        data = self._parse_export_data()
+        # root type = geo_roots or joint_root
+        data = self.parse_export_data()
         data[root_type] = root_names
-        return self._save_data(data)
+        return self.save_data(data)
 
     def add_new_skeletal_mesh_partition(self, name, node_names):
-        data = self._parse_export_data()
-        data.setdefault("partitions", dict())
+        data = self.parse_export_data()
+        data.setdefault("partitions", {})
         if name in data["partitions"]:
             cmds.warning(
                 'Partition with name "{}" already exist!'.format(name)
@@ -105,60 +109,60 @@ class FbxExportNode(object):
         data["partitions"][name] = {
             "enabled": True,
             "color": [241, 90, 91],
-            "skeletalMeshes": node_names,
+            "skeletal_meshes": node_names,
         }
 
-        return self._save_data(data)
+        return self.save_data(data)
 
     def delete_skeletal_mesh_partition(self, name):
-        data = self._parse_export_data()
-        partitions = data.get("partitions", dict())
+        data = self.parse_export_data()
+        partitions = data.get("partitions", {})
         if not partitions or name not in partitions:
             return False
         partitions.pop(name)
 
-        return self._save_data(data)
+        return self.save_data(data)
 
     def get_partitions(self):
-        return self._parse_export_data().get("partitions", dict())
+        return self.parse_export_data().get("partitions", {})
 
     def set_partition_enabled(self, name, flag):
-        data = self._parse_export_data()
-        partitions = data.get("partitions", dict())
+        data = self.parse_export_data()
+        partitions = data.get("partitions", {})
         if not partitions or name not in partitions:
             return False
         partitions[name]["enabled"] = flag
 
-        return self._save_data(data)
+        return self.save_data(data)
 
     def set_partition_name(self, name, new_name):
-        data = self._parse_export_data()
-        partitions = data.get("partitions", dict())
+        data = self.parse_export_data()
+        partitions = data.get("partitions", {})
         if not partitions or name not in partitions:
             return False
 
         partitions[new_name] = partitions.pop(name)
 
-        return self._save_data(data)
+        return self.save_data(data)
 
     def set_partition_color(self, name, new_color):
-        data = self._parse_export_data()
-        partitions = data.get("partitions", dict())
+        data = self.parse_export_data()
+        partitions = data.get("partitions", {})
         if not partitions or name not in partitions:
             return False
 
         partitions[name]["color"] = new_color
 
-        return self._save_data(data)
+        return self.save_data(data)
 
     def add_skeletal_meshes_to_partition(self, name, skeletal_meshes):
-        data = self._parse_export_data()
-        partitions = data.get("partitions", dict())
+        data = self.parse_export_data()
+        partitions = data.get("partitions", {})
         if not partitions or name not in partitions:
             return False
 
-        current_skeletal_meshes = partitions.get(name, dict()).get(
-            "skeletalMeshes", list()
+        current_skeletal_meshes = partitions.get(name, {}).get(
+            "skeletal_meshes", []
         )
         valid_skeletal_meshes = [
             skeletal_mesh
@@ -168,40 +172,40 @@ class FbxExportNode(object):
         if not valid_skeletal_meshes:
             return
 
-        partitions[name].setdefault("skeletalMeshes", list())
-        partitions[name]["skeletalMeshes"].extend(valid_skeletal_meshes)
+        partitions[name].setdefault("skeletal_meshes", [])
+        partitions[name]["skeletal_meshes"].extend(valid_skeletal_meshes)
 
-        return self._save_data(data)
+        return self.save_data(data)
 
     def delete_skeletal_mesh_from_partition(
         self, name, skeletal_mesh_to_remove
     ):
-        data = self._parse_export_data()
-        partitions = data.get("partitions", dict())
+        data = self.parse_export_data()
+        partitions = data.get("partitions", {})
         if not partitions or name not in partitions:
             return False
 
-        skeletal_meshes = partitions[name].get("skeletalMeshes", list())
+        skeletal_meshes = partitions[name].get("skeletal_meshes", [])
         if skeletal_mesh_to_remove not in skeletal_meshes:
             return False
 
         skeletal_meshes.remove(skeletal_mesh_to_remove)
 
-        return self._save_data(data)
+        return self.save_data(data)
 
     def get_animation_clips(self, root_joint_name):
         return (
-            self._parse_export_data()
-            .get("animClips", dict())
-            .get(root_joint_name, list())
+            self.parse_export_data()
+            .get("anim_clips", {})
+            .get(root_joint_name, [])
         )
 
-    def get_animation_clip(self, root_joint_name, clip_name):
+    def find_animation_clip(self, root_joint_name, clip_name):
         anim_clips = self.get_animation_clips(root_joint_name)
         if not anim_clips:
-            return dict()
+            return {}
 
-        found_anim_clip = dict()
+        found_anim_clip = {}
         for anim_clip in anim_clips:
             anim_clip_title = anim_clip.get("title", None)
             if not anim_clip_title or anim_clip_title != clip_name:
@@ -216,25 +220,23 @@ class FbxExportNode(object):
         total_sequences = len(sequences)
         clip_data = FbxExportNode.ANIM_CLIP_DATA.copy()
         clip_data["title"] = "Clip {}".format(total_sequences + 1)
-        clip_data.update(
-            anim_clip_data if anim_clip_data is not None else dict()
-        )
+        clip_data.update(anim_clip_data if anim_clip_data is not None else {})
 
-        data = self._parse_export_data()
-        anim_clips = data.get("animClips", dict()).get(root_joint_name, list())
+        data = self.parse_export_data()
+        anim_clips = data.get("anim_clips", {}).get(root_joint_name, [])
         anim_clips.append(clip_data)
 
-        data.setdefault("animClips", dict())
-        data["animClips"].setdefault(root_joint_name, list())
-        data["animClips"][root_joint_name] = anim_clips
+        data.setdefault("anim_clips", {})
+        data["anim_clips"].setdefault(root_joint_name, [])
+        data["anim_clips"][root_joint_name] = anim_clips
 
-        self._save_data(data)
+        self.save_data(data)
 
         return clip_data["title"]
 
     def update_animation_clip(self, root_joint_name, clip_name, clip_data):
-        data = self._parse_export_data()
-        anim_clips = data.get("animClips", dict()).get(root_joint_name, list())
+        data = self.parse_export_data()
+        anim_clips = data.get("anim_clips", {}).get(root_joint_name, [])
         index_to_update = None
         for i, anim_clip in enumerate(anim_clips):
             anim_clip_name = anim_clip.get("title", None)
@@ -246,11 +248,11 @@ class FbxExportNode(object):
             return
         anim_clips[index_to_update] = clip_data
 
-        return self._save_data(data)
+        return self.save_data(data)
 
     def delete_animation_clip(self, root_joint_name, clip_name):
-        data = self._parse_export_data()
-        anim_clips = data.get("animClips", dict()).get(root_joint_name, list())
+        data = self.parse_export_data()
+        anim_clips = data.get("anim_clips", {}).get(root_joint_name, [])
         index_to_remove = None
         for i, anim_clip in enumerate(anim_clips):
             anim_clip_name = anim_clip.get("title", None)
@@ -262,42 +264,44 @@ class FbxExportNode(object):
             return False
         anim_clips.pop(index_to_remove)
 
-        return self._save_data(data)
+        return self.save_data(data)
 
     def delete_all_animation_clips(self):
-        data = self._parse_export_data()
-        data["animClips"] = dict()
+        data = self.parse_export_data()
+        data["anim_clips"] = {}
 
-        return self._save_data(data)
+        return self.save_data(data)
 
     def _get_attr_namespace(self, namespace, attr):
         return "{}.{}".format(namespace, attr)
 
-    def _add_attr(self, node, attr, value):
+    def add_attribute(self, attr, value):
         # create attribute
-        if not cmds.attributeQuery(attr, node=node, exists=True):
+        if not cmds.attributeQuery(attr, node=self._node, exists=True):
             if isinstance(value, (str, list, dict)):
-                cmds.addAttr(node, longName=attr, dataType="string")
+                cmds.addAttr(self._node, longName=attr, dataType="string")
             else:
                 attr_type = type(value).__name__
                 if attr_type == "int":
                     attr_type = "long"
-                cmds.addAttr(node, longName=attr, attributeType=attr_type)
+                cmds.addAttr(
+                    self._node, longName=attr, attributeType=attr_type
+                )
 
         # set attribute value
-        attr_namespace = self._get_attr_namespace(node, attr)
+        attr_namespace = self._get_attr_namespace(self._node, attr)
         if isinstance(value, (str, list, dict)):
             cmds.setAttr(attr_namespace, value, type="string")
         else:
             cmds.setAttr(attr_namespace, value)
 
-    def _save_data(self, data):
+    def save_data(self, data):
         if not self._node or not cmds.objExists(self._node):
             return False
 
-        self._add_attr(self._node, self.TYPE_ATTR, True)
+        self.add_attribute(self.TYPE_ATTR, True)
         for attr, value in data.items():
-            self._add_attr(self._node, attr, value)
+            self.add_attribute(attr, value)
 
         try:
             json_data = json.dumps(data)
@@ -306,19 +310,21 @@ class FbxExportNode(object):
                 "Error while converting FbxExportNode data into a dictionary."
             )
             return False
-        self._add_attr(self._node, self.EXPORT_DATA_ATTR, json_data)
+        self.add_attribute(self.EXPORT_DATA_ATTR, json_data)
         self._export_data = data
         return True
 
-    def _parse_export_data(self):
-        if not cmds.objExists(self._node):
-            return self._export_data
-        if not cmds.attributeQuery(self.EXPORT_DATA_ATTR,
-                                   node=self._node,
-                                   exists=True):
-            return self._export_data
-        export_data_str = self._get_attr_namespace(self._node,
-                                                   self.EXPORT_DATA_ATTR)
+    def parse_export_data(self):
+        if not (
+            cmds.objExists(self._node)
+            and cmds.attributeQuery(
+                self.EXPORT_DATA_ATTR, node=self._node, exists=True
+            )
+        ):
+            return None
+        export_data_str = self._get_attr_namespace(
+            self._node, self.EXPORT_DATA_ATTR
+        )
         export_data = cmds.getAttr(export_data_str)
         try:
             self._export_data = json.loads(export_data)
