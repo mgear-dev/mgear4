@@ -2,14 +2,15 @@
 
 
 ## Current mGear Dev team:  
-- [Miquel Campos](https://github.com/miquelcampos)
 - [Chris Lesage](https://github.com/chris-lesage/)
 - [Irene Weng](https://github.com/ireneweng)
+- [Miquel Campos](https://github.com/miquelcampos)
+- [Simon Ben Anderson](https://github.com/SimonBenAnderson)
 
 ## Past mGear Dev team:  
+- [Jascha Wohlkinger](https://github.com/JaschaW/)
 - [Jerome Drese](https://github.com/jdrese)
 - [Rafael Villar](https://github.com/RafaelVillar)
-- [Jascha Wohlkinger](https://github.com/JaschaW/)
 - [Tomas Poveda](https://github.com/tpoveda)
 
 
@@ -17,6 +18,7 @@
 - [Akagi-san](https://github.com/akiwoRM/)
 - [CKolean](https://github.com/CKolean)
 - [davide-genies](https://github.com/dmunix)
+- [Felipe Reis](https://github.com/hayes87/)
 - [Gaetan Guidet](https://github.com/gatgui/)
 - [Ivo Grigull](https://github.com/ivogrig/)
 - [James Drew](https://github.com/jimbo-drew)
