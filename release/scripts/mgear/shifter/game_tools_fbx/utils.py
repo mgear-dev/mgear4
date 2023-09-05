@@ -1,6 +1,5 @@
 import os
 import sys
-import json
 import ctypes
 import ctypes.wintypes
 import traceback
@@ -11,15 +10,13 @@ import pymel.core as pm
 import maya.cmds as cmds
 import maya.mel as mel
 
-from mgear.vendor.Qt import QtWidgets
-from mgear.vendor.Qt import QtCore
+from mgear.vendor.Qt import QtWidgets, QtCore
 
-from mgear.core import string, pyqt, pyFBX as pfbx
-from mgear.shifter import game_tools_fbx_sdk_utils
+from mgear.core import pyFBX as pfbx, pyqt, string
+from mgear.shifter.game_tools_fbx import sdk_utils
 
 NO_EXPORT_TAG = "no_export"
 WORLD_CONTROL_NAME = "world_ctl"
-EXPORT_NODE_NAME = "mgearFbxExportNode"
 
 FRAMES_PER_SECOND = {
     "24 FPS": ("film", 24),
@@ -89,337 +86,7 @@ class SelectorDialog(QtWidgets.QDialog):
         self.item = item.text()
 
 
-class FbxExportNode(object):
-
-    TYPE_ATTR = "fbxExportNode"
-    VERSION = 0
-    EXPORT_DATA_ATTR = "exportData"
-    EXPORT_DATA = {
-        "version": VERSION,
-        "up_axis": "Y",
-        "file_type": "Binary",
-        "fbx_version": "FBX 2020",
-        "remove_namespace": True,
-        "scene_clean": True,
-        "use_partitions": True,
-        "file_name": "",
-        "file_path": "",
-        "skinning": True,
-        "blendshapes": True,
-        "deformations": True,
-        "partitions": dict(),
-        "animClips": dict(),
-    }
-    ANIM_CLIP_DATA = {
-        "title": "Untitled",
-        "path": "",
-        "enabled": True,
-        "startOrigin": True,
-        "frameZero": False,
-        "frameRate": "30 FPS",
-        "startFrame": int(pm.playbackOptions(min=True, query=True)),
-        "endFrame": int(pm.playbackOptions(max=True, query=True)),
-    }
-
-    def __init__(self, node=None):
-        super(FbxExportNode, self).__init__()
-
-        self._node = node
-        self._export_data = dict()  # internal export data
-
-        self._add_attributes()
-
-    @property
-    def export_data(self):
-        return self._export_data
-
-    @export_data.setter
-    def export_data(self, value):
-        self._export_data = value
-
-    @classmethod
-    def create(cls, name=EXPORT_NODE_NAME):
-        return cls(cmds.createNode("network", name=name))
-
-    @classmethod
-    def create_from_export_data(cls, data):
-        export_node = cls()
-        export_node.data = data
-        return export_node
-
-    @classmethod
-    def get(cls, name=EXPORT_NODE_NAME):
-        if not cls.exists_in_scene(name):
-            return None
-
-        return cls(name)
-
-    @classmethod
-    def find(cls):
-        found_export_nodes = list()
-        network_nodes = cmds.ls(type="network")
-        for network_node in network_nodes:
-            if not cmds.attributeQuery(cls.TYPE_ATTR, n=network_node, ex=True):
-                continue
-            found_export_nodes.append(cls(network_node))
-
-        return found_export_nodes
-
-    @classmethod
-    def exists_in_scene(cls, name=EXPORT_NODE_NAME):
-        if not name or not cmds.objExists(name):
-            return False
-        if not cmds.attributeQuery(cls.TYPE_ATTR, n=name, ex=True):
-            return False
-        return True
-
-    def add_new_skeletal_mesh_partition(self, name, node_names):
-        data = self._parse_export_data()
-        data.setdefault("partitions", dict())
-        if name in data["partitions"]:
-            cmds.warning(
-                'Partition with name "{}" already exist!'.format(name)
-            )
-            return False
-
-        data["partitions"][name] = {
-            "enabled": True,
-            "color": [241, 90, 91],
-            "skeletalMeshes": node_names,
-        }
-
-        return self._save_data(data)
-
-    def delete_skeletal_mesh_partition(self, name):
-        data = self._parse_export_data()
-        partitions = data.get("partitions", dict())
-        if not partitions or name not in partitions:
-            return False
-        partitions.pop(name)
-
-        return self._save_data(data)
-
-    def get_partitions(self):
-        return self._parse_export_data().get("partitions", dict())
-
-    def set_partition_enabled(self, name, flag):
-        data = self._parse_export_data()
-        partitions = data.get("partitions", dict())
-        if not partitions or name not in partitions:
-            return False
-        partitions[name]["enabled"] = flag
-
-        return self._save_data(data)
-
-    def set_partition_name(self, name, new_name):
-        data = self._parse_export_data()
-        partitions = data.get("partitions", dict())
-        if not partitions or name not in partitions:
-            return False
-
-        partitions[new_name] = partitions.pop(name)
-
-        return self._save_data(data)
-
-    def set_partition_color(self, name, new_color):
-        data = self._parse_export_data()
-        partitions = data.get("partitions", dict())
-        if not partitions or name not in partitions:
-            return False
-
-        partitions[name]["color"] = new_color
-
-        return self._save_data(data)
-
-    def add_skeletal_meshes_to_partition(self, name, skeletal_meshes):
-        data = self._parse_export_data()
-        partitions = data.get("partitions", dict())
-        if not partitions or name not in partitions:
-            return False
-
-        current_skeletal_meshes = partitions.get(name, dict()).get(
-            "skeletalMeshes", list()
-        )
-        valid_skeletal_meshes = [
-            skeletal_mesh
-            for skeletal_mesh in skeletal_meshes
-            if skeletal_mesh not in current_skeletal_meshes
-        ]
-        if not valid_skeletal_meshes:
-            return
-
-        partitions[name].setdefault("skeletalMeshes", list())
-        partitions[name]["skeletalMeshes"].extend(valid_skeletal_meshes)
-
-        return self._save_data(data)
-
-    def delete_skeletal_mesh_from_partition(
-        self, name, skeletal_mesh_to_remove
-    ):
-        data = self._parse_export_data()
-        partitions = data.get("partitions", dict())
-        if not partitions or name not in partitions:
-            return False
-
-        skeletal_meshes = partitions[name].get("skeletalMeshes", list())
-        if skeletal_mesh_to_remove not in skeletal_meshes:
-            return False
-
-        skeletal_meshes.remove(skeletal_mesh_to_remove)
-
-        return self._save_data(data)
-
-    def get_animation_clips(self, root_joint_name):
-        return (
-            self._parse_export_data()
-            .get("animClips", dict())
-            .get(root_joint_name, list())
-        )
-
-    def get_animation_clip(self, root_joint_name, clip_name):
-        anim_clips = self.get_animation_clips(root_joint_name)
-        if not anim_clips:
-            return dict()
-
-        found_anim_clip = dict()
-        for anim_clip in anim_clips:
-            anim_clip_title = anim_clip.get("title", None)
-            if not anim_clip_title or anim_clip_title != clip_name:
-                continue
-            found_anim_clip = anim_clip
-            break
-
-        return found_anim_clip
-
-    def add_animation_clip(self, root_joint_name, anim_clip_data=None):
-        sequences = self.get_animation_clips(root_joint_name)
-        total_sequences = len(sequences)
-        clip_data = FbxExportNode.ANIM_CLIP_DATA.copy()
-        clip_data["title"] = "Clip {}".format(total_sequences + 1)
-        clip_data.update(
-            anim_clip_data if anim_clip_data is not None else dict()
-        )
-
-        data = self._parse_export_data()
-        anim_clips = data.get("animClips", dict()).get(root_joint_name, list())
-        anim_clips.append(clip_data)
-
-        data.setdefault("animClips", dict())
-        data["animClips"].setdefault(root_joint_name, list())
-        data["animClips"][root_joint_name] = anim_clips
-
-        self._save_data(data)
-
-        return clip_data["title"]
-
-    def update_animation_clip(self, root_joint_name, clip_name, clip_data):
-        data = self._parse_export_data()
-        anim_clips = data.get("animClips", dict()).get(root_joint_name, list())
-        index_to_update = None
-        for i, anim_clip in enumerate(anim_clips):
-            anim_clip_name = anim_clip.get("title", None)
-            if not anim_clip_name or anim_clip_name != clip_name:
-                continue
-            index_to_update = i
-            break
-        if index_to_update is None:
-            return
-        anim_clips[index_to_update] = clip_data
-
-        return self._save_data(data)
-
-    def delete_animation_clip(self, root_joint_name, clip_name):
-        data = self._parse_export_data()
-        anim_clips = data.get("animClips", dict()).get(root_joint_name, list())
-        index_to_remove = None
-        for i, anim_clip in enumerate(anim_clips):
-            anim_clip_name = anim_clip.get("title", None)
-            if not anim_clip_name or anim_clip_name != clip_name:
-                continue
-            index_to_remove = i
-            break
-        if index_to_remove is None:
-            return False
-        anim_clips.pop(index_to_remove)
-
-        return self._save_data(data)
-
-    def delete_all_animation_clips(self):
-
-        data = self._parse_export_data()
-        data["animClips"] = dict()
-
-        return self._save_data(data)
-
-    def _add_attributes(self):
-        if not self._node or not cmds.objExists(self._node):
-            return False
-
-        if not cmds.attributeQuery(self.TYPE_ATTR, n=self._node, ex=True):
-            cmds.addAttr(self._node, longName=self.TYPE_ATTR, at="bool")
-            cmds.setAttr("{}.{}".format(self._node, self.TYPE_ATTR), True)
-
-        if not cmds.attributeQuery(
-            self.EXPORT_DATA_ATTR, n=self._node, ex=True
-        ):
-            cmds.addAttr(
-                self._node, longName=self.EXPORT_DATA_ATTR, dataType="string"
-            )
-            try:
-                json_data = json.dumps(self.EXPORT_DATA)
-                cmds.setAttr(
-                    "{}.{}".format(self._node, self.EXPORT_DATA_ATTR),
-                    json_data,
-                    type="string",
-                )
-            except Exception as exc:
-                cmds.warning(
-                    "Error while converting FbxExportNode data into a dictionary"
-                )
-                return False
-
-        return True
-
-    def _parse_export_data(self):
-        if not cmds.objExists(self._node):
-            return self._export_data
-        if not cmds.attributeQuery(
-            self.EXPORT_DATA_ATTR, n=self._node, ex=True
-        ):
-            return self._export_data
-        export_data_str = cmds.getAttr(
-            "{}.{}".format(self._node, self.EXPORT_DATA_ATTR)
-        )
-        try:
-            self._export_data = json.loads(export_data_str)
-        except Exception:
-            cmds.warning("Error while parsing FbxExportNode export data")
-
-        return self._export_data
-
-    def _save_data(self, data):
-        result = self._add_attributes()
-        if result:
-            try:
-                json_data = json.dumps(data)
-            except Exception:
-                cmds.warning(
-                    "Error while converting FbxExportNode data into a dictionary"
-                )
-                return False
-            cmds.setAttr(
-                "{}.{}".format(self._node, self.EXPORT_DATA_ATTR),
-                json_data,
-                type="string",
-            )
-
-        self._export_data = data
-
-        return True
-
-
-def export_skeletal_mesh(jnt_roots, geo_roots, **export_data):
-
+def export_skeletal_mesh(jnt_roots, geo_roots, export_data):
     file_path = export_data.get("file_path", "")
     file_name = export_data.get("file_name", "")
     preset_path = export_data.get("preset_path", None)
@@ -436,8 +103,8 @@ def export_skeletal_mesh(jnt_roots, geo_roots, **export_data):
 
     if not file_name.endswith(".fbx"):
         file_name = "{}.fbx".format(file_name)
-    path = string.normalize_path(os.path.join(file_path, file_name))
-    print("\t>>> Export Path: {}".format(path))
+    export_path = string.normalize_path(os.path.join(file_path, file_name))
+    print("\t>>> Export Path: {}".format(export_path))
 
     # export settings config
     pfbx.FBXResetExport()
@@ -463,8 +130,8 @@ def export_skeletal_mesh(jnt_roots, geo_roots, **export_data):
     pm.select(jnt_roots + geo_roots)
 
     fbx_modified = False
-    pfbx.FBXExport(f=path, s=True)
-    fbx_file = game_tools_fbx_sdk_utils.FbxSdkGameToolsWrapper(path)
+    pfbx.FBXExport(f=export_path, s=True)
+    fbx_file = sdk_utils.FbxSdkGameToolsWrapper(export_path)
 
     # Make sure root joints are parented to world
     for jnt_root in jnt_roots:
@@ -511,24 +178,23 @@ def export_skeletal_mesh(jnt_roots, geo_roots, **export_data):
     # post process with FBX SDK if available
     if pfbx.FBX_SDK:
         if use_partitions:
-            export_skeletal_mesh_partitions(jnt_roots=jnt_roots, **export_data)
+            export_skeletal_mesh_partitions(jnt_roots, export_data)
 
             # when using partitions, we remove full FBX file
-            if os.path.isfile(path):
+            if os.path.isfile(export_path):
                 try:
-                    os.remove(path)
+                    os.remove(export_path)
                 except OSError:
                     cmds.warning(
                         'Was not possible to remove temporal FBX file "{}"'.format(
-                            path
+                            export_path
                         )
                     )
 
     return True
 
 
-def export_skeletal_mesh_partitions(jnt_roots, **export_data):
-
+def export_skeletal_mesh_partitions(jnt_roots, export_data):
     if not pfbx.FBX_SDK:
         cmds.warning(
             "Python FBX SDK is not available. Skeletal Mesh partitions export functionality is not available!"
@@ -555,10 +221,8 @@ def export_skeletal_mesh_partitions(jnt_roots, **export_data):
     partitions_data = OrderedDict()
 
     for partition_name, meshes in partitions.items():
-
         joint_hierarchy = OrderedDict()
         for mesh in meshes:
-
             # we retrieve all end joints from the influenced joints
             influences = pm.skinCluster(mesh, query=True, influence=True)
 
@@ -601,7 +265,7 @@ def export_skeletal_mesh_partitions(jnt_roots, **export_data):
 
     try:
         for partition_name, partition_data in partitions_data.items():
-            fbx_file = game_tools_fbx_sdk_utils.FbxSdkGameToolsWrapper(path)
+            fbx_file = sdk_utils.FbxSdkGameToolsWrapper(path)
             partition_meshes = partitions.get(partition_name)
             fbx_file.export_skeletal_mesh(
                 file_name=partition_name,
@@ -624,7 +288,6 @@ def export_skeletal_mesh_partitions(jnt_roots, **export_data):
 
 
 def export_animation_clip(root_joint, **export_data):
-
     if not root_joint or not cmds.objExists(root_joint):
         cmds.warning(
             'Was not possible to export animation clip because root joint "{}" was not found within scene'.format(
@@ -782,7 +445,7 @@ def export_animation_clip(root_joint, **export_data):
         pfbx.FBXExport(f=path, s=True)
 
         fbx_modified = False
-        fbx_file = game_tools_fbx_sdk_utils.FbxSdkGameToolsWrapper(path)
+        fbx_file = sdk_utils.FbxSdkGameToolsWrapper(path)
         fbx_file.parent_to_world(root_joint, remove_top_parent=True)
         if remove_namespaces:
             fbx_file.remove_namespaces()
@@ -805,7 +468,6 @@ def export_animation_clip(root_joint, **export_data):
     except Exception as exc:
         raise exc
     finally:
-
         # setup again original anim layer weights
         if anim_layer and original_anim_layer_weights:
             for name, weight in original_anim_layer_weights.items():
@@ -839,7 +501,6 @@ def export_animation_clip(root_joint, **export_data):
 def create_mgear_playblast(
     file_name="", folder=None, start_frame=None, end_frame=None, scale=75
 ):
-
     file_name = file_name or "playblast"
     file_name = os.path.splitext(os.path.basename(file_name))[0]
     file_name = "{}.avi".format(file_name)
@@ -886,7 +547,6 @@ def create_mgear_playblast(
 
 
 def get_mgear_playblasts_folder():
-
     CSIDL_PERSONAL = 5  # My Documents
     SHGFP_TYPE_CURRENT = 0  # Get current, not default value
     buf = ctypes.create_unicode_buffer(ctypes.wintypes.MAX_PATH)
@@ -1057,7 +717,6 @@ def get_joint_list(start_joint, end_joint):
 
 
 def get_end_joint(start_joint):
-
     end_joint = None
     next_joint = start_joint
     while next_joint:
@@ -1103,7 +762,6 @@ def all_anim_layers_ordered(include_base_animation=True):
 
 
 if __name__ == "__main__":
-
     if sys.version_info[0] == 2:
         reload(pfbx)
     else:

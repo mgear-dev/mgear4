@@ -336,8 +336,8 @@ pw.walkMirror(pm.selected(), True)
 
 # OPEN FBX Exporter
     rCmd = '''
-from mgear.shifter import game_tools_fbx
-game_tools_fbx.openFBXExport()
+from mgear.shifter.game_tools_fbx import fbx_exporter
+fbx_exporter.openFBXExporter()
 
 '''
-    createRunTimeCommand("mGear_fbxExport", rCmd, ann="")
+    createRunTimeCommand("mGear_fbxExporter", rCmd, ann="")
