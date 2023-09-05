@@ -12,11 +12,8 @@ import json as json
 
 def import_data(path):
     with open(path, "r") as read_file:
-        # Convert JSON file to Python Types
         obj = json.load(read_file)
-    data = json.dumps(obj, indent=4)
-    return data
-
+    return obj
 
 def create_constraints(dataSet):
     for constDict in dataSet:
