@@ -239,17 +239,7 @@ class Component(component.Main):
 
         attribute.setInvertMirror(self.ikcns_ctl, ["tx"])
 
-        # This will put the foot oriented aiming the
-        # effector locator
-        m = transform.getTransformLookingAt(
-            self.guide.pos["ankle"],
-            self.guide.pos["eff"],
-            self.x_axis,
-            "zx",
-            False,
-        )
-        # Not used for the moment. orient foot to world space
-        # m = transform.getTransformFromPos(self.guide.pos["ankle"])
+        m = transform.getTransformFromPos(self.guide.pos["ankle"])
 
         self.ik_ctl = self.addCtl(
             self.ikcns_ctl,
