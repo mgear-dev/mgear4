@@ -8,6 +8,8 @@ def install():
     commands = (
         ("Guide Manager", str_show_guide_manager, "mgear_list.svg"),
         ("-----", None),
+        (None, game_submenu),
+        ("-----", None),
         ("Settings", str_inspect_settings, "mgear_sliders.svg"),
         ("Duplicate", str_duplicate, "mgear_copy.svg"),
         ("Duplicate Sym", str_duplicateSym, "mgear_duplicate_sym.svg"),
@@ -36,8 +38,6 @@ def install():
         ("Auto Fit Guide (BETA)", str_auto_fit_guide),
         ("-----", None),
         ("Plebes...", str_plebes),
-        ("-----", None),
-        (None, game_submenu),
         (None, mocap_submenu),
         ("-----", None),
         ("Update Guide", str_updateGuide, "mgear_loader.svg"),
@@ -130,8 +130,8 @@ def game_submenu(parent_menu_id):
         parent_menu_id (str): Parent menu. i.e: "MayaWindow|mGear|menuItem355"
     """
     commands = (
-        # ("FBX Export", str_game_fbx_export),
-        # ("-----", None),
+        ("FBX Export (BETA)", str_game_fbx_export),
+        ("-----", None),
         ("Disconnect Joints", str_game_disconnet),
         ("Connect Joints", str_game_connect),
         ("Delete Rig + Keep Joints", str_game_delete_rig),
@@ -139,7 +139,12 @@ def game_submenu(parent_menu_id):
         ("Game Tool Disconnect + Assembly IO", str_openGameAssemblyTool),
     )
 
-    mgear.menu.install("Game Tools", commands, parent_menu_id)
+    mgear.menu.install(
+        "Game Tools",
+        commands,
+        parent_menu_id,
+        image="mgear_game.svg",
+    )
 
 
 def guide_template_samples_submenu(parent_menu_id):
@@ -323,6 +328,6 @@ print("Debug Mode State: {}".format(state))
 """
 
 str_game_fbx_export = """
-from mgear.shifter import game_tools_fbx
-game_tools_fbx.openFBXExport()
+from mgear.shifter.game_tools_fbx import fbx_exporter
+fbx_exporter.openFBXExporter()
 """
