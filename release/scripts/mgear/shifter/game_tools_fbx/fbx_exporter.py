@@ -70,7 +70,7 @@ class FBXExporter(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.create_source_elements_widget()
         self.create_settings_widget()
         self.create_file_path_widget()
-        self.create_unreal_import_widget()
+        # self.create_unreal_import_widget()
         self.create_export_widget()
 
         self.widget_dict = {
@@ -83,8 +83,8 @@ class FBXExporter(MayaQWidgetDockableMixin, QtWidgets.QDialog):
             "scene_clean": self.clean_scene_checkbox,
             "file_path": self.file_path_lineedit,
             "file_name": self.file_name_lineedit,
-            "ue_enabled": self.ue_import_cbx,
-            "ue_file_path": self.ue_file_path_lineedit,
+            # "ue_enabled": self.ue_import_cbx,
+            # "ue_file_path": self.ue_file_path_lineedit,
             "skinning": self.skinning_checkbox,
             "blendshapes": self.blendshapes_checkbox,
             "use_partitions": self.partitions_checkbox,
@@ -124,14 +124,14 @@ class FBXExporter(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.fbx_sdk_menu.addAction(self.fbx_sdk_path_action)
 
         # ueGear actions
-        self.uegear_menu = self.menu_bar.addMenu("ueGear")
-        self.refresh_uegear_connection_action = QtWidgets.QAction(
-            "Refresh Unreal Engine Connection", self
-        )
-        self.refresh_uegear_connection_action.setIcon(
-            pyqt.get_icon("mgear_refresh-cw")
-        )
-        self.uegear_menu.addAction(self.refresh_uegear_connection_action)
+        # self.uegear_menu = self.menu_bar.addMenu("ueGear")
+        # self.refresh_uegear_connection_action = QtWidgets.QAction(
+        #     "Refresh Unreal Engine Connection", self
+        # )
+        # self.refresh_uegear_connection_action.setIcon(
+        #     pyqt.get_icon("mgear_refresh-cw")
+        # )
+        # self.uegear_menu.addAction(self.refresh_uegear_connection_action)
 
     def create_source_elements_widget(self):
         def create_button(
@@ -411,9 +411,9 @@ class FBXExporter(MayaQWidgetDockableMixin, QtWidgets.QDialog):
             self.import_fbx_presets
         )
         self.set_fbx_sdk_path_action.triggered.connect(self.set_fbx_sdk_path)
-        self.refresh_uegear_connection_action.triggered.connect(
-            self.refresh_ue_connection
-        )
+        # self.refresh_uegear_connection_action.triggered.connect(
+        #     self.refresh_ue_connection
+        # )
 
         # source element connections
         self.geo_set_btn.clicked.connect(
@@ -452,7 +452,7 @@ class FBXExporter(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.file_name_lineedit.textChanged.connect(self.normalize_name)
 
         # ue file path connection
-        self.ue_file_set_btn.clicked.connect(self.set_ue_folder_path)
+        # self.ue_file_set_btn.clicked.connect(self.set_ue_folder_path)
 
         # skeletal mesh connections
         self.partitions_checkbox.toggled.connect(self.set_use_partitions)
@@ -563,13 +563,14 @@ class FBXExporter(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         # TODO: Uncomment
         # is_available = bool(uegear.content_project_directory())
         is_available = False
-        self.ue_import_collap_wgt.setEnabled(is_available)
-        if not is_available:
-            cmds.warning(
-                "Unreal Engine Import functionality not available. \
-                    Run Unreal Engine and load ueGear plugin."
-            )
-            self.ue_import_cbx.setChecked(False)
+        return
+        # self.ue_import_collap_wgt.setEnabled(is_available)
+        # if not is_available:
+        #     cmds.warning(
+        #         "Unreal Engine Import functionality not available. \
+        #             Run Unreal Engine and load ueGear plugin."
+        #     )
+        #     self.ue_import_cbx.setChecked(False)
 
     def set_use_partitions(self, flag):
         self.partitions_outliner.setEnabled(flag)
