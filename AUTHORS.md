@@ -4,6 +4,7 @@
 ## Current mGear Dev team:  
 - [Miquel Campos](https://github.com/miquelcampos)
 - [Chris Lesage](https://github.com/chris-lesage/)
+- [Irene Weng](https://github.com/ireneweng)
 
 ## Past mGear Dev team:  
 - [Jerome Drese](https://github.com/jdrese)
