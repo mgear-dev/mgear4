@@ -1,13 +1,13 @@
 import json
 
-from mgear.core import widget_settings_manager
+from mgear.core import widgets
 from mgear.shifter.game_tools_fbx import fbx_export_node
 
 
 EXPORT_NODE_NAME = "mgearFbxExportNode"
 
 
-class ExporterSettingsManager(widget_settings_manager.WidgetSettingsManager):
+class ExporterSettingsManager(widgets.WidgetSettingsManager):
     PARTITIONS = "partitions"
     ANIM_CLIPS = "anim_clips"
 
