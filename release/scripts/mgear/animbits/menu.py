@@ -2,8 +2,7 @@ import mgear.menu
 
 
 def install():
-    """Install Skinning submenu
-    """
+    """Install Skinning submenu"""
     commands = (
         ("Channel Master", str_openChannelMaster),
         ("-----", None),
@@ -12,7 +11,10 @@ def install():
         ("-----", None),
         ("Space Recorder", str_space_recorder, "mgear_key.svg"),
         ("-----", None),
-        ("Smart Reset Attribute/SRT", str_smart_reset)
+        ("Smart Reset Attribute/SRT", str_smart_reset),
+        ("-----", None),
+        ("Bake Spring nodes", str_bakeSprings),
+        ("Clear Baked Spring nodes", str_clearSprings),
     )
 
     mgear.menu.install("Animbits", commands, image="mgear_animbits.svg")
@@ -41,4 +43,14 @@ attribute.smart_reset()
 str_space_recorder = """
 from mgear.animbits import space_recorder
 space_recorder.open()
+"""
+
+str_bakeSprings = """
+from mgear.core.anim_utils import bakeSprings
+bakeSprings()
+"""
+
+str_clearSprings = """
+from mgear.core.anim_utils import clearSprings
+clearSprings()
 """

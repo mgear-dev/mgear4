@@ -48,9 +48,6 @@ def install():
         ("Proxy Geo", str_proxyGeo, "mgear_proxyGeo_to_next.svg"),
         ("Proxy Slicer", str_proxySlicer),
         ("Proxy Slicer Parenting", str_proxySlicer_parent),
-        ("-----", None),
-        ("Bake Spring nodes", str_bakeSprings),
-        ("Clear Baked Spring nodes", str_clearSprings),
     )
 
     mgear.menu.install(menuID, commands, image="mgear_rigbits.svg")
@@ -242,18 +239,6 @@ str_proxySlicer_parent = """
 from mgear.rigbits import proxySlicer
 proxySlicer.slice(True)
 """
-
-
-str_bakeSprings = """
-from mgear.core.anim_utils import bakeSprings
-bakeSprings()
-"""
-
-str_clearSprings = """
-from mgear.core.anim_utils import clearSprings
-clearSprings()
-"""
-
 
 # connect str commands
 
