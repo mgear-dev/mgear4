@@ -439,9 +439,6 @@ class Rig(Main):
         self.p_joint_padding = self.addParam(
             "joint_index_padding", "long", 0, 0, 99)
 
-
-
-
     def setFromSelection(self):
         """Set the guide hierarchy from selection."""
         selection = pm.ls(selection=True)
@@ -552,6 +549,8 @@ class Rig(Main):
         mgear.log("Guide loaded from hierarchy in  [ " + str(finalTime) + " ]")
 
     def set_from_dict(self, guide_template_dict):
+
+        self.guide_template_dict = guide_template_dict
 
         r_dict = guide_template_dict['guide_root']
 

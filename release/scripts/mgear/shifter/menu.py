@@ -32,6 +32,16 @@ def install():
             str_export_guide_template,
             "mgear_log-out.svg",
         ),
+        (
+            "Extract Guide From Rig",
+            str_extract_guide_from_rig,
+            "mgear_download.svg",
+        ),
+        (
+            "Extract and Match Guide From Rig",
+            str_extract_match_guide_from_rig,
+            "mgear_download.svg",
+        ),
         ("-----", None),
         (None, guide_template_samples_submenu),
         ("-----", None),
@@ -330,4 +340,15 @@ print("Debug Mode State: {}".format(state))
 str_game_fbx_export = """
 from mgear.shifter.game_tools_fbx import fbx_exporter
 fbx_exporter.openFBXExporter()
+"""
+
+
+str_extract_guide_from_rig = """
+from mgear.shifter import guide_manager
+guide_manager.extract_guide_from_rig()
+"""
+
+str_extract_match_guide_from_rig = """
+from mgear.shifter import guide_manager
+guide_manager.extract_match_guide_from_rig()
 """

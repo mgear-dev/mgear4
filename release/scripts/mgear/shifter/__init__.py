@@ -20,6 +20,7 @@ from mgear import shifter_classic_components
 from mgear import shifter_epic_components
 from mgear.shifter import naming
 import importlib
+from mgear.core import utils
 
 PY2 = sys.version_info[0] == 2
 
@@ -353,6 +354,18 @@ class Rig(object):
                 customSteps = [cs.replace("\\", "/") for cs in customSteps]
             self.customStep(customSteps)
 
+    # @utils.timeFunc
+    def get_guide_data(self):
+        """Get the guide data
+
+        Returns:
+            str: The guide data
+        """
+        if self.guide.guide_template_dict:
+            return json.dumps(self.guide.guide_template_dict)
+        else:
+            return json.dumps(self.guide.get_guide_template_dict())
+
     def initialHierarchy(self):
         """Build the initial hierarchy of the rig.
 
@@ -421,6 +434,10 @@ class Rig(object):
         self.rigPoses = self.model.addAttr("rigPoses", at="message", m=1)
         self.rigCtlTags = self.model.addAttr("rigCtlTags", at="message", m=1)
         self.rigScriptNodes = self.model.addAttr("rigScriptNodes", at="message", m=1)
+
+        self.guide_data_att = attribute.addAttribute(
+            self.model, "guide_data", "string", self.get_guide_data()
+        )
 
         # ------------------------- -------------------------
         # Global Ctl

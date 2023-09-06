@@ -15,6 +15,7 @@ import mgear.shifter.game_tools_disconnect_ui as gtUI
 
 from maya.app.general.mayaMixin import MayaQWidgetDockableMixin
 from mgear.core import pyqt
+from mgear.shifter.utils import get_deformer_joints
 from mgear.vendor.Qt import QtCore, QtWidgets
 
 if sys.version_info[0] == 2:
@@ -488,27 +489,8 @@ def exportAssetAssembly(name, rigTopNode, meshTopNode, path, postScript=None):
     # check the folder and script
     # if the target name exist abort and request another name
 
-    deformer_jnts_node = None
+    deformer_jnts = get_deformer_joints(rigTopNode)
 
-    for i in range(0, 100):
-        try:
-            potential_node = rigTopNode.rigGroups[i].connections()[0]
-        except IndexError:
-            break
-
-        if potential_node.name().endswith("_deformers_grp"):
-            deformer_jnts_node = potential_node
-            break
-
-    if deformer_jnts_node:
-        deformer_jnts = deformer_jnts_node.members()
-    else:
-        deformer_jnts = None
-
-    if not deformer_jnts:
-        pm.displayError(
-            "{} is empty. The tool can't find any joint".format(meshTopNode)
-        )
     # export connections and cut joint connections
     file_path = os.path.join(path, name + ".jmm")
     dm_nodes = exportConnections(
