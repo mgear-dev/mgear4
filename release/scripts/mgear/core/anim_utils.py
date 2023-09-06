@@ -1069,6 +1069,11 @@ def ikFkMatch_with_namespace(
                 roll_attr.set(0)
                 bank_attr.set(0)
 
+         # we match the foot FK after switch blend attr
+        if foot_cnx:
+            for i, c in enumerate(foot_fk):
+                c.setMatrix(foot_FK_matrix[i], worldSpace=True)
+
     # sets keyframes
     if key:
         [
