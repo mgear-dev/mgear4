@@ -1,6 +1,117 @@
 Release Log
 ===========
 
+4.1.0
+------
+**New Features**
+	* Animbits: Space Recorder
+	* chain_variable_IK #193
+	* EPIC components improvements: arm 2.0 + leg 2.0 + leaf joint in all components + Misc Improvements #195
+	* EPIC Meta_01 component #236
+	* EPIC neck and spine component v2 using splineIK solver #228
+	* EPIC_chain_IKFK_01 #192
+	* EPIC_layered_control_01 #226
+	* Misc: Smart export hotkey #180
+	* Rigbits: PROXY GEO #196
+	* Rigbits: Space Manager #152
+	* Rigbits: Tweaks support for proximity pin #230
+	* Shifter EPIC quadruped leg component #116
+	* Shifter Game Tools: FBX exporter BETA #117
+	* Shifter: embed guide information in rig #248
+	* Shifter: Right click context menu for guides #187
+	* Solvers: Add spring node gravity and simple collision #94
+
+**Enhancements**
+	* Added info for the user if (un)installation fails. #247
+	* Channel Master: New features #74
+	* Core: Added lineWidth of curves with collect_curve_data on curve.py #148 #151
+	* Core: attributes: add vector 3 attr method #156
+	* Core: deformer module + rigbits adding connect with morph #233
+	* Drag and drop support for more mGear's serialized formats #179
+	* EPIC Components adding support for custom name description #239
+	* Epic templates: Change IK reference hand and foot space to follow arm and legs #141
+	* Maya 2024 compatible.
+	* Metahuman template detach command + review leaf joints connection/disconnection #52
+	* Misc: Minimize code in userSetup.py #93
+	* Rigbits: Eye rigger 2 fixed number of joints #249
+	* Rigbits: IO Dialog use latest open folder
+	* Rigbits: Mirror Controls add extra attributes #200
+	* Rigbits: Misc improvements #129
+	* Rigbits: Move existing blendshape node to the front of chain #128
+	* Rigbits: RBF Manager, update SHAPES new node compatibility #244
+	* Rigbits: Tweaks optional control shape argument
+	* Shifter 3_jnt_leg Component: Tweak ctl by joint and MISC improvements #138
+	* Shifter Guide x ray curve in 2022 and new Maya versions #209
+	* Shifter: add rig_geo_grp set #137
+	* Shifter: addCtl add to controller set is now optional
+	* Shifter: better settings for CTL description #191
+	* Shifter: build from selection should try to autoselect the guide if nothing is selected #170
+	* Shifter: Build from selection without selecting guide #131
+	* Shifter: Collect data options update #157
+	* Shifter: Commands to manage joints connections and delete rig #169
+	* Shifter: ConnectRef method update #159
+	* Shifter: custom step UI misc improvements #241
+	* Shifter: Data collector: collect ctl shapes #132
+	* Shifter: Data Collector: Track joint solvers inputs #127
+	* Shifter: Extract controls should filter if is ctl #185
+	* Shifter: hide node inputs for controls #204
+	* Shifter: Improve IK/FK matching for legs + foot #92
+	* Shifter: Joint tagging to track guide locators relation #112
+	* Shifter: optinal controls orientation #163
+	* Shifter: Option to create joint_org directly on scene root #104
+	* Shifter: Resizeable log window #133
+	* SimpleRig: lock _npo #215
+	* Update dagmenu.py #216
+
+
+
+**Bug Fix**
+	* Adding in deregister for springGravity node #153
+	* anim_utils uses dict.iteritems() and errors in Python 3 #203
+	* Animbits: SoftTweak support for Maya 2022+
+	* attribute.py returns None and fails, if all channels are hidden #175
+	* Build from guide template file incompatible with EPIC components #238
+	* Core utils: viewport_off decorator fails in certain enviroment #190
+	* Core: findComponentChildren3 will fail if there is no children #171
+	* cvwrap missing print brackets for python 3 #84
+	* drag_n_drop_install script bug #154
+	* Epic components: Intermediate transforms in joint structure #142
+	* EPIC leg 02 wrong IK orientation in R side when Z-up #255
+	* Epic Mannequin Template several problems and bugs #242
+	* EPIC_legs flip/twist issue and EPIC_arm tangent scale not 0.0 #99
+	* Export weight maps broken in 2022+
+	* Game Tools Export: Set index is incorrect, re-connect fails #231
+	* IKFK match offset in biped template #122
+	* leg_3jnt_01 module breaks when rotated to be Z-up #161
+	* Metahuman driver neck bones not driven by mGear EPIC Metahuman rig #232
+	* Metahunam template right hand fingers bad orientation #173
+	* mgear menu disappearing issue #254
+	* mgear viewport menu: Range Switch + missing space switch options #178
+	* RBF Manager: import errors when 'drivenControlName' is null #149
+	* RBFManager: check if drivenControlName is valid before testing scene #150
+	* RBFManager: fix mirroring and add manual entry feature #155
+	* RBFManager: Mirror ctl action not working #211
+	* Rigbits: Bake spring menu command not working #83
+	* Rigbits: Bake Spring nodes #177
+	* Rigbits: blendshape module issue with 2.7 *args unpacking #160
+	* Rigbits: RBF fix sorted() call #125
+	* Rigbits: RBF manager failing to update the UI #124
+	* Rigbits: SDK IO: Fixed tangents are not supported by setKeyframe #164
+	* Rigbits: SDK manager reload python3 error #245
+	* Shifter : connectRef handle negates scaled axis references
+	* Shifter naming issue #225
+	* Shifter naming rule issue: If the {index} is removed #221
+	* Shifter: control_01 is missing ctl role. #167
+	* Shifter: Delete rig keep joints fails if no joints #186
+	* Shifter: fix ik/fk transition upv_ctrl #229
+	* Shifter: Leaf joints not created if connect to existing joints active #183
+	* Shifter: Rebuild rig on existing joints crash if joints has guide_relatives already created #165
+	* Shifter: upvector space bad index issue affecting several components #198
+	* Synoptic tabs list missing in guide configuration #256
+
+
+
+
 4.0.9
 ------
 **Enhancements**
