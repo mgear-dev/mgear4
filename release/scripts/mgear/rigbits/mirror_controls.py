@@ -84,7 +84,6 @@ def get_opposite_control(node):
 
 
 def mirror_left_to_right():
-    # convention = get_guide_side_conventions()
     pairs = []
     for source in get_controls_with_label("L"):
         target = get_opposite_control(source)
@@ -95,7 +94,6 @@ def mirror_left_to_right():
 
 
 def mirror_right_to_left():
-    # convention = get_guide_side_conventions()
     pairs = []
     for source in get_controls_with_label("R"):
         target = get_opposite_control(source)
