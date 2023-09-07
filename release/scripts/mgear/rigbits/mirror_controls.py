@@ -64,7 +64,7 @@ def get_controls_with_label(side_label):
                 continue
             nodes.append(node)
 
-    nodes = [x for x in nodes if x.hasAttr('side_label') and x.side_label.get() == side_label]
+    nodes = [x for x in nodes if x.hasAttr("side_label") and x.side_label.get() == side_label]
 
     return nodes
 
@@ -77,7 +77,7 @@ def get_opposite_control(node):
     if pc.objExists(target_parent_name):
         target_parent = pc.PyNode(target_parent_name)
 
-    target_name = target_parent.listRelatives(children=1, type='transform')[0]
+    target_name = target_parent.listRelatives(children=1, type="transform")[0]
     target = pc.PyNode(target_name)
 
     return target
