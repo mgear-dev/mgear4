@@ -6,10 +6,9 @@ from mgear.vendor.Qt import QtCore, QtWidgets
 
 
 def mirror_selection():
-    convention = get_guide_side_conventions()
     pairs = []
     for source in pc.selected():
-        target = get_opposite_control(source, convention)
+        target = get_opposite_control(source)
         if target:
             pairs.append([source, target])
 
@@ -42,25 +41,53 @@ def get_controls_without_string(exclusion_string):
 
     return nodes
 
+def get_controls_with_label(side_label):
+    nodes = []
 
-def get_opposite_control(node, convention=()):
-    target_name = ''
-    if convention:
-        target_name = rename_from_convention(node.name(), convention)
-    else:
-        target_name = mgear.core.string.convertRLName(node.name())
+    # Find controllers set
+    rig_models = [
+        item for item in pc.ls(transforms=True) if item.hasAttr("is_rig")
+    ]
+    controllers_set = None
+    for node in rig_models[0].rigGroups.inputs():
+        if node.name().endswith("controllers_grp"):
+            controllers_set = node
+            break
 
-    target = None
-    if pc.objExists(target_name):
-        target = pc.PyNode(target_name)
+    # Collect all transforms from set and subsets.
+    nodes = []
+    for node in controllers_set.members():
+        if node.nodeType() == "objectSet":
+            nodes.extend(node.members())
+        else:
+            if node.name() == 'world_ctl':
+                continue
+            nodes.append(node)
+
+    nodes = [x for x in nodes if x.hasAttr('side_label') and x.side_label.get() == side_label]
+
+    return nodes
+
+
+def get_opposite_control(node):
+
+    node_parent = node.parent(0)
+    target_parent_name = mgear.core.string.convertRLName(node_parent.name())
+    target_parent = None
+    if pc.objExists(target_parent_name):
+        target_parent = pc.PyNode(target_parent_name)
+
+    target_name = target_parent.listRelatives(c=1, type='transform')[0]
+    target = pc.PyNode(target_name)
+
     return target
 
 
 def mirror_left_to_right():
-    convention = get_guide_side_conventions()
+    # convention = get_guide_side_conventions()
     pairs = []
-    for source in get_controls_without_string("_R"):
-        target = get_opposite_control(source, convention)
+    for source in get_controls_with_label("L"):
+        target = get_opposite_control(source)
         if target:
             pairs.append([source, target])
 
@@ -68,10 +95,10 @@ def mirror_left_to_right():
 
 
 def mirror_right_to_left():
-    convention = get_guide_side_conventions()
+    # convention = get_guide_side_conventions()
     pairs = []
-    for source in get_controls_without_string("_L"):
-        target = get_opposite_control(source, convention)
+    for source in get_controls_with_label("R"):
+        target = get_opposite_control(source)
         if target:
             pairs.append([source, target])
 
@@ -115,28 +142,6 @@ def mirror_pairs(pairs):
         pc.delete(source_copy)
 
 
-def get_guide_side_conventions():
-    if pc.objExists("guide"):
-        guide = pc.PyNode("guide")
-        left_convention = guide.side_left_name.get()
-        right_convention = guide.side_right_name.get()
-
-        print(f'Convention = {(left_convention, right_convention)}')
-        return left_convention, right_convention
-    else:
-        return None
-
-
-def rename_from_convention(name='', convention=()):
-    target_name = ''
-    if convention[0] in name:
-        target_name = name.replace(convention[0], convention[1])
-    elif convention[1] in name:
-        target_name = name.replace(convention[1], convention[0])
-
-    return target_name
-
-
 class mirror_controls_ui(MayaQWidgetDockableMixin, QtWidgets.QDialog):
 
     def __init__(self, parent=None):
@@ -162,7 +167,6 @@ class mirror_controls_ui(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         layout.addWidget(self.mirror_button)
 
         self.mirror_button.clicked.connect(self.mirror_button_pressed)
-        print("hello frens")
 
     def mirror_button_pressed(self):
         pc.system.undoInfo(openChunk=True)
