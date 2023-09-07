@@ -136,9 +136,10 @@ def loadWeightPlugin(dependentFunc):
                     wd_version
                 )
             )
-        # just in case there is not SHAPES installed will try to load the
-        # weightDriver included with mGear
-        pm.loadPlugin("weightDriver", qt=True)
+        else:
+            # just in case there is not SHAPES installed will try to load the
+            # weightDriver included with mGear
+            pm.loadPlugin("weightDriver", qt=True)
 
     except RuntimeError:
         pm.displayWarning("RBF Manager couldn't found any valid RBF solver.")
