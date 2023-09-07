@@ -16,7 +16,6 @@ Release Log
 	* Rigbits: Space Manager #152
 	* Rigbits: Tweaks support for proximity pin #230
 	* Shifter EPIC quadruped leg component #116
-	* Shifter Game Tools: FBX exporter BETA #117
 	* Shifter: embed guide information in rig #248
 	* Shifter: Right click context menu for guides #187
 	* Solvers: Add spring node gravity and simple collision #94
