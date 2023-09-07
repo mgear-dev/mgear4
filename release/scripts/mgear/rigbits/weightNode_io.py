@@ -130,8 +130,7 @@ def loadWeightPlugin(dependentFunc):
         plugin_list = plugin_utils.get_all_available_plugins("weightDriver")
         plugin_utils.load_plugin_with_path(plugin_list, "weightDriver/plug-ins")
         wd_version = plugin_utils.get_plugin_version("weightDriver")
-        wd_version = plugin_utils.get_plugin_version("weightDriver")
-        if wd_version > "3.6.2":
+        if wd_version and wd_version > "3.6.2":
             pm.displayInfo(
                 "RBF Manager is using weightDriver version {} installed with SHAPES plugin".format(
                     wd_version
