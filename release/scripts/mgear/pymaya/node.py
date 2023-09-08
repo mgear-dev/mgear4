@@ -4,7 +4,7 @@ class PyNode(object):
     _selectionlist = _om.MSelectionList()
 
     @staticmethod
-    def _getObjectFromName(nodename):
+    def __getObjectFromName(nodename):
         PyNode._selectionlist.clear()
         try:
             PyNode._selectionlist.add(nodename)
@@ -13,21 +13,17 @@ class PyNode(object):
 
         return PyNode._selectionlist.getDependNode(0)
 
-    def __new__(self, nodename):
-        obj = PyNode._getObjectFromName(nodename)
-        if obj is None:
-            print(f"[pymaya.PyNode] Error : No such node '{nodename}'")
-            return None
-
-        if not obj.hasFn(PyNode._om.MFn.kDependencyNode):
-            print(f"[pymaya.PyNode] Error : Not a dependency node '{nodename}'")
-            return None
-
-        return super(PyNode, self).__new__(self)
-
     def __init__(self, nodename):
         super(PyNode, self).__init__()
-        self.__obj = PyNode._getObjectFromName(nodename)
+        self.__attrs = {}
+        self.__obj = PyNode.__getObjectFromName(nodename)
+
+        if self.__obj is None:
+            raise RuntimeError(f"No such node '{nodename}'")
+
+        if not self.__obj.hasFn(PyNode._om.MFn.kDependencyNode):
+            raise RuntimeError(f"Not a dependency node '{nodename}'")
+
         self.__fn_dg = PyNode._om.MFnDependencyNode(self.__obj)
 
         if self.__obj.hasFn(PyNode._om.MFn.kDagNode):
