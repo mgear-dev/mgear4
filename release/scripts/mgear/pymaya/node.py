@@ -1,6 +1,8 @@
 class PyNode(object):
     from maya.api import OpenMaya as _om
     from maya import cmds as _cmds
+    from . import attr as _attr
+
     _selectionlist = _om.MSelectionList()
 
     @staticmethod
@@ -30,6 +32,22 @@ class PyNode(object):
             self.__fn_dag = PyNode._om.MFnDagNode(PyNode._om.MDagPath.getAPathTo(self.__obj))
         else:
             self.__fn_dag = None
+
+    def __getattribute__(self, name):
+        try:
+            return super(PyNode, self).__getattribute__(name)
+        except AttributeError:
+            attrs = super(PyNode, self).__getattribute__("_PyNode__attrs")
+            if name in attrs:
+                return attrs[name]
+
+            nfnc = super(PyNode, self).__getattribute__("name")
+            if PyNode._cmds.ls(f"{nfnc()}.{name}"):
+                at = PyNode._attr.PyAttr(f"{nfnc()}.{name}")
+                attrs[name] = at
+                return at
+
+            raise
 
     def dg(self):
         return self.__fn_dg
