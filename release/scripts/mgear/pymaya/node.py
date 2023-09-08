@@ -1,19 +1,20 @@
-class PyNode(object):
-    from maya.api import OpenMaya as _om
-    from maya import cmds as _cmds
-    from . import attr as _attr
+from maya.api import OpenMaya
+from maya import cmds
+from . import attr
 
-    _selectionlist = _om.MSelectionList()
+
+class PyNode(object):
+    __selection_list = OpenMaya.MSelectionList()
 
     @staticmethod
     def __getObjectFromName(nodename):
-        PyNode._selectionlist.clear()
+        PyNode.__selection_list.clear()
         try:
-            PyNode._selectionlist.add(nodename)
+            PyNode.__selection_list.add(nodename)
         except RuntimeError as e:
             return None
 
-        return PyNode._selectionlist.getDependNode(0)
+        return PyNode.__selection_list.getDependNode(0)
 
     def __init__(self, nodename):
         super(PyNode, self).__init__()
@@ -23,13 +24,13 @@ class PyNode(object):
         if self.__obj is None:
             raise RuntimeError(f"No such node '{nodename}'")
 
-        if not self.__obj.hasFn(PyNode._om.MFn.kDependencyNode):
+        if not self.__obj.hasFn(OpenMaya.MFn.kDependencyNode):
             raise RuntimeError(f"Not a dependency node '{nodename}'")
 
-        self.__fn_dg = PyNode._om.MFnDependencyNode(self.__obj)
+        self.__fn_dg = OpenMaya.MFnDependencyNode(self.__obj)
 
-        if self.__obj.hasFn(PyNode._om.MFn.kDagNode):
-            self.__fn_dag = PyNode._om.MFnDagNode(PyNode._om.MDagPath.getAPathTo(self.__obj))
+        if self.__obj.hasFn(OpenMaya.MFn.kDagNode):
+            self.__fn_dag = OpenMaya.MFnDagNode(OpenMaya.MDagPath.getAPathTo(self.__obj))
         else:
             self.__fn_dag = None
 
@@ -37,14 +38,14 @@ class PyNode(object):
         try:
             return super(PyNode, self).__getattribute__(name)
         except AttributeError:
-            attrs = super(PyNode, self).__getattribute__("_PyNode__attrs")
-            if name in attrs:
-                return attrs[name]
+            attr_cache = super(PyNode, self).__getattribute__("_PyNode__attrs")
+            if name in attr_cache:
+                return attr_cache[name]
 
             nfnc = super(PyNode, self).__getattribute__("name")
-            if PyNode._cmds.ls(f"{nfnc()}.{name}"):
-                at = PyNode._attr.PyAttr(f"{nfnc()}.{name}")
-                attrs[name] = at
+            if cmds.ls(f"{nfnc()}.{name}"):
+                at = attr.PyAttr(f"{nfnc()}.{name}")
+                attr_cache[name] = at
                 return at
 
             raise

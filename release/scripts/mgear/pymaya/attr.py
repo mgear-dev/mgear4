@@ -1,18 +1,18 @@
-class PyAttr(object):
-    from maya.api import OpenMaya as _om
-    from maya import cmds as _cmds
+from maya.api import OpenMaya
 
-    _selectionlist = _om.MSelectionList()
+
+class PyAttr(object):
+    __selectionlist = OpenMaya.MSelectionList()
 
     @staticmethod
     def __getPlug(attrname):
-        PyAttr._selectionlist.clear()
+        PyAttr.__selectionlist.clear()
         try:
-            PyAttr._selectionlist.add(attrname)
+            PyAttr.__selectionlist.add(attrname)
         except RuntimeError as e:
             return None
 
-        return PyAttr._selectionlist.getDependNode(0)
+        return PyAttr.__selectionlist.getDependNode(0)
 
     def __init__(self, attrname):
         super(PyAttr, self).__init__()
