@@ -1,116 +1,134 @@
-import pymel.core as pc
+import pymel.core as pm
 from maya.app.general.mayaMixin import MayaQWidgetDockableMixin
 
 import mgear
+
 from mgear.vendor.Qt import QtCore, QtWidgets
 
 
-def mirror_selection():
-    pairs = []
-    for source in pc.selected():
-        target = get_opposite_control(source)
-        if target:
-            pairs.append([source, target])
+class MirrorController:
+    def __init__(self):
+        pass
 
-    mirror_pairs(pairs)
+    @staticmethod
+    def get_opposite_control(node):
+        side_l = node.attr("L_custom_side_label").get()
+        side_r = node.attr("R_custom_side_label").get()
+        side = node.attr("side_label").get()
 
+        target_name = None
+        if side == "L":
+            target_name = node.name().replace(side_l, side_r)
+        elif side == "R":
+            target_name = node.name().replace(side_r, side_l)
 
-def get_controls_without_string(exclusion_string):
-    nodes = []
+        if target_name and pm.objExists(target_name):
+            return pm.PyNode(target_name)
+        return None
 
-    # Find controllers set
-    rig_models = [
-        item for item in pc.ls(transforms=True) if item.hasAttr("is_rig")
-    ]
-    controllers_set = None
-    for node in rig_models[0].rigGroups.inputs():
-        if node.name().endswith("controllers_grp"):
-            controllers_set = node
-            break
+    @staticmethod
+    def get_specific_side_controls(side="L"):
+        # Find controllers set
+        rig_models = [item for item in pm.ls(transforms=True) if item.hasAttr("is_rig")]
+        controllers_set = None
+        for node in rig_models[0].rigGroups.inputs():
+            if node.name().endswith("controllers_grp"):
+                controllers_set = node
+                break
 
-    # Collect all transforms from set and subsets.
-    nodes = []
-    for node in controllers_set.members():
-        if node.nodeType() == "objectSet":
-            nodes.extend(node.members())
-        else:
-            nodes.append(node)
+        # Collect all transforms from set and subsets.
+        nodes = []
+        for node in controllers_set.members():
+            if node.nodeType() == "objectSet":
+                nodes.extend(node.members())
+            else:
+                nodes.append(node)
 
-    # Find all nodes without exclusion_string
-    nodes = [x for x in nodes if exclusion_string not in x.name()]
+        side_name = None
+        side_ctl = [node for node in nodes if node.hasAttr("{}_custom_side_label".format(side))]
+        if side_ctl:
+            side_name = side_ctl[0].attr("{}_custom_side_label".format(side)).get()
 
-    return nodes
+        # Find all nodes without exclusion_string
+        nodes = [x for x in nodes if side_name in x.name()]
+        return nodes
 
-
-def get_opposite_control(node):
-    target_name = mgear.core.string.convertRLName(node.name())
-    target = None
-    if pc.objExists(target_name):
-        target = pc.PyNode(target_name)
-    return target
-
-
-def mirror_left_to_right():
-    pairs = []
-    for source in get_controls_without_string("_R"):
-        target = get_opposite_control(source)
-        if target:
-            pairs.append([source, target])
-
-    mirror_pairs(pairs)
-
-
-def mirror_right_to_left():
-    pairs = []
-    for source in get_controls_without_string("_L"):
-        target = get_opposite_control(source)
-        if target:
-            pairs.append([source, target])
-
-    mirror_pairs(pairs)
-
-
-def mirror_pairs(pairs):
-    # Modify control shapes
-    for source, target in pairs:
-        # Copy shapes
-        source_copy = pc.duplicate(source)[0]
+    @staticmethod
+    def copy_and_prepare_source(source):
+        source_copy = pm.duplicate(source)[0]
         mgear.core.attribute.setKeyableAttributes(
             source_copy,
             ["tx", "ty", "tz", "ro", "rx", "ry", "rz", "sx", "sy", "sz"]
         )
 
-        # Delete children except shapes
         for child in source_copy.getChildren():
             if child.nodeType() != "nurbsCurve":
-                pc.delete(child)
+                pm.delete(child)
+        return source_copy
 
-        # Mirror
-        pc.select(clear=True)
-        grp = pc.group(world=True)
-        pc.parent(source_copy, grp)
-        grp.scaleX.set(-1)
+    def mirror_pairs(self, pairs):
+        # Modify control shapes
+        for source, target in pairs:
+            source_copy = self.copy_and_prepare_source(source)
 
-        # Reparent, freeze transforms and match color
-        pc.parent(source_copy, target)
-        pc.makeIdentity(source_copy, apply=True, t=1, r=1, s=1, n=0)
-        pc.parent(source_copy, target.getParent())
-        targetColor = mgear.core.curve.get_color(target)
-        if targetColor:
-            mgear.core.curve.set_color(source_copy, targetColor)
+            pm.select(clear=True)
 
-        # Replace shape
-        mgear.rigbits.replaceShape(source_copy, [target])
+            # Mirror a source copy under a group node
+            grp = pm.group(world=True)
+            pm.parent(source_copy, grp)
+            grp.scaleX.set(-1)
 
-        # Clean up
-        pc.delete(grp)
-        pc.delete(source_copy)
+            # Re-parent, freeze transforms and match color
+            pm.parent(source_copy, target)
+            pm.makeIdentity(source_copy, apply=True, t=1, r=1, s=1, n=0)
+            pm.parent(source_copy, target.getParent())
+
+            target_color = mgear.core.curve.get_color(target)
+            if target_color:
+                mgear.core.curve.set_color(source_copy, target_color)
+
+            # Replace shape
+            mgear.rigbits.replaceShape(source_copy, [target])
+
+            # Clean up
+            pm.delete(grp)
+            pm.delete(source_copy)
+
+    def mirror_selection(self):
+        pairs = []
+        for source in pm.selected():
+            target = self.get_opposite_control(source)
+            if not target:
+                continue
+            pairs.append([source, target])
+
+        self.mirror_pairs(pairs)
+
+    def mirror_left_to_right(self):
+        pairs = []
+        for source in self.get_specific_side_controls(side="L"):
+            target = self.get_opposite_control(source)
+            if target:
+                pairs.append([source, target])
+
+        self.mirror_pairs(pairs)
+
+    def mirror_right_to_left(self):
+        pairs = []
+        for source in self.get_specific_side_controls(side="R"):
+            target = self.get_opposite_control(source)
+            if target:
+                pairs.append([source, target])
+
+        self.mirror_pairs(pairs)
 
 
-class mirror_controls_ui(MayaQWidgetDockableMixin, QtWidgets.QDialog):
+class MirrorControlsUi(MayaQWidgetDockableMixin, QtWidgets.QDialog):
 
     def __init__(self, parent=None):
-        super(mirror_controls_ui, self).__init__(parent)
+        super(MirrorControlsUi, self).__init__(parent)
+
+        self.func = MirrorController()
 
         self.setWindowTitle("Mirror Controls")
         self.setWindowFlags(QtCore.Qt.Window)
@@ -134,26 +152,26 @@ class mirror_controls_ui(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.mirror_button.clicked.connect(self.mirror_button_pressed)
 
     def mirror_button_pressed(self):
-        pc.system.undoInfo(openChunk=True)
+        pm.system.undoInfo(openChunk=True)
 
         # Store selection
-        selection = pc.selected()
+        selection = pm.selected()
 
         if self.selection_button.isChecked():
-            mirror_selection()
+            self.func.mirror_selection()
         if self.left_to_right_button.isChecked():
-            mirror_left_to_right()
+            self.func.mirror_left_to_right()
         if self.right_to_left_button.isChecked():
-            mirror_right_to_left()
+            self.func.mirror_right_to_left()
 
         # Restore selection
-        pc.select(selection)
+        pm.select(selection)
 
-        pc.system.undoInfo(closeChunk=True)
+        pm.system.undoInfo(closeChunk=True)
 
 
 def show(*args):
-    mgear.core.pyqt.showDialog(mirror_controls_ui)
+    mgear.core.pyqt.showDialog(MirrorControlsUi)
 
 
 if __name__ == "__main__":
