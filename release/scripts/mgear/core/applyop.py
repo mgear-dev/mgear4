@@ -9,13 +9,13 @@ Operators are any node that connected to other nodes creates a rig behaviour::
 """
 
 
-import maya.api.OpenMaya as om
 #############################################
 # GLOBAL
 #############################################
 import pymel.core as pm
 from pymel.core import datatypes
 
+import maya.api.OpenMaya as om
 from .six import string_types
 
 #############################################
