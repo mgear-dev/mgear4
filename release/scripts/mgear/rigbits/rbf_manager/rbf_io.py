@@ -11,7 +11,7 @@ __email__ = "rav@ravrigs.com"
 """
 # python
 import json
-from .six import PY2
+from mgear.rigbits.six import PY2
 
 # core
 import maya.cmds as mc

@@ -181,7 +181,7 @@ rigbits.duplicateSym()
 """
 
 str_rbf_manager_ui = """
-from mgear.rigbits import rbf_manager_ui
+from mgear.rigbits.rbf_manager import rbf_manager_ui
 rbf_manager_ui.show()
 """
 
