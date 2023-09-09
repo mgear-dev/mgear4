@@ -5,9 +5,10 @@ Release Log
 ------
 
 **Bug Fix**
-	* Shifter: Control_01 and other simple components wrong naming with some custom name rules. #268
-	* Rigbits: Fixed a bug related to the Mirror Control Shape tool. reported by remicc #252
 	* Fixed Error while mgear menu generation on startup #265 #267
+	* Rigbits: Fixed a bug related to the Mirror Control Shape tool. reported by remicc #252 #174
+	* Rigbits: Fixed a bug that can't open a fileDialog to import/export a SDK file throughout the GUI. #250
+	* Shifter: Control_01 and other simple components wrong naming with some custom name rules. #268
 
 4.1.0
 ------
