@@ -9,13 +9,13 @@ Operators are any node that connected to other nodes creates a rig behaviour::
 """
 
 
+import maya.api.OpenMaya as om
 #############################################
 # GLOBAL
 #############################################
 import pymel.core as pm
 from pymel.core import datatypes
 
-import maya.api.OpenMaya as om
 from .six import string_types
 
 #############################################
@@ -35,20 +35,19 @@ def curvecns_op(crv, inputs=[]):
     return node
 
 
-def splineIK(name, chn, parent=None, cParent=None, curve=None):
+def splineIK(name, chain, parent=None, cParent=None, curve=None):
     """Apply a splineIK solver to a chain.
 
     Arguments:
         name (str): Name of the operator node.
-        chn (list of joints): List of joints. At less 2 joints should be in
-            the list.
+        chain  (list of joints): List of joints. At less 2 joints should be in the list.
         parent (dagNode): Parent for the ikHandle.
         cParent (dagNode): Parent for the curve.
         curve (dagNode): Specifies the curve to be used by the ikSplineHandle.
             This param is optional.
 
     Returns:
-        list: ikHandle node and splinecrv in a list
+        tuple: ikHandle node and spline curve
 
     Example:
         >>> aop.splineIK(self.getName("rollRef"),
@@ -57,31 +56,33 @@ def splineIK(name, chn, parent=None, cParent=None, curve=None):
                          cParent=self.bone0 )
 
     """
-    data = {}
-    data["n"] = name
-    data["solver"] = "ikSplineSolver"
-    data["ccv"] = True
-    data["startJoint"] = chn[0]
-    data["endEffector"] = chn[-1]
-    if curve is not None:
-        data["curve"] = curve
+    ikData = {
+        "name": name,
+        "solver": "ikSplineSolver",
+        "createCurve": not bool(curve),
+        "startJoint": chain[0],
+        "endEffector": chain[-1],
+    }
 
-    node, effector, splineCrv = pm.ikHandle(**data)
-    # converting to pyNode
-    node = pm.PyNode("|" + node)
-    effector = pm.PyNode(effector)
-    splineCrv = pm.PyNode(splineCrv)
+    # Handle different return values based on the curve argument
+    if curve:
+        ikData["curve"] = curve
+        ikHandle, effector = pm.ikHandle(**ikData)
+    else:
+        ikHandle, effector, curve = pm.ikHandle(**ikData)
 
-    node.setAttr("visibility", False)
-    splineCrv.setAttr("visibility", False)
-    pm.rename(splineCrv, name + "_crv")
-    pm.rename(effector, name + "_eff")
-    if parent is not None:
-        parent.addChild(node)
-    if cParent is not None:
-        cParent.addChild(splineCrv)
+    ikHandle.visibility.set(False)
+    curve.visibility.set(False)
+    
+    curve.rename("{}_crv".format(name))
+    effector.rename("{}_eff".format(name))
+    
+    if parent:
+        parent.addChild(ikHandle)
+    if cParent:
+        cParent.addChild(curve)
 
-    return node, splineCrv
+    return ikHandle, curve
 
 
 def oriCns(driver, driven, maintainOffset=False):
