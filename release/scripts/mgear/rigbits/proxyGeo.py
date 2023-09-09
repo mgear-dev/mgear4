@@ -940,8 +940,8 @@ class proxyGeoUI(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         super(proxyGeoUI, self).__init__(parent)
 
         self.setWindowTitle("Proxy Geo Creator")
-        min_w = 155
-        default_w = 200
+        min_w = 230
+        default_w = 270
         default_h = 230
         self.setMinimumWidth(min_w)
         self.resize(default_w, default_h)
