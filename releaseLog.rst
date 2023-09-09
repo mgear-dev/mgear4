@@ -1,6 +1,12 @@
 Release Log
 ===========
 
+4.1.1
+------
+
+**Bug Fix**
+	* Shifter: Control_01 and other simple components wrong naming with some custom name rules. #268
+
 4.1.0
 ------
 **New Features**
