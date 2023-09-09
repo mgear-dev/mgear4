@@ -6,6 +6,8 @@ Release Log
 
 **Bug Fix**
 	* Shifter: Control_01 and other simple components wrong naming with some custom name rules. #268
+	* Rigbits: Fixed a bug related to the Mirror Control Shape tool. reported by remicc #252
+	* Fixed Error while mgear menu generation on startup #265 #267
 
 4.1.0
 ------
