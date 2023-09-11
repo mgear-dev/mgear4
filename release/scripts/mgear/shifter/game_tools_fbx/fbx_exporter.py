@@ -30,7 +30,7 @@ WIDGET_SETTINGS = settings_manager.ExporterSettingsManager("FbxExporter")
 
 
 class FBXExporter(MayaQWidgetDockableMixin, QtWidgets.QDialog):
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, reset=False):
         super(FBXExporter, self).__init__(parent)
         self.setWindowFlags(QtCore.Qt.Tool)
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose, True)
@@ -46,7 +46,7 @@ class FBXExporter(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.refresh_fbx_sdk_ui()
         self.refresh_ue_connection()
 
-        WIDGET_SETTINGS.load_ui_state(self.widget_dict)
+        WIDGET_SETTINGS.load_ui_state(self.widget_dict, reset=reset)
         self._update_geo_root_data()
         self._update_joint_root_data()
         self.save_data_to_export_node()
@@ -259,6 +259,9 @@ class FBXExporter(MayaQWidgetDockableMixin, QtWidgets.QDialog):
     def create_file_path_widget(self):
         # main collapsible widget layout
         file_path_collap_wgt = widgets.CollapsibleWidget("File Path")
+        file_path_collap_wgt.setSizePolicy(
+            QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Maximum
+        )
         self.main_layout.addWidget(file_path_collap_wgt)
         path_main_layout = QtWidgets.QVBoxLayout()
         path_main_layout.setSpacing(2)
@@ -289,6 +292,9 @@ class FBXExporter(MayaQWidgetDockableMixin, QtWidgets.QDialog):
     def create_unreal_import_widget(self):
         self.ue_import_collap_wgt = widgets.CollapsibleWidget(
             "Unreal Engine Import"
+        )
+        self.ue_import_collap_wgt.setSizePolicy(
+            QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Maximum
         )
         self.main_layout.addWidget(self.ue_import_collap_wgt)
         ue_path_main_layout = QtWidgets.QVBoxLayout()
@@ -356,10 +362,10 @@ class FBXExporter(MayaQWidgetDockableMixin, QtWidgets.QDialog):
 
         # partitions outliner
         self.partitions_outliner = partitions_outliner.PartitionsOutliner()
-        self.partitions_outliner.setSizePolicy(
-            QtWidgets.QSizePolicy.MinimumExpanding,
-            QtWidgets.QSizePolicy.MinimumExpanding,
-        )
+        # self.partitions_outliner.setSizePolicy(
+        #     QtWidgets.QSizePolicy.MinimumExpanding,
+        #     QtWidgets.QSizePolicy.MinimumExpanding,
+        # )
         partitions_layout.addWidget(self.partitions_outliner)
 
         # partition buttons
