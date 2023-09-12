@@ -86,7 +86,9 @@ class SelectorDialog(QtWidgets.QDialog):
         self.item = item.text()
 
 
-def export_skeletal_mesh(jnt_roots, geo_roots, export_data):
+def export_skeletal_mesh(export_data):
+    geo_roots = export_data.get("geo_roots", "")
+    joint_roots = [export_data.get("joint_root", "")]
     file_path = export_data.get("file_path", "")
     file_name = export_data.get("file_name", "")
     preset_path = export_data.get("preset_path", None)
@@ -99,7 +101,6 @@ def export_skeletal_mesh(jnt_roots, geo_roots, export_data):
     skinning = export_data.get("skinning", True)
     blendshapes = export_data.get("blendshapes", True)
     use_partitions = export_data.get("use_partitions", True)
-    partitions = export_data.get("partitions", None)
 
     if not file_name.endswith(".fbx"):
         file_name = "{}.fbx".format(file_name)
@@ -127,14 +128,14 @@ def export_skeletal_mesh(jnt_roots, geo_roots, export_data):
         pfbx.FBXExportInAscii(v=True)
 
     # select elements and export all the data
-    pm.select(jnt_roots + geo_roots)
+    pm.select(geo_roots + joint_roots)
 
     fbx_modified = False
     pfbx.FBXExport(f=export_path, s=True)
     fbx_file = sdk_utils.FbxSdkGameToolsWrapper(export_path)
 
     # Make sure root joints are parented to world
-    for jnt_root in jnt_roots:
+    for jnt_root in joint_roots:
         fbx_file.parent_to_world(jnt_root, remove_top_parent=False)
     if geo_roots:
         for geo_root in geo_roots:
@@ -178,7 +179,7 @@ def export_skeletal_mesh(jnt_roots, geo_roots, export_data):
     # post process with FBX SDK if available
     if pfbx.FBX_SDK:
         if use_partitions:
-            export_skeletal_mesh_partitions(jnt_roots, export_data)
+            export_skeletal_mesh_partitions(joint_roots, export_data)
 
             # when using partitions, we remove full FBX file
             if os.path.isfile(export_path):
@@ -220,7 +221,9 @@ def export_skeletal_mesh_partitions(jnt_roots, export_data):
     # data that will be exported into a temporal file
     partitions_data = OrderedDict()
 
-    for partition_name, meshes in partitions.items():
+    for partition_name, data in partitions.items():
+        meshes = data.get("skeletal_meshes", None)
+
         joint_hierarchy = OrderedDict()
         for mesh in meshes:
             # we retrieve all end joints from the influenced joints
@@ -265,17 +268,22 @@ def export_skeletal_mesh_partitions(jnt_roots, export_data):
 
     try:
         for partition_name, partition_data in partitions_data.items():
+            if not partition_data:
+                continue
             fbx_file = sdk_utils.FbxSdkGameToolsWrapper(path)
-            partition_meshes = partitions.get(partition_name)
+            partition_meshes = partitions.get(partition_name).get(
+                "skeletal_meshes"
+            )
             fbx_file.export_skeletal_mesh(
                 file_name=partition_name,
                 mesh_names=partition_meshes,
-                hierarchy_joints=partition_data["hierarchy"],
+                hierarchy_joints=partition_data.get("hierarchy", []),
                 deformations=deformations,
                 skins=skinning,
                 blendshapes=blendshapes,
             )
             fbx_file.close()
+
     except Exception:
         cmds.error(
             "Something wrong happened while export skeleton mesh: {}".format(

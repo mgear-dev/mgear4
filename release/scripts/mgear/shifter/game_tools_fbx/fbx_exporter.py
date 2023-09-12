@@ -637,6 +637,9 @@ class FBXExporter(MayaQWidgetDockableMixin, QtWidgets.QDialog):
             cmds.warning("Not valid file path and name defined!")
             return False
 
+        # retrieve export config
+        export_config = self._get_current_tool_data()
+
         use_partitions = self.partitions_checkbox.isChecked()
         if use_partitions:
             # Master partition data is retrieved from UI
@@ -652,16 +655,12 @@ class FBXExporter(MayaQWidgetDockableMixin, QtWidgets.QDialog):
                 if not (enabled and skeletal_meshes):
                     continue
                 print("\t\t{}: {}".format(partition_name, skeletal_meshes))
+            export_config["partitions"] = partitions
 
         preset_file_path = self._get_preset_file_path()
         print("\t>>> Preset File Path: {}".format(preset_file_path))
 
-        # retrieve export config
-        export_config = self._get_current_tool_data()
-        print(geo_roots)
-        result = utils.export_skeletal_mesh(
-            [joint_root], geo_roots, export_data=export_config
-        )
+        result = utils.export_skeletal_mesh(export_config)
         if not result:
             cmds.warning(
                 "Something went wrong while exporting Skeletal Mesh/es"
