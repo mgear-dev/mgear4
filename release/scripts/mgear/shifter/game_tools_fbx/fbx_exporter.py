@@ -20,17 +20,13 @@ from mgear.shifter.game_tools_fbx import (
     anim_clip_widgets,
     fbx_export_node,
     partitions_outliner,
-    settings_manager,
     utils,
 )
 from mgear.uegear import commands as uegear
 
 
-WIDGET_SETTINGS = settings_manager.ExporterSettingsManager("FbxExporter")
-
-
 class FBXExporter(MayaQWidgetDockableMixin, QtWidgets.QDialog):
-    def __init__(self, parent=None, reset=False):
+    def __init__(self, parent=None):
         super(FBXExporter, self).__init__(parent)
         self.setWindowFlags(QtCore.Qt.Tool)
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose, True)
@@ -45,21 +41,15 @@ class FBXExporter(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.create_connections()
         self.refresh_fbx_sdk_ui()
         self.refresh_ue_connection()
-
-        WIDGET_SETTINGS.load_ui_state(self.widget_dict, reset=reset)
-        self._update_geo_root_data()
-        self._update_joint_root_data()
-        self.save_data_to_export_node()
+        self._load_node_data_to_widget()
 
     def closeEvent(self, event):
-        self.save_data_to_export_node()
-        WIDGET_SETTINGS.save_ui_state(self.widget_dict)
+        self._save_data_to_export_node()
         super(FBXExporter, self).closeEvent(event)
 
     def dockCloseEventTriggered(self):
         super(FBXExporter, self).dockCloseEventTriggered()
-        self.save_data_to_export_node()
-        WIDGET_SETTINGS.save_ui_state(self.widget_dict)
+        self._save_data_to_export_node()
 
     def create_layout(self):
         self.main_layout = QtWidgets.QVBoxLayout(self)
@@ -73,6 +63,7 @@ class FBXExporter(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         # self.create_unreal_import_widget()
         self.create_export_widget()
 
+        # TODO: need for settings manager but currently not in use, consider removing
         self.widget_dict = {
             "geo_roots": self.geo_root_list,
             "joint_root": self.joint_root_lineedit,
@@ -329,8 +320,6 @@ class FBXExporter(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.create_skeletal_mesh_tab()
         self.create_animation_tab()
 
-        self.export_tab.setCurrentIndex(1)  # temp for testing anim clips
-
     def create_skeletal_mesh_tab(self):
         # main collapsible widget layout
         skeletal_mesh_tab = QtWidgets.QWidget()
@@ -499,7 +488,7 @@ class FBXExporter(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         file_name, file_ext = os.path.splitext(export_file)
         if not file_ext or file_ext != ".json":
             export_file = "{}.json".format(file_name)
-        export_data = self.save_data_to_export_node()
+        export_data = self._save_data_to_export_node()
         with open(export_file, "w") as f:
             json.dump(export_data, f)
         return export_data
@@ -512,7 +501,7 @@ class FBXExporter(MayaQWidgetDockableMixin, QtWidgets.QDialog):
             return False
         with open(import_file, "r") as f:
             import_data = json.load(f)
-        self.save_data_to_export_node(import_data)
+        self._save_data_to_export_node(import_data)
         self._set_tool_data(import_data)
         return import_data
 
@@ -585,7 +574,7 @@ class FBXExporter(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.skmesh_rem_btn.setEnabled(flag)
 
     def add_skeletal_mesh_partition(self):
-        export_node = self.get_or_create_export_node()
+        export_node = self._get_or_create_export_node()
         name, ok = QtWidgets.QInputDialog.getText(
             self,
             "New Partition",
@@ -623,7 +612,7 @@ class FBXExporter(MayaQWidgetDockableMixin, QtWidgets.QDialog):
 
     def export_skeletal_mesh(self):
         print("----- Exporting Skeletal Meshes -----")
-        export_node = self.get_or_create_export_node()
+        export_node = self._get_or_create_export_node()
 
         geo_roots = self._get_listwidget_item_names(self.geo_root_list)
         if not geo_roots:
@@ -696,7 +685,7 @@ class FBXExporter(MayaQWidgetDockableMixin, QtWidgets.QDialog):
 
     def export_animation_clips(self):
         print("----- Exporting Animation Clips -----")
-        export_node = self.get_or_create_export_node()
+        export_node = self._get_or_create_export_node()
 
         joint_root = self.get_root_joint()
         if not joint_root:
@@ -718,24 +707,29 @@ class FBXExporter(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         for anim_clip_data in export_node.get_animation_clips(joint_root):
             anim_clip_export_data = export_config.copy()
             anim_clip_export_data.update(anim_clip_data)
-            utils.export_animation_clip(joint_root, **anim_clip_export_data)
+            utils.export_animation_clip(joint_root, anim_clip_export_data)
 
         return True
 
     # helper methods
-    def get_or_create_export_node(self):
+    def _get_or_create_export_node(self):
         return (
             fbx_export_node.FbxExportNode.get()
             or fbx_export_node.FbxExportNode.create()
         )
 
-    def save_data_to_export_node(self, data=None):
-        export_node = self.get_or_create_export_node()
+    def _save_data_to_export_node(self, data=None):
+        export_node = self._get_or_create_export_node()
         export_data = data if data else export_node.parse_export_data()
         current_data = self._get_current_tool_data()
         export_data.update(current_data)
         export_node.save_data(export_data)
         return export_data
+
+    def _load_node_data_to_widget(self):
+        export_node = self._get_or_create_export_node()
+        node_data = export_node.parse_export_data()
+        self._set_tool_data(node_data)
 
     def _get_listwidget_item_names(self, listwidget):
         return [listwidget.item(i).text() for i in range(listwidget.count())]
@@ -763,6 +757,7 @@ class FBXExporter(MayaQWidgetDockableMixin, QtWidgets.QDialog):
             "skinning": self.skinning_checkbox.isChecked(),
             "blendshapes": self.blendshapes_checkbox.isChecked(),
             "use_partitions": self.partitions_checkbox.isChecked(),
+            "export_tab": self.export_tab.currentIndex(),
         }
         return current_data
 
@@ -786,18 +781,19 @@ class FBXExporter(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.skinning_checkbox.setChecked(data.get("skinning", False))
         self.blendshapes_checkbox.setChecked(data.get("blendshapes", False))
         self.partitions_checkbox.setChecked(data.get("use_partitions", False))
+        self.export_tab.setCurrentIndex(data.get("export_tab", 0))
         self.partitions_outliner.reset_contents()
         self.anim_clips_listwidget.refresh()
 
-    def _update_geo_root_data(self):
+    def _update_geo_roots_data(self):
+        export_node = self._get_or_create_export_node()
         item_names = self._get_listwidget_item_names(self.geo_root_list)
-        export_node = self.get_or_create_export_node()
         export_node.save_root_data("geo_roots", item_names)
         self.partitions_outliner.set_geo_roots(item_names)
 
     def _update_joint_root_data(self):
+        export_node = self._get_or_create_export_node()
         joint_name = self.joint_root_lineedit.text()
-        export_node = self.get_or_create_export_node()
         export_node.save_root_data("joint_root", joint_name)
         self.anim_clips_listwidget.refresh()
 
@@ -808,7 +804,7 @@ class FBXExporter(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         if not self.geo_root_list.count():
             geo_roots.append(utils.get_geo_root())
         self.geo_root_list.addItems(geo_roots)
-        self._update_geo_root_data()
+        self._update_geo_roots_data()
 
     def _auto_set_joint_root(self):
         joint_roots = utils.get_joint_root()
@@ -876,7 +872,7 @@ class FBXExporter(MayaQWidgetDockableMixin, QtWidgets.QDialog):
                 continue
             listwidget.addItem(node_name)
         if listwidget == self.geo_root_list:
-            self._update_geo_root_data()
+            self._update_geo_roots_data()
 
     def _remove_list_items_from_sel(self, listwidget):
         """Removes list widget items from selected list items
@@ -888,7 +884,7 @@ class FBXExporter(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         for selected_item in selected_items:
             listwidget.takeItem(listwidget.row(selected_item))
         if listwidget == self.geo_root_list:
-            self._update_geo_root_data()
+            self._update_geo_roots_data()
 
     def _set_lineedit_text_from_sel(self, lineedit, type_filter):
         """Set line edit text from selected element filtered by type
