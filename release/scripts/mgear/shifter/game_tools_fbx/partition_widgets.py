@@ -3,7 +3,7 @@ import weakref
 
 import maya.cmds as cmds
 
-# TODO: Remove following dependencies
+# TODO: Remove dependency
 import maya.app.flux.core as fx
 
 from mgear.vendor.Qt import QtWidgets, QtCore, QtGui
@@ -617,14 +617,14 @@ class OutlinerTreeView(QtWidgets.QTreeWidget):
             return
         if item.is_root():
             if num_indexes > 0:
-                pixmap = QtGui.QPixMap(100, 100)
+                pixmap = QtGui.QPixmap(100, 100)
                 pixmap.fill(self._get_label_color())
                 label_icon = QtGui.QIcon(pixmap)
                 prev_menu = self._context_menu.addMenu(
                     label_icon, "Label Color"
                 )
                 for color_label in LABEL_COLORS:
-                    pixmap = QtGui.QPixMap(100, 100)
+                    pixmap = QtGui.QPixmap(100, 100)
                     pixmap.fill(self._get_color_from_label(color_label))
                     label_icon = QtGui.QIcon(pixmap)
                     prev_menu.addAction(
