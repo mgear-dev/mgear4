@@ -28,6 +28,7 @@ class FbxExportNode(object):
         "deformations": True,
         "partitions": {},
         "anim_clips": {},
+        "export_tab": 0,
     }
     ANIM_CLIP_DATA = {
         "title": "Untitled",
