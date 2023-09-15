@@ -1,9 +1,10 @@
 from maya.api import OpenMaya
 from maya import cmds
 from . import attr
+from . import base
 
 
-class PyNode(object):
+class PyNode(base.Node):
     __selection_list = OpenMaya.MSelectionList()
 
     @staticmethod
@@ -16,16 +17,19 @@ class PyNode(object):
 
         return PyNode.__selection_list.getDependNode(0)
 
-    def __init__(self, nodename):
+    def __init__(self, nodename_or_mobject):
         super(PyNode, self).__init__()
         self.__attrs = {}
-        self.__obj = PyNode.__getObjectFromName(nodename)
 
-        if self.__obj is None:
-            raise RuntimeError(f"No such node '{nodename}'")
+        if isinstance(nodename_or_mobject, OpenMaya.MObject):
+            self.__obj = nodename_or_mobject
+        else:
+            self.__obj = PyNode.__getObjectFromName(nodename_or_mobject)
+            if self.__obj is None:
+                raise RuntimeError(f"No such node '{nodename_or_mobject}'")
 
         if not self.__obj.hasFn(OpenMaya.MFn.kDependencyNode):
-            raise RuntimeError(f"Not a dependency node '{nodename}'")
+            raise RuntimeError(f"Not a dependency node '{nodename_or_mobject}'")
 
         self.__fn_dg = OpenMaya.MFnDependencyNode(self.__obj)
 
