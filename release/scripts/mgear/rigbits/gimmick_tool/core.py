@@ -620,7 +620,7 @@ class GimmickJointIO(Gimmick):
             fPath = fPath[0]
         return fPath
 
-    def __getColor(self, jnt):
+    def __getColor(self, jnt, colorType):
         """Get the color from shape node
 
         Args:
@@ -632,10 +632,16 @@ class GimmickJointIO(Gimmick):
         if not jnt:
             return False
 
-        if jnt.overrideRGBColors.get():
-            color = jnt.overrideColorRGB.get()
-        else:
-            color = jnt.overrideColor.get()
+        color = None
+
+        if colorType == "jnt":
+            if jnt.overrideRGBColors.get():
+                color = jnt.overrideColorRGB.get()
+            else:
+                color = jnt.overrideColor.get()
+        elif colorType == "outline":
+            color = jnt.outlinerColor.get()
+
         return color
 
     def __importData(self):
@@ -692,6 +698,8 @@ class GimmickJointIO(Gimmick):
             gimmickJnt.setRadius(info["jointSize"])
             gimmickJnt.attr("overrideEnabled").set(1)
             gimmickJnt.overrideColor.set(info["jointColor"])
+            gimmickJnt.attr("useOutlinerColor").set(True)
+            gimmickJnt.attr("outlinerColor").set(info["outlineColor"])
             gimmickJnt.attr("segmentScaleCompensate").set(True)
 
             weight = "weight"
@@ -732,6 +740,8 @@ class GimmickJointIO(Gimmick):
             gimmickJnt.setParent(info["parent"])
             gimmickJnt.setRadius(info["jointSize"])
             gimmickJnt.attr("overrideEnabled").set(1)
+            gimmickJnt.attr("useOutlinerColor").set(True)
+            gimmickJnt.attr("outlinerColor").set(info["outlineColor"])
             gimmickJnt.overrideColor.set(info["jointColor"])
             gimmickJnt.attr("visibility").set(k=False, cb=False)
 
@@ -778,7 +788,8 @@ class GimmickJointIO(Gimmick):
                      "translate": node.getTranslation(space="world").tolist(),
                      "rotate": node.getRotation(space="world", quaternion=True).tolist(),
                      "jointSize": node.getRadius(),
-                     "jointColor": self.__getColor(node)}
+                     "jointColor": self.__getColor(node, "jnt"),
+                     "outlineColor": self.__getColor(node, "outline")}
 
             if gtype == self.BLEND:
                 pb = node.sources(type="pairBlend")[0]
