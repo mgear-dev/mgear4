@@ -351,10 +351,6 @@ class FBXExporter(MayaQWidgetDockableMixin, QtWidgets.QDialog):
 
         # partitions outliner
         self.partitions_outliner = partitions_outliner.PartitionsOutliner()
-        # self.partitions_outliner.setSizePolicy(
-        #     QtWidgets.QSizePolicy.MinimumExpanding,
-        #     QtWidgets.QSizePolicy.MinimumExpanding,
-        # )
         partitions_layout.addWidget(self.partitions_outliner)
 
         # partition buttons
@@ -704,10 +700,9 @@ class FBXExporter(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         print("\t>>> Preset File Path: {}".format(preset_file_path))
 
         export_config = self._get_current_tool_data()
-        for anim_clip_data in export_node.get_animation_clips(joint_root):
-            anim_clip_export_data = export_config.copy()
-            anim_clip_export_data.update(anim_clip_data)
-            utils.export_animation_clip(joint_root, anim_clip_export_data)
+        anim_clip_data = export_node.get_animation_clips(joint_root)
+        export_config["anim_clips"] = anim_clip_data
+        utils.export_animation_clip(export_config)
 
         return True
 
