@@ -15,6 +15,7 @@ def install():
         ("Add NPO", str_add_NPO),
         ("-----", None),
         (None, gimmick_submenu),
+        ("Gimmick Setup Tool", str_gimmick_tool),
         ("-----", None),
         ("Mirror Controls Shape", str_mirror_ctls),
         ("Replace Shape", str_replace_shape),
@@ -148,6 +149,11 @@ def install_utils_menu(m):
 str_add_NPO = """
 from mgear import rigbits
 rigbits.addNPO()
+"""
+
+str_gimmick_tool = """
+from mgear.rigbits.gimmick_tool import main
+main.mainUI()
 """
 
 str_mirror_ctls = """
