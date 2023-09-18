@@ -31,7 +31,7 @@ __email__ = "rav@ravrigs.com"
 # python
 import copy
 import pprint
-from mgear.rigbits.six import PY2
+from .six import PY2
 
 # core
 import maya.cmds as mc

@@ -79,7 +79,7 @@ from maya.app.general.mayaMixin import MayaQWidgetDockableMixin
 # rbf
 from . import rbf_io
 from . import rbf_node
-from mgear.rigbits.six import PY2
+from .six import PY2
 
 # debug
 # reload(rbf_io)

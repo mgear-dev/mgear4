@@ -35,7 +35,7 @@ import maya.OpenMaya as OpenMaya
 # mgear
 from mgear.core import transform, attribute
 from mgear.core import anim_utils
-from mgear.rigbits.six import PY2
+from .six import PY2
 
 # =============================================================================
 # constants
