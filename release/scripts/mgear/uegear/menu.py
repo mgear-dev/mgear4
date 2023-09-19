@@ -24,6 +24,10 @@ def install():
             str_export_selected_assets_to_unreal,
         ),
         ("-----", None),
+        (
+            "Import Selected Camers from Sequencer",
+            str_import_selected_cameras_from_unreal,
+        )
     )
 
     mgear.menu.install(menuID, commands, image="UE5.svg")
@@ -48,3 +52,13 @@ str_export_selected_assets_to_unreal = """
 from mgear.uegear import commands
 commands.export_selected_assets_to_unreal()
 """
+
+str_import_selected_cameras_from_unreal = """
+from mgear.uegear import commands
+commands.import_selected_cameras_from_unreal()
+"""
+
+# str_import_sequencer_cameras_timeline_from_unreal = """
+# from mgear.uegear import commands
+# commands.import_sequencer_cameras_timeline_from_unreal()
+# """
