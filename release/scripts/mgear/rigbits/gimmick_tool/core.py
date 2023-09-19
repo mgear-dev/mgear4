@@ -289,7 +289,7 @@ class GimmickBlend(GimmickJoint):
                               **kwargs)
         
         self.outlineColor = (0.25, 0.35, 1.0)
-        self.overrideColor = 15
+        self.overrideColor = 17
 
     def generateBase(self, jnt, parent):
         # get a series of joint-selected information
@@ -309,7 +309,7 @@ class GimmickBlend(GimmickJoint):
         gimmickJnt.attr("useOutlinerColor").set(True)
         gimmickJnt.attr("outlinerColor").set(self.outlineColor)
         gimmickJnt.attr("overrideColor").set(self.overrideColor)
-        gimmickJnt.attr("radius").set(rad / self.multiply)
+        gimmickJnt.attr("radius").set(rad * self.multiply)
         return gimmickJnt
 
     def create(self, joint=None, **kwargs):
@@ -431,7 +431,7 @@ class GimmickSupport(GimmickJoint):
                               **kwargs)
         
         self.outlineColor = (0.4, 0.6, 0.6)
-        self.overrideColor = 28
+        self.overrideColor = 17
 
     def generateBase(self, jnt):
         rad = jnt.getRadius()
@@ -452,7 +452,7 @@ class GimmickSupport(GimmickJoint):
         gimmickJnt.attr("useOutlinerColor").set(True)
         gimmickJnt.attr("outlinerColor").set(self.outlineColor)
         gimmickJnt.attr("overrideColor").set(self.overrideColor)
-        gimmickJnt.attr("radius").set(rad)
+        gimmickJnt.attr("radius").set(rad / self.multiply)
         return gimmickJnt
 
     def create(self):
