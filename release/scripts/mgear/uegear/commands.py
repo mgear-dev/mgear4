@@ -51,7 +51,7 @@ def import_selected_assets_from_unreal():
     asset_export_datas = uegear_bridge.execute(
         "export_selected_assets", parameters={"directory": temp_folder}
     ).get("ReturnValue", list())
-    
+
     if not asset_export_datas:
         logger.warning(
             "Was not possible to export selected assets from Unreal"
@@ -621,6 +621,10 @@ def import_sequencer_cameras_timeline_from_unreal():
 
 
 def import_selected_cameras_from_unreal():
+    """
+    Triggers the Unreal bridge call, to export the selected Camera
+    tracks in the active sequencer, and import it into Maya.
+    """
     print(f"Importing Selected Sequencer Cameras from Unreal...")
 
     uegear_bridge = bridge.UeGearBridge()
@@ -655,6 +659,11 @@ def import_selected_cameras_from_unreal():
         logger.info('Importing Asset from FBX file: "{}"'.format(fbx_file))
         imported_nodes = utils.import_fbx(fbx_file)
 
+        # TODO: Check if Camera with the same name and metadata exists in the Level
+        #   [ ] Update it
+        #  - I would recommend not deleting it incase it has been added to layers or grouping.
+        #   Deleting would be the most destructive outcome.
+
         # tag imported transform nodes from FBX
         transform_nodes = cmds.ls(imported_nodes, type="transform")
         for transform_node in transform_nodes:
@@ -677,3 +686,73 @@ def import_selected_cameras_from_unreal():
                 )
 
     return True
+
+
+def update_sequencer_camera_from_maya():
+    print("[mGear] Updating Sequencer, using selected Maya Camera")
+
+    uegear_bridge = bridge.UeGearBridge()
+
+    # Retrieve a dictionary with the assets that can be exported.
+    nodes_to_export = cmds.ls(sl=True, long=True)
+    objects_map = io.exportable_assets(nodes=nodes_to_export)
+    if not objects_map:
+        logger.warning(
+            'No exportable assets found in nodes to export: "{}". Make sure assets are tagged.'.format(
+                nodes_to_export
+            )
+        )
+        return False
+
+    # Retrieve the Camera nodes to update active sequencer
+    cameras = objects_map.get(tag.TagTypes.Camera, list())
+    if not cameras:
+        logger.warning("No cameras to update")
+        return False
+    
+    # Create a list of AssetPaths, Camera Name, export_path
+    ue_camera_names = tag.tag_values(tag.TAG_ASSET_NAME_ATTR_NAME, cameras)
+    camera_sequence_paths = tag.tag_values(tag.TAG_ASSET_PATH_ATTR_NAME, cameras)
+    camera_export_path = dict()
+
+    # Export Camera to temp location
+    temp_folder = tempfile.gettempdir()
+
+    # Export FBX file into disk
+    for i in range(len(cameras)):
+        camera_name = ue_camera_names[i]
+        fbx_file_path = os.path.join(temp_folder, camera_name + ".fbx")
+        
+        try:
+            cmds.file(fbx_file_path, force=True, typ="FBX export", pr=True, es=True)
+            print(f"Camera '{camera_name}' exported as FBX to '{fbx_file_path}'")
+        except Exception as e:
+            print(f"Error exporting camera: {str(e)}")
+            continue
+
+        if not os.path.isfile(fbx_file_path):
+            logger.warning(
+                f'Something went wrong while exporting asset FBX file: "{fbx_file_path}"'
+                )
+            continue
+
+        camera_export_path[camera_name] = fbx_file_path
+
+        uegear_bridge.execute("update_sequencer_camera_from_maya", 
+            parameters={
+                "camera_name": camera_name,
+                "sequencer_package":camera_sequence_paths[i],
+                "fbx_path":fbx_file_path
+            }
+        ).get("ReturnValue", False)
+
+    
+    # Clean up temporary data
+    for path in camera_export_path.values():
+        try:
+            os.remove(path)
+        except PermissionError as p_e:
+            print(p_e)
+        except IOError as io_e:
+            print(io_e)
+        
