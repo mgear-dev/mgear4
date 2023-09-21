@@ -387,7 +387,7 @@ def export_cameras(cameras=None):
         nodes=cameras, output_path=temp_folder
     )
 
-    print(f"Camera Export Debug: {cameras_file}")
+    print("Camera Export Debug: {}".format(cameras_file))
 
 
     return False # Early exit for debugging reasons 
@@ -625,7 +625,7 @@ def import_selected_cameras_from_unreal():
     Triggers the Unreal bridge call, to export the selected Camera
     tracks in the active sequencer, and import it into Maya.
     """
-    print(f"Importing Selected Sequencer Cameras from Unreal...")
+    print("Importing Selected Sequencer Cameras from Unreal...")
 
     uegear_bridge = bridge.UeGearBridge()
 
@@ -697,11 +697,9 @@ def update_sequencer_camera_from_maya():
     nodes_to_export = cmds.ls(sl=True, long=True)
     objects_map = io.exportable_assets(nodes=nodes_to_export)
     if not objects_map:
-        logger.warning(
-            'No exportable assets found in nodes to export: "{}". Make sure assets are tagged.'.format(
-                nodes_to_export
-            )
-        )
+        msg = 'No exportable assets found in nodes to export: "{}".'
+        msg += 'Make sure assets are tagged.'
+        logger.warning(msg.format(nodes_to_export))
         return False
 
     # Retrieve the Camera nodes to update active sequencer
@@ -725,15 +723,15 @@ def update_sequencer_camera_from_maya():
         
         try:
             cmds.file(fbx_file_path, force=True, typ="FBX export", pr=True, es=True)
-            print(f"Camera '{camera_name}' exported as FBX to '{fbx_file_path}'")
+            msg = "Camera '{}' exported as FBX to '{}'"
+            print(msg.format(camera_name, fbx_file_path))
         except Exception as e:
-            print(f"Error exporting camera: {str(e)}")
+            print("Error exporting camera: {}".format(str(e)))
             continue
 
         if not os.path.isfile(fbx_file_path):
-            logger.warning(
-                f'Something went wrong while exporting asset FBX file: "{fbx_file_path}"'
-                )
+            msg ='Something went wrong while exporting asset FBX file: "{}"' 
+            logger.warning(msg.format(fbx_file_path))
             continue
 
         camera_export_path[camera_name] = fbx_file_path
