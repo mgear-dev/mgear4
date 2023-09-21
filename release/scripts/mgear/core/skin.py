@@ -172,7 +172,7 @@ def collectInfluenceWeights(skinCls, dagPath, components, dataDic):
         if components_indices:
             inf_w = {
                 compIndex: weights[jj * numInfluences + ii]
-                for jj, compIndex in enumerate(numComponentsPerInfluence)
+                for jj, compIndex in enumerate(components_indices)
                 if weights[jj * numInfluences + ii] != 0.0
             }
         else:
