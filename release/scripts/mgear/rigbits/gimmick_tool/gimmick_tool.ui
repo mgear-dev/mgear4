@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>440</width>
-    <height>359</height>
+    <width>393</width>
+    <height>365</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -368,10 +368,10 @@ QPushButton:hover:!pressed {
              <number>6</number>
             </property>
             <property name="leftMargin">
-             <number>30</number>
+             <number>29</number>
             </property>
             <property name="rightMargin">
-             <number>30</number>
+             <number>29</number>
             </property>
             <item>
              <widget class="QPushButton" name="flipJointX_pushButton">
@@ -384,7 +384,7 @@ QPushButton:hover:!pressed {
               <property name="styleSheet">
                <string notr="true">QPushButton {
     border-radius: 4px;
-	background-color: #5D5D5D;
+	border: 2px solid #414141;
 }
 QPushButton:pressed {
 	background-color: #00A6F3;
@@ -395,6 +395,9 @@ QPushButton:hover:!pressed {
               </property>
               <property name="text">
                <string>X</string>
+              </property>
+              <property name="flat">
+               <bool>true</bool>
               </property>
              </widget>
             </item>
@@ -409,7 +412,7 @@ QPushButton:hover:!pressed {
               <property name="styleSheet">
                <string notr="true">QPushButton {
     border-radius: 4px;
-	background-color: #5D5D5D;
+	border: 2px solid #414141;
 }
 QPushButton:pressed {
 	background-color: #00A6F3;
@@ -420,6 +423,9 @@ QPushButton:hover:!pressed {
               </property>
               <property name="text">
                <string>Y</string>
+              </property>
+              <property name="flat">
+               <bool>true</bool>
               </property>
              </widget>
             </item>
@@ -434,7 +440,7 @@ QPushButton:hover:!pressed {
               <property name="styleSheet">
                <string notr="true">QPushButton {
     border-radius: 4px;
-	background-color: #5D5D5D;
+	border: 2px solid #414141;
 }
 QPushButton:pressed {
 	background-color: #00A6F3;
@@ -445,6 +451,9 @@ QPushButton:hover:!pressed {
               </property>
               <property name="text">
                <string>Z</string>
+              </property>
+              <property name="flat">
+               <bool>true</bool>
               </property>
              </widget>
             </item>
@@ -476,7 +485,7 @@ QPushButton:hover:!pressed {
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>440</width>
+     <width>393</width>
      <height>21</height>
     </rect>
    </property>

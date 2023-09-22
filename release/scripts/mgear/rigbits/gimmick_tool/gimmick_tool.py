@@ -3,7 +3,7 @@
 # Form implementation generated from reading ui file 'C:/Users/georg/OneDrive/Documents/maya/GitHub/mgear4/release/scripts/mgear/rigbits/gimmick_tool/gimmick_tool.ui',
 # licensing of 'C:/Users/georg/OneDrive/Documents/maya/GitHub/mgear4/release/scripts/mgear/rigbits/gimmick_tool/gimmick_tool.ui' applies.
 #
-# Created: Thu Sep 21 19:49:45 2023
+# Created: Fri Sep 22 08:17:47 2023
 #      by: pyside2-uic  running on PySide2 5.12.5
 #
 # WARNING! All changes made in this file will be lost!
@@ -13,7 +13,7 @@ from PySide2 import QtCore, QtGui, QtWidgets
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
-        MainWindow.resize(440, 359)
+        MainWindow.resize(393, 365)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
@@ -173,13 +173,13 @@ class Ui_MainWindow(object):
         self.verticalLayout_5.setObjectName("verticalLayout_5")
         self.flipJoint_horizontalLayout = QtWidgets.QHBoxLayout()
         self.flipJoint_horizontalLayout.setSpacing(6)
-        self.flipJoint_horizontalLayout.setContentsMargins(30, -1, 30, -1)
+        self.flipJoint_horizontalLayout.setContentsMargins(29, -1, 29, -1)
         self.flipJoint_horizontalLayout.setObjectName("flipJoint_horizontalLayout")
         self.flipJointX_pushButton = QtWidgets.QPushButton(self.flipJoint_groupBox)
         self.flipJointX_pushButton.setMinimumSize(QtCore.QSize(0, 23))
         self.flipJointX_pushButton.setStyleSheet("QPushButton {\n"
 "    border-radius: 4px;\n"
-"    background-color: #5D5D5D;\n"
+"    border: 2px solid #414141;\n"
 "}\n"
 "QPushButton:pressed {\n"
 "    background-color: #00A6F3;\n"
@@ -187,13 +187,14 @@ class Ui_MainWindow(object):
 "QPushButton:hover:!pressed {\n"
 "    background-color: #707070;\n"
 "}")
+        self.flipJointX_pushButton.setFlat(True)
         self.flipJointX_pushButton.setObjectName("flipJointX_pushButton")
         self.flipJoint_horizontalLayout.addWidget(self.flipJointX_pushButton)
         self.flipJointY_pushButton = QtWidgets.QPushButton(self.flipJoint_groupBox)
         self.flipJointY_pushButton.setMinimumSize(QtCore.QSize(0, 23))
         self.flipJointY_pushButton.setStyleSheet("QPushButton {\n"
 "    border-radius: 4px;\n"
-"    background-color: #5D5D5D;\n"
+"    border: 2px solid #414141;\n"
 "}\n"
 "QPushButton:pressed {\n"
 "    background-color: #00A6F3;\n"
@@ -201,13 +202,14 @@ class Ui_MainWindow(object):
 "QPushButton:hover:!pressed {\n"
 "    background-color: #707070;\n"
 "}")
+        self.flipJointY_pushButton.setFlat(True)
         self.flipJointY_pushButton.setObjectName("flipJointY_pushButton")
         self.flipJoint_horizontalLayout.addWidget(self.flipJointY_pushButton)
         self.flipJointZ_pushButton = QtWidgets.QPushButton(self.flipJoint_groupBox)
         self.flipJointZ_pushButton.setMinimumSize(QtCore.QSize(0, 23))
         self.flipJointZ_pushButton.setStyleSheet("QPushButton {\n"
 "    border-radius: 4px;\n"
-"    background-color: #5D5D5D;\n"
+"    border: 2px solid #414141;\n"
 "}\n"
 "QPushButton:pressed {\n"
 "    background-color: #00A6F3;\n"
@@ -215,6 +217,7 @@ class Ui_MainWindow(object):
 "QPushButton:hover:!pressed {\n"
 "    background-color: #707070;\n"
 "}")
+        self.flipJointZ_pushButton.setFlat(True)
         self.flipJointZ_pushButton.setObjectName("flipJointZ_pushButton")
         self.flipJoint_horizontalLayout.addWidget(self.flipJointZ_pushButton)
         self.verticalLayout_5.addLayout(self.flipJoint_horizontalLayout)
@@ -224,7 +227,7 @@ class Ui_MainWindow(object):
         self.verticalLayout.addWidget(self.utility_groupBox)
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QtWidgets.QMenuBar(MainWindow)
-        self.menubar.setGeometry(QtCore.QRect(0, 0, 440, 21))
+        self.menubar.setGeometry(QtCore.QRect(0, 0, 393, 21))
         self.menubar.setObjectName("menubar")
         self.menuFile = QtWidgets.QMenu(self.menubar)
         self.menuFile.setObjectName("menuFile")
