@@ -12,11 +12,17 @@ import tempfile
 import traceback
 
 import maya.cmds as cmds
+import maya.api.OpenMaya as om2
 import pymel.core as pm
 
 from mgear.vendor.Qt import QtWidgets
 from mgear.core import pyFBX
+from mgear.core import utils as mgUtils
 from mgear.uegear import log, utils, tag, bridge, io, ioutils
+
+# DEBUGGING
+import importlib
+importlib.reload(mgUtils)
 
 logger = log.uegear_logger
 
@@ -425,8 +431,9 @@ def export_layout_to_unreal(self, nodes=None):
     return True
 
 
-def import_layout_from_unreal(self, export_assets=True):
-    # TODO: WIP
+def import_layout_from_unreal(export_assets=True):
+
+    uegear_bridge = bridge.UeGearBridge()
 
     temp_folder = tempfile.gettempdir()
     temp_assets_folder = utils.clean_path(
@@ -435,13 +442,15 @@ def import_layout_from_unreal(self, export_assets=True):
     if os.path.isdir(temp_assets_folder):
         utils.safe_delete_folder(temp_assets_folder)
     utils.ensure_folder_exists(temp_assets_folder)
-    result = self.execute(
+
+    result = uegear_bridge.execute(
         "export_maya_layout",
         parameters={
             "directory": temp_assets_folder,
             "export_assets": export_assets,
         },
     ).get("ReturnValue", "")
+
     if result and os.path.isfile(result):
         layout_data = utils.read_json_file(result)
         if layout_data:
@@ -449,7 +458,13 @@ def import_layout_from_unreal(self, export_assets=True):
                 fbx_file = actor_data.get("assetExportPath", None)
                 if not fbx_file or not os.path.isfile(fbx_file):
                     continue
-                imported_nodes = utils.import_fbx(fbx_file)
+                
+                # Working on this
+                # Check if object already exists in scene,
+                #   - if object does, delete old object
+                
+                imported_nodes = utils.import_static_fbx(fbx_file)
+
                 transform_nodes = cmds.ls(imported_nodes, type="transform")
                 transform_node = utils.get_first_in_list(transform_nodes)
                 if not transform_node:
@@ -492,28 +507,19 @@ def import_layout_from_unreal(self, export_assets=True):
                         actor_name,
                     )
                     transform_node = cmds.rename(transform_node, actor_name)
-                    cmds.setAttr(
-                        transform_node + ".translateX", translation[0]
-                    )
-                    cmds.setAttr(
-                        transform_node + ".translateY", translation[2]
-                    )
-                    cmds.setAttr(
-                        transform_node + ".translateZ", translation[1]
-                    )
-                    cmds.rotate(
-                        rotation[0],
-                        -rotation[2],
-                        rotation[1] * -1,
-                        transform_node,
-                        r=True,
-                    )
-                    # cmds.setAttr(transform_node + '.rotateX', rotation[0])
-                    # cmds.setAttr(transform_node + '.rotateY', rotation[2])
-                    # cmds.setAttr(transform_node + '.rotateZ', rotation[1]*-1)
-                    cmds.setAttr(transform_node + ".scaleX", scale[0])
-                    cmds.setAttr(transform_node + ".scaleY", scale[2])
-                    cmds.setAttr(transform_node + ".scaleZ", scale[1])
+
+                    # Converts the unreal matrix into maya matrix
+                    obj_trans_matrix = om2.MTransformationMatrix()
+                    obj_trans_matrix.setTranslation(om2.MVector(translation), om2.MSpace.kWorld)
+                    obj_trans_matrix.setRotation(om2.MEulerRotation(rotation))
+                    obj_trans_matrix.setScale(om2.MVector(scale), om2.MSpace.kWorld)
+
+                    maya_trans_matrix = utils.convert_transformationmatrix_Unreal_to_Maya(obj_trans_matrix)
+
+                    dag_path = mgUtils.get_dag_path(transform_node)
+                    if dag_path:
+                        transform_fn = om2.MFnTransform(dag_path)
+                        transform_fn.setTransformation(om2.MTransformationMatrix(maya_trans_matrix))
 
     utils.safe_delete_folder(temp_assets_folder)
 
