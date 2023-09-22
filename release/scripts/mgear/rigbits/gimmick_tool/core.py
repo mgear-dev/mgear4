@@ -587,7 +587,7 @@ class GimmickJointIO(Gimmick):
 
         fPath = pm.fileDialog2(fileMode=mode,
                                startingDirectory=startDir,
-                               fileFilter="(*.json)")
+                               fileFilter="(*.gst)")
         if fPath:
             fPath = fPath[0]
         return fPath
