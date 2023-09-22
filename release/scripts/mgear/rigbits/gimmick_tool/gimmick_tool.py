@@ -3,7 +3,7 @@
 # Form implementation generated from reading ui file 'C:/Users/georg/OneDrive/Documents/maya/GitHub/mgear4/release/scripts/mgear/rigbits/gimmick_tool/gimmick_tool.ui',
 # licensing of 'C:/Users/georg/OneDrive/Documents/maya/GitHub/mgear4/release/scripts/mgear/rigbits/gimmick_tool/gimmick_tool.ui' applies.
 #
-# Created: Fri Sep 22 08:17:47 2023
+# Created: Fri Sep 22 08:36:27 2023
 #      by: pyside2-uic  running on PySide2 5.12.5
 #
 # WARNING! All changes made in this file will be lost!
@@ -180,6 +180,7 @@ class Ui_MainWindow(object):
         self.flipJointX_pushButton.setStyleSheet("QPushButton {\n"
 "    border-radius: 4px;\n"
 "    border: 2px solid #414141;\n"
+"    background-color: #434343;\n"
 "}\n"
 "QPushButton:pressed {\n"
 "    background-color: #00A6F3;\n"
@@ -195,6 +196,7 @@ class Ui_MainWindow(object):
         self.flipJointY_pushButton.setStyleSheet("QPushButton {\n"
 "    border-radius: 4px;\n"
 "    border: 2px solid #414141;\n"
+"    background-color: #434343;\n"
 "}\n"
 "QPushButton:pressed {\n"
 "    background-color: #00A6F3;\n"
@@ -210,6 +212,7 @@ class Ui_MainWindow(object):
         self.flipJointZ_pushButton.setStyleSheet("QPushButton {\n"
 "    border-radius: 4px;\n"
 "    border: 2px solid #414141;\n"
+"    background-color: #434343;\n"
 "}\n"
 "QPushButton:pressed {\n"
 "    background-color: #00A6F3;\n"
