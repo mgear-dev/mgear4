@@ -94,7 +94,10 @@ class GimmickSetupWindow(MayaQWidgetDockableMixin, QtWidgets.QMainWindow):
         self.widget.select_pushButton.clicked.connect(self._selectGimmickJntCmd)
         self.widget.delete_pushButton.clicked.connect(self._deleteGimmickJntCmd)
         self.widget.utility_all_checkBox.stateChanged.connect(self._changeAllStateCmd)
-        
+        self.widget.flipJointX_pushButton.clicked.connect(lambda: self._flipJoint("X"))
+        self.widget.flipJointY_pushButton.clicked.connect(lambda: self._flipJoint("Y"))
+        self.widget.flipJointZ_pushButton.clicked.connect(lambda: self._flipJoint("Z"))
+
         # menu
         self.widget.importGimmick_menuAction.triggered.connect(self._importGimmickData)
         self.widget.exportGimmick_menuAction.triggered.connect(self._exportGimmickData)
@@ -113,6 +116,12 @@ class GimmickSetupWindow(MayaQWidgetDockableMixin, QtWidgets.QMainWindow):
     def _mirrorCmd(self):
         gimmickJnt = core.GimmickBlend()
         gimmickJnt.mirror()
+
+    @undoable
+    def _flipJoint(self, axis):
+        gimmickJnt = core.GimmickSupport()
+        gimmickJnt.flipJointOrientation(axis)
+
     def _selectGimmickJntCmd(self):
         joints, sideList = [], []
         if self.widget.utility_left_checkBox.isChecked():

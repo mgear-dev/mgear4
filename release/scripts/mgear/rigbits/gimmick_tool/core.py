@@ -3,6 +3,7 @@
 import json
 import os
 import re
+import math
 
 import pymel.core as pm
 
@@ -12,7 +13,6 @@ from mgear.core.attribute import ParamDef2, enumParamDef
 
 
 class Gimmick(object):
-    GUIDE = "guide"
     BLEND = "Blend"
     SUPPORT = "Support"
     SLIDE = "Slide"
@@ -23,37 +23,82 @@ class Gimmick(object):
 
     ATTR = dict(type="gimmickType", side="gimmickSide", parent="parentTarget")
 
+    def __init__(self):
+        self.guideData = self.getGuideData()
+
     def convert_num_to_gimmickType(self, num):
-        gimmickType = None
-        if num == 0:
-            gimmickType = self.BLEND
-        elif num == 1:
-            gimmickType = self.SUPPORT
+        return {0: self.BLEND, 1: self.SUPPORT}.get(num)
 
-        return gimmickType
+    @staticmethod
+    def getRootNode():
+        """Returns the root node from a selected node
 
-    def getNameRulePattern(self, guide=None):
-        guideNode = None
-        if not guide:
-            if not pm.objExists("guide.joint_name_rule"):
-                pm.displayWarning("there's no joint_name_rule attr on the guide")
-            guideNode = pm.PyNode(self.GUIDE)
-        else:
-            guideNode = guide
+        Returns:
+            PyNode: The root top node
+        """
+        rigNode = [i for i in pm.ls(type="transform") if i.hasAttr("is_rig")]
+        if not rigNode:
+            raise RuntimeError("There is no rig node in the scene")
+        return rigNode[0]
 
-        nameRule = guideNode.attr("joint_name_rule").get()
-        sideL = guideNode.attr("side_joint_left_name").get()
-        sideR = guideNode.attr("side_joint_right_name").get()
-        sideC = guideNode.attr("side_joint_center_name").get()
-        sideAll = "|".join([sideL, sideR, sideC])
-        jntExt = guideNode.attr("joint_name_ext").get()
+    def getGuideData(self):
+        root = self.getRootNode()
+        data = root.guide_data.get()
+        return json.loads(data)["guide_root"]["param_values"]
 
-        patternDict = dict(component="(?P<component>.*?)", side="(?P<side>{})".format(sideAll),
-                           index="(?P<index>\d*)", description="(?P<description>.*?)",
+    def getNameRulePattern(self):
+        # Extract relevant data
+        nameRule = self.guideData["joint_name_rule"]
+        sides = (self.guideData["side_joint_left_name"],
+                 self.guideData["side_joint_right_name"],
+                 self.guideData["side_joint_center_name"])
+        jntExt = self.guideData["joint_name_ext"]
+
+        patternDict = dict(component="(?P<component>.*?)",
+                           side="(?P<side>{})".format("|".join(sides)),
+                           index="(?P<index>\d*)",
+                           description="(?P<description>.*?)",
                            extension="(?P<extension>{})".format(jntExt))
 
-        pattern = nameRule.format(**patternDict)
-        return pattern
+        return nameRule.format(**patternDict)
+
+    def getSideLabelFromJoint(self, jnt):
+        sideInfo = {self.guideData["side_joint_center_name"]: "Center",
+                    self.guideData["side_joint_left_name"]: "Left",
+                    self.guideData["side_joint_right_name"]: "Right",
+                    "None": "None"}
+
+        matchResult = re.match(self.getNameRulePattern(), jnt)
+        side = matchResult.group("side") if matchResult else "None"
+        return sideInfo.get(side)
+
+    def swapSideName(self, name, guideData=None):
+        sideInfo = {
+            "left": self.guideData["side_joint_left_name"],
+            "right": self.guideData["side_joint_right_name"],
+            "center": self.guideData["side_joint_center_name"]
+        }
+
+        matchResult = re.search(self.getNameRulePattern(), name)
+        if not matchResult:
+            return
+
+        index = matchResult.group("index")
+        currentSide = matchResult.group("side")
+
+        # Create a map to quickly determine the opposite side
+        swapSides = {
+            sideInfo["left"]: sideInfo["right"],
+            sideInfo["right"]: sideInfo["left"]
+        }
+
+        # Get the opposite side
+        oppositeSide = swapSides.get(currentSide)
+        if not oppositeSide:  # If it's center or an unrecognized side
+            return name
+
+        # Replace the matched side with its opposite
+        return name.replace(currentSide + index, oppositeSide + index)
 
     def getGimmickType(self, gType, joint=None, **kwargs):
         """Get gimmick type from joint node
@@ -104,8 +149,6 @@ class Gimmick(object):
         gtype = enumParamDef(self.ATTR["type"], self.GIMMICK_TYPE, value=typeValue)
         gtype.create(gimmickJnt)
 
-        if side is None:
-            side = self.getSideLabel(joint)
         if parent is None:
             parent = ""
 
@@ -116,17 +159,10 @@ class Gimmick(object):
         parentParam.create(gimmickJnt)
 
 
-class GimmickBuilder(Gimmick):
-
-    def __init__(self):
-        pass
-
-
 class GimmickJoint(Gimmick):
 
-    def __init__(self, joint=None, infType=None, **kwargs):
-        self.infType = infType
-        self.joint = self.setSourceJoint(joint)
+    def __init__(self, infType=None, **kwargs):
+        super(GimmickJoint, self).__init__()
 
         self.side = kwargs.get('side', kwargs.get('si', None))
         self.parent = kwargs.get('infParent', kwargs.get('if', None))
@@ -502,6 +538,43 @@ class GimmickSupport(GimmickJoint):
             parent = giNode.attr(self.ATTR["parent"]).get()
             giNode.setParent(parent)
             nodes[pm.PyNode(self.swapSideName(jnt))] = mirrorGiNode
+
+    def flipJointOrientation(self, axis='Y'):
+        """Flip a joint's orientation along the specified local axis.
+
+        Parameters:
+        - joint: The joint whose orientation needs to be flipped.
+        - axis: The local axis along which to flip the orientation. Default is 'Y'.
+        """
+        for jnt in self.joint:
+            if not jnt.hasAttr(self.ATTR["type"]):
+                pm.displayWarning("There's no type attribute on {}".format(jnt))
+                continue
+
+            gtype = jnt.attr(self.ATTR["type"]).get()
+            if not gtype == 1:
+                continue
+
+            # Get the joint's current orientation
+            orient = list(jnt.jointOrient.get())
+
+            # Flip the desired axis by 180 degrees (converted to radians)
+            if axis.upper() == 'X':
+                orient[0] += 180
+            elif axis.upper() == 'Y':
+                orient[1] += 180
+            elif axis.upper() == 'Z':
+                orient[2] += 180
+
+            # Handle possible rotation values exceeding 360 degrees or -360 degrees
+            for i in range(len(orient)):
+                if orient[i] > 360:
+                    orient[i] -= 360
+                elif orient[i] < -360:
+                    orient[i] += 360
+
+            # Set the joint's orientation
+            jnt.jointOrient.set(orient[0], orient[1], orient[2], type='double3')
 
 
 class GimmickSlide(GimmickJoint):
