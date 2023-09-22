@@ -229,12 +229,19 @@ class GimmickBlend(GimmickJoint):
         self.overrideColor = 17
 
     def generateBase(self, jnt, parent):
-        # get a series of joint-selected information
+        # Generates a specific name
+        name = '{}_{}'.format(jnt, self.TYPE.lower())
+
+        # Check if joint with the generated name already exists
+        if pm.objExists(name):
+            pm.warning("Blend joint {} already exists. Skipping its creation.".format(name))
+            return None
+
+        # Get a series of joint-selected information
         rad = jnt.getRadius()
         pos = jnt.getTranslation(space="world")
         rot = jnt.getRotation(space="world", quaternion=True)
 
-        # add a joint with pos selected target
         # Add a joint with pos selected target
         gimmickJnt = primitive.addJoint(None, name)
         gimmickJnt.setTranslation(pos, space="world")
@@ -245,17 +252,20 @@ class GimmickBlend(GimmickJoint):
         gimmickJnt.attr("outlinerColor").set(self.outlineColor)
         gimmickJnt.attr("overrideColor").set(self.overrideColor)
         gimmickJnt.attr("radius").set(rad * self.multiply)
+
+        for xyz in "XYZ":
+            gimmickJnt.attr("translate{}".format(xyz)).setKeyable(False)
+            gimmickJnt.attr("rotate{}".format(xyz)).setKeyable(False)
+            gimmickJnt.attr("scale{}".format(xyz)).setKeyable(False)
+
         return gimmickJnt
 
     def create(self, joint=None, **kwargs):
-        if not joint:
         joint = joint or self.joint
         blend = kwargs.get('blend', kwargs.get('bl', 0.5))
-        select = kwargs.get('select', kwargs.get('sl', False))
         select = kwargs.get('select', kwargs.get('sl', True))
         sets = kwargs.get('set', kwargs.get('st', False))
 
-        nodes = {}
         nodes = {jnt: self.generateBase(jnt, jnt.getParent()) for jnt in joint}
         nodes = {key: value for key, value in nodes.items() if value}  # Filter out None values
 
@@ -267,18 +277,14 @@ class GimmickBlend(GimmickJoint):
 
         if sets:
             self.addGimmickToSets(nodes.values())
-        
         if select:
-            self.select(self.TYPE)    
             pm.select(nodes.values())
         return nodes
 
-    def setup(self, blendJntDict=None, **kwargs):
     @staticmethod
     def setup(blendJntDict=None, **kwargs):
         blend = kwargs.get('blend', kwargs.get('bl', 0.5))
         compScale = kwargs.get('compScale', kwargs.get('cs', True))
-        
 
         for jnt, blendJnt in blendJntDict.items():
             weight = "weight"
@@ -302,13 +308,10 @@ class GimmickBlend(GimmickJoint):
 
             for xyz in "XYZ":
                 pm.connectAttr(blendNode.attr("outTranslate{}".format(xyz)),
-                                blendJnt.attr("translate{}".format(xyz)))
                                blendJnt.attr("translate{}".format(xyz)))
                 pm.connectAttr(blendNode.attr("outRotate{}".format(xyz)),
-                                blendJnt.attr("rotate{}".format(xyz)))
                                blendJnt.attr("rotate{}".format(xyz)))
                 pm.connectAttr(jnt.attr("scale{}".format(xyz)),
-                                blendJnt.attr("scale{}".format(xyz)))
                                blendJnt.attr("scale{}".format(xyz)))
 
     def mirror(self, side="Left", **kwargs):
@@ -317,38 +320,41 @@ class GimmickBlend(GimmickJoint):
         mxzBool = kwargs.get('mirrorXZ', kwargs.get('mxz', False))
         myzBool = kwargs.get('mirrorYZ', kwargs.get('myz', True))
 
-        if not self.joint:
         nodes = {}
-        for gi in self.joint:
         for gi in self.getGimmickType(self.TYPE)[side]:
+            # Check if the mirrored joint already exists
+            mirroredName = self.swapSideName(gi)
+            if pm.objExists(mirroredName):
+                print("Mirrored joint '{}' already exists. Skipping...".format(mirroredName))
+                continue
+
             giNode = pm.PyNode(gi)
             giNode.setParent(world=True)
-            
 
             # mirror blendJoints
             mirrorGi = pm.mirrorJoint(gi, mb=mbBool, mxy=mxyBool, mxz=mxzBool, myz=myzBool)
             giNode.setParent(giNode.attr(self.ATTR["parent"]).get())
+
             mirrorGiNode = pm.PyNode(mirrorGi[0])
             mirrorGiNode.rename(self.swapSideName(gi))
+
             mirrorGiNode.attr(self.ATTR["side"]).set(2)
             mirrorGiNode.attr("useOutlinerColor").set(True)
             mirrorGiNode.attr("outlinerColor").set(self.outlineColor)
             mirrorParent = self.swapSideName(mirrorGiNode.attr(self.ATTR["parent"]).get())
             mirrorGiNode.attr(self.ATTR["parent"]).set(mirrorParent)
+
             mirrorGiNode.setParent(mirrorParent)
-            
 
             # mirror supportJoints
             sidePair = zip(giNode.getChildren(), mirrorGiNode.getChildren())
             for left, right in sidePair:
                 if not left or not right:
                     continue
-                right.rename(self.swapSideName(left.name()))
                 # right.rename(self.swapSideName(left.name()))
                 right.attr(self.ATTR["side"]).set(2)
                 mirrorParent = self.swapSideName(left.attr(self.ATTR["parent"]).get())
                 right.attr(self.ATTR["parent"]).set(mirrorParent)
-            nodes[pm.PyNode(self.swapSideName(jnt))] = mirrorGiNode
             nodes[pm.PyNode(self.swapSideName(gi.rsplit("_", 1)[0]))] = mirrorGiNode
         self.setup(blendJntDict=nodes)
         pm.select(cl=True)
@@ -357,7 +363,6 @@ class GimmickBlend(GimmickJoint):
 class GimmickSupport(GimmickJoint):
     TYPE = "Support"
 
-    def __init__(self, joint=None, side=None, **kwargs):
     def __init__(self, joint=None, **kwargs):
         super(GimmickSupport, self).__init__(infType=self.TYPE, **kwargs)
 
@@ -366,10 +371,17 @@ class GimmickSupport(GimmickJoint):
         self.overrideColor = 17
 
     def generateBase(self, jnt):
+        # Check if selecting blend joint
+        if not jnt.attr(self.ATTR["type"]).get() == 0:
+            return None
+
+        # Generates a specific name
+        preName = jnt.replace(self.BLEND.lower(), '{}#'.format(self.SUPPORT.lower()))
+        name = self.convertNumber(preName)
+
         rad = jnt.getRadius()
         pos = jnt.getTranslation(space="world")
         rot = jnt.getRotation(space="world", quaternion=True)
-        
 
         # add a joint with pos selected target
         gimmickJnt = primitive.addJoint(None, name)
@@ -385,26 +397,23 @@ class GimmickSupport(GimmickJoint):
         return gimmickJnt
 
     def create(self):
-        self.setSourceJoint(self.joint)
         gimmickJnts = []
         for jnt in self.joint:
             bindJnt = self.generateBase(jnt)
+            side = self.getSideLabelFromJoint(jnt.name())
 
             self.storeInfo(bindJnt,
                            self.TYPE,
                            joint=jnt.name(),
-                           side=self.side,
                            side=side,
                            parent=jnt.name())
             gimmickJnts.append(bindJnt)
-        
 
         self.addGimmickToSets(gimmickJnts)
         pm.select(gimmickJnts)
 
     def setup(self):
         pass
-    
 
     def mirror(self, side="Left", gimmick=None, **kwargs):
         mbBool = kwargs.get('mirrorBehavior', kwargs.get('mb', True))
@@ -420,7 +429,6 @@ class GimmickSupport(GimmickJoint):
             jnt, gtype = gi.rsplit("_", 1)
             giNode = pm.PyNode(gi)
             giNode.setParent(world=True)
-            
 
             mirrorName = "{}_{}".format(self.swapSideName(jnt), gtype)
             mirrorGi = pm.mirrorJoint(gi, mb=mbBool, mxy=mxyBool, mxz=mxzBool, myz=myzBool)
@@ -477,6 +485,7 @@ class GimmickSlide(GimmickJoint):
     TYPE = "Slide"
 
     def __init__(self, joint=None, side=None):
+        super(GimmickSlide, self).__init__()
 
         self.joint = joint
         self.side = side
@@ -559,9 +568,9 @@ class GimmickJointIO(Gimmick):
     """docstring for GimmickJointIO."""
 
     def __init__(self, filePath=None):
+        super(GimmickJointIO, self).__init__()
         self.filePath = filePath
 
-    def getGimmickPath(self):
     @staticmethod
     def getGimmickPath():
         workspace = pm.Workspace()
@@ -592,14 +601,11 @@ class GimmickJointIO(Gimmick):
             fPath = fPath[0]
         return fPath
 
-    def __getColor(self, jnt, colorType):
     @staticmethod
     def __getColor(jnt, colorType):
         """Get the color from shape node
-
         Args:
             node (TYPE): shape
-
         Returns:
             TYPE: Description
         """
@@ -638,7 +644,6 @@ class GimmickJointIO(Gimmick):
 
         Args:
             data (dict): expected dict, not limited to
-            filePath (string): path to output json file
         """
         try:
             with open(self.filePath, "w") as json_file:
@@ -676,6 +681,7 @@ class GimmickJointIO(Gimmick):
             gimmickJnt.attr("outlinerColor").set(info["outlineColor"])
             gimmickJnt.attr("segmentScaleCompensate").set(True)
 
+            self.storeInfo(gimmickJnt,
                            info["gimmickType"],
                            side=info["gimmickSide"],
                            parent=info["parent"])
@@ -705,7 +711,6 @@ class GimmickJointIO(Gimmick):
                 pm.connectAttr(drive.attr("scale{}".format(xyz)),
                                gimmickJnt.attr("scale{}".format(xyz)))
 
-            self.storeInfo(gimmickJnt,
                 gimmickJnt.attr("translate{}".format(xyz)).setKeyable(False)
                 gimmickJnt.attr("rotate{}".format(xyz)).setKeyable(False)
                 gimmickJnt.attr("scale{}".format(xyz)).setKeyable(False)
@@ -734,7 +739,6 @@ class GimmickJointIO(Gimmick):
         """Exports the desired gimmick joints to the filepath provided
 
         Args:
-            nodes (list): of gimmickJoints
             :param nodes: (list): of gimmickJoints
             :param select:
         """
