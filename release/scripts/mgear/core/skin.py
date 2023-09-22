@@ -466,7 +466,6 @@ def getObjsFromSkinFile(filePath=None, *args):
 
 
 def importSkin(filePath=None, *args):
-    filePath = clash_and_namespace_fixer(filepath=filePath, toFile=True)
     if not filePath:
         f1 = 'mGear Skin (*{0} *{1})'.format(FILE_EXT, FILE_JSON_EXT)
         f2 = ";;gSkin Binary (*{0});;jSkin ASCII  (*{1})".format(
