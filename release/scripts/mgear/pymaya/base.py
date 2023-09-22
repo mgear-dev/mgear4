@@ -5,6 +5,12 @@ class Base(object):
     def name(self):
         raise NotImplementedError("'name' is not implemented yet")
 
+    def __repr__(self):
+        return f"{self.__class__.__name__}<'{self.name()}'>"
+
+    def __str__(self):
+        return self.__repr__()
+
 
 class Node(Base):
     pass
