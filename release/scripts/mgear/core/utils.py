@@ -9,6 +9,7 @@ from functools import wraps
 from maya import cmds
 import pymel.core as pm
 from maya import mel
+import maya.api.OpenMaya as OpenMaya
 from .six import string_types, PY2
 
 import mgear
@@ -287,3 +288,25 @@ def filter_nurbs_curve_selection(func):
         return func(*args, **kwargs)
 
     return wrap
+
+
+def get_dag_path(name):
+    """
+    Gets the dag path for the specified object name.
+
+    :param str name: Name of the object in the Maya Scene.
+    
+    :return: The dag path to the specified name, else None.
+    :rtype: OpenMaya.MDagPath
+    """
+    selection_list = OpenMaya.MSelectionList()
+    selection_list.add(name)
+
+    if selection_list.length() == 0:
+        return None
+    
+    if selection_list.length() > 1:
+        raise NameError("Multiple dag paths found from the same name")
+
+    return selection_list.getDagPath(0)
+    
