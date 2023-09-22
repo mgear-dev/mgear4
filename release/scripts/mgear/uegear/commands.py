@@ -12,7 +12,7 @@ import tempfile
 import traceback
 
 import maya.cmds as cmds
-import maya.api.OpenMaya as om2
+import maya.api.OpenMaya as OpenMaya
 import pymel.core as pm
 
 from mgear.vendor.Qt import QtWidgets
@@ -459,10 +459,21 @@ def import_layout_from_unreal(export_assets=True):
                 if not fbx_file or not os.path.isfile(fbx_file):
                     continue
                 
-                # Working on this
+
                 # Check if object already exists in scene,
-                #   - if object does, delete old object
-                
+                dag_path = mgUtils.get_dag_path(actor_data["name"])
+                # Check if object has the same guid and actor name
+                asset_guid = actor_data.get("guid", "")
+                actor_name = actor_data["name"]
+                if dag_path:
+                    guid_match = tag.tag_match(dag_path, asset_guid, tag.TAG_ASSET_GUID_ATTR_NAME)
+                    name_match = tag.tag_match(dag_path, actor_name, tag.TAG_ACTOR_NAME_ATTR_NAME)
+                    #   Object passes all checks, it needs to be deleted.
+                    if guid_match and name_match:
+                        dag_mod = OpenMaya.MDagModifier()
+                        dag_mod.deleteNode(OpenMaya.MFnDagNode(dag_path).object())
+                        dag_mod.doIt()
+
                 imported_nodes = utils.import_static_fbx(fbx_file)
 
                 transform_nodes = cmds.ls(imported_nodes, type="transform")
@@ -509,17 +520,17 @@ def import_layout_from_unreal(export_assets=True):
                     transform_node = cmds.rename(transform_node, actor_name)
 
                     # Converts the unreal matrix into maya matrix
-                    obj_trans_matrix = om2.MTransformationMatrix()
-                    obj_trans_matrix.setTranslation(om2.MVector(translation), om2.MSpace.kWorld)
-                    obj_trans_matrix.setRotation(om2.MEulerRotation(rotation))
-                    obj_trans_matrix.setScale(om2.MVector(scale), om2.MSpace.kWorld)
+                    obj_trans_matrix = OpenMaya.MTransformationMatrix()
+                    obj_trans_matrix.setTranslation(OpenMaya.MVector(translation), OpenMaya.MSpace.kWorld)
+                    obj_trans_matrix.setRotation(OpenMaya.MEulerRotation(rotation))
+                    obj_trans_matrix.setScale(OpenMaya.MVector(scale), OpenMaya.MSpace.kWorld)
 
                     maya_trans_matrix = utils.convert_transformationmatrix_Unreal_to_Maya(obj_trans_matrix)
 
                     dag_path = mgUtils.get_dag_path(transform_node)
                     if dag_path:
-                        transform_fn = om2.MFnTransform(dag_path)
-                        transform_fn.setTransformation(om2.MTransformationMatrix(maya_trans_matrix))
+                        transform_fn = OpenMaya.MFnTransform(dag_path)
+                        transform_fn.setTransformation(OpenMaya.MTransformationMatrix(maya_trans_matrix))
 
     utils.safe_delete_folder(temp_assets_folder)
 

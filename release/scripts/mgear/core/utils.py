@@ -300,7 +300,10 @@ def get_dag_path(name):
     :rtype: OpenMaya.MDagPath
     """
     selection_list = OpenMaya.MSelectionList()
-    selection_list.add(name)
+    try:
+        selection_list.add(name)
+    except:
+        return None
 
     if selection_list.length() == 0:
         return None
