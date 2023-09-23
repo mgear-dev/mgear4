@@ -1168,17 +1168,15 @@ def get_guide_data_from_rig(*args):
     Returns:
         dict: a guide data
     """
-    selection = pm.ls(selection=True)
-    if not selection:
-        selection = pm.ls("rig")
-        if not selection or not selection[0].hasAttr("is_rig"):
-            mgear.log(
-                "Not rig root selected or found.\nSelect the rig root",
-                mgear.sev_error,
-            )
-            return
-    if selection[0].hasAttr("is_rig"):
-        guide_dict = selection[0].guide_data.get()
+    rigNode = pm.ls("rig")
+    if not rigNode or not rigNode[0].hasAttr("is_rig"):
+        mgear.log(
+            "Not rig root selected or found.\nSelect the rig root",
+            mgear.sev_error,
+        )
+        return
+    if rigNode[0].hasAttr("is_rig"):
+        guide_dict = rigNode[0].guide_data.get()
         return json.loads(guide_dict)
 
 
