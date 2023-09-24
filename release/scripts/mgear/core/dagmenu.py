@@ -722,6 +722,17 @@ def mgear_dagmenu_fill(parent_menu, current_control):
         command=partial(reset_all_keyable_attributes, child_controls),
     )
 
+    # reset all
+    selection_set = cmds.ls(
+        cmds.listConnections(current_control), type="objectSet"
+    )
+    all_rig_controls = cmds.sets(selection_set, query=True)
+    cmds.menuItem(
+        parent=parent_menu,
+        label="Reset all",
+        command=partial(reset_all_keyable_attributes, all_rig_controls),
+    )
+
     # add transform resets
     k_attrs = cmds.listAttr(current_control, keyable=True) or []
     for attr in ("translate", "rotate", "scale"):
