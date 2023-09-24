@@ -715,12 +715,12 @@ def mgear_dagmenu_fill(parent_menu, current_control):
         image="holder.svg",
     )
 
-    # reset all below
-    cmds.menuItem(
-        parent=parent_menu,
-        label="Reset all below",
-        command=partial(reset_all_keyable_attributes, child_controls),
-    )
+    resetOption = cmds.menuItem(
+            parent=parent_menu,
+            subMenu=True,
+            tearOff=False,
+            label="Reset Option",
+        )
 
     # reset all
     selection_set = cmds.ls(
@@ -728,10 +728,20 @@ def mgear_dagmenu_fill(parent_menu, current_control):
     )
     all_rig_controls = cmds.sets(selection_set, query=True)
     cmds.menuItem(
-        parent=parent_menu,
+        parent=resetOption,
         label="Reset all",
         command=partial(reset_all_keyable_attributes, all_rig_controls),
     )
+
+    # reset all below
+    cmds.menuItem(
+        parent=resetOption,
+        label="Reset all below",
+        command=partial(reset_all_keyable_attributes, child_controls),
+    )
+
+    # divider
+    cmds.menuItem(parent=resetOption, divider=True)
 
     # add transform resets
     k_attrs = cmds.listAttr(current_control, keyable=True) or []
@@ -742,7 +752,7 @@ def mgear_dagmenu_fill(parent_menu, current_control):
             if attr == "translate":
                 icon = "move_M.png"
             cmds.menuItem(
-                parent=parent_menu,
+                parent=resetOption,
                 label="Reset {}".format(attr),
                 command=partial(
                     __reset_attributes_callback, _current_selection, attr
