@@ -47,7 +47,7 @@ NO_MIRROR_ATTRIBUTES = ["isRig", "uiHost", "_ctl"]
 # util
 
 
-def getCtlRulePattern():
+def getCtlRulePattern(guideData=None):
     """Generates a regular expression pattern based on the control naming conventions
     defined in the rig's guide data. The pattern can be used to validate and extract parts of a control's name.
 
@@ -60,7 +60,8 @@ def getCtlRulePattern():
     the generated pattern might look something like:
     "(?P<component>.*?)_(?P<side>L|R|C)(?P<index>\d*)_(?P<extension>_ctl)"
     """
-    guideData = attribute.get_guide_data_from_rig()
+    if not guideData:
+        guideData = attribute.get_guide_data_from_rig()
     guideInfo = guideData["guide_root"]["param_values"]
 
     # Extract relevant data
@@ -97,7 +98,7 @@ def getSideLabelFromCtl(ctl):
     return side
 
 
-def swapSideLabel(name):
+def swapSideLabel(name, guideData=None):
     """Swap the side label of a given control name, based on the rig's naming convention.
 
     The function uses the guide data's naming patterns to identify the current side label
@@ -115,7 +116,8 @@ def swapSideLabel(name):
         swapSideLabel("arm_L_01_ctl")
         "arm_R_01_ctl"
     """
-    guideData = attribute.get_guide_data_from_rig()
+    if not guideData:
+        guideData = attribute.get_guide_data_from_rig()
     guideInfo = guideData["guide_root"]["param_values"]
 
     sideInfo = {
@@ -1216,20 +1218,21 @@ def spine_FKToIK(fkControls, ikControls, matchMatrix_dict=None):
 ##################################################
 
 
-def getMirrorTarget(nameSpace, node):
+def getMirrorTarget(nameSpace, node, guideData):
     """Find target control to apply mirroring.
 
     Args:
         nameSpace (str): Namespace
         node (PyNode): Node to mirror
+        guideData(dict): guideData on a rig node
 
     Returns:
         PyNode: Mirror target
     """
 
-    if isSideElement(node.name()):
+    if getSideLabelFromCtl(node.name()):
         nameParts = stripNamespace(node.name()).split("|")[-1]
-        nameParts = swapSideLabel(nameParts)
+        nameParts = swapSideLabel(nameParts, guideData)
         nameTarget = ":".join([nameSpace, nameParts])
         return getNode(nameTarget)
     else:
@@ -1253,10 +1256,11 @@ def mirrorPose(flip=False, nodes=None):
     pm.undoInfo(ock=1)
     try:
         nameSpace = getNamespace(nodes[0])
+        guideData = attribute.get_guide_data_from_rig()
 
         mirrorEntries = []
         for oSel in nodes:
-            target = getMirrorTarget(nameSpace, oSel)
+            target = getMirrorTarget(nameSpace, oSel, guideData)
             mirrorEntries.extend(calculateMirrorData(oSel, target))
 
             # To flip a pose, do mirroring both ways.
