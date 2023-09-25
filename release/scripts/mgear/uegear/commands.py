@@ -559,8 +559,15 @@ def update_selected_transforms():
         objects = cmds.ls(sl=True, sn=True)
         for obj in objects:
             ue_world_transform = ueUtils.get_unreal_engine_transform_for_maya_node(obj)
+
+            actor_guids = tag.tag_values(tag.TAG_ASSET_GUID_ATTR_NAME,[obj])
+            if actor_guids == None:
+                print("WARNING: Could not find guid: {}".format(obj))
+                continue
+            actor_guid = actor_guids[0]
+
             result = uegear_bridge.execute('set_actor_world_transform', parameters={
-                'actor_name': obj,
+                'actor_guid': actor_guid,
                 'translation': str(ue_world_transform['rotatePivot']),
                 'rotation': str(ue_world_transform['rotation']),
                 'scale': str(ue_world_transform['scale']),
