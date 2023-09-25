@@ -89,9 +89,9 @@ class Guide(guide.ComponentGuide):
         self.pIKOrient = self.addParam("ikOri", "bool", True)
 
         # Divisions
-        self.pDiv0 = self.addParam("div0", "long", 2, 1, None)
-        self.pDiv1 = self.addParam("div1", "long", 2, 1, None)
-        self.pDiv1 = self.addParam("div2", "long", 2, 1, None)
+        self.pDiv0 = self.addParam("div0", "long", 2, 0, None)
+        self.pDiv1 = self.addParam("div1", "long", 2, 0, None)
+        self.pDiv1 = self.addParam("div2", "long", 2, 0, None)
 
         # FCurves
         self.pSt_profile = self.addFCurveParam(
