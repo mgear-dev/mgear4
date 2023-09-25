@@ -542,83 +542,83 @@ def import_layout_from_unreal(export_assets=True):
     return True
 
 
-# def update_selected_transforms():
-# 	"""
-# 	Updates matching Unreal objects within current level with the transforms of the currently selected
-# 	objects within Maya scene.
-# 	"""
-#
-# 	uegear_bridge = bridge.UeGearBridge()
-#
-# 	selected_nodes = pm.selected()
-# 	old_rotation_orders = list()
-# 	for selected_node in selected_nodes:
-# 		old_rotation_orders.append(selected_node.getRotationOrder())
-# 		selected_node.setRotationOrder('XZY', True)
-# 	try:
-# 		objects = cmds.ls(sl=True, sn=True)
-# 		for obj in objects:
-# 			ue_world_transform = ueUtils.get_unreal_engine_transform_for_maya_node(obj)
-# 			result = uegear_bridge.execute('set_actor_world_transform', parameters={
-# 				'actor_name': obj,
-# 				'translation': str(ue_world_transform['rotatePivot']),
-# 				'rotation': str(ue_world_transform['rotation']),
-# 				'scale': str(ue_world_transform['scale']),
-# 			})
-# 	finally:
-# 		for i, selected_node in enumerate(selected_nodes):
-# 			selected_node.setRotationOrder(old_rotation_orders[i], True)
-#
-#
+def update_selected_transforms():
+    """
+    Updates matching Unreal objects within current level with the transforms of the currently selected
+    objects within Maya scene.
+    """
+
+    uegear_bridge = bridge.UeGearBridge()
+
+    selected_nodes = pm.selected()
+    old_rotation_orders = list()
+    for selected_node in selected_nodes:
+        old_rotation_orders.append(selected_node.getRotationOrder())
+        selected_node.setRotationOrder('XZY', True)
+    try:
+        objects = cmds.ls(sl=True, sn=True)
+        for obj in objects:
+            ue_world_transform = ueUtils.get_unreal_engine_transform_for_maya_node(obj)
+            result = uegear_bridge.execute('set_actor_world_transform', parameters={
+                'actor_name': obj,
+                'translation': str(ue_world_transform['rotatePivot']),
+                'rotation': str(ue_world_transform['rotation']),
+                'scale': str(ue_world_transform['scale']),
+            })
+    finally:
+        for i, selected_node in enumerate(selected_nodes):
+            selected_node.setRotationOrder(old_rotation_orders[i], True)
+
+
 # def update_static_mesh(self, export_options=None):
-#
-# 	default_export_options = {
-# 		'GenerateLog': False,
-# 		'AnimationOnly': False,
-# 		'Shapes': True,
-# 		'Skins': False,
-# 		'SmoothingGroups': True
-# 	}
-# 	export_options = export_options or dict()
-# 	default_export_options.update(export_options)
-#
-# 	selected_mesh = ueUtils.get_first_in_list(pm.ls(sl=True, type='transform'))
-# 	if not selected_mesh:
-# 		logger.warning('No selected mesh to export')
-# 		return
-#
-# 	meshes = selected_mesh.getShapes() if selected_mesh else None
-# 	if not meshes:
-# 		logger.warning('Selected node has no shapes to export')
-# 		return
-#
-# 	temp_folder = tempfile.gettempdir()
-# 	fbx_temp_file_path = os.path.join(temp_folder, 'uegear_temp_static_mesh.fbx')
-# 	try:
-# 		utils.touch_path(fbx_temp_file_path)
-# 		fbx_export_path = os.path.normpath(fbx_temp_file_path).replace('\\', '/')
-# 		pyFBX.FBXExportGenerateLog(v=default_export_options.get('GenerateLog', False))
-# 		pyFBX.FBXExportAnimationOnly(v=default_export_options.get('AnimationOnly', False))
-# 		pyFBX.FBXExportShapes(v=default_export_options.get('Shapes', True))
-# 		pyFBX.FBXExportSkins(v=default_export_options.get('Skins', False))
-# 		pyFBX.FBXExportSmoothingGroups(v=default_export_options.get('SmoothingGroups', True))
-# 		pyFBX.FBXExport(f=fbx_export_path, s=True)
-# 	except Exception as exc:
-# 		logger.error('Something went wrong while exporting static mesh: {}'.format(traceback.format_exc()))
-# 	finally:
-# 		try:
-# 			pass
-# 		except Exception as exc:
-# 			logger.error('Something went wrong while importing static mesh into Unreal: {}'.format(
-# 				traceback.format_exc()))
-# 		try:
-# 			utils.get_permission(fbx_temp_file_path)
-# 		except Exception:
-# 			pass
-# 		try:
-# 			os.remove(fbx_temp_file_path)
-# 		except Exception:
-# 			pass
+
+#     default_export_options = {
+#         'GenerateLog': False,
+#         'AnimationOnly': False,
+#         'Shapes': True,
+#         'Skins': False,
+#         'SmoothingGroups': True
+#     }
+#     export_options = export_options or dict()
+#     default_export_options.update(export_options)
+
+#     selected_mesh = ueUtils.get_first_in_list(pm.ls(sl=True, type='transform'))
+#     if not selected_mesh:
+#         logger.warning('No selected mesh to export')
+#         return
+
+#     meshes = selected_mesh.getShapes() if selected_mesh else None
+#     if not meshes:
+#         logger.warning('Selected node has no shapes to export')
+#         return
+
+#     temp_folder = tempfile.gettempdir()
+#     fbx_temp_file_path = os.path.join(temp_folder, 'uegear_temp_static_mesh.fbx')
+#     try:
+#         utils.touch_path(fbx_temp_file_path)
+#         fbx_export_path = os.path.normpath(fbx_temp_file_path).replace('\\', '/')
+#         pyFBX.FBXExportGenerateLog(v=default_export_options.get('GenerateLog', False))
+#         pyFBX.FBXExportAnimationOnly(v=default_export_options.get('AnimationOnly', False))
+#         pyFBX.FBXExportShapes(v=default_export_options.get('Shapes', True))
+#         pyFBX.FBXExportSkins(v=default_export_options.get('Skins', False))
+#         pyFBX.FBXExportSmoothingGroups(v=default_export_options.get('SmoothingGroups', True))
+#         pyFBX.FBXExport(f=fbx_export_path, s=True)
+#     except Exception as exc:
+#         logger.error('Something went wrong while exporting static mesh: {}'.format(traceback.format_exc()))
+#     finally:
+#         try:
+#             pass
+#         except Exception as exc:
+#             logger.error('Something went wrong while importing static mesh into Unreal: {}'.format(
+#                 traceback.format_exc()))
+#         try:
+#             utils.get_permission(fbx_temp_file_path)
+#         except Exception:
+#             pass
+#         try:
+#             os.remove(fbx_temp_file_path)
+#         except Exception:
+#             pass
 
 
 # NOT IMPLEMENTED
