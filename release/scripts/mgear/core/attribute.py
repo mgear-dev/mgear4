@@ -366,7 +366,7 @@ def moveChannel(attr, sourceNode, targetNode, duplicatedPolicy=None):
         )
         return
     atType = at.type()
-    if atType in ["double", "float", "enum"]:
+    if atType in ["double", "float", "enum", "bool"]:
 
         newAtt = None
         attrName = attr
@@ -439,6 +439,15 @@ def moveChannel(attr, sourceNode, targetNode, duplicatedPolicy=None):
                     en=enStr,
                     dv=value,
                     k=True,
+                )
+            elif atType == "bool":
+                pm.addAttr(
+                    targetNode,
+                    longName=attrName,
+                    niceName=nName,
+                    attributeType="bool",
+                    defaultValue=value,
+                    keyable=True
                 )
 
             newAtt = pm.PyNode(".".join([targetNode.name(), attrName]))
