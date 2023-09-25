@@ -434,7 +434,9 @@ def export_layout_to_unreal(self, nodes=None):
 
 
 def import_layout_from_unreal(export_assets=True):
-
+    """
+    Imports the selected objects from the Unreal Level into Maya.
+    """
     uegear_bridge = bridge.UeGearBridge()
 
     temp_folder = tempfile.gettempdir()
@@ -453,100 +455,88 @@ def import_layout_from_unreal(export_assets=True):
         },
     ).get("ReturnValue", "")
 
-    if result and os.path.isfile(result):
-        layout_data = ueUtils.read_json_file(result)
-        if layout_data:
-            for actor_data in layout_data:
-                fbx_file = actor_data.get("assetExportPath", None)
-                if not fbx_file or not os.path.isfile(fbx_file):
-                    continue
-                
-                # Check if object already exists in scene...
+    if not (result and os.path.isfile(result)):
+        return False
 
-                # Cannot assume the name of the object is what it is named in maya.
-                # To veryify the object we need to find all objects with the same GUID
-                dag_path = utils.get_dag_path(actor_data["name"])
+    layout_data = ueUtils.read_json_file(result)
+    if not layout_data:
+        return False
 
-                # Check if object has the same guid and actor name
-                asset_guid = actor_data.get("guid", "")
-                actor_name = actor_data["name"]
+    for actor_data in layout_data:
+        fbx_file = actor_data.get("assetExportPath", None)
+        if not fbx_file or not os.path.isfile(fbx_file):
+            continue
+        
+        # Check if object already exists in scene...
 
-                # Find all tagged objects that have the specific guid
-                matching_guid_objs = tag.find_tagged_nodes(
-                    tag_name=tag.TAG_ASSET_GUID_ATTR_NAME, 
-                    tag_value=asset_guid
-                )
+        # Cannot assume the name of the object is what it is named in maya.
+        # To veryify the object we need to find all objects with the same GUID
+        dag_path = utils.get_dag_path(actor_data["name"])
 
-                # If GUID, Actor Name and Asset Path are all equal, then object is stale.
-                for obj in matching_guid_objs:
-                    dag_path = utils.get_dag_path(obj)
-                    guid_match = tag.tag_match(dag_path, asset_guid, tag.TAG_ASSET_GUID_ATTR_NAME)
-                    name_match = tag.tag_match(dag_path, actor_name, tag.TAG_ACTOR_NAME_ATTR_NAME)
+        # Check if object has the same guid and actor name
+        asset_guid = actor_data.get("guid", "")
+        actor_name = actor_data["name"]
 
-                    #   Object passed all checks, it is stale and needs to be deleted.
-                    if guid_match and name_match:
-                        dag_mod = OpenMaya.MDagModifier()
-                        dag_mod.deleteNode(OpenMaya.MFnDagNode(dag_path).object())
-                        dag_mod.doIt()
+        # Find all tagged objects that have the specific guid
+        matching_guid_objs = tag.find_tagged_nodes(
+            tag_name=tag.TAG_ASSET_GUID_ATTR_NAME, 
+            tag_value=asset_guid
+        )
 
-                imported_nodes = ueUtils.import_static_fbx(fbx_file)
+        # If GUID, Actor Name and Asset Path are all equal, then object is stale.
+        for obj in matching_guid_objs:
+            dag_path = utils.get_dag_path(obj)
+            guid_match = tag.tag_match(dag_path, asset_guid, tag.TAG_ASSET_GUID_ATTR_NAME)
+            name_match = tag.tag_match(dag_path, actor_name, tag.TAG_ACTOR_NAME_ATTR_NAME)
 
-                transform_nodes = cmds.ls(imported_nodes, type="transform")
-                transform_node = ueUtils.get_first_in_list(transform_nodes)
-                if not transform_node:
-                    continue
-                for transform_node in transform_nodes:
-                    asset_guid = actor_data.get("guid", "")
-                    asset_type = actor_data.get("assetType", "")
-                    asset_name = actor_data.get("assetName", "")
-                    asset_path = actor_data.get("assetPath", "")
-                    actor_name = actor_data["name"]
-                    translation = actor_data["translation"]
-                    rotation = actor_data["rotation"]
-                    scale = actor_data["scale"]
-                    tag.apply_tag(
-                        transform_node,
-                        tag.TAG_ASSET_GUID_ATTR_NAME,
-                        asset_guid,
-                    )
-                    if asset_type:
-                        tag.apply_tag(
-                            transform_node,
-                            tag.TAG_ASSET_TYPE_ATTR_NAME,
-                            asset_type,
-                        )
-                    else:
-                        tag.auto_tag(transform_node)
-                    tag.apply_tag(
-                        transform_node,
-                        tag.TAG_ASSET_NAME_ATTR_NAME,
-                        asset_name,
-                    )
-                    tag.apply_tag(
-                        transform_node,
-                        tag.TAG_ASSET_PATH_ATTR_NAME,
-                        asset_path,
-                    )
-                    tag.apply_tag(
-                        transform_node,
-                        tag.TAG_ACTOR_NAME_ATTR_NAME,
-                        actor_name,
-                    )
-                    transform_node = cmds.rename(transform_node, actor_name)
+            #   Object passed all checks, it is stale and needs to be deleted.
+            if guid_match and name_match:
+                dag_mod = OpenMaya.MDagModifier()
+                dag_mod.deleteNode(OpenMaya.MFnDagNode(dag_path).object())
+                dag_mod.doIt()
 
-                    # Converts the unreal matrix into maya matrix
-                    obj_trans_matrix = OpenMaya.MTransformationMatrix()
-                    obj_trans_matrix.setTranslation(OpenMaya.MVector(translation), OpenMaya.MSpace.kWorld)
-                    obj_trans_matrix.setRotation(OpenMaya.MEulerRotation(rotation))
-                    obj_trans_matrix.setScale(OpenMaya.MVector(scale), OpenMaya.MSpace.kWorld)
+        imported_nodes = ueUtils.import_static_fbx(fbx_file)
 
-                    maya_trans_matrix = ueUtils.convert_transformationmatrix_Unreal_to_Maya(obj_trans_matrix)
+        transform_nodes = cmds.ls(imported_nodes, type="transform")
+        transform_node = ueUtils.get_first_in_list(transform_nodes)
+        if not transform_node:
+            continue
 
-                    dag_path = utils.get_dag_path(transform_node)
-                    if dag_path:
-                        transform_fn = OpenMaya.MFnTransform(dag_path)
-                        transform_fn.setTransformation(OpenMaya.MTransformationMatrix(maya_trans_matrix))
+        for transform_node in transform_nodes:
+            asset_guid = actor_data.get("guid", "")
+            asset_type = actor_data.get("assetType", "")
+            asset_name = actor_data.get("assetName", "")
+            asset_path = actor_data.get("assetPath", "")
+            actor_name = actor_data["name"]
+            translation = actor_data["translation"]
+            rotation = actor_data["rotation"]
+            scale = actor_data["scale"]
 
+            # Apply unreal meta data as tags
+            tag.apply_tag(transform_node, tag.TAG_ASSET_GUID_ATTR_NAME, asset_guid)
+            if asset_type:
+                tag.apply_tag(transform_node, tag.TAG_ASSET_TYPE_ATTR_NAME, asset_type)
+            else:
+                tag.auto_tag(transform_node)
+            tag.apply_tag(transform_node, tag.TAG_ASSET_NAME_ATTR_NAME, asset_name)
+            tag.apply_tag(transform_node, tag.TAG_ASSET_PATH_ATTR_NAME, asset_path)
+            tag.apply_tag(transform_node, tag.TAG_ACTOR_NAME_ATTR_NAME, actor_name)
+            transform_node = cmds.rename(transform_node, actor_name)
+
+            # Converts the unreal matrix into maya matrix
+            obj_trans_matrix = OpenMaya.MTransformationMatrix()
+            obj_trans_matrix.setTranslation(OpenMaya.MVector(translation), OpenMaya.MSpace.kWorld)
+            obj_trans_matrix.setRotation(OpenMaya.MEulerRotation(rotation))
+            obj_trans_matrix.setScale(OpenMaya.MVector(scale), OpenMaya.MSpace.kWorld)
+
+            maya_trans_matrix = ueUtils.convert_transformationmatrix_Unreal_to_Maya(obj_trans_matrix)
+
+            dag_path = utils.get_dag_path(transform_node)
+            if dag_path:
+                transform_fn = OpenMaya.MFnTransform(dag_path)
+                transform_fn.setTransformation(OpenMaya.MTransformationMatrix(maya_trans_matrix))
+
+    # Clean up temporary location
     ueUtils.safe_delete_folder(temp_assets_folder)
 
     return True
