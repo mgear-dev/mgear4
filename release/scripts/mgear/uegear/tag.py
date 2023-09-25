@@ -184,13 +184,11 @@ def find_tagged_nodes(
     for node in nodes:
         if not cmds.attributeQuery(tag_name, node=node, exists=True):
             continue
-        found_tag_value = cmds.getAttr(
-            "{}.{}".format(node, TAG_ASSET_TYPE_ATTR_NAME)
-        )
+        found_tag_value = cmds.getAttr("{}.{}".format(node, tag_name))
         if (
             not found_tag_value
-            or tag_value is not None
-            and found_tag_value != tag_value
+            or (tag_value is not None
+            and found_tag_value != tag_value)
         ):
             continue
         found_tagged_nodes.append(node)
