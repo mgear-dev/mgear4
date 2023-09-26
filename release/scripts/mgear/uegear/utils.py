@@ -1048,6 +1048,7 @@ def import_fbx(fbx_path, import_namespace=None):
     pyFBX.FBXImportSkins(v=True)
     pyFBX.FBXImportCacheFile(v=True)
     pyFBX.FBXImportGenerateLog(v=False)
+    # t=-1, will always use the last take, and will force update the Maya timeline.
     pyFBX.FBXImport(f=formatted_path, t=-1)
     imported_node_list = set(cmds.ls("*"))
     return_list = list(imported_node_list - original_node_list)
@@ -1056,3 +1057,59 @@ def import_fbx(fbx_path, import_namespace=None):
             move_node_to_namespace(x, import_namespace)
 
     return return_list
+
+
+@keep_namespace_decorator
+def import_static_fbx(fbx_path, import_namespace=None):
+    """
+    Import a given FBX file. If it contains animation, the animation will not be 
+    imported.
+
+    :param str fbx_path: A path to a given FBX file.
+    :param str import_namespace: If the imported data should be organized under 
+    a namespace.
+    :return: A list of all imported files. If an import namespace was given it
+    will only return the new subset of nodes.
+    :rtype: list[str]
+    """
+
+    if not os.path.exists(fbx_path):
+        raise "File not found at: {}".format(fbx_path)
+    formatted_path = os.path.normpath(fbx_path).replace("\\", "/")
+    set_namespace(":")
+    original_node_list = set(cmds.ls("*"))
+    pyFBX.FBXImportMode(v="add")
+    pyFBX.FBXImportShapes(v=True)
+    pyFBX.FBXImportSkins(v=True)
+    pyFBX.FBXImportCacheFile(v=True)
+    pyFBX.FBXImportGenerateLog(v=False)
+    pyFBX.FBXImportFillTimeline(v=False)
+    pyFBX.FBXImport(f=formatted_path, t=0)
+
+    imported_node_list = set(cmds.ls("*"))
+    return_list = list(imported_node_list - original_node_list)
+    if import_namespace:
+        for x in return_list:
+            move_node_to_namespace(x, import_namespace)
+
+    return return_list
+
+
+def convert_transformationmatrix_Unreal_to_Maya(transformationMatrix):
+    """
+    Converts a TransformationMatrix, that stores Unreal data, into a transformation matrix that
+    works in Maya.
+
+    :param OpenMaya.MTransformationMatrix transformationMatrix: Matrix with Unreal transform data.
+
+    :return: Unreal transofm now in Maya transform space.
+    :rtype: OpenMaya.MTransformationMatrix
+    """
+    UNREAL_APP_MATRIX = OpenMaya.MMatrix([
+                                [1, 0,  0, 0],
+                                [0, 0, 1, 0],
+                                [0, 1,  0, 0],
+                                [0, 0,  0, 1]])
+
+    maya_space_mtx = transformationMatrix.asMatrix() * UNREAL_APP_MATRIX
+    return OpenMaya.MTransformationMatrix(maya_space_mtx)

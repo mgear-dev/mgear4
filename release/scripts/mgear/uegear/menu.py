@@ -32,6 +32,15 @@ def install():
             "Update Sequencer Camers from Maya Selection",
             str_update_sequencer_camera_from_maya,
         ),
+        ("-----", None),
+        (
+            "Import Selected Assets from Unreal Level",
+            str_import_selected_assets_from_level_unreal,
+        ),
+        (
+            "Update Unreal Assets from Maya Selection",
+            str_update_unreal_Assets_from_Maya_Selection,
+        ),
     )
 
     mgear.menu.install(menuID, commands, image="UE5.svg")
@@ -65,4 +74,14 @@ commands.import_selected_cameras_from_unreal()
 str_update_sequencer_camera_from_maya = """
 from mgear.uegear import commands
 commands.update_sequencer_camera_from_maya()
+"""
+
+str_import_selected_assets_from_level_unreal = """
+from mgear.uegear import commands
+commands.import_layout_from_unreal()
+"""
+
+str_update_unreal_Assets_from_Maya_Selection = """
+from mgear.uegear import commands
+commands.update_selected_transforms()
 """
