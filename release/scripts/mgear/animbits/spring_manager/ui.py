@@ -1,6 +1,6 @@
-
 from PySide2 import QtWidgets, QtCore
 import pymel.core as pm
+from mgear.core import widgets as mgear_widget
 
 
 class ConfigCollector(QtWidgets.QMainWindow):
@@ -12,12 +12,12 @@ class ConfigCollector(QtWidgets.QMainWindow):
         super(ConfigCollector, self).__init__()
 
         self.configs = []
-
         self.initUI()
 
     def initUI(self):
         central_widget = QtWidgets.QWidget(self)
         layout = QtWidgets.QVBoxLayout()
+        central_widget.setLayout(layout)
 
         # Add top menu
         menubar = self.menuBar()
@@ -57,8 +57,6 @@ class ConfigCollector(QtWidgets.QMainWindow):
         self.direction_buttons = {}
         for i, direction in enumerate(directions):
             btn = QtWidgets.QPushButton(direction)
-            # btn.setCheckable(True)
-            # btn.clicked.connect(self.set_direction)
             btn.clicked.connect(self.collect_data)
             self.direction_buttons[direction] = btn
             grid_layout.addWidget(btn, i // 3, i % 3)
@@ -66,8 +64,11 @@ class ConfigCollector(QtWidgets.QMainWindow):
 
         # Sliders and SpinBoxes
         self.spin_sliders = {}
-        options_group = QtWidgets.QGroupBox("Spring Parameters")
-        options_layout = QtWidgets.QFormLayout()
+        collapsible_spring_params = mgear_widget.CollapsibleWidget(
+            "Spring Parameters", expanded=False
+        )
+        spring_layout = QtWidgets.QFormLayout()
+
         options = [
             ("Total Intensity", "springTotalIntensity", 1),
             ("Translational Intensity", "springTranslationalIntensity", 0),
@@ -98,15 +99,31 @@ class ConfigCollector(QtWidgets.QMainWindow):
                 lambda value, slider=slider: slider.setValue(int(value * 100))
             )
 
-            options_layout.addRow(label_text, spin)
-            options_layout.addRow("", slider)
+            spring_layout.addRow(label_text, spin)
+            spring_layout.addRow("", slider)
 
             self.spin_sliders[name] = (spin, slider)
 
-        options_group.setLayout(options_layout)
-        layout.addWidget(options_group)
+        collapsible_spring_params.addLayout(spring_layout)
+        layout.addWidget(collapsible_spring_params)
 
-        central_widget.setLayout(layout)
+        # Presets Collapsible
+        presets_collapsible = mgear_widget.CollapsibleWidget(
+            "Presets", expanded=False
+        )
+        presets_layout = QtWidgets.QVBoxLayout()
+        presets_list = QtWidgets.QListWidget()
+        presets_layout.addWidget(presets_list)
+        presets_collapsible.addLayout(presets_layout)
+
+        layout.addWidget(presets_collapsible)
+
+        expander = QtWidgets.QWidget()
+        expander.setSizePolicy(
+            QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding
+        )
+        layout.addWidget(expander)
+
         self.setCentralWidget(central_widget)
 
     def set_node_from_selection(self):
@@ -116,38 +133,21 @@ class ConfigCollector(QtWidgets.QMainWindow):
         selected = pm.selected()
         self.node_le.setText(",".join([str(node) for node in selected]))
 
-    def set_direction(self):
-        """
-        Ensure only one direction button is checked at a time.
-        """
-        sender = self.sender()
-        for btn in self.direction_buttons.values():
-            if btn is not sender:
-                btn.setChecked(False)
-        self.collect_data(sender.text())  # Collect data on button click
-
-    def collect_data(self, direction):
+    def collect_data(self):
         """
         Collects all data into a list of config dictionaries.
-
-        Args:
-            direction (str): The direction selected.
         """
         self.configs = []
         nodes = self.node_le.text().split(",")
+        direction = self.sender().text()  # Assumes button clicked
 
         for node in nodes:
-            config = {
-                "node": node.strip(),
-                "direction": direction,
-            }
+            config = {"node": node.strip(), "direction": direction}
             for name, (spin, _) in self.spin_sliders.items():
                 config[name] = spin.value()
 
             self.configs.append(config)
-
-        print(self.configs)  # Replace with your processing logic
-
+        print(self.configs)
 
 
 if __name__ == "__main__":
