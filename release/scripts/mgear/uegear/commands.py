@@ -16,6 +16,7 @@ import pymel.core as pm
 
 from mgear.vendor.Qt import QtWidgets
 from mgear.core import pyFBX
+from mgear.core import utils as mUtils
 from mgear.uegear import log, utils, tag, bridge, io, ioutils
 
 logger = log.uegear_logger
@@ -625,7 +626,7 @@ def import_selected_cameras_from_unreal():
     Triggers the Unreal bridge call, to export the selected Camera
     tracks in the active sequencer, and import it into Maya.
     """
-    print("Importing Selected Sequencer Cameras from Unreal...")
+    print("[mGear] Importing Selected Sequencer Cameras from Unreal...")
 
     uegear_bridge = bridge.UeGearBridge()
 
@@ -634,6 +635,17 @@ def import_selected_cameras_from_unreal():
 
     # Send Unreal Command
     
+    # UE - Get fps, to validate maya and unreal match
+    sequencer_fps = uegear_bridge.execute(
+        "get_selected_sequencer_fps", parameters={}
+    ).get("ReturnValue", list())
+    if not sequencer_fps:
+        logger.warning(
+            "Was not possible to retrieve Sequencer FPS from Unreal"
+        )
+        return False
+    
+    # UE - Export selected Camera
     asset_export_datas = uegear_bridge.execute(
         "export_selected_sequencer_cameras", 
         parameters={"directory": temp_folder}
@@ -644,6 +656,26 @@ def import_selected_cameras_from_unreal():
         )
         return False
     
+    # Check FPS in Maya and Sequencer match, else suggest update.
+    print("[mGear] Unreal Sequencer FPS {}".format(sequencer_fps))
+    current_frame_rate = mUtils.get_frame_rate()
+
+    if sequencer_fps != current_frame_rate:
+        # Create a pop-up dialog and to alert user
+        result = cmds.confirmDialog(
+            title='Frame Rates Do Not Match',
+            message="The Sequencer FPS, do not match those of the current Maya scene. \n\nDo you wish to update Maya's fps?",
+            button=['Yes', 'No'],
+            defaultButton='Yes',
+            cancelButton='No',
+            dismissString='No'
+        )
+
+        if result == "No":
+            return
+        else:
+            mUtils.set_frame_rate(sequencer_fps)
+
     # Loop over Unreal result
 
     for asset_export_data in asset_export_datas:

@@ -287,3 +287,55 @@ def filter_nurbs_curve_selection(func):
         return func(*args, **kwargs)
 
     return wrap
+
+
+def get_frame_rate():
+    '''
+    Returns the current scene's fps.
+
+    :return: The fps for the current scene's timeline.
+    :rtype: int
+    '''
+    currentUnit = cmds.currentUnit(query=True, time=True)
+    if currentUnit == 'film':
+        return 24
+    if currentUnit == 'show':
+        return 48
+    if currentUnit == 'pal':
+        return 25
+    if currentUnit == 'ntsc':
+        return 30
+    if currentUnit == 'palf':
+        return 50
+    if currentUnit == 'ntscf':
+        return 60
+    if 'fps' in currentUnit:
+        return int(currentUnit.replace('fps',''))
+
+    return 1 
+
+
+def set_frame_rate(fps):
+    """
+    Set Maya Scene's frame rate(fps).
+
+    :param int fps: frames per a second for playback.
+    """
+    new_fps = ''
+    if fps == 24:
+        new_fps = 'film'
+    elif fps == 48:
+        new_fps = 'show'
+    elif fps == 25:
+        new_fps = 'pal'
+    elif fps ==  30:
+        new_fps = 'ntsc'
+    elif fps ==  50:
+        new_fps = 'palf'
+    elif fps ==  60:
+        new_fps = 'ntscf'
+    else:
+        new_fps = str(fps)+'fps'
+    cmds.currentUnit(time=new_fps)
+
+
