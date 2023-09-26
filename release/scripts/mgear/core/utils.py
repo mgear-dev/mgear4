@@ -9,6 +9,7 @@ from functools import wraps
 from maya import cmds
 import pymel.core as pm
 from maya import mel
+import maya.api.OpenMaya as OpenMaya
 from .six import string_types, PY2
 
 import mgear
@@ -289,6 +290,7 @@ def filter_nurbs_curve_selection(func):
     return wrap
 
 
+
 def get_frame_rate():
     '''
     Returns the current scene's fps.
@@ -338,4 +340,26 @@ def set_frame_rate(fps):
         new_fps = str(fps)+'fps'
     cmds.currentUnit(time=new_fps)
 
+def get_dag_path(name):
+    """
+    Gets the dag path for the specified object name.
 
+    :param str name: Name of the object in the Maya Scene.
+    
+    :return: The dag path to the specified name, else None.
+    :rtype: OpenMaya.MDagPath
+    """
+    selection_list = OpenMaya.MSelectionList()
+    try:
+        selection_list.add(name)
+    except:
+        return None
+
+    if selection_list.length() == 0:
+        return None
+    
+    if selection_list.length() > 1:
+        raise NameError("Multiple dag paths found from the same name")
+
+    return selection_list.getDagPath(0)
+    

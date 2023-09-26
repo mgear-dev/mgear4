@@ -8,6 +8,7 @@ Module that contains functions related with Maya tag functionality for ueGear.
 from __future__ import print_function, division, absolute_import
 
 import maya.cmds as cmds
+import maya.api.OpenMaya as OpenMaya
 
 from mgear.uegear import utils, log
 
@@ -183,13 +184,11 @@ def find_tagged_nodes(
     for node in nodes:
         if not cmds.attributeQuery(tag_name, node=node, exists=True):
             continue
-        found_tag_value = cmds.getAttr(
-            "{}.{}".format(node, TAG_ASSET_TYPE_ATTR_NAME)
-        )
+        found_tag_value = cmds.getAttr("{}.{}".format(node, tag_name))
         if (
             not found_tag_value
-            or tag_value is not None
-            and found_tag_value != tag_value
+            or (tag_value is not None
+            and found_tag_value != tag_value)
         ):
             continue
         found_tagged_nodes.append(node)
@@ -263,3 +262,22 @@ def tag_values(tag_name=TAG_ASSET_TYPE_ATTR_NAME, nodes=None):
         found_tag_values.append(cmds.getAttr("{}.{}".format(node, tag_name)))
 
     return found_tag_values
+
+
+def tag_match(dag_path, tag_value, tag):
+    """
+    Validates if the object specified by its dag path, has the same tag and value 
+    assigned to it.
+
+    :param OpenMaya.DagPath dag_path: The object you want to validate has the 
+           following tag and data assigned.
+    :param str tag_value: value assigned to the tag.
+    :param str tag: tag to correlate with.
+    :return: True if the object has matching tag and the values are the same.
+    :rtype: bool
+    """
+    dag_node = OpenMaya.MFnDagNode(dag_path)
+    attr = dag_node.attribute(tag)
+    plug = dag_node.findPlug(attr, False)
+    plug_value = plug.asString()
+    return plug_value == tag_value

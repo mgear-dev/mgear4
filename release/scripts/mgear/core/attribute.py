@@ -1462,6 +1462,49 @@ def get_next_available_index(attr):
                 return e
 
 
+def connect_message(source, attr):
+    """
+    Connects the 'message' attribute of one or more source nodes to a
+    destination attribute.
+
+    Args:
+        source (str, pm.PyNode, list): The source node(s) with a 'message'
+                                       attribute.
+        attr (str, pm.PyNode): The destination attribute to connect to.
+
+    Raises:
+        TypeError: If the destination attribute is not a message attribute.
+    """
+    if not isinstance(source, list):
+        source = [source]
+
+    for src in source:
+        idx = get_next_available_index(attr)
+        attr_name = "{}[{}]".format(attr, idx)
+
+        src_str = str(src) if isinstance(src, pm.PyNode) else src
+        attr_str = str(attr) if isinstance(attr, pm.PyNode) else attr
+
+        source_attr_type = pm.attributeQuery(
+            "message", node=src_str.split(".")[0], attributeType=True
+        )
+        dest_attr_type = pm.attributeQuery(
+            attr_str.split("[")[0].split(".")[-1],
+            node=attr_str.split(".")[0],
+            attributeType=True,
+        )
+
+        if source_attr_type != "message":
+            raise TypeError("Source attribute is not a message attribute.")
+
+        if dest_attr_type != "message":
+            raise TypeError(
+                "Destination attribute is not a message attribute."
+            )
+
+        pm.connectAttr("{}.message".format(src_str), attr_name)
+
+
 ##########################################################
 # Utility Channels
 ##########################################################
