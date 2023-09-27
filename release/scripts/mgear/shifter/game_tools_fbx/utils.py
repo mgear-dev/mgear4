@@ -19,10 +19,10 @@ NO_EXPORT_TAG = "no_export"
 WORLD_CONTROL_NAME = "world_ctl"
 
 FRAMES_PER_SECOND = {
-    "24 FPS": ("film", 24),
-    "30 FPS": ("ntsc", 30),
-    "60 FPS": ("ntscf", 60),
-    "120 FPS": ("120fps", 120),
+    "24 fps": ("film", 24),
+    "30 fps": ("ntsc", 30),
+    "60 fps": ("ntscf", 60),
+    "120 fps": ("120fps", 120),
 }
 AS_FRAMES = dict(FRAMES_PER_SECOND.values())
 TRANSFORM_ATTRIBUTES = [
@@ -88,7 +88,7 @@ class SelectorDialog(QtWidgets.QDialog):
 
 def export_skeletal_mesh(export_data):
     geo_roots = export_data.get("geo_roots", "")
-    joint_roots = [export_data.get("joint_root", "")]
+    joint_root = export_data.get("joint_root", "")
     file_path = export_data.get("file_path", "")
     file_name = export_data.get("file_name", "")
     preset_path = export_data.get("preset_path", None)
@@ -97,7 +97,6 @@ def export_skeletal_mesh(export_data):
     fbx_version = export_data.get("fbx_version", None)
     remove_namespaces = export_data.get("remove_namespace")
     scene_clean = export_data.get("scene_clean", True)
-    deformations = export_data.get("deformations", True)
     skinning = export_data.get("skinning", True)
     blendshapes = export_data.get("blendshapes", True)
     use_partitions = export_data.get("use_partitions", True)
@@ -128,20 +127,19 @@ def export_skeletal_mesh(export_data):
         pfbx.FBXExportInAscii(v=True)
 
     # select elements and export all the data
-    pm.select(geo_roots + joint_roots)
+    cmds.select(geo_roots + [joint_root])
 
     fbx_modified = False
     pfbx.FBXExport(f=export_path, s=True)
     fbx_file = sdk_utils.FbxSdkGameToolsWrapper(export_path)
 
     # Make sure root joints are parented to world
-    for jnt_root in joint_roots:
-        fbx_file.parent_to_world(jnt_root, remove_top_parent=False)
+    fbx_file.parent_to_world(joint_root, remove_top_parent=False)
     if geo_roots:
         for geo_root in geo_roots:
             meshes = (
                 cmds.listRelatives(geo_root, children=True, type="transform")
-                or list()
+                or []
             )
             if geo_root == geo_roots[-1]:
                 for mesh in meshes:
@@ -179,7 +177,7 @@ def export_skeletal_mesh(export_data):
     # post process with FBX SDK if available
     if pfbx.FBX_SDK:
         if use_partitions:
-            export_skeletal_mesh_partitions(joint_roots, export_data)
+            export_skeletal_mesh_partitions(joint_root, export_data)
 
             # when using partitions, we remove full FBX file
             if os.path.isfile(export_path):
@@ -195,7 +193,7 @@ def export_skeletal_mesh(export_data):
     return True
 
 
-def export_skeletal_mesh_partitions(jnt_roots, export_data):
+def export_skeletal_mesh_partitions(joint_root, export_data):
     if not pfbx.FBX_SDK:
         cmds.warning(
             "Python FBX SDK is not available. Skeletal Mesh partitions export functionality is not available!"
@@ -213,7 +211,7 @@ def export_skeletal_mesh_partitions(jnt_roots, export_data):
     path = string.normalize_path(os.path.join(file_path, file_name))
     print("\t>>> Export Path: {}".format(path))
 
-    partitions = export_data.get("partitions", dict())
+    partitions = export_data.get("partitions", {})
     if not partitions:
         cmds.warning("Partitions not defined!")
         return False
@@ -230,15 +228,14 @@ def export_skeletal_mesh_partitions(jnt_roots, export_data):
             influences = pm.skinCluster(mesh, query=True, influence=True)
 
             # make sure the hierarchy from the root joint to the influence joints is retrieved.
-            for jnt_root in jnt_roots:
-                joint_hierarchy.setdefault(jnt_root, list())
-                for inf_jnt in influences:
-                    jnt_hierarchy = get_joint_list(jnt_root, inf_jnt)
-                    for hierarchy_jnt in jnt_hierarchy:
-                        if hierarchy_jnt not in joint_hierarchy[jnt_root]:
-                            joint_hierarchy[jnt_root].append(hierarchy_jnt)
+            joint_hierarchy.setdefault(joint_root, [])
+            for inf_jnt in influences:
+                jnt_hierarchy = get_joint_list(joint_root, inf_jnt)
+                for hierarchy_jnt in jnt_hierarchy:
+                    if hierarchy_jnt not in joint_hierarchy[joint_root]:
+                        joint_hierarchy[joint_root].append(hierarchy_jnt)
 
-        partitions_data.setdefault(partition_name, dict())
+        partitions_data.setdefault(partition_name, {})
 
         # the joint chain to export will be the shorter one between the root joint and the influences
         short_hierarchy = None
@@ -295,40 +292,8 @@ def export_skeletal_mesh_partitions(jnt_roots, export_data):
     return True
 
 
-def export_animation_clip(root_joint, **export_data):
-    if not root_joint or not cmds.objExists(root_joint):
-        cmds.warning(
-            'Was not possible to export animation clip because root joint "{}" was not found within scene'.format(
-                root_joint
-            )
-        )
-        return False
-
-    # only enabled animation clips will be exported
-    enabled = export_data.get("enabled", False)
-    if not enabled:
-        return False
-
-    # namespace = pm.PyNode(root_joint).namespace()
-    # if not namespace:
-    # 	cmds.warning('Only animations with namespaces can be exported')
-    # 	return False
-    # namespace = namespace[:-1]
-
-    time_range = cmds.playbackOptions(
-        query=True, minTime=True
-    ), cmds.playbackOptions(query=True, maxTime=True)
-    start_frame = export_data.get("startFrame", time_range[0])
-    end_frame = export_data.get("endFrame", time_range[1])
-    if start_frame > end_frame:
-        cmds.error(
-            "Start frame {} must be lower than the end frame {}".format(
-                start_frame, end_frame
-            )
-        )
-        return False
-
-    title = export_data.get("title", "")
+def export_animation_clip(export_data):
+    joint_root = export_data.get("joint_root", "")
     file_path = export_data.get("file_path", "")
     file_name = export_data.get("file_name", "")
     preset_path = export_data.get("preset_path", None)
@@ -337,52 +302,85 @@ def export_animation_clip(root_joint, **export_data):
     fbx_version = export_data.get("fbx_version", None)
     remove_namespaces = export_data.get("remove_namespace")
     scene_clean = export_data.get("scene_clean", True)
-    frame_rate = export_data.get("frameRate", "30 FPS")
-    anim_layer = export_data.get("animLayer", "")
+    anim_clip_list = export_data.get("anim_clips", [])
 
-    if not file_path or not file_name:
+    if not joint_root or not cmds.objExists(joint_root):
         cmds.warning(
-            "No valid file path or file name given for the FBX to export!"
+            'Was not possible to export animation clip because root joint "{}" was not found within scene'.format(
+                joint_root
+            )
         )
         return False
-    if title:
-        file_name = "{}_{}".format(file_name, title)
-    if not file_name.endswith(".fbx"):
-        file_name = "{}.fbx".format(file_name)
-    path = string.normalize_path(os.path.join(file_path, file_name))
-    print("\t>>> Export Path: {}".format(path))
+    if not (file_path and file_name):
+        cmds.warning(
+            "No valid file path and file name given for the FBX to export!"
+        )
+        return False
 
-    original_selection = pm.ls(sl=True)
-    auto_key_state = pm.autoKeyframe(query=True, state=True)
-    cycle_check = pm.cycleCheck(query=True, evaluation=True)
+    original_selection = cmds.ls(selection=True)
+    auto_key_state = cmds.autoKeyframe(query=True, state=True)
+    cycle_check = cmds.cycleCheck(query=True, evaluation=True)
     scene_modified = cmds.file(query=True, modified=True)
     current_frame_range = cmds.currentUnit(query=True, time=True)
     current_frame = cmds.currentTime(query=True)
-    original_start_frame = int(pm.playbackOptions(min=True, query=True))
-    original_end_frame = int(pm.playbackOptions(max=True, query=True))
-    temp_mesh = None
-    temp_skin_cluster = None
-    original_anim_layer_weights = None
+    original_start_frame = cmds.playbackOptions(query=True, min=True)
+    original_end_frame = cmds.playbackOptions(query=True, max=True)
 
-    try:
+    for anim_clip_data in anim_clip_list:
+        title = anim_clip_data.get("title", "")
+        enabled = anim_clip_data.get("enabled", False)
+        frame_rate = anim_clip_data.get("frame_rate", "30 fps")
+        start_frame = anim_clip_data.get("start_frame", original_start_frame)
+        end_frame = anim_clip_data.get("end_frame", original_end_frame)
+        anim_layer = anim_clip_data.get("anim_layer", "")
+
+        # only enabled animation clips will be exported
+        if not enabled:
+            return False
+
+        if start_frame > end_frame:
+            cmds.error(
+                "Start frame {} must be lower than the end frame {}".format(
+                    start_frame, end_frame
+                )
+            )
+            return False
+
+        if title:
+            file_name = "{}_{}".format(file_name, title)
+        if not file_name.endswith(".fbx"):
+            file_name = "{}.fbx".format(file_name)
+        path = string.normalize_path(os.path.join(file_path, file_name))
+        print("\t>>> Export Path: {}".format(path))
+
+        temp_mesh = None
+        temp_skin_cluster = None
+        original_anim_layer_weights = None
+
+        # try:
         # set anim layer to enable
         if (
             anim_layer
             and cmds.objExists(anim_layer)
             and cmds.nodeType(anim_layer) == "animLayer"
         ):
+            print("here")
             to_activate = None
             to_deactivate = []
             anim_layers = all_anim_layers_ordered(include_base_animation=False)
+            print("anim layers: ", anim_layers)
             original_anim_layer_weights = {
                 anim_layer: cmds.animLayer(anim_layer, query=True, weight=True)
                 for anim_layer in anim_layers
             }
+            print("og anim layer weights: ", original_anim_layer_weights)
             for found_anim_layer in anim_layers:
                 if found_anim_layer != anim_layer:
                     to_deactivate.append(found_anim_layer)
                 else:
                     to_activate = found_anim_layer
+            print("to activate: ", to_activate)
+            print("to deactivate: ", to_deactivate)
             for anim_layer_to_deactivate in to_deactivate:
                 cmds.animLayer(anim_layer_to_deactivate, edit=True, weight=0.0)
             cmds.animLayer(to_activate, edit=True, weight=1.0)
@@ -393,6 +391,8 @@ def export_animation_clip(root_joint, **export_data):
         pfbx.FBXResetExport()
 
         # set configuration
+        print("preset path: ", preset_path)
+        print("is none? ", preset_path is None)
         if preset_path is not None:
             # load FBX export preset file
             pfbx.FBXLoadExportPresetFile(f=preset_path)
@@ -415,7 +415,7 @@ def export_animation_clip(root_joint, **export_data):
         #     [root_joint], temp_mesh, toSelectedBones=False, maximumInfluences=1, skinMethod=0)[0]
 
         # select elements to export
-        pm.select([root_joint])
+        cmds.select(joint_root)
 
         # Set frame range
         cmds.currentTime(start_frame)
@@ -429,7 +429,7 @@ def export_animation_clip(root_joint, **export_data):
             end_frame = old_range[1] * mult_rate
             cmds.currentUnit(time=FRAMES_PER_SECOND[frame_rate][0])
 
-        pm.autoKeyframe(state=False)
+        cmds.autoKeyframe(state=False)
         pfbx.FBXExportAnimationOnly(v=False)
         pfbx.FBXExportBakeComplexAnimation(v=True)
         pfbx.FBXExportBakeComplexStart(v=start_frame)
@@ -454,7 +454,7 @@ def export_animation_clip(root_joint, **export_data):
 
         fbx_modified = False
         fbx_file = sdk_utils.FbxSdkGameToolsWrapper(path)
-        fbx_file.parent_to_world(root_joint, remove_top_parent=True)
+        fbx_file.parent_to_world(joint_root, remove_top_parent=True)
         if remove_namespaces:
             fbx_file.remove_namespaces()
             fbx_modified = True
@@ -473,9 +473,9 @@ def export_animation_clip(root_joint, **export_data):
                 skins=True,
             )
 
-    except Exception as exc:
-        raise exc
-    finally:
+        # except Exception as exc:
+        #     raise exc
+        # finally:
         # setup again original anim layer weights
         if anim_layer and original_anim_layer_weights:
             for name, weight in original_anim_layer_weights.items():
@@ -488,13 +488,12 @@ def export_animation_clip(root_joint, **export_data):
 
         cmds.currentTime(current_frame)
         cmds.currentUnit(time=current_frame_range)
-
-        pm.autoKeyframe(state=auto_key_state)
-        pm.cycleCheck(evaluation=cycle_check)
+        cmds.autoKeyframe(state=auto_key_state)
+        cmds.cycleCheck(evaluation=cycle_check)
         cmds.playbackOptions(min=original_start_frame, max=original_end_frame)
 
         if original_selection:
-            pm.select(original_selection)
+            cmds.select(original_selection)
 
         # if the scene was not modified before doing our changes, we force it back now
         if scene_modified is False:
@@ -704,7 +703,7 @@ def get_joint_list(start_joint, end_joint):
     )
     if not descendant_list.count(end_joint):
         # raise Exception('End joint "{}" is not a descendant of start joint "{}"'.format(end_joint, start_joint))
-        return list()
+        return []
 
     joint_list = [end_joint]
     while joint_list[-1] != start_joint:
@@ -728,10 +727,8 @@ def get_end_joint(start_joint):
     end_joint = None
     next_joint = start_joint
     while next_joint:
-        child_list = (
-            pm.listRelatives(next_joint, fullPath=True, c=True) or list()
-        )
-        child_joints = pm.ls(child_list, long=True, type="joint") or list()
+        child_list = pm.listRelatives(next_joint, fullPath=True, c=True) or []
+        child_joints = pm.ls(child_list, long=True, type="joint") or []
         if child_joints:
             next_joint = child_joints[0]
         else:
@@ -751,12 +748,12 @@ def all_anim_layers_ordered(include_base_animation=True):
     def _add_node_recursive(layer_node):
         all_layers.append(layer_node)
         child_layers = (
-            cmds.animLayer(layer_node, query=True, children=True) or list()
+            cmds.animLayer(layer_node, query=True, children=True) or []
         )
         for child_layer in child_layers:
             _add_node_recursive(child_layer)
 
-    all_layers = list()
+    all_layers = []
     root_layer = cmds.animLayer(query=True, root=True)
     if not root_layer:
         return all_layers
