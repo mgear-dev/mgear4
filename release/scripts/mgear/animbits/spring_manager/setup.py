@@ -5,6 +5,8 @@ from mgear.core import attribute
 from mgear.core import transform
 from mgear.core import primitive
 from mgear.core import applyop
+from mgear.core import node as cNode
+from mgear import rigbits
 
 
 SPRING_ATTRS = [
@@ -19,7 +21,7 @@ SPRING_ATTRS = [
 ]
 
 
-def create_settings_attr(node):
+def create_settings_attr(node, config):
     """Add specified spring attributes from a given Maya node.
 
     Args:
@@ -32,7 +34,7 @@ def create_settings_attr(node):
         node,
         "springTotalIntensity",
         "float",
-        1,
+        config["springTotalIntensity"],
         minValue=0,
         maxValue=1,
     )
@@ -40,7 +42,7 @@ def create_settings_attr(node):
         node,
         "springTranslationalIntensity",
         "float",
-        0,
+        config["springTranslationalIntensity"],
         minValue=0,
         maxValue=1,
     )
@@ -48,7 +50,7 @@ def create_settings_attr(node):
         node,
         "springTranslationalDamping",
         "float",
-        0.5,
+        config["springTranslationalDamping"],
         minValue=0,
         maxValue=1,
     )
@@ -56,7 +58,7 @@ def create_settings_attr(node):
         node,
         "springTranslationalStiffness",
         "float",
-        0.5,
+        config["springTranslationalStiffness"],
         minValue=0,
         maxValue=1,
     )
@@ -64,7 +66,7 @@ def create_settings_attr(node):
         node,
         "springRotationalIntensity",
         "float",
-        1,
+        config["springRotationalIntensity"],
         minValue=0,
         maxValue=1,
     )
@@ -72,7 +74,7 @@ def create_settings_attr(node):
         node,
         "springRotationalDamping",
         "float",
-        0.5,
+        config["springRotationalDamping"],
         minValue=0,
         maxValue=1,
     )
@@ -80,7 +82,7 @@ def create_settings_attr(node):
         node,
         "springRotationalStiffness",
         "float",
-        0.5,
+        config["springRotationalStiffness"],
         minValue=0,
         maxValue=1,
     )
@@ -198,7 +200,7 @@ def create_spring(node, config):
         return node_name + "_" + name
 
     # add settings attr
-    create_settings_attr(node)
+    create_settings_attr(node, config)
 
     # Get node transform
     t = transform.getTransform(node)
@@ -217,13 +219,17 @@ def create_spring(node, config):
     # aim direction goal
     aim_goal = primitive.addTransform(aim_root, get_name("sprg_goal"), t)
 
+    # the  list represents the following attr
+    # translation axis aim
+    # translation value for aim
+    # aimconstrain config axis and up-vector
     directions = {
-        "x": ["tx", 1],
-        "y": ["ty", 1],
-        "z": ["tz", 1],
-        "-x": ["tx", -1],
-        "-y": ["ty", -1],
-        "-z": ["tz", -1],
+        "x": ["tx", 1, "xy"],
+        "y": ["ty", 1, "yx"],
+        "z": ["tz", 1, "zy"],
+        "-x": ["tx", -1, "-xy"],
+        "-y": ["ty", -1, "-yx"],
+        "-z": ["tz", -1, "-zy"],
     }
     try:
         direction = directions[config["direction"]]
@@ -241,12 +247,53 @@ def create_spring(node, config):
     )
 
     # position spring
-    sprg_pos_node = applyop.gear_spring_op(trans_sprg, root)
+    sprg_pos_node = applyop.gear_spring_op(trans_sprg)
+
+    # atter to track spring setups from spring node
+    sprg_pos_node.addAttr("springSetupDriven", at="message", m=False)
+    pm.connectAttr(node.message, sprg_pos_node.attr("springSetupDriven"))
 
     # direction spring
-    sprg_rot_node = applyop.gear_spring_op(aim_goal, aim_root)
+    sprg_rot_node = applyop.gear_spring_op(aim_goal)
 
     # aim direction
+    applyop.aimCns(
+        driver, aim_goal, direction[2], 2, [0, 1, 0], trans_sprg, False
+    )
+
+    # connect attrs
+    driven_attr = [
+        sprg_pos_node.intensity,
+        sprg_pos_node.damping,
+        sprg_pos_node.stiffness,
+        sprg_rot_node.intensity,
+        sprg_rot_node.damping,
+        sprg_rot_node.stiffness,
+    ]
+    for at, dat in zip(SPRING_ATTRS[1:], driven_attr):
+        pm.connectAttr(node.attr(at), dat)
+
+    cNode.createMulNode(
+        [
+            node.attr(SPRING_ATTRS[0]),
+            node.attr(SPRING_ATTRS[0]),
+        ],
+        [
+            node.attr(SPRING_ATTRS[1]),
+            node.attr(SPRING_ATTRS[4]),
+        ],
+        [
+            sprg_pos_node.intensity,
+            sprg_rot_node.intensity,
+        ],
+    )
+
+    # move animation curvers
+    move_animation_curves(node, root)
+
+    # connect driver to node
+    pm.parentConstraint(driver, node)
+    # rigbits.connectLocalTransform([driver, node])
 
     return driver
 
@@ -382,21 +429,66 @@ def remove_preset(preset):
     return
 
 
-# should process several nodes at the same time
 def bake(nodes):
-    return
+    """
+    Bakes the animation of all selected objects within the current time range
+    using specific settings.
+
+    Returns:
+        bool: True if successful, False otherwise.
+    """
+    # Get the current time range
+    start_time = pm.playbackOptions(query=True, minTime=True)
+    end_time = pm.playbackOptions(query=True, maxTime=True)
+
+    pm.currentTime(start_time)
+
+    if not nodes:
+        # Get selected objects
+        nodes = pm.selected()
+
+    # Check if any objects are selected
+    if not nodes:
+        print("No objects selected.")
+        return False
+
+    # Perform the bake operation with explicit settings
+    try:
+        pm.bakeResults(
+            nodes,
+            time=(start_time, end_time),
+            simulation=True,
+            sampleBy=1,
+            oversamplingRate=1,
+            disableImplicitControl=True,
+            preserveOutsideKeys=True,
+            sparseAnimCurveBake=False,
+            removeBakedAttributeFromLayer=False,
+            removeBakedAnimFromLayer=False,
+            bakeOnOverrideLayer=False,
+            minimizeRotation=True,
+            controlPoints=False,
+            shape=True,
+        )
+        delete_spring_setup(nodes)
+        for node in nodes:
+            remove_settings_attr(node)
+        print("Successfully baked selected objects.")
+        return True
+    except Exception as e:
+        print("Failed to bake selected objects: {}".format(e))
+        return False
 
 
 def bake_all():
-    return
-
-
-def clear_bake(nodes):
-    return
-
-
-def clear_bake_all():
-    return
+    spring_driven = []
+    for sn in pm.ls(type="mgear_springNode"):
+        if sn.hasAttr("springSetupDriven"):
+            connections = pm.listConnections(sn.attr("springSetupDriven"), plugs=True)
+            if connections:
+                spring_driven.append(connections[0].node())
+    if spring_driven:
+        bake(spring_driven)
 
 
 def bake_preset(preset):
@@ -405,6 +497,46 @@ def bake_preset(preset):
 
 def clear_bake_preset(preset):
     return
+
+
+def delete_spring_setup(nodes):
+    """
+    Delete the node connected to the 'springSetupMembers' attribute at index 0
+    for a given list of nodes.
+
+    Args:
+        nodes (list): A list of node names to process.
+
+    Returns:
+        None
+    """
+    for node in nodes:
+        # Check if node exists
+        if not pm.objExists(node):
+            print("Node {} does not exist.".format(node))
+            continue
+
+        # Check if attribute exists
+        attr_name = "{}.springSetupMembers[0]".format(node)
+        if not pm.attributeQuery("springSetupMembers", node=node, exists=True):
+            print(
+                "Attribute springSetupMembers does not exist on {}.".format(
+                    node
+                )
+            )
+            continue
+
+        # Get connections
+        connections = pm.listConnections(attr_name, plugs=True)
+
+        if not connections:
+            print("No connections found for attribute {}.".format(attr_name))
+            continue
+
+        # Delete connected node
+        connected_node = connections[0].node()
+        pm.delete(connected_node)
+        print("Deleted node connected to {}.".format(attr_name))
 
 
 def move_animation_curves(source_node, target_node):
