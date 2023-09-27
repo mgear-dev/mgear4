@@ -1,6 +1,7 @@
 from PySide2 import QtWidgets, QtCore
 import pymel.core as pm
 from mgear.core import widgets as mgear_widget
+from . import setup
 
 
 class ConfigCollector(QtWidgets.QMainWindow):
@@ -21,9 +22,28 @@ class ConfigCollector(QtWidgets.QMainWindow):
 
         # Add top menu
         menubar = self.menuBar()
-        preset_menu = menubar.addMenu("Preset")
+        bake_menu = menubar.addMenu("Bake")
         delete_menu = menubar.addMenu("Delete")
+        preset_menu = menubar.addMenu("Preset")
 
+        # bake menu
+        bake_selected_action = QtWidgets.QAction("Bake Selected Spring", self)
+        bake_all_action = QtWidgets.QAction("Bake All Springs", self)
+
+        bake_menu.addAction(bake_selected_action)
+        bake_menu.addAction(bake_all_action)
+
+        bake_selected_action.triggered.connect(setup.bake)
+        bake_all_action.triggered.connect(setup.bake_all)
+
+        # delete menu
+        del_selected_action = QtWidgets.QAction("Delete Selected Spring", self)
+        del_all_action = QtWidgets.QAction("Delete All Springs", self)
+
+        delete_menu.addAction(del_selected_action)
+        delete_menu.addAction(del_all_action)
+
+        # preset menu
         set_lib_action = QtWidgets.QAction("Set Library", self)
         store_preset_action = QtWidgets.QAction("Store Preset", self)
         delete_preset_action = QtWidgets.QAction("Delete Preset", self)
@@ -32,24 +52,14 @@ class ConfigCollector(QtWidgets.QMainWindow):
         preset_menu.addAction(store_preset_action)
         preset_menu.addAction(delete_preset_action)
 
-        del_selected_action = QtWidgets.QAction("Delete Selected Spring", self)
-        del_all_action = QtWidgets.QAction("Delete All Springs", self)
-        revert_del_action = QtWidgets.QAction(
-            "Revert and Delete Springs", self
-        )
-
-        delete_menu.addAction(del_selected_action)
-        delete_menu.addAction(del_all_action)
-        delete_menu.addAction(revert_del_action)
-
         # Node Selector
-        h_layout = QtWidgets.QHBoxLayout()
-        self.node_le = QtWidgets.QLineEdit()
-        node_btn = QtWidgets.QPushButton("From Selection")
-        node_btn.clicked.connect(self.set_node_from_selection)
-        h_layout.addWidget(self.node_le)
-        h_layout.addWidget(node_btn)
-        layout.addLayout(h_layout)
+        # h_layout = QtWidgets.QHBoxLayout()
+        # self.node_le = QtWidgets.QLineEdit()
+        # node_btn = QtWidgets.QPushButton("From Selection")
+        # node_btn.clicked.connect(self.set_node_from_selection)
+        # h_layout.addWidget(self.node_le)
+        # h_layout.addWidget(node_btn)
+        # layout.addLayout(h_layout)
 
         # Direction Buttons
         directions = ["x", "y", "z", "-x", "-y", "-z"]
@@ -138,16 +148,18 @@ class ConfigCollector(QtWidgets.QMainWindow):
         Collects all data into a list of config dictionaries.
         """
         self.configs = []
-        nodes = self.node_le.text().split(",")
+        # nodes = self.node_le.text().split(",")
+        nodes = pm.selected()
         direction = self.sender().text()  # Assumes button clicked
 
         for node in nodes:
-            config = {"node": node.strip(), "direction": direction}
+            config = {"node": node.name(), "direction": direction}
             for name, (spin, _) in self.spin_sliders.items():
                 config[name] = spin.value()
 
             self.configs.append(config)
-        print(self.configs)
+        for conf in self.configs:
+            setup.create_spring(conf["node"], conf)
 
 
 if __name__ == "__main__":

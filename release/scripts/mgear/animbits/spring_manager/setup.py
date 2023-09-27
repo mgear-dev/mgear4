@@ -188,6 +188,10 @@ def get_name(node, name):
 
 # TODO: Node is also in config as string, so not need to pass here
 def create_spring(node, config):
+
+    if not isinstance(node, pm.PyNode):
+        node = pm.PyNode(node)
+
     def get_name(name, node=node):
         """
         Return a name composed of the node name + name.
@@ -429,7 +433,7 @@ def remove_preset(preset):
     return
 
 
-def bake(nodes):
+def bake(nodes=None):
     """
     Bakes the animation of all selected objects within the current time range
     using specific settings.
