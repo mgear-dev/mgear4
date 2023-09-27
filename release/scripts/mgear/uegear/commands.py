@@ -18,16 +18,14 @@ import pymel.core as pm
 from mgear.vendor.Qt import QtWidgets
 from mgear.core import pyFBX
 
-# from mgear.core import utils as mUtils
-# from mgear.uegear import log, utils, tag, bridge, io, ioutils
+from mgear.core import utils as mUtils
 
-from mgear.core import utils
 from mgear.uegear import log, tag, bridge, io, ioutils
 from mgear.uegear import utils as ueUtils
 
 # DEBUGGING
 import importlib
-importlib.reload(utils)
+importlib.reload(mUtils)
 importlib.reload(ueUtils)
 
 
@@ -403,7 +401,7 @@ def export_cameras(cameras=None):
     print("Camera Export Debug: {}".format(cameras_file))
 
 
-    return False # Early exit for debugging reasons 
+    return False # Early exit for debugging reasons
 
     result = self.execute(
         "import_maya_data_from_file", parameters={"data_file": cameras_file}
@@ -471,12 +469,12 @@ def import_layout_from_unreal(export_assets=True):
         fbx_file = actor_data.get("assetExportPath", None)
         if not fbx_file or not os.path.isfile(fbx_file):
             continue
-        
+
         # Check if object already exists in scene...
 
         # Cannot assume the name of the object is what it is named in maya.
         # To veryify the object we need to find all objects with the same GUID
-        dag_path = utils.get_dag_path(actor_data["name"])
+        dag_path = mUtils.get_dag_path(actor_data["name"])
 
         # Check if object has the same guid and actor name
         asset_guid = actor_data.get("guid", "")
@@ -484,13 +482,13 @@ def import_layout_from_unreal(export_assets=True):
 
         # Find all tagged objects that have the specific guid
         matching_guid_objs = tag.find_tagged_nodes(
-            tag_name=tag.TAG_ASSET_GUID_ATTR_NAME, 
+            tag_name=tag.TAG_ASSET_GUID_ATTR_NAME,
             tag_value=asset_guid
         )
 
         # If GUID, Actor Name and Asset Path are all equal, then object is stale.
         for obj in matching_guid_objs:
-            dag_path = utils.get_dag_path(obj)
+            dag_path = mUtils.get_dag_path(obj)
             guid_match = tag.tag_match(dag_path, asset_guid, tag.TAG_ASSET_GUID_ATTR_NAME)
             name_match = tag.tag_match(dag_path, actor_name, tag.TAG_ACTOR_NAME_ATTR_NAME)
 
@@ -536,7 +534,7 @@ def import_layout_from_unreal(export_assets=True):
 
             maya_trans_matrix = ueUtils.convert_transformationmatrix_Unreal_to_Maya(obj_trans_matrix)
 
-            dag_path = utils.get_dag_path(transform_node)
+            dag_path = mUtils.get_dag_path(transform_node)
             if dag_path:
                 transform_fn = OpenMaya.MFnTransform(dag_path)
                 transform_fn.setTransformation(OpenMaya.MTransformationMatrix(maya_trans_matrix))
@@ -667,7 +665,7 @@ def import_selected_cameras_from_unreal():
     temp_folder = tempfile.gettempdir()
 
     # Send Unreal Command
-    
+
     # UE - Get fps, to validate maya and unreal match
     sequencer_fps = uegear_bridge.execute(
         "get_selected_sequencer_fps", parameters={}
@@ -677,10 +675,10 @@ def import_selected_cameras_from_unreal():
             "Was not possible to retrieve Sequencer FPS from Unreal"
         )
         return False
-    
+
     # UE - Export selected Camera
     asset_export_datas = uegear_bridge.execute(
-        "export_selected_sequencer_cameras", 
+        "export_selected_sequencer_cameras",
         parameters={"directory": temp_folder}
     ).get("ReturnValue", list())
     if not asset_export_datas:
@@ -688,7 +686,7 @@ def import_selected_cameras_from_unreal():
             "Was not possible to export selected camera from Unreal"
         )
         return False
-    
+
     # Check FPS in Maya and Sequencer match, else suggest update.
     print("[mGear] Unreal Sequencer FPS {}".format(sequencer_fps))
     current_frame_rate = mUtils.get_frame_rate()
@@ -772,7 +770,7 @@ def update_sequencer_camera_from_maya():
     if not cameras:
         logger.warning("No cameras to update")
         return False
-    
+
     # Create a list of AssetPaths, Camera Name, export_path
     ue_camera_names = tag.tag_values(tag.TAG_ASSET_NAME_ATTR_NAME, cameras)
     camera_sequence_paths = tag.tag_values(tag.TAG_ASSET_PATH_ATTR_NAME, cameras)
@@ -785,7 +783,7 @@ def update_sequencer_camera_from_maya():
     for i in range(len(cameras)):
         camera_name = ue_camera_names[i]
         fbx_file_path = os.path.join(temp_folder, camera_name + ".fbx")
-        
+
         try:
             cmds.file(fbx_file_path, force=True, typ="FBX export", pr=True, es=True)
             msg = "Camera '{}' exported as FBX to '{}'"
@@ -795,13 +793,13 @@ def update_sequencer_camera_from_maya():
             continue
 
         if not os.path.isfile(fbx_file_path):
-            msg ='Something went wrong while exporting asset FBX file: "{}"' 
+            msg ='Something went wrong while exporting asset FBX file: "{}"'
             logger.warning(msg.format(fbx_file_path))
             continue
 
         camera_export_path[camera_name] = fbx_file_path
 
-        uegear_bridge.execute("update_sequencer_camera_from_maya", 
+        uegear_bridge.execute("update_sequencer_camera_from_maya",
             parameters={
                 "camera_name": camera_name,
                 "sequencer_package":camera_sequence_paths[i],
@@ -809,7 +807,7 @@ def update_sequencer_camera_from_maya():
             }
         ).get("ReturnValue", False)
 
-    
+
     # Clean up temporary data
     for path in camera_export_path.values():
         try:
@@ -818,4 +816,3 @@ def update_sequencer_camera_from_maya():
             print(p_e)
         except IOError as io_e:
             print(io_e)
-        
