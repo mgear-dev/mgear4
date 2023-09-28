@@ -127,7 +127,7 @@ def loadWeightPlugin(dependentFunc):
         func: pass through of function
     """
     try:
-        plugin_list = plugin_utils.get_all_available_plugins("weightDriver")
+        plugin_list = plugin_utils.get_available_plugins("weightDriver")
         plugin_utils.load_plugin_with_path(plugin_list, "weightDriver/plug-ins")
         wd_version = plugin_utils.get_plugin_version("weightDriver")
         if wd_version and wd_version > "3.6.2":

@@ -59,7 +59,7 @@ def get_all_available_plugins():
     return plugins
 
 
-def get_available_plugin(plugin_name):
+def get_available_plugins(plugin_name):
     """
     Returns any available plugin paths that match the plugin_name specified.
     """
@@ -135,8 +135,11 @@ def load_plugin(plugin_name, plugin_path):
         return False
 
 
-# Function to load a plugin based on the path
 def load_plugin_with_path(plugin_tuples, dir_name):
+    """
+    Loads a plugin by name that contains the matching relative path.
+    """
+
     # Check if the desired plugin is already loaded
     for plugin_name, plugin_path in plugin_tuples:
         if dir_name.lower() in plugin_path.lower() and cmds.pluginInfo(
