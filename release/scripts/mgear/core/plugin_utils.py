@@ -1,16 +1,45 @@
-import os
+import os, sys
 import pymel.core as pm
 import maya.mel as mel
+import maya.cmds as cmds
+
+
+def get_os():
+    """
+    Detects the current OS
+    """
+    if os.name == "posix":
+        return "Linux" if "linux" in sys.platform else "macOS"
+    elif os.name == "nt":
+        return "Windows"
+    else:
+        return "Unknown"
 
 
 def get_all_plugins():
-    # Get a list of all loaded plugins
-    all_plugins = pm.pluginInfo(q=True, listPlugins=True)
-    return all_plugins
+    """
+    Gets all loaded plugins
+    """
+    plugins = []
+
+    plugin_names = cmds.pluginInfo(query=True, listPlugins=True)
+    plugin_paths = cmds.pluginInfo(query=True, listPluginsPath=True)
+
+    for name, path in zip(plugin_names, plugin_paths):
+        plugins.append((name, path))
+
+    return plugins
 
 
-def get_all_available_plugins(plugin_name):
-    plugin_paths = mel.eval("getenv MAYA_PLUG_IN_PATH").split(";")
+def get_all_available_plugins():
+    """
+    Gets all available plugins, that exist in the environment variables paths.
+    """
+    # System paths are structured differently on OSs
+    if get_os == "Windows":
+        plugin_paths = mel.eval("getenv MAYA_PLUG_IN_PATH").split(";")
+    else:
+        plugin_paths = mel.eval("getenv MAYA_PLUG_IN_PATH").split(":")
 
     plugins = []
 
@@ -18,11 +47,32 @@ def get_all_available_plugins(plugin_name):
         if os.path.exists(path):
             for file in os.listdir(path):
                 # Check if the filename contains the name you're looking for
-                if plugin_name in file and file.endswith(".mll"):
+                if (file.endswith(".mll") or file.endswith(".so") or file.endswith(".bundle")):
                     # Create a tuple with the plugin name and path, and add it to the list
                     plugins.append((file, os.path.join(path, file)))
 
     return plugins
+
+
+def get_available_plugin(plugin_name):
+    """
+    Returns any available plugin paths that match the plugin_name specified.
+    """
+    all_plugins = get_all_available_plugins()
+    available_plugins = []
+
+    for plugin in all_plugins:
+        name = plugin[0]
+
+        # Check if filetype exists, and removes it
+        if plugin[0].find('.') > -1:
+            parts = plugin[0].split('.')
+            name = ".".join(parts[:-1])
+
+        if name == plugin_name:
+            available_plugins.append((name, plugin[1]))
+
+    return available_plugins
 
 
 def get_not_loaded_plugins():
