@@ -49,7 +49,13 @@ def get_all_available_plugins():
                 # Check if the filename contains the name you're looking for
                 if (file.endswith(".mll") or file.endswith(".so") or file.endswith(".bundle")):
                     # Create a tuple with the plugin name and path, and add it to the list
-                    plugins.append((file, os.path.join(path, file)))
+
+                    # Check if filetype exists, and removes it
+                    if file.find('.') > -1:
+                        parts = file.split('.')
+                        name = ".".join(parts[:-1])
+
+                    plugins.append((name, os.path.join(path, file)))
 
     return plugins
 
@@ -62,15 +68,8 @@ def get_available_plugin(plugin_name):
     available_plugins = []
 
     for plugin in all_plugins:
-        name = plugin[0]
-
-        # Check if filetype exists, and removes it
-        if plugin[0].find('.') > -1:
-            parts = plugin[0].split('.')
-            name = ".".join(parts[:-1])
-
-        if name == plugin_name:
-            available_plugins.append((name, plugin[1]))
+        if plugin[0] == plugin_name:
+            available_plugins.append(plugin)
 
     return available_plugins
 
