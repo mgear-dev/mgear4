@@ -1,5 +1,4 @@
 import os, sys
-import pymel.core as pm
 import maya.mel as mel
 import maya.cmds as cmds
 
@@ -87,25 +86,63 @@ def get_not_loaded_plugins():
     return not_loaded_plugins
 
 
-# Function to unload a plugin
-def unload_plugin(plugin_name, plugin_path):
-    if pm.pluginInfo(plugin_name, q=True, loaded=True):
+def unload_plugin(plugin_name, plugin_path=None):
+    """
+    Unloads a plugin.
+    If plugin_path is not None, then a check is performed to make sure the plugin found, 
+    is the same plugin at the path. As it is possible to have multiple plugins with the same name at differnt locations.
+    """
+    if cmds.pluginInfo(plugin_name, q=True, loaded=True):
+        found_plugin_path = cmds.pluginInfo(plugin_name, query=True, path=True)
+
+        # Checks if the plugin path is the correct path for the loaded plugin
+        if plugin_path:
+            if plugin_path != found_plugin_path:
+                print("Unable to unload, plugin path was not loaded to begin with.")
+                print("   Path: "+ plugin_path)
+                return
+
         try:
-            pm.unloadPlugin(plugin_name)
-            print("Unloaded plugin: ", plugin_name, "from path:", plugin_path)
+            cmds.unloadPlugin(plugin_name)
+            print("Unloaded plugin: ", plugin_name, "from path:", found_plugin_path)
         except RuntimeError as e:
             print("Failed to unload plugin: ", plugin_name)
             print("Error:", e)
+
+
+def load_plugin(plugin_name, plugin_path):
+    # Check if plugin already exists and is loaded
+    if cmds.pluginInfo(plugin_name, q=True, loaded=True):
+        loaded_path = cmds.pluginInfo(plugin_name, q=True, path=True)
+        #print(loaded_path)
+        if loaded_path.lower() == plugin_path.lower():
+            msg = "The plugin is already loaded from the correct path: {}"
+            print(msg.format(plugin_name))
+            return True
+        else:
+            unload_plugin(plugin_name, loaded_path)
+
+    # Load specified plugin
+    try:
+        cmds.loadPlugin(plugin_path)
+        print(
+            "Loaded plugin: ", plugin_name, "from path:", plugin_path
+        )
+        return True
+    except RuntimeError as e:
+        print("Failed to load plugin: ", plugin_name)
+        print("Error:", e)
+        return False
 
 
 # Function to load a plugin based on the path
 def load_plugin_with_path(plugin_tuples, dir_name):
     # Check if the desired plugin is already loaded
     for plugin_name, plugin_path in plugin_tuples:
-        if dir_name.lower() in plugin_path.lower() and pm.pluginInfo(
+        if dir_name.lower() in plugin_path.lower() and cmds.pluginInfo(
             plugin_name, q=True, loaded=True
         ):
-            loaded_path = pm.pluginInfo(plugin_name, q=True, path=True)
+            loaded_path = cmds.pluginInfo(plugin_name, q=True, path=True)
             if loaded_path.lower() == plugin_path.lower():
                 print(
                     "The plugin is already loaded from the correct path: ",
@@ -123,7 +160,7 @@ def load_plugin_with_path(plugin_tuples, dir_name):
     for plugin_name, plugin_path in plugin_tuples:
         if dir_name.lower() in plugin_path.lower():
             try:
-                pm.loadPlugin(plugin_path)
+                cmds.loadPlugin(plugin_path)
                 print(
                     "Loaded plugin: ", plugin_name, "from path:", plugin_path
                 )
@@ -135,7 +172,7 @@ def load_plugin_with_path(plugin_tuples, dir_name):
 
 
 def get_plugin_version(plugin_name):
-    if pm.pluginInfo(plugin_name, q=True, loaded=True):
-        return pm.pluginInfo(plugin_name, q=True, version=True)
+    if cmds.pluginInfo(plugin_name, q=True, loaded=True):
+        return cmds.pluginInfo(plugin_name, q=True, version=True)
     else:
         return None
