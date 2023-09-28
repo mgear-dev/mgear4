@@ -120,6 +120,9 @@ RBF_TYPE = "weightDriver"
 def loadWeightPlugin(dependentFunc):
     """ensure that plugin is always loaded prior to importing from json
 
+    Note: No assumption has been made about plugin location, we loop over 
+        available plugin, and check for the highest version.
+
     Args:
         dependentFunc (func): any function that needs to have plugin loaded
 
@@ -127,19 +130,24 @@ def loadWeightPlugin(dependentFunc):
         func: pass through of function
     """
     try:
-        plugin_list = plugin_utils.get_all_available_plugins("weightDriver")
-        plugin_utils.load_plugin_with_path(plugin_list, "weightDriver/plug-ins")
-        wd_version = plugin_utils.get_plugin_version("weightDriver")
-        if wd_version and wd_version > "3.6.2":
-            pm.displayInfo(
-                "RBF Manager is using weightDriver version {} installed with SHAPES plugin".format(
-                    wd_version
+        plugin_list = plugin_utils.get_available_plugins("weightDriver")
+        
+        # only one weightDriver plugin
+        if len(plugin_list) == 1:
+            return dependentFunc
+        
+        # Loop over weight plugins, enable and test version
+        for plugin_data in plugin_list:
+            plugin_utils.load_plugin(*plugin_data)
+            wd_version = plugin_utils.get_plugin_version("weightDriver")
+
+            if wd_version and wd_version > "3.6.2":
+                pm.displayInfo(
+                    "RBF Manager is using weightDriver version {} installed with SHAPES plugin".format(
+                        wd_version
+                    )
                 )
-            )
-        else:
-            # just in case there is not SHAPES installed will try to load the
-            # weightDriver included with mGear
-            pm.loadPlugin("weightDriver", qt=True)
+                break
 
     except RuntimeError:
         pm.displayWarning("RBF Manager couldn't found any valid RBF solver.")
