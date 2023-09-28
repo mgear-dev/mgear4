@@ -54,6 +54,12 @@ class PyNode(base.Node):
 
             raise
 
+    def __eq__(self, other):
+        return self.__obj == other.__obj
+
+    def __ne__(self, other):
+        return self.__obj != other.__obj
+
     def dg(self):
         return self.__fn_dg
 
