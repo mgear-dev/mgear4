@@ -144,15 +144,7 @@ def getCurrentWeights(skinCls, dagPath, components):
     util.createFromInt(0)
     pUInt = util.asUintPtr()
     skinCls.__apimfn__().getWeights(dagPath, components, weights, pUInt)
-
-    components_indices = []
-    if components.hasFn(OpenMaya.MFn.kSurfaceCVComponent):
-        it = OpenMaya.MItGeometry(dagPath, components)
-        while not it.isDone():
-            components_indices.append(it.index())
-            it.next()
-
-    return weights, components_indices
+    return weights
 
 ######################################
 # Skin Collectors
@@ -160,7 +152,7 @@ def getCurrentWeights(skinCls, dagPath, components):
 
 
 def collectInfluenceWeights(skinCls, dagPath, components, dataDic):
-    weights, components_indices = getCurrentWeights(skinCls, dagPath, components)
+    weights = getCurrentWeights(skinCls, dagPath, components)
 
     influencePaths = OpenMaya.MDagPathArray()
     numInfluences = skinCls.__apimfn__().influenceObjects(influencePaths)
@@ -169,18 +161,11 @@ def collectInfluenceWeights(skinCls, dagPath, components, dataDic):
         influenceName = influencePaths[ii].partialPathName()
         influenceWithoutNamespace = pm.PyNode(influenceName).stripNamespace()
         # build a dictionary of {vtx: weight}. Skip 0.0 weights.
-        if components_indices:
-            inf_w = {
-                compIndex: weights[jj * numInfluences + ii]
-                for jj, compIndex in enumerate(components_indices)
-                if weights[jj * numInfluences + ii] != 0.0
-            }
-        else:
-            inf_w = {
-                jj: weights[jj * numInfluences + ii]
-                for jj in range(numComponentsPerInfluence)
-                if weights[jj * numInfluences + ii] != 0.0
-            }
+        inf_w = {
+            jj: weights[jj * numInfluences + ii]
+            for jj in range(numComponentsPerInfluence)
+            if weights[jj * numInfluences + ii] != 0.0
+        }
         # cast to float to avoid rounding errors when dividing integers?
         dataDic['vertexCount'] = int(weights.length() / float(numInfluences))
         # cast influenceWithoutNamespace as string otherwise it can end up
@@ -596,51 +581,32 @@ def skinCopy(sourceMesh=None, targetMesh=None, *args):
         if isinstance(sourceMesh, string_types):
             sourceMesh = pm.PyNode(sourceMesh)
 
-    ss = getSkinCluster(sourceMesh)
-    if not ss:
-        errorMsg = "Source Mesh : {} doesn't have a skinCluster."
-        pm.displayError(errorMsg.format(sourceMesh.name()))
-        return
-
-    oDef = pm.skinCluster(sourceMesh, query=True, influence=True)
-    skinMethod = ss.skinningMethod.get()
-
-    # use cvs if geometry is nurbs
-    if isinstance(sourceMesh.getShape(), pm.nt.NurbsSurface):
-        sourceMesh = sourceMesh.cv
-
     for targetMesh in targetMeshes:
         if isinstance(targetMesh, string_types):
-            targetMesh = pm.PyNode(targetMesh)
+            sourceMesh = pm.PyNode(targetMesh)
 
-        # strip | from longName, or skinCluster command may fail.
-        skinName = targetMesh.name().replace('|', '') + "_skinCluster"
-        skinCluster = getSkinCluster(targetMesh)  # try to get existing skin cluster
-        if not skinCluster:
+        ss = getSkinCluster(sourceMesh)
+
+        if ss:
+            skinMethod = ss.skinningMethod.get()
+            oDef = pm.skinCluster(sourceMesh, query=True, influence=True)
+            # strip | from longName, or skinCluster command may fail.
+            skinName = targetMesh.name().replace('|', '') + "_skinCluster"
             skinCluster = pm.skinCluster(oDef,
                                          targetMesh,
                                          tsb=True,
                                          nw=1,
-                                         n=skinName)
-
-        if isinstance(targetMesh.getShape(), pm.nt.NurbsSurface):
-            targetMesh = targetMesh.cv
-
-        pm.copySkinWeights(sourceMesh,
-                           targetMesh,
-                           noMirror=True,
-                           influenceAssociation="oneToOne",
-                           smooth=True,
-                           normalize=True)
-
-        # pm.copySkinWeights(sourceSkin=ss.stripNamespace(),
-        #                    destinationSkin=skinCluster.name(),
-        #                    noMirror=True,
-        #                    influenceAssociation="oneToOne",
-        #                    smooth=True,
-        #                    normalize=True)
-        skinCluster.skinningMethod.set(skinMethod)
-
+                                         n=targetMesh.name() + "_skinCluster")
+            pm.copySkinWeights(sourceSkin=ss.stripNamespace(),
+                               destinationSkin=skinCluster.name(),
+                               noMirror=True,
+                               influenceAssociation="oneToOne",
+                               smooth=True,
+                               normalize=True)
+            skinCluster.skinningMethod.set(skinMethod)
+        else:
+            errorMsg = "Source Mesh : {} doesn't have a skinCluster."
+            pm.displayError(errorMsg.format(sourceMesh.name()))
 
 ######################################
 # Skin Utils
