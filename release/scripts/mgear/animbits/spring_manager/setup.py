@@ -302,9 +302,13 @@ def create_spring(node, config):
     return driver
 
 
-def delete_spring(node):
+def delete_spring(node=None):
+    print("Called delete spring function")
     return
 
+def delete_all_springs():
+    print("Called delete all springs function")
+    return
 
 # init the configuration to create a spring
 """

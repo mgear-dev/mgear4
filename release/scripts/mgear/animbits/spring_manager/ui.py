@@ -1,19 +1,182 @@
-from PySide2 import QtWidgets, QtCore
-import pymel.core as pm
+from mgear.core import pyqt
 from mgear.core import widgets as mgear_widget
+from mgear.core import widgets as mwgt
+from mgear.vendor.Qt import QtWidgets
+from mgear.vendor.Qt import QtCore
+from mgear.vendor.Qt import QtGui
+import pymel.core as pm
+from maya.app.general.mayaMixin import MayaQWidgetDockableMixin
+
+import maya.cmds as cmds
+
 from . import setup
 
 
-class ConfigCollector(QtWidgets.QMainWindow):
+class ConfigCollector(MayaQWidgetDockableMixin, QtWidgets.QDialog, pyqt.SettingsMixin):
     """
     UI to collect configuration data for a node in Maya.
     """
 
-    def __init__(self):
-        super(ConfigCollector, self).__init__()
+    def __init__(self, parent=None):
+        super(ConfigCollector, self).__init__(parent)
+        pyqt.SettingsMixin.__init__(self)
+
+        self.setAttribute(QtCore.Qt.WA_DeleteOnClose, True)
+
+        self.setWindowTitle("Spring Manager")
+
+        if cmds.about(ntOS=True):
+            flags = self.windowFlags() ^ QtCore.Qt.WindowContextHelpButtonHint
+            self.setWindowFlags(flags)
+        elif cmds.about(macOS=True):
+            self.setWindowFlags(QtCore.Qt.Tool)
+
+        self.create_actions()
+        self.create_widgets()
+        self.create_layout()
+        self.create_connections()
+
 
         self.configs = []
-        self.initUI()
+        #self.initUI()
+    def create_actions(self):
+        # Bake actions
+        self.bake_selected_action = QtWidgets.QAction("Bake Selected Spring", self)
+        self.bake_all_action = QtWidgets.QAction("Bake All Springs", self)
+
+        # Delete actions
+        self.delete_selected_action = QtWidgets.QAction("Delete Selected Spring", self)
+        self.delete_all_action = QtWidgets.QAction("Delete All Springs")
+
+        # preset actions
+        self.set_lib_action = QtWidgets.QAction("Set Library", self)
+        self.store_preset_action = QtWidgets.QAction("Store Preset", self)
+        self.delete_preset_action = QtWidgets.QAction("Delete Preset", self)
+
+
+
+    def create_widgets(self):
+        # menu bar
+        self.menu_bar = QtWidgets.QMenuBar()
+
+        self.bake_menu = self.menu_bar.addMenu("Bake")
+        self.bake_menu.addAction(self.bake_selected_action)
+        self.bake_menu.addAction(self.bake_all_action)
+
+        self.delete_menu = self.menu_bar.addMenu("Delete")
+        self.delete_menu.addAction(self.delete_selected_action)
+        self.delete_menu.addAction(self.delete_all_action)
+
+        self.presets_menu = self.menu_bar.addMenu("Presets")
+        self.presets_menu.addAction(self.set_lib_action)
+        self.presets_menu.addAction(self.store_preset_action)
+        self.presets_menu.addAction(self.delete_preset_action)
+
+        # directions
+
+        directions = ["x", "y", "z", "-x", "-y", "-z"]
+        self.direction_buttons = {}
+        for direction in directions:
+            btn = QtWidgets.QPushButton(direction)
+            self.direction_buttons[direction] = btn
+
+        # config sliders
+        self.spin_sliders = {}
+        self.collapsible_spring_params = mgear_widget.CollapsibleWidget(
+            "Spring Parameters", expanded=False
+        )
+
+        options = [
+            ("Total Intensity", "springTotalIntensity", 1),
+            ("Translational Intensity", "springTranslationalIntensity", 0),
+            ("springTranslationalDamping", "springTranslationalDamping", 0.5),
+            (
+                "springTranslationalStiffness",
+                "springTranslationalStiffness",
+                0.5,
+            ),
+            ("springRotationalIntensity", "springRotationalIntensity", 1),
+            ("springRotationalDamping", "springRotationalDamping", 0.5),
+            ("springRotationalStiffness", "springRotationalStiffness", 0.5),
+        ]
+
+        for label_text, name, default_value in options:
+            spin = QtWidgets.QDoubleSpinBox()
+            spin.setRange(0, 1)
+            spin.setSingleStep(0.1)
+            spin.setValue(default_value)
+            slider = QtWidgets.QSlider(QtCore.Qt.Horizontal)
+            slider.setRange(0, 100)
+            slider.setValue(default_value * 100)
+
+            self.spin_sliders[name] = (spin, slider, label_text)
+
+        # presets
+        self.presets_collapsible = mgear_widget.CollapsibleWidget(
+            "Presets", expanded=False
+        )
+        self.presets_list = QtWidgets.QListWidget()
+
+
+    def create_layout(self):
+        main_layout = QtWidgets.QVBoxLayout(self)
+        main_layout.setContentsMargins(2, 2, 2, 2)
+        main_layout.setSpacing(0)
+        main_layout.setMenuBar(self.menu_bar)
+
+        directions_grid_layout = QtWidgets.QGridLayout()
+        for i, direction_btn in enumerate(self.direction_buttons.values()):
+            directions_grid_layout.addWidget(direction_btn, i // 3, i % 3)
+
+        main_layout.addLayout(directions_grid_layout)
+
+        spring_options_layout = QtWidgets.QFormLayout()
+        print(self.spin_sliders)
+        for spin, slider, label_text in self.spin_sliders.values():
+            spring_options_layout.addRow(label_text, spin)
+            spring_options_layout.addRow("", slider)
+
+        self.collapsible_spring_params.addLayout(spring_options_layout)
+        main_layout.addWidget(self.collapsible_spring_params)
+
+        presets_layout = QtWidgets.QVBoxLayout()
+        presets_layout.addWidget(self.presets_list)
+        self.presets_collapsible.addLayout(presets_layout)
+
+        main_layout.addWidget(self.presets_collapsible)
+
+        expander = QtWidgets.QWidget()
+        expander.setSizePolicy(
+            QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding
+        )
+        main_layout.addWidget(expander)
+
+
+
+        # : change collapsible over here
+
+
+
+    def create_connections(self):
+        self.bake_selected_action.triggered.connect(setup.bake)
+        self.bake_all_action.triggered.connect(setup.bake_all)
+
+        self.delete_selected_action.triggered.connect(setup.delete_spring)
+        self.delete_all_action.triggered.connect(setup.delete_all_springs)
+
+        #self.set_lib_action.triggered.connect(setup.set)
+
+        for btn in self.direction_buttons.values():
+            btn.clicked.connect(self.collect_data)
+
+        for spin, slider, _ in self.spin_sliders.values():
+            spin.valueChanged.connect(
+                lambda value, slider=slider: slider.setValue(int(value * 100))
+            )
+            slider.valueChanged.connect(
+                lambda value, spin=spin: spin.setValue(value * 0.01)
+            )
+
 
     def initUI(self):
         central_widget = QtWidgets.QWidget(self)
