@@ -554,6 +554,8 @@ def update_selected_transforms():
     uegear_bridge = bridge.UeGearBridge()
 
     selected_nodes = pm.selected()
+    world_up = cmds.optionVar(query="upAxisDirection")
+
     old_rotation_orders = list()
     for selected_node in selected_nodes:
         old_rotation_orders.append(selected_node.getRotationOrder())
@@ -574,6 +576,7 @@ def update_selected_transforms():
                 'translation': str(ue_world_transform['rotatePivot']),
                 'rotation': str(ue_world_transform['rotation']),
                 'scale': str(ue_world_transform['scale']),
+                'world_up': str(world_up)
             })
     finally:
         for i, selected_node in enumerate(selected_nodes):

@@ -1105,11 +1105,27 @@ def convert_transformationmatrix_Unreal_to_Maya(transformationMatrix):
     :return: Unreal transofm now in Maya transform space.
     :rtype: OpenMaya.MTransformationMatrix
     """
-    UNREAL_APP_MATRIX = OpenMaya.MMatrix([
+    UNREAL_APP_MATRIX_Y_UP = OpenMaya.MMatrix([
                                 [1, 0,  0, 0],
-                                [0, 0, 1, 0],
+                                [0, 0,  1, 0],
+                                [0, 1,  0, 0],
+                                [0, 0,  0, 1]])
+    UNREAL_APP_MATRIX_Y_ROT = OpenMaya.MMatrix([
+                                [1, 0,  0, 0],
+                                [0, 0,  -1, 0],
                                 [0, 1,  0, 0],
                                 [0, 0,  0, 1]])
 
-    maya_space_mtx = transformationMatrix.asMatrix() * UNREAL_APP_MATRIX
+    UNREAL_APP_MATRIX_Z_UP = OpenMaya.MMatrix([
+                                [1, 0, 0, 0],
+                                [0, -1, 0, 0],
+                                [0, 0, 1, 0],
+                                [0, 0, 0, 1]])
+
+    world_up = cmds.optionVar(query="upAxisDirection")
+    print("World Up Axis : {}".format(world_up))
+    if world_up == 'z':
+        maya_space_mtx = transformationMatrix.asMatrix() * UNREAL_APP_MATRIX_Z_UP
+    elif world_up == 'y':
+        maya_space_mtx = UNREAL_APP_MATRIX_Y_ROT * transformationMatrix.asMatrix() * UNREAL_APP_MATRIX_Y_UP
     return OpenMaya.MTransformationMatrix(maya_space_mtx)
