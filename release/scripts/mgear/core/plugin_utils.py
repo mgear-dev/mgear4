@@ -3,6 +3,45 @@ import maya.mel as mel
 import maya.cmds as cmds
 
 
+class pluginVersion:
+    def __init__(self, version_str=None):
+        if version_str is None:
+            self.major = 0
+            self.minor = 0
+            self.patch = 0
+        else:
+            parts = version_str.split(".")
+            if len(parts) != 3:
+                raise ValueError("Invalid version string format. Must be 'major.minor.patch'")
+            try:
+                self.major = int(parts[0])
+                self.minor = int(parts[1])
+                self.patch = int(parts[2])
+            except ValueError:
+                raise ValueError("Invalid version number format. Must be integers.")
+
+    def __str__(self):
+        return f"{self.major}.{self.minor}.{self.patch}"
+
+    def __eq__(self, other):
+        return (self.major, self.minor, self.patch) == (other.major, other.minor, other.patch)
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
+    def __lt__(self, other):
+        return (self.major, self.minor, self.patch) < (other.major, other.minor, other.patch)
+
+    def __le__(self, other):
+        return (self.major, self.minor, self.patch) <= (other.major, other.minor, other.patch)
+
+    def __gt__(self, other):
+        return (self.major, self.minor, self.patch) > (other.major, other.minor, other.patch)
+
+    def __ge__(self, other):
+        return (self.major, self.minor, self.patch) >= (other.major, other.minor, other.patch)
+
+
 def get_os():
     """
     Detects the current OS
@@ -175,7 +214,10 @@ def load_plugin_with_path(plugin_tuples, dir_name):
 
 
 def get_plugin_version(plugin_name):
+    """
+    Gets the plugin version of the plugin with the specified name, and returns a version object.
+    """
     if cmds.pluginInfo(plugin_name, q=True, loaded=True):
-        return cmds.pluginInfo(plugin_name, q=True, version=True)
+        return pluginVersion(cmds.pluginInfo(plugin_name, q=True, version=True))
     else:
         return None
