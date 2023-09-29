@@ -120,7 +120,7 @@ def getTransformLookingAt(pos, lookat, normal, axis="xy", negate=False):
     elif axis == "-zx":
         Z = -a
         X = b
-        Y = c
+        Y = -c
     elif axis == "z-x":
         Z = a
         X = -b
@@ -144,7 +144,7 @@ def getTransformLookingAt(pos, lookat, normal, axis="xy", negate=False):
     elif axis == "-xy":
         X = -a
         Y = b
-        Z = c
+        Z = -c
 
     m = datatypes.Matrix()
     m[0] = [X[0], X[1], X[2], 0.0]
