@@ -91,11 +91,13 @@ from .six import PY2
 # =============================================================================
 # Constants
 # =============================================================================
-__version__ = "1.0.2"
+__version__ = "1.0.3"
 
 _mgear_version = mgear.getVersion()
 TOOL_NAME = "RBF Manager"
 TOOL_TITLE = "{} v{} | mGear {}".format(TOOL_NAME, __version__, _mgear_version)
+UI_NAME = "RBFManagerUI"
+WORK_SPACE_NAME = UI_NAME + "WorkspaceControl"
 
 DRIVEN_SUFFIX = rbf_node.DRIVEN_SUFFIX
 CTL_SUFFIX = rbf_node.CTL_SUFFIX
@@ -277,23 +279,33 @@ def VLine():
 
 
 def show(dockable=True, newSceneCallBack=True, *args):
-    """To launch the ui and not get the same instance
+    """To launch the UI and ensure any previously opened instance is closed.
 
     Returns:
         DistributeUI: instance
 
     Args:
         *args: Description
+        :param newSceneCallBack:
+        :param dockable:
     """
-    global RBF_UI
-    if 'RBF_UI' in globals():
-        try:
-            RBF_UI.close()
-        except TypeError:
-            pass
-    RBF_UI = RBFManagerUI(parent=pyqt.maya_main_window(),
-                          newSceneCallBack=newSceneCallBack)
-    RBF_UI.show(dockable=True)
+    global RBF_UI  # Ensure we have access to the global variable
+
+    # Attempt to close any existing UI with the given name
+    if mc.workspaceControl(WORK_SPACE_NAME, exists=True):
+        mc.deleteUI(WORK_SPACE_NAME)
+
+    # Create the UI
+    RBF_UI = RBFManagerUI(newSceneCallBack=newSceneCallBack)
+
+    # Check if we've saved a size previously and set it
+    if mc.optionVar(exists='RBF_UI_width') and mc.optionVar(exists='RBF_UI_height'):
+        saved_width = mc.optionVar(query='RBF_UI_width')
+        saved_height = mc.optionVar(query='RBF_UI_height')
+        RBF_UI.resize(saved_width, saved_height)
+
+    # Show the UI.
+    RBF_UI.show(dockable=dockable)
     return RBF_UI
 
 
@@ -474,11 +486,12 @@ class RBFManagerUI(MayaQWidgetDockableMixin, QtWidgets.QMainWindow):
 
     mousePosition = QtCore.Signal(int, int)
 
-    def __init__(self, parent=None, hideMenuBar=False, newSceneCallBack=True):
+    def __init__(self, parent=pyqt.maya_main_window(), hideMenuBar=False, newSceneCallBack=True):
         super(RBFManagerUI, self).__init__(parent=parent)
         # UI info -------------------------------------------------------------
         self.callBackID = None
         self.setWindowTitle(TOOL_TITLE)
+        self.setObjectName(UI_NAME)
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose, True)
         self.genericWidgetHight = 24
         # class info ----------------------------------------------------------
@@ -493,8 +506,21 @@ class RBFManagerUI(MayaQWidgetDockableMixin, QtWidgets.QMainWindow):
         self.connectSignals()
         # added because the dockableMixin makes the ui appear small
         self.adjustSize()
+        self.resize(800, 650)
         if newSceneCallBack:
             self.newSceneCallBack()
+
+    def closeEvent(self, event):
+        """Overridden close event to save the size of the UI."""
+        width = self.width()
+        height = self.height()
+
+        # Save the size to Maya's optionVars
+        mc.optionVar(intValue=('RBF_UI_width', width))
+        mc.optionVar(intValue=('RBF_UI_height', height))
+
+        # Call the parent class's closeEvent
+        super(RBFManagerUI, self).closeEvent(event)
 
     def callBackFunc(self, *args):
         """super safe function for trying to refresh the UI, should anything
