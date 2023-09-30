@@ -351,7 +351,7 @@ class GimmickBlend(GimmickJoint):
             for left, right in sidePair:
                 if not left or not right:
                     continue
-                # right.rename(self.swapSideName(left.name()))
+                right.rename(self.swapSideName(left.name()))
                 right.attr(self.ATTR["side"]).set(2)
                 mirrorParent = self.swapSideName(left.attr(self.ATTR["parent"]).get())
                 right.attr(self.ATTR["parent"]).set(mirrorParent)
