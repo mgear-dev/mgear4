@@ -92,6 +92,7 @@ from .six import PY2
 # Constants
 # =============================================================================
 __version__ = "1.0.3"
+__version__ = "1.0.4"
 
 _mgear_version = mgear.getVersion()
 TOOL_NAME = "RBF Manager"
@@ -122,6 +123,7 @@ def testFunctions(*args):
 
 
 def getPlugAttrs(nodes, attrType="all"):
+def getPlugAttrs(nodes, attrType="keyable"):
     """Get a list of attributes to display to the user
 
     Args:
@@ -699,9 +701,11 @@ class RBFManagerUI(MayaQWidgetDockableMixin, QtWidgets.QMainWindow):
         else:
             attrType = "all"
 
-        drivenNode_name = drivenNode
+        drivenType = mc.nodeType(drivenNode)
         if drivenType in ["transform", "joint"]:
             drivenNode_name = rbf_node.get_driven_group_name(drivenNode)
+        else:
+            drivenNode_name = drivenNode
 
         # check if there is an existing rbf node attached
         if mc.objExists(drivenNode_name):
@@ -722,7 +726,6 @@ class RBFManagerUI(MayaQWidgetDockableMixin, QtWidgets.QMainWindow):
                                                          setupField=False)
         if not drivenAttrs:
             return
-        parentNode = False
 
         if drivenType in ["transform", "joint"]:
             parentNode = True
@@ -780,6 +783,22 @@ class RBFManagerUI(MayaQWidgetDockableMixin, QtWidgets.QMainWindow):
                 self.setDrivenTable(drivenWidget, rbfNode, weightInfo)
         if weightInfo and rbfNode:
             self.populateDriverInfo(rbfNode, weightInfo)
+
+    @staticmethod
+    def determineAttrType(node):
+        nodeType = mc.nodeType(node)
+        if nodeType in ["transform", "joint"]:
+            keyAttrs = mc.listAttr(node, keyable=True) or []
+            requiredAttrs = [
+                "{}{}".format(attrType, xyz)
+                for xyz in "XYZ"
+                for attrType in ["translate", "rotate", "scale"]
+            ]
+
+            if not any(attr in keyAttrs for attr in requiredAttrs):
+                return "cb"
+            return "keyable"
+        return "all"
 
     def deletePose(self):
         """delete a pose from the UI and all the RBFNodes in the setup.
@@ -989,7 +1008,8 @@ class RBFManagerUI(MayaQWidgetDockableMixin, QtWidgets.QMainWindow):
                                attrListWidget,
                                driverNames,
                                highlight=[],
-                               attrType="all"):
+                               attrType="keyable",
+                               force=False):
         """update the provided listwidget with the attrs collected from the
         list of nodes provided
 
@@ -1007,9 +1027,13 @@ class RBFManagerUI(MayaQWidgetDockableMixin, QtWidgets.QMainWindow):
             return
         elif type(driverNames) != list:
             driverNames = [driverNames]
+
+        if not force:
+            attrType = self.determineAttrType(driverNames[0])
+
         nodeAttrsToDisplay = getPlugAttrs(driverNames, attrType=attrType)
         attrListWidget.clear()
-        attrListWidget.addItems(sorted(nodeAttrsToDisplay))
+        attrListWidget.addItems(nodeAttrsToDisplay)
         if highlight:
             self.highlightListEntries(attrListWidget, highlight)
 
@@ -1342,7 +1366,8 @@ class RBFManagerUI(MayaQWidgetDockableMixin, QtWidgets.QMainWindow):
         menu_item_01.triggered.connect(partial(self.updateAttributeDisplay,
                                                attributeListWidget,
                                                nodeToQuery,
-                                               attrType="keyable"))
+                                               attrType="keyable",
+                                               force=True))
         menu2Label = "Display ChannelBox (Non Keyable)"
         menu_item_02 = self.attrMenu.addAction(menu2Label)
         menu2tip = "Show attributes in ChannelBox that are not keyable."
@@ -1350,13 +1375,15 @@ class RBFManagerUI(MayaQWidgetDockableMixin, QtWidgets.QMainWindow):
         menu_item_02.triggered.connect(partial(self.updateAttributeDisplay,
                                                attributeListWidget,
                                                nodeToQuery,
-                                               attrType="cb"))
+                                               attrType="cb",
+                                               force=True))
         menu_item_03 = self.attrMenu.addAction("Display All")
         menu_item_03.setToolTip("GIVE ME ALL!")
         menu_item_03.triggered.connect(partial(self.updateAttributeDisplay,
                                                attributeListWidget,
                                                nodeToQuery,
-                                               attrType="all"))
+                                               attrType="all",
+                                               force=True))
         self.attrMenu.move(parentPosition + QPos)
         self.attrMenu.show()
 
