@@ -80,3 +80,11 @@ class TestNode(unittest.TestCase):
         self.assertEqual(child, b)
         self.assertNotEqual(child, parent)
         self.assertTrue(b in [child, parent])
+
+    def test_attr(self):
+        child_name = self.cmds.createNode("transform", n="test")
+        node = self.pm.PyNode("test")
+        self.assertIsNotNone(node.attr("v"))
+        self.assertIsNotNone(node.v)
+        with self.assertRaises(AttributeError):
+            node.attr("testtest")

@@ -42,15 +42,9 @@ class PyNode(base.Node):
         try:
             return super(PyNode, self).__getattribute__(name)
         except AttributeError:
-            attr_cache = super(PyNode, self).__getattribute__("_PyNode__attrs")
-            if name in attr_cache:
-                return attr_cache[name]
-
             nfnc = super(PyNode, self).__getattribute__("name")
             if cmds.ls(f"{nfnc()}.{name}"):
-                at = attr.PyAttr(f"{nfnc()}.{name}")
-                attr_cache[name] = at
-                return at
+                return super(PyNode, self).__getattribute__("attr")(name)
 
             raise
 
@@ -71,3 +65,15 @@ class PyNode(base.Node):
 
     def name(self):
         return self.__fn_dg.name() if self.__fn_dag is None else self.__fn_dag.partialPathName()
+
+    def attr(self, name):
+        if name in self.__attrs:
+            return self.__attrs[name]
+
+        nfnc = super(PyNode, self).__getattribute__("name")
+        if cmds.ls(f"{nfnc()}.{name}"):
+            at = attr.PyAttr(f"{nfnc()}.{name}")
+            self.__attrs[name] = at
+            return at
+
+        raise AttributeError(f"No '{name}' attr found")
