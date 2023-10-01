@@ -19,6 +19,8 @@ class PyAttr(base.Attr):
     def __init__(self, attrname_or_mplug):
         super(PyAttr, self).__init__()
         self.__attrs = {}
+        self.__node_name_func = None
+
         if isinstance(attrname_or_mplug, OpenMaya.MPlug):
             self.__plug = attrname_or_mplug
         else:
@@ -31,6 +33,7 @@ class PyAttr(base.Attr):
             raise TypeError(f"{self.name()} is not an array plug")
 
         if index >= self.__plug.numElements():
+            print(self.__plug.numElements())
             raise IndexError("index out of range")
 
         return PyAttr(f"{self.name()}[{index}]")
@@ -51,8 +54,33 @@ class PyAttr(base.Attr):
 
             raise
 
+    def __floordiv__(self, other):
+        return self.disconnect(other)
+
+    def __rshift__(self, other):
+        return self.connect(other, f=True)
+
     def plug(self):
         return self.__plug
 
     def name(self):
-        return self.__plug.name()
+        obj = self.__plug.node()
+        nfunc = super(PyAttr, self).__getattribute__("_PyAttr__node_name_func")
+        if nfunc is None:
+            if obj.hasFn(OpenMaya.MFn.kDagNode):
+                nfunc = OpenMaya.MFnDagNode(OpenMaya.MDagPath.getAPathTo(obj)).partialPathName
+            else:
+                nfunc = OpenMaya.MFnDependencyNode(obj).name
+
+            self.__node_name_func = nfunc
+
+        return f"{nfunc()}.{self.__plug.partialName(False, False, False, False, False, True)}"
+
+    def delete(self):
+        cmds.deleteAttr(self.name())
+
+    def connect(self, other, **kwargs):
+        return cmds.connectAttr(self.name(), other.name() if isinstance(other, PyAttr) else other)
+
+    def disconnect(self, other):
+        return cmds.disconnectAttr(self.name(), other.name() if isinstance(other, PyAttr) else other)
