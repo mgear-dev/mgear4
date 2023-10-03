@@ -91,7 +91,6 @@ from .six import PY2
 # =============================================================================
 # Constants
 # =============================================================================
-__version__ = "1.0.6"
 
 _mgear_version = mgear.getVersion()
 TOOL_NAME = "RBF Manager"
@@ -121,7 +120,6 @@ def testFunctions(*args):
     print('!!', args)
 
 
-def getPlugAttrs(nodes, attrType="all"):
 def getPlugAttrs(nodes, attrType="keyable"):
     """Get a list of attributes to display to the user
 
@@ -224,7 +222,7 @@ def selectNode(name):
 # =============================================================================
 
 def getControlAttrWidget(nodeAttr, label=""):
-    """get a cmds.attrControlGrp wrapped in a qtWidget, still connected
+    """Create a cmds.attrControlGrp and wrap it in a qtWidget, preserving its connection
     to the specified attr
 
     Args:
@@ -232,16 +230,11 @@ def getControlAttrWidget(nodeAttr, label=""):
         label (str, optional): name for the attr widget
 
     Returns:
-        QtWidget: qwidget created from attrControlGrp
+        str: The name of the created Maya attrControlGrp
     """
-    mAttrFeild = mc.attrControlGrp(attribute=nodeAttr,
-                                   label=label,
-                                   po=True)
+    mAttrFeild = mc.attrControlGrp(attribute=nodeAttr, label=label, po=True)
+
     ptr = mui.MQtUtil.findControl(mAttrFeild)
-    if PY2:
-        controlWidget = QtCompat.wrapInstance(long(ptr), base=QtWidgets.QWidget)
-    else:
-        controlWidget = QtCompat.wrapInstance(int(ptr), base=QtWidgets.QWidget)
     controlWidget.setContentsMargins(0, 0, 0, 0)
     controlWidget.setMinimumWidth(0)
     attrEdit = [wdgt for wdgt in controlWidget.children()
@@ -298,6 +291,7 @@ def show(dockable=True, newSceneCallBack=True, *args):
 
     # Create the UI
     RBF_UI = RBFManagerUI(newSceneCallBack=newSceneCallBack)
+    RBF_UI.initializePoseControlWidgets()
 
     # Check if we've saved a size previously and set it
     if mc.optionVar(exists='RBF_UI_width') and mc.optionVar(exists='RBF_UI_height'):
@@ -573,7 +567,6 @@ class RBFManagerUI(MayaQWidgetDockableMixin, QtWidgets.QMainWindow):
         else:
             drivenNode_name = drivenNode
 
-        # check if there is an existing rbf node attached
         if mc.objExists(drivenNode_name):
             if existing_rbf_setup(drivenNode_name):
                 msg = "Node is already driven by an RBF Setup."
@@ -774,7 +767,6 @@ class RBFManagerUI(MayaQWidgetDockableMixin, QtWidgets.QMainWindow):
             rbfNode.forceEvaluation()
         self.refreshAllTables()
 
-
     def updateAllFromTables(self):
         """Update every pose
 
@@ -815,8 +807,6 @@ class RBFManagerUI(MayaQWidgetDockableMixin, QtWidgets.QMainWindow):
         self.refreshAllTables()
 
 
-
-
     def addPose(self):
         """Add pose to rbf nodes in setup. Additional index on all nodes
 
@@ -831,7 +821,7 @@ class RBFManagerUI(MayaQWidgetDockableMixin, QtWidgets.QMainWindow):
         poseInputs = rbf_node.getMultipleAttrs(driverNode, driverAttrs)
         for rbfNode in rbfNodes:
             poseValues = rbfNode.getPoseValues(resetDriven=True,
-                                               absoluteWorld=self.absWorld)
+            poseValues = rbfNode.getPoseValues(resetDriven=True, absoluteWorld=self.absWorld)
             rbfNode.addPose(poseInput=poseInputs, poseValue=poseValues)
         self.refreshAllTables()
 
@@ -938,6 +928,8 @@ class RBFManagerUI(MayaQWidgetDockableMixin, QtWidgets.QMainWindow):
             self.highlightListEntries(attrListWidget, highlight)
 
     def __deleteAssociatedWidgetsMaya(self, widget, attrName="associatedMaya"):
+    @staticmethod
+    def __deleteAssociatedWidgetsMaya(widget, attrName="associatedMaya"):
         """delete core ui items 'associated' with the provided widgets
 
         Args:
@@ -985,6 +977,7 @@ class RBFManagerUI(MayaQWidgetDockableMixin, QtWidgets.QMainWindow):
             mc.setAttr(attrPlug, float(value))
             rbfNode.forceEvaluation()
 
+                    getControlAttrWidget(rbfAttrPlug, label="")
     def setDriverTable(self, rbfNode, weightInfo):
         """Set the driverTable widget with the information from the weightInfo
 
@@ -1156,7 +1149,6 @@ class RBFManagerUI(MayaQWidgetDockableMixin, QtWidgets.QMainWindow):
         Returns:
             n/a: n/a
         """
-        drivenWidget.drivenLineEdit.clear()
         driverNode = weightInfo["drivenNode"]
         if driverNode:
             driverNode = driverNode[0]
@@ -1165,8 +1157,6 @@ class RBFManagerUI(MayaQWidgetDockableMixin, QtWidgets.QMainWindow):
         drivenWidget.drivenLineEdit.setText(str(driverNode))
 
         self.setAttributeDisplay(drivenWidget.attributeListWidget,
-                                 weightInfo["drivenNode"][0],
-                                 weightInfo["drivenAttrs"])
         self.setDrivenTable(drivenWidget, rbfNode, weightInfo)
 
     def addNewTab(self, rbfNode):
@@ -1178,7 +1168,7 @@ class RBFManagerUI(MayaQWidgetDockableMixin, QtWidgets.QMainWindow):
         Returns:
             QWidget: created widget
         """
-        tabDrivenWidget = self.createAndTagDrivenWidget({})
+        tabDrivenWidget = self.createAndTagDrivenWidget()
         self._associateRBFnodeAndWidget(tabDrivenWidget, rbfNode)
         self.rbfTabWidget.addTab(tabDrivenWidget, str(rbfNode))
         return tabDrivenWidget
@@ -1193,7 +1183,7 @@ class RBFManagerUI(MayaQWidgetDockableMixin, QtWidgets.QMainWindow):
         self.rbfTabWidget.clear()
         for rbfNode in rbfNodes:
             weightInfo = rbfNode.getNodeInfo()
-            drivenWidget = self.createAndTagDrivenWidget(weightInfo)
+            drivenWidget = self.createAndTagDrivenWidget()
             self._associateRBFnodeAndWidget(drivenWidget, rbfNode)
             self.populateDrivenWidgetInfo(drivenWidget, weightInfo, rbfNode)
             self.rbfTabWidget.addTab(drivenWidget, rbfNode.name)
@@ -1214,11 +1204,15 @@ class RBFManagerUI(MayaQWidgetDockableMixin, QtWidgets.QMainWindow):
             self.currentRBFSetupNodes = []
             self.lockDriverWidgets(lock=False)
             return
+
         rbfNodes = self.allSetupsInfo.get(rbfSelection, [])
         if not rbfNodes:
             return
+
+        # Display node info in the UI
         self.currentRBFSetupNodes = rbfNodes
         weightInfo = rbfNodes[0].getNodeInfo()
+
         self.populateDriverInfo(rbfNodes[0], weightInfo)
         self.lockDriverWidgets(lock=True)
         # wrapping the following in try due to what I think is a Qt Bug.
@@ -1226,7 +1220,7 @@ class RBFManagerUI(MayaQWidgetDockableMixin, QtWidgets.QMainWindow):
         #   File "rbf_manager_ui.py", line 872, in createAndTagDrivenWidget
         #     header.sectionClicked.connect(self.setConsistentHeaderSelection)
         # AttributeError: 'PySide2.QtWidgets.QListWidgetItem' object has
-        # no attribute 'sectionClicked'
+
         try:
             self.recreateDrivenTabs(self.allSetupsInfo[rbfSelection])
         except AttributeError:
@@ -1290,12 +1284,16 @@ class RBFManagerUI(MayaQWidgetDockableMixin, QtWidgets.QMainWindow):
             setToSelection (bool, optional): after refresh, set to desired
         """
         self.rbf_cbox.blockSignals(True)
+
+        # Clear the combo box and populate with new setup options
         self.rbf_cbox.clear()
         addNewOfType = ["New {} setup".format(rbf)
                         for rbf in rbf_node.SUPPORTED_RBF_NODES]
         self.updateAllSetupsInfo()
         addNewOfType.extend(sorted(self.allSetupsInfo.keys()))
         self.rbf_cbox.addItems(addNewOfType)
+        self.rbf_cbox.addItems(newSetupOptions + allSetups)
+
         if setToSelection:
             selectionIndex = self.rbf_cbox.findText(setToSelection)
             self.rbf_cbox.setCurrentIndex(selectionIndex)
@@ -1429,6 +1427,8 @@ class RBFManagerUI(MayaQWidgetDockableMixin, QtWidgets.QMainWindow):
             self.setDriverControlOnSetup(controlName)
 
     def getRBFNodesInfo(self, rbfNodes):
+    @staticmethod
+    def getRBFNodesInfo(rbfNodes):
         """create a dictionary of all the RBFInfo(referred to as
         weightNodeInfo a lot) for export
 
@@ -1485,6 +1485,7 @@ class RBFManagerUI(MayaQWidgetDockableMixin, QtWidgets.QMainWindow):
         rbf_io.exportRBFs(nodesToExport, filePath)
 
     def gatherMirroredInfo(self, rbfNodes):
+    @staticmethod
         """gather all the info from the provided nodes and string replace
         side information for its mirror. Using mGear standard
         naming convections
@@ -1503,27 +1504,20 @@ class RBFManagerUI(MayaQWidgetDockableMixin, QtWidgets.QMainWindow):
             for pairs in weightInfo["connections"]:
                 mrConnections.append([mString.convertRLName(pairs[0]),
                                       mString.convertRLName(pairs[1])])
+
             weightInfo["connections"] = mrConnections
-            # drivenControlName -----------------------------------------------
-            mrDrvnCtl = mString.convertRLName(weightInfo["drivenControlName"])
-            weightInfo["drivenControlName"] = mrDrvnCtl
-            # drivenNode ------------------------------------------------------
-            weightInfo["drivenNode"] = [mString.convertRLName(n) for n
-                                        in weightInfo["drivenNode"]]
-            # driverControl ---------------------------------------------------
-            mrDrvrCtl = mString.convertRLName(weightInfo["driverControl"])
             weightInfo["driverControl"] = mrDrvrCtl
             # driverNode ------------------------------------------------------
             weightInfo["driverNode"] = [mString.convertRLName(n) for n
                                         in weightInfo["driverNode"]]
+            weightInfo["driverControl"] = mString.convertRLName(weightInfo["driverControl"])
+            weightInfo["driverNode"] = [mString.convertRLName(n) for n in weightInfo["driverNode"]]
             # setupName -------------------------------------------------------
             mrSetupName = mString.convertRLName(weightInfo["setupName"])
             if mrSetupName == weightInfo["setupName"]:
                 mrSetupName = "{}{}".format(mrSetupName, MIRROR_SUFFIX)
             weightInfo["setupName"] = mrSetupName
             # transformNode ---------------------------------------------------
-            # name
-            # parent
             tmp = weightInfo["transformNode"]["name"]
             mrTransformName = mString.convertRLName(tmp)
             weightInfo["transformNode"]["name"] = mrTransformName
