@@ -22,6 +22,7 @@ SPRING_ATTRS = [
     "springSetupMembers",
 ]
 
+SPRING_PRESET_EXTENSION = ".spg"
 
 def create_settings_attr(node, config):
     """Add specified spring attributes from a given Maya node.
@@ -189,7 +190,9 @@ def get_name(node, name):
 
 
 # TODO: Node is also in config as string, so not need to pass here
-def create_spring(node, config):
+def create_spring(node=None, config=None):
+    if not node:
+        node = config["node"]
 
     if not isinstance(node, pm.PyNode):
         node = pm.PyNode(node)
@@ -396,7 +399,11 @@ def get_config(node):
     else:
         node_name = node
     # TODO: get child node name from the spring members
-    child_node = pm.listRelatives(node, c=True)
+    # child_node = pm.listRelatives(node, c=True)
+    if not pm.hasAttr(node, "springSetupMembers"):
+        print(f"{node} doesn't have springSetupMembers attr, skipping...")
+        return
+    child_node = pm.listConnections(node.springSetupMembers[2])[0]
     direction = get_child_axis_direction(child_node)
     config = {
         "node": node_name,
@@ -409,14 +416,20 @@ def get_config(node):
 
 # store preset configuration
 def store_preset(nodes, filePath=None):
-    preset = get_settings_attr_val(nodes[-1])
+    preset_dic = {}
+    preset_dic['nodes'] = [node.name() for node in nodes]
+    preset_dic['configs'] = {}
+
+    for node in nodes:
+        preset_dic['configs'][node.name()] = get_config(node)
+
     print(f"file_path = {filePath}")
 
-    data_string = json.dumps(preset, indent=4, sort_keys=True)
+    data_string = json.dumps(preset_dic, indent=4, sort_keys=True)
     with open(filePath, 'w') as f:
         f.write(data_string)
 
-    return preset
+    return preset_dic
 
 
 # store preset configuration, from selected springs
@@ -426,16 +439,17 @@ def store_preset_from_selection(filePath=None):
 
 
 # apply spring from a  preset
-def apply_preset(preset):
+def apply_preset(preset_file_path):
     """"
-        Applies preset to current selection.
+        Applies preset.
     """
-    selection = pm.ls(sl=1)
-    if not selection:
-        pm.error("Must have valid selection")
+    preset_dic = None
+    with open(preset_file_path, "r") as fp:
+        preset_dic = json.load(fp)
 
-    for i in selection:
-        set_settings_attr_val(i, preset)
+    for key in preset_dic["configs"]:
+        create_spring(config=preset_dic["configs"][key])
+
 
 
 def bake(nodes=None):

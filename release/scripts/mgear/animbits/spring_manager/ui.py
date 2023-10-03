@@ -106,7 +106,6 @@ class ConfigCollector(MayaQWidgetDockableMixin, QtWidgets.QDialog, pyqt.Settings
         ]
         self.spring_options_layout = QtWidgets.QFormLayout()
 
-
         for label_text, name, default_value in options:
             spin = QtWidgets.QDoubleSpinBox()
             spin.setMinimumWidth(50)
@@ -132,10 +131,8 @@ class ConfigCollector(MayaQWidgetDockableMixin, QtWidgets.QDialog, pyqt.Settings
         self.presets_lib_directory_label = QtWidgets.QLabel(f"Library Path: {self.presets_library_directory}")
         self.presets_lib_directory_label.setWordWrap(True)
         self.presets_list = QtWidgets.QListWidget()
-        self.presets_list_elements = {}
 
         self.set_library(self.presets_library_directory)
-
 
     def create_layout(self):
         main_layout = QtWidgets.QVBoxLayout(self)
@@ -176,7 +173,7 @@ class ConfigCollector(MayaQWidgetDockableMixin, QtWidgets.QDialog, pyqt.Settings
         self.set_lib_action.triggered.connect(partial(self.set_library, None))
         self.store_preset_action.triggered.connect(self.store_preset)
         self.delete_preset_action.triggered.connect(self.delete_preset)
-        self.presets_list.itemDoubleClicked.connect(self.apply_preset_list_element)
+        self.presets_list.itemDoubleClicked.connect(self.apply_preset)
 
         for btn in self.direction_buttons.values():
             btn.clicked.connect(self.collect_data)
@@ -216,19 +213,15 @@ class ConfigCollector(MayaQWidgetDockableMixin, QtWidgets.QDialog, pyqt.Settings
 
     def read_preset_from_directory(self, directory):
         """
-        Parses target directory and converts .springson files to python dictionaries
+        Parses target directory and gets the files names
         Args:
             directory:
 
-        Returns: (file_name, preset_dictionary)
+        Returns: (file_name)
 
         """
-        file_paths = [f for f in pathlib.Path(directory).glob("*.springson") if f.stat().st_size > 0]
-        presets = []
-        for file_path in file_paths:
-            with open(file_path, 'r') as f:
-                if f:
-                    presets.append((file_path.stem, json.load(f)))
+        presets = [f.stem for f in pathlib.Path(directory).glob(f"*{setup.SPRING_PRESET_EXTENSION}")
+                   if f.stat().st_size > 0]
 
         return tuple(presets)
 
@@ -253,38 +246,21 @@ class ConfigCollector(MayaQWidgetDockableMixin, QtWidgets.QDialog, pyqt.Settings
         self.update_presets()
 
     def update_presets(self):
-        self.clear_presets()
+        self.presets_list.clear()
         presets = self.read_preset_from_directory(self.presets_library_directory)
         for preset in presets:
-            self.add_preset_element(name=preset[0], preset=preset[1])
+            self.presets_list.addItem(preset)
 
     def store_preset(self):
         file_name, dialog_result = QtWidgets.QInputDialog.getText(self, "Enter Preset Name", "Name:")
         if not dialog_result:
             return
-        file_name = f"/{file_name}.springson"
+        file_name = f"/{file_name}{setup.SPRING_PRESET_EXTENSION}"
         setup.store_preset_from_selection(self.presets_library_directory + file_name)
 
         self.update_presets()
 
-    def clear_presets(self):
-        self.presets_list.clear()
-        self.presets_list_elements = {}
-
-    def add_preset_element(self, name="", preset={}):
-        """
-        Adds element to the presets widget list and the preset_elements dict
-        Args:
-            name:
-            preset:
-
-        Returns:
-
-        """
-        self.presets_list.addItem(name)
-        self.presets_list_elements[name] = preset
-
-    def apply_preset_list_element(self, clicked_item):
+    def apply_preset(self, clicked_item):
         """
         Applies preset to selected nodes
         Args:
@@ -294,22 +270,20 @@ class ConfigCollector(MayaQWidgetDockableMixin, QtWidgets.QDialog, pyqt.Settings
 
         """
         name = clicked_item.text()
-        preset = self.presets_list_elements[name]
-        setup.apply_preset(preset)
+        file_path = f"{self.presets_library_directory}/{name}{setup.SPRING_PRESET_EXTENSION}"
+        print(f"preset name = {name} \n"
+              f"file_path = {file_path}")
+        setup.apply_preset(file_path)
 
     def delete_preset(self):
         if not self.presets_list.selectedItems():
             pm.error("Must select an item from the preset list")
         selected_list_widget = self.presets_list.selectedItems()[0]
-        file_name = f"/{selected_list_widget.text()}.springson"
-        file_path = f"{self.presets_library_directory}{file_name}"
+        file_path = f"{self.presets_library_directory}/{selected_list_widget.text()}{setup.SPRING_PRESET_EXTENSION}"
         if not os.path.exists(file_path):
             pm.error(f"File was not found. {file_path}")
         os.remove(file_path)
         self.update_presets()
-
-
-
 
 
 if __name__ == "__main__":
