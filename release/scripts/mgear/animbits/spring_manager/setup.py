@@ -1,3 +1,5 @@
+import json
+
 import pymel.core as pm
 import math
 
@@ -302,13 +304,7 @@ def create_spring(node, config):
     return driver
 
 
-def delete_spring(node=None):
-    print("Called delete spring function")
-    return
 
-def delete_all_springs():
-    print("Called delete all springs function")
-    return
 
 # init the configuration to create a spring
 """
@@ -411,14 +407,15 @@ def get_config(node):
     return config
 
 
-def get_preset(nodes):
-    preset = {}
-    return preset
-
-
 # store preset configuration
 def store_preset(nodes, filePath=None):
-    preset = get_preset(nodes)
+    preset = get_settings_attr_val(nodes[-1])
+    print(f"file_path = {filePath}")
+
+    data_string = json.dumps(preset, indent=4, sort_keys=True)
+    with open(filePath, 'w') as f:
+        f.write(data_string)
+
     return preset
 
 
@@ -430,11 +427,15 @@ def store_preset_from_selection(filePath=None):
 
 # apply spring from a  preset
 def apply_preset(preset):
-    return
+    """"
+        Applies preset to current selection.
+    """
+    selection = pm.ls(sl=1)
+    if not selection:
+        pm.error("Must have valid selection")
 
-
-def remove_preset(preset):
-    return
+    for i in selection:
+        set_settings_attr_val(i, preset)
 
 
 def bake(nodes=None):
@@ -478,7 +479,7 @@ def bake(nodes=None):
             controlPoints=False,
             shape=True,
         )
-        delete_spring_setup(nodes)
+        delete_spring_setup(nodes, transfer_animation=False)
         for node in nodes:
             remove_settings_attr(node)
         print("Successfully baked selected objects.")
@@ -499,25 +500,21 @@ def bake_all():
         bake(spring_driven)
 
 
-def bake_preset(preset):
-    return
-
-
-def clear_bake_preset(preset):
-    return
-
-
-def delete_spring_setup(nodes):
+def delete_spring_setup(nodes=None, transfer_animation=True):
     """
     Delete the node connected to the 'springSetupMembers' attribute at index 0
     for a given list of nodes.
 
     Args:
+        transfer_animation (bool): transfer back animation
         nodes (list): A list of node names to process.
 
     Returns:
         None
     """
+    if not nodes:
+        nodes = pm.ls(sl=1)
+
     for node in nodes:
         # Check if node exists
         if not pm.objExists(node):
@@ -543,8 +540,24 @@ def delete_spring_setup(nodes):
 
         # Delete connected node
         connected_node = connections[0].node()
+        pm.delete(pm.parentConstraint(node, query=1))  # deletes constraint to avoid weird offsets
+        if transfer_animation:
+            move_animation_curves(connected_node, node)
+
         pm.delete(connected_node)
         print("Deleted node connected to {}.".format(attr_name))
+
+        remove_settings_attr(node)
+
+
+def delete_all_springs():
+    spring_nodes = pm.ls(type='mgear_springNode')
+    nodes = set()
+    for spring_node in spring_nodes:
+        source = pm.listConnections(spring_node.damping, source=True)[0]
+        nodes.add(source)
+
+    delete_spring_setup(nodes)
 
 
 def move_animation_curves(source_node, target_node):
