@@ -271,8 +271,6 @@ class ConfigCollector(MayaQWidgetDockableMixin, QtWidgets.QDialog, pyqt.Settings
         """
         name = clicked_item.text()
         file_path = f"{self.presets_library_directory}/{name}{setup.SPRING_PRESET_EXTENSION}"
-        print(f"preset name = {name} \n"
-              f"file_path = {file_path}")
         setup.apply_preset(file_path)
 
     def delete_preset(self):
