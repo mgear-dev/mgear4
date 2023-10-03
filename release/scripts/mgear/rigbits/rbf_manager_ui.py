@@ -91,8 +91,7 @@ from .six import PY2
 # =============================================================================
 # Constants
 # =============================================================================
-__version__ = "1.0.3"
-__version__ = "1.0.4"
+__version__ = "1.0.5"
 
 _mgear_version = mgear.getVersion()
 TOOL_NAME = "RBF Manager"
@@ -1817,7 +1816,7 @@ class RBFManagerUI(MayaQWidgetDockableMixin, QtWidgets.QMainWindow):
         setRBFLayout = QtWidgets.QHBoxLayout()
         rbfLabel = QtWidgets.QLabel("Select RBF Setup:")
         rbf_cbox = QtWidgets.QComboBox()
-        rbf_refreshButton = QtWidgets.QPushButton("Refresh")
+        rbf_refreshButton = self.createCustomButton("Refresh", (60, 25), "Refresh the UI")
         rbf_cbox.setFixedHeight(self.genericWidgetHight)
         rbf_refreshButton.setMaximumWidth(80)
         rbf_refreshButton.setFixedHeight(self.genericWidgetHight - 1)
@@ -1826,15 +1825,45 @@ class RBFManagerUI(MayaQWidgetDockableMixin, QtWidgets.QMainWindow):
         setRBFLayout.addWidget(rbf_refreshButton)
         return setRBFLayout, rbf_cbox, rbf_refreshButton
 
+    @staticmethod
+    def createCustomButton(label, size=(35, 25), tooltip=""):
+        stylesheet = (
+            "QPushButton {background-color: #5D5D5D; border-radius: 4px;}"
+            "QPushButton:pressed { background-color: #00A6F3;}"
+            "QPushButton:hover:!pressed { background-color: #707070;}"
+        )
+        button = QtWidgets.QPushButton(label)
+        button.setMinimumSize(QtCore.QSize(*size))
+        button.setStyleSheet(stylesheet)
+        button.setToolTip(tooltip)
+        return button
+
+    @staticmethod
+    def createSetupSelector2Widget():
+        rbfVLayout = QtWidgets.QVBoxLayout()
+        rbfListWidget = QtWidgets.QListWidget()
+        rbfVLayout.addWidget(rbfListWidget)
+        return rbfVLayout, rbfListWidget
+
     def selectNodeWidget(self, label, buttonLabel="Select"):
         """create a lout with label, lineEdit, QPushbutton for user input
         """
+        stylesheet = (
+            "QLineEdit { background-color: #404040;"
+            "border-radius: 4px;"
+            "border-color: #505050;"
+            "border-style: solid;"
+            "border-width: 1.4px;}"
+        )
+
         nodeLayout = QtWidgets.QHBoxLayout()
         nodeLabel = QtWidgets.QLabel(label)
         nodeLabel.setFixedWidth(40)
         nodeLineEdit = ClickableLineEdit()
+        nodeLineEdit.setStyleSheet(stylesheet)
         nodeLineEdit.setReadOnly(True)
-        nodeSelectButton = QtWidgets.QPushButton(buttonLabel)
+        nodeSelectButton = self.createCustomButton(buttonLabel)
+        nodeSelectButton.setFixedWidth(40)
         nodeLineEdit.setFixedHeight(self.genericWidgetHight)
         nodeSelectButton.setFixedHeight(self.genericWidgetHight)
         nodeLayout.addWidget(nodeLabel)
@@ -1895,6 +1924,8 @@ class RBFManagerUI(MayaQWidgetDockableMixin, QtWidgets.QMainWindow):
                                                    buttonLabel="Set")
         controlLineEdit.setToolTip("The node driving the setup. (Click me!)")
         #  --------------------------------------------------------------------
+        allButton = self.createCustomButton("All", (20, 53), "")
+
         (attributeLayout,
          attributeListWidget) = self.labelListWidget(label="Select Attributes",
                                                      horizontal=False)
@@ -1992,20 +2023,16 @@ class RBFManagerUI(MayaQWidgetDockableMixin, QtWidgets.QMainWindow):
             list: [QPushButtons]
         """
         optionsLayout = QtWidgets.QHBoxLayout()
-        addPoseButton = QtWidgets.QPushButton("Add Pose")
+        optionsLayout.setSpacing(5)
         addTip = "After positioning all controls in the setup, add new pose."
         addTip = addTip + "\nEnsure the driver node has a unique position."
-        addPoseButton.setToolTip(addTip)
-        addPoseButton.setFixedHeight(self.genericWidgetHight)
-        EditPoseButton = QtWidgets.QPushButton("Edit Pose")
+        addPoseButton = self.createCustomButton("Add Pose", (80, 28), addTip)
+        EditPoseButton = self.createCustomButton("Update Pose", (80, 28), "")
         EditPoseButton.setToolTip("Recall pose, adjust controls and Edit.")
-        EditPoseButton.setFixedHeight(self.genericWidgetHight)
-        EditPoseValuesButton = QtWidgets.QPushButton("Edit Pose Values")
+        EditPoseValuesButton = self.createCustomButton("Update Pose Values", (80, 28), "")
         EditPoseValuesButton.setToolTip("Set pose based on values in table")
-        EditPoseValuesButton.setFixedHeight(self.genericWidgetHight)
-        deletePoseButton = QtWidgets.QPushButton("Delete Pose")
+        deletePoseButton = self.createCustomButton("Delete Pose", (80, 28), "")
         deletePoseButton.setToolTip("Recall pose, then Delete")
-        deletePoseButton.setFixedHeight(self.genericWidgetHight)
         optionsLayout.addWidget(addPoseButton)
         optionsLayout.addWidget(EditPoseButton)
         optionsLayout.addWidget(EditPoseValuesButton)
