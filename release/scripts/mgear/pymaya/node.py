@@ -2,6 +2,7 @@ from maya.api import OpenMaya
 from maya import cmds
 from . import attr
 from . import base
+from . import exception
 
 
 class PyNode(base.Node):
@@ -26,10 +27,10 @@ class PyNode(base.Node):
         else:
             self.__obj = PyNode.__getObjectFromName(nodename_or_mobject)
             if self.__obj is None:
-                raise RuntimeError(f"No such node '{nodename_or_mobject}'")
+                raise exception.MayaNodeError(f"No such node '{nodename_or_mobject}'")
 
         if not self.__obj.hasFn(OpenMaya.MFn.kDependencyNode):
-            raise RuntimeError(f"Not a dependency node '{nodename_or_mobject}'")
+            raise exception.MayaNodeError(f"Not a dependency node '{nodename_or_mobject}'")
 
         self.__fn_dg = OpenMaya.MFnDependencyNode(self.__obj)
 
@@ -76,4 +77,4 @@ class PyNode(base.Node):
             self.__attrs[name] = at
             return at
 
-        raise AttributeError(f"No '{name}' attr found")
+        raise exception.MayaAttributeError(f"No '{name}' attr found")

@@ -1,6 +1,7 @@
 from maya import cmds
 from maya.api import OpenMaya
 from . import base
+from . import exception
 
 
 class PyAttr(base.Attr):
@@ -42,15 +43,9 @@ class PyAttr(base.Attr):
         try:
             return super(PyAttr, self).__getattribute__(name)
         except AttributeError:
-            attr_cache = super(PyAttr, self).__getattribute__("_PyAttr__attrs")
-            if name in attr_cache:
-                return attr_cache[name]
-
             nfnc = super(PyAttr, self).__getattribute__("name")
             if cmds.ls(f"{nfnc()}.{name}"):
-                at = PyAttr(f"{nfnc()}.{name}")
-                attr_cache[name] = at
-                return at
+                return super(PyAttr, self).__getattribute__("attr")(name)
 
             raise
 
@@ -84,3 +79,16 @@ class PyAttr(base.Attr):
 
     def disconnect(self, other):
         return cmds.disconnectAttr(self.name(), other.name() if isinstance(other, PyAttr) else other)
+
+    def attr(self, name):
+        attr_cache = super(PyAttr, self).__getattribute__("_PyAttr__attrs")
+        if name in self.__attrs:
+            return self.__attrs[name]
+
+        nfnc = super(PyAttr, self).__getattribute__("name")
+        if cmds.ls(f"{nfnc()}.{name}"):
+            at = PyAttr(f"{nfnc()}.{name}")
+            self.__attrs[name] = at
+            return at
+
+        raise exception.MayaAttributeError(f"No '{name}' attr found")

@@ -26,7 +26,7 @@ class TestNode(unittest.TestCase):
         node_name = self.cmds.createNode("transform", n="test")
         node = self.pm.PyNode(node_name)
         self.assertIsNotNone(node)
-        with self.assertRaises(RuntimeError):
+        with self.assertRaises(self.pm.MayaNodeError):
             self.pm.PyNode("no_such_node")
 
         self.assertEqual(node_name, node.name())
@@ -86,5 +86,5 @@ class TestNode(unittest.TestCase):
         node = self.pm.PyNode("test")
         self.assertIsNotNone(node.attr("v"))
         self.assertIsNotNone(node.v)
-        with self.assertRaises(AttributeError):
+        with self.assertRaises(self.pm.MayaAttributeError):
             node.attr("testtest")

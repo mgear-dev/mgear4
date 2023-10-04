@@ -74,4 +74,5 @@ class TestAttr(unittest.TestCase):
         self.assertIsNotNone(vrts[0].vrtx)
         self.assertIsNotNone(vrts[0].vrty)
         self.assertIsNotNone(vrts[0].vrtz)
+        self.assertIsNotNone(vrts[0].attr("vrtz"))
         self.assertEqual(vrts[0].vrtz.name(), f"{sps}.vrts[0].vrtz")
