@@ -132,6 +132,7 @@ class ConfigCollector(MayaQWidgetDockableMixin, QtWidgets.QDialog, pyqt.Settings
         self.presets_lib_directory_label.setWordWrap(True)
         self.presets_list = QtWidgets.QListWidget()
 
+
         self.set_library(self.presets_library_directory)
 
     def create_layout(self):
@@ -174,6 +175,8 @@ class ConfigCollector(MayaQWidgetDockableMixin, QtWidgets.QDialog, pyqt.Settings
         self.store_preset_action.triggered.connect(self.store_preset)
         self.delete_preset_action.triggered.connect(self.delete_preset)
         self.presets_list.itemDoubleClicked.connect(self.apply_preset)
+        self.presets_list.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
+        self.presets_list.customContextMenuRequested.connect(self._component_menu)
 
         for btn in self.direction_buttons.values():
             btn.clicked.connect(self.collect_data)
@@ -185,6 +188,7 @@ class ConfigCollector(MayaQWidgetDockableMixin, QtWidgets.QDialog, pyqt.Settings
             slider.valueChanged.connect(
                 lambda value, spin=spin: spin.setValue(value * 0.01)
             )
+
 
     def set_node_from_selection(self):
         """
@@ -271,7 +275,7 @@ class ConfigCollector(MayaQWidgetDockableMixin, QtWidgets.QDialog, pyqt.Settings
         """
         name = clicked_item.text()
         file_path = f"{self.presets_library_directory}/{name}{setup.SPRING_PRESET_EXTENSION}"
-        setup.apply_preset(file_path)
+        setup.apply_preset(preset_file_path=file_path, namespace_cb=self._namespace_confirmation_dialogue)
 
     def delete_preset(self):
         if not self.presets_list.selectedItems():
@@ -282,6 +286,34 @@ class ConfigCollector(MayaQWidgetDockableMixin, QtWidgets.QDialog, pyqt.Settings
             pm.error(f"File was not found. {file_path}")
         os.remove(file_path)
         self.update_presets()
+
+    def _component_menu(self, QPos):
+        comp_widget = self.presets_list
+        current_selection = comp_widget.selectedIndexes()
+        if current_selection is None:
+            return
+        self.comp_menu = QtWidgets.QMenu()
+        parentPosition = comp_widget.mapToGlobal(QtCore.QPoint(0, 0))
+        menu_item_01 = self.comp_menu.addAction("Apply presets")
+        self.comp_menu.addSeparator()
+        menu_item_02 = self.comp_menu.addAction("Refresh List")
+
+        # menu_item_01.triggered.connect(self.draw_component)
+        # menu_item_02.triggered.connect(self._refreshList)
+
+        self.comp_menu.move(parentPosition + QPos)
+        self.comp_menu.show()
+
+    def _namespace_confirmation_dialogue(self, node_name, namespace):
+        message_box = QtWidgets.QMessageBox()
+        message_box.setText(f"The node name '{node_name}' was found under multiple namespaces")
+        message_box.setInformativeText("Click Accept to apply the preset under each namespace \n"
+                                       f"Decline to apply just under {namespace}")
+        message_box.setStandardButtons(QtWidgets.QMessageBox.Apply | QtWidgets.QMessageBox.Ignore)
+
+        return message_box.exec_() == QtWidgets.QMessageBox.Apply
+
+
 
 
 if __name__ == "__main__":
