@@ -1938,8 +1938,9 @@ class RBFManagerUI(MayaQWidgetDockableMixin, QtWidgets.QMainWindow):
         attributeListWidget.setSelectionMode(selType)
         attributeListWidget.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
         #  --------------------------------------------------------------------
-        return [driverLineEdit,
-                driverSelectButton,
+        drivenSetLayout.addLayout(drivenLayout, 0)
+        drivenSetLayout.addLayout(attributeLayout, 0)
+        drivenLayout.addWidget(addDrivenButton)
         drivenSetLayout.addLayout(drivenLayout, 0)
         drivenSetLayout.addLayout(attributeLayout, 0)
         drivenMainLayout.addLayout(drivenSetLayout)
