@@ -1845,7 +1845,8 @@ class RBFManagerUI(MayaQWidgetDockableMixin, QtWidgets.QMainWindow):
         attributeLayout.addWidget(attributeListWidget)
         return attributeLayout, attributeListWidget
 
-    def addRemoveButtonWidget(self, label1, label2, horizontal=True):
+    @staticmethod
+    def addRemoveButtonWidget(label1, label2, horizontal=True):
         if horizontal:
             addRemoveLayout = QtWidgets.QHBoxLayout()
         else:
@@ -1862,12 +1863,11 @@ class RBFManagerUI(MayaQWidgetDockableMixin, QtWidgets.QMainWindow):
         Returns:
             list: [of widgets]
         """
-        driverMainLayout = QtWidgets.QVBoxLayout()
-        driverDrivenVLayout = QtWidgets.QVBoxLayout()
-        driverDrivenHLayout = QtWidgets.QHBoxLayout()
+        driverControlVLayout = QtWidgets.QVBoxLayout()
+        driverControlHLayout = QtWidgets.QHBoxLayout()
 
         # driverMainLayout.setStyleSheet("QVBoxLayout { background-color: #404040;")
-        driverDrivenHLayout.setSpacing(3)
+        driverControlHLayout.setSpacing(3)
         #  --------------------------------------------------------------------
         (controlLayout,
          controlLineEdit,
@@ -1879,30 +1879,28 @@ class RBFManagerUI(MayaQWidgetDockableMixin, QtWidgets.QMainWindow):
          driverSelectButton) = self.selectNodeWidget("Driver", buttonLabel="Set")
         driverLineEdit.setToolTip("The node driving the setup. (Click me!)")
         #  --------------------------------------------------------------------
-
         allButton = self.createCustomButton("All", (20, 53), "")
 
-        (attributeLayout,
-         attributeListWidget) = self.labelListWidget(label="Select Driver Attributes:",
-                                                     horizontal=False)
+        (attributeLayout, attributeListWidget) = self.labelListWidget(
+            label="Select Driver Attributes:", horizontal=False)
+
         attributeListWidget.setToolTip("List of attributes driving setup.")
         selType = QtWidgets.QAbstractItemView.ExtendedSelection
         attributeListWidget.setSelectionMode(selType)
         attributeListWidget.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
         #  --------------------------------------------------------------------
-        driverDrivenVLayout.addLayout(controlLayout, 0)
-        driverDrivenVLayout.addLayout(driverLayout, 0)
-        driverDrivenHLayout.addLayout(driverDrivenVLayout, 0)
-        driverDrivenHLayout.addWidget(allButton, 0)
-        driverMainLayout.addLayout(driverDrivenHLayout, 0)
-        driverMainLayout.addLayout(attributeLayout, 0)
+        driverControlVLayout.addLayout(controlLayout, 0)
+        driverControlVLayout.addLayout(driverLayout, 0)
+        driverControlHLayout.addLayout(driverControlVLayout, 0)
+        driverControlHLayout.addWidget(allButton, 0)
         return [controlLineEdit,
                 setControlButton,
                 driverLineEdit,
                 driverSelectButton,
                 allButton,
                 attributeListWidget,
-                driverMainLayout]
+                attributeLayout,
+                driverControlHLayout]
 
     def createDrivenAttributeWidget(self):
         """the widget that displays the driven information
@@ -1912,8 +1910,6 @@ class RBFManagerUI(MayaQWidgetDockableMixin, QtWidgets.QMainWindow):
         """
         drivenWidget = QtWidgets.QWidget()
         drivenMainLayout = QtWidgets.QVBoxLayout()
-        drivenSetLayout = QtWidgets.QVBoxLayout()
-
         drivenMainLayout.setContentsMargins(0, 10, 0, 10)
         drivenMainLayout.setSpacing(9)
         drivenSetLayout = QtWidgets.QVBoxLayout()
@@ -2082,31 +2078,14 @@ class RBFManagerUI(MayaQWidgetDockableMixin, QtWidgets.QMainWindow):
             self.mousePosition.connect(self.hideMenuBar)
         return mainMenuBar
 
-    # main assebly ------------------------------------------------------------
-    def createCentralWidget(self):
-        """main UI assembly
+    def createDarkContainerWidget(self):
+        darkContainer = QtWidgets.QWidget()
+        driverMainLayout = QtWidgets.QVBoxLayout()
+        driverMainLayout.setContentsMargins(10, 10, 10, 10)  # Adjust margins as needed
+        driverMainLayout.setSpacing(5)  # Adjust spacing between widgets
 
-        Returns:
-            QtWidget: main UI to be parented to as the centralWidget
-        """
-        centralWidget = QtWidgets.QWidget()
-        centralWidgetLayout = QtWidgets.QVBoxLayout()
-        centralSubWidgetLayout = QtWidgets.QHBoxLayout()
-        centralWidget.setLayout(centralWidgetLayout)
-
-        driverDrivenWidget = QtWidgets.QWidget()
-        driverDrivenWidget.setStyleSheet("background-color: rgb(23, 158, 131)")
-        driverDrivenWidgetLayout = QtWidgets.QVBoxLayout()
-        driverDrivenWidget.setLayout(driverDrivenWidgetLayout)
-
-        # Setup selector section
-        (rbfLayout,
-         self.rbf_cbox,
-         self.rbf_refreshButton) = self.createSetupSelectorWidget()
-        self.rbf_cbox.setToolTip("List of available setups in the scene.")
-        self.rbf_refreshButton.setToolTip("Refresh the UI")
-        centralWidgetLayout.addLayout(rbfLayout)
-        centralWidgetLayout.addWidget(HLine())
+        # Setting the dark color (Example: dark gray)
+        # darkContainer.setStyleSheet("background-color: rgb(40, 40, 40);")
 
         # Driver section
         (self.controlLineEdit,
@@ -2115,7 +2094,8 @@ class RBFManagerUI(MayaQWidgetDockableMixin, QtWidgets.QMainWindow):
          self.setDriverButton,
          self.allButton,
          self.driverAttributesWidget,
-         driverLayout) = self.createDriverAttributeWidget()
+         self.driverAttributesLayout,
+         driverControlLayout) = self.createDriverAttributeWidget()
 
         # Driven section
         (self.drivenLineEdit,
@@ -2130,21 +2110,63 @@ class RBFManagerUI(MayaQWidgetDockableMixin, QtWidgets.QMainWindow):
         self.addRbfButton.setFixedHeight(self.genericWidgetHight)
         self.addRbfButton.setStyleSheet("background-color: rgb(23, 158, 131)")
 
-        driverLayout.addWidget(self.drivenWidget)
-        driverLayout.addWidget(self.addRbfButton)
+        # Setting up the main layout for driver and driven sections
+        driverMainLayout = QtWidgets.QVBoxLayout()
+        driverMainLayout.addLayout(driverControlLayout)
+        driverMainLayout.addLayout(self.driverAttributesLayout)
+        driverMainLayout.addWidget(self.drivenWidget)
+        driverMainLayout.addWidget(self.addRbfButton)
+        darkContainer.setLayout(driverMainLayout)
+
+        return darkContainer
+
+    def createDriverDrivenTableWidget(self):
+        tableContainer = QtWidgets.QWidget()
 
         # Setting up the main layout for driver and driven sections
-        driverDrivenLayout = QtWidgets.QHBoxLayout()
         driverDrivenTableLayout = QtWidgets.QVBoxLayout()
         self.driverPoseTableWidget = self.createTableWidget()
         self.rbfTabWidget = self.createTabWidget()
 
-        driverDrivenLayout.addLayout(driverLayout, 0)
         driverDrivenTableLayout.addWidget(self.driverPoseTableWidget, 1)
         driverDrivenTableLayout.addWidget(self.rbfTabWidget, 1)
-        centralSubWidgetLayout.addLayout(driverDrivenLayout, 1)
-        centralSubWidgetLayout.addLayout(driverDrivenTableLayout, 2)
-        centralWidgetLayout.addLayout(centralSubWidgetLayout, 1)
+        tableContainer.setLayout(driverDrivenTableLayout)
+        return tableContainer
+
+    # main assebly ------------------------------------------------------------
+    def createCentralWidget(self):
+        """main UI assembly
+
+        Returns:
+            QtWidget: main UI to be parented to as the centralWidget
+        """
+        centralWidget = QtWidgets.QWidget()
+        centralWidgetLayout = QtWidgets.QVBoxLayout()
+        centralWidget.setLayout(centralWidgetLayout)
+
+        splitter = QtWidgets.QSplitter()
+
+        # Setup selector section
+        (rbfLayout,
+         self.rbf_cbox,
+         self.rbf_refreshButton) = self.createSetupSelectorWidget()
+        self.rbf_cbox.setToolTip("List of available setups in the scene.")
+        self.rbf_refreshButton.setToolTip("Refresh the UI")
+
+        driverDrivenWidget = self.createDarkContainerWidget()
+        allTableWidget = self.createDriverDrivenTableWidget()
+
+        centralWidgetLayout.addLayout(rbfLayout)
+        centralWidgetLayout.addWidget(HLine())
+        splitter.addWidget(driverDrivenWidget)
+        splitter.addWidget(allTableWidget)
+        centralWidgetLayout.addWidget(splitter)
+
+        # Assuming a ratio of 2:1 for settingWidth to tableWidth
+        totalWidth = splitter.width()
+        attributeWidth = (1/3) * totalWidth
+        tableWidth = (2/3) * totalWidth
+        splitter.setSizes([int(attributeWidth), int(tableWidth)])
 
         # Options buttons section
         (optionsLayout,
