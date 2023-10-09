@@ -3,6 +3,7 @@ import json
 import pymel.core as pm
 import math
 
+import mgear
 from mgear.core import attribute
 from mgear.core import transform
 from mgear.core import primitive
@@ -34,6 +35,11 @@ def create_settings_attr(node, config):
     """
     if isinstance(node, str):
         node = pm.PyNode(node)
+
+    # Check if attr already exists at node
+    if pm.attributeQuery("springTotalIntensity", node=node, exists=True):
+        return False
+
     attribute.addAttribute(
         node,
         "springTotalIntensity",
@@ -92,6 +98,8 @@ def create_settings_attr(node, config):
     )
     # add message attr to node
     node.addAttr("springSetupMembers", at="message", m=True)
+
+    return True
 
 
 def remove_settings_attr(node):
@@ -211,7 +219,10 @@ def create_spring(node=None, config=None):
         return node_name + "_" + name
 
     # add settings attr
-    create_settings_attr(node, config)
+    result = create_settings_attr(node, config)
+    if not result:
+        mgear.log(f"Spring already exists at {node.name()}")
+        return False
 
     # Get node transform
     t = transform.getTransform(node)
@@ -306,7 +317,7 @@ def create_spring(node=None, config=None):
     pm.parentConstraint(driver, node)
     # rigbits.connectLocalTransform([driver, node])
 
-    return driver
+    return driver, node
 
 
 # init the configuration to create a spring
@@ -446,6 +457,7 @@ def apply_preset(preset_file_path, namespace_cb):
         Applies preset.
     """
     preset_dic = None
+    affected_nodes = []
     with open(preset_file_path, "r") as fp:
         preset_dic = json.load(fp)
 
@@ -466,10 +478,27 @@ def apply_preset(preset_file_path, namespace_cb):
         if apply_to_all_namespaces:
             nodes = pm.ls(f"*:{config['node']}")
             for node in nodes:
-                create_spring(node=node, config=config)
+                if not pm.objExists(node):
+                    mgear.log(f"Node '{node}' does not exist, skipping")
+                    continue
+                result = create_spring(node=node, config=config)
+                if result is not False:
+                    affected_nodes.append(result[1])
         else:
-            create_spring(node=key, config=config)
+            if not pm.objExists(key):
+                mgear.log(f"Node '{key}' does not exist, skipping")
+                continue
+            result = create_spring(node=key, config=config)
+            if result is not False:
+                affected_nodes.append(result[1])
 
+    return affected_nodes
+
+
+def get_preset_targets(preset_file_path):
+    with open(preset_file_path, "r") as fp:
+        preset_dic = json.load(fp)
+        return [node for node in preset_dic['nodes'] if pm.objExists(node)]
 
 @one_undo
 @viewport_off
@@ -534,6 +563,7 @@ def bake_all():
                 spring_driven.append(connections[0].node())
     if spring_driven:
         bake(spring_driven)
+
 
 
 @one_undo
