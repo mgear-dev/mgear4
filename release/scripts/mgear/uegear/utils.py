@@ -1107,27 +1107,16 @@ def convert_transformationmatrix_Unreal_to_Maya(transformationMatrix):
     """
     RADIAN = ( 22/7 / 180.0)
 
-    UNREAL_APP_MATRIX_Y_UP = OpenMaya.MMatrix([
-                                [1, 0,  0, 0],
-                                [0, 0,  1, 0],
-                                [0, 1,  0, 0],
-                                [0, 0,  0, 1]])
-    UNREAL_APP_MATRIX_Y_ROT = OpenMaya.MMatrix([
+    UNREAL_CONVERSION_MATRIX = OpenMaya.MMatrix([
                                 [ 1, 0,  0, 0],
                                 [ 0, 0, -1, 0],
                                 [ 0, 1,  0, 0],
                                 [ 0, 0,  0, 1]])
 
-    UNREAL_APP_MATRIX_Z_UP = OpenMaya.MMatrix([
-                                [1, 0, 0, 0],
-                                [0, -1, 0, 0],
-                                [0, 0, 1, 0],
-                                [0, 0, 0, 1]])
-
     world_up = cmds.optionVar(query="upAxisDirection")
     print("World Up Axis : {}".format(world_up))
     if world_up == 'z':
-        temp = transformationMatrix.asMatrix() * UNREAL_APP_MATRIX_Y_ROT
+        temp = transformationMatrix.asMatrix() * UNREAL_CONVERSION_MATRIX
                 
         position = transformationMatrix.translation(OpenMaya.MSpace.kWorld)
         rotation = transformationMatrix.rotation(False)
@@ -1146,7 +1135,7 @@ def convert_transformationmatrix_Unreal_to_Maya(transformationMatrix):
         correctedTransform.setTranslation(position, OpenMaya.MSpace.kWorld)
 
     elif world_up == 'y':
-        temp = transformationMatrix.asMatrix() * UNREAL_APP_MATRIX_Y_ROT
+        temp = transformationMatrix.asMatrix() * UNREAL_CONVERSION_MATRIX
                 
         position = transformationMatrix.translation(OpenMaya.MSpace.kWorld)
         rotation = transformationMatrix.rotation(False)
