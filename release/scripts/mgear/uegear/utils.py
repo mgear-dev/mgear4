@@ -1111,10 +1111,10 @@ def convert_transformationmatrix_Unreal_to_Maya(transformationMatrix):
                                 [0, 1,  0, 0],
                                 [0, 0,  0, 1]])
     UNREAL_APP_MATRIX_Y_ROT = OpenMaya.MMatrix([
-                                [1, 0,  0, 0],
-                                [0, 0,  -1, 0],
-                                [0, 1,  0, 0],
-                                [0, 0,  0, 1]])
+                                [ 1, 0,  0, 0],
+                                [ 0, 0, -1, 0],
+                                [ 0, 1,  0, 0],
+                                [ 0, 0,  0, 1]])
 
     UNREAL_APP_MATRIX_Z_UP = OpenMaya.MMatrix([
                                 [1, 0, 0, 0],
@@ -1127,5 +1127,23 @@ def convert_transformationmatrix_Unreal_to_Maya(transformationMatrix):
     if world_up == 'z':
         maya_space_mtx = transformationMatrix.asMatrix() * UNREAL_APP_MATRIX_Z_UP
     elif world_up == 'y':
-        maya_space_mtx = UNREAL_APP_MATRIX_Y_ROT * transformationMatrix.asMatrix() * UNREAL_APP_MATRIX_Y_UP
-    return OpenMaya.MTransformationMatrix(maya_space_mtx)
+        temp = transformationMatrix.asMatrix() * UNREAL_APP_MATRIX_Y_ROT
+                
+        position = transformationMatrix.translation(OpenMaya.MSpace.kWorld)
+        rotation = transformationMatrix.rotation(False)
+        scale    = transformationMatrix.scale(OpenMaya.MSpace.kWorld)
+
+        radian = ( 22/7 / 180.0)
+        tempRotation = OpenMaya.MEulerRotation()
+        tempRotation.setValue( (rotation[0] -90) * radian, 
+                               -rotation[2] * radian, 
+                                rotation[1] * radian)
+        rotation = transformationMatrix.setRotation(tempRotation)
+
+        position = OpenMaya.MVector( position[0], position[2] ,position[1])
+
+        correctedTransform = OpenMaya.MTransformationMatrix(temp)
+        correctedTransform.setRotation(tempRotation)
+        correctedTransform.setTranslation(position, OpenMaya.MSpace.kWorld)
+
+    return correctedTransform
