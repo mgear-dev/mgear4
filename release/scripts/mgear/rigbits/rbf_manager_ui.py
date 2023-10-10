@@ -608,6 +608,8 @@ class RBFManagerUI(MayaQWidgetDockableMixin, QtWidgets.QMainWindow):
             self.populateDrivenInfo(rbfNode, rbfNode.getNodeInfo())
 
         # Add newly created RBFNode to list of current
+        self.addPoseButton.setEnabled(True)
+
         self.currentRBFSetupNodes.append(rbfNode)
         self.refreshRbfSetupList(setToSelection=setupName)
         self.lockDriverWidgets()
@@ -1235,7 +1237,7 @@ class RBFManagerUI(MayaQWidgetDockableMixin, QtWidgets.QMainWindow):
         self.setDrivenButton.blockSignals(False)
         self.drivenAttributesWidget.setEnabled(True)
 
-        self.addRbfButton.setText("Add new driven to RBF")
+        self.addRbfButton.setText("Add New Driven")
 
     def recreateDrivenTabs(self, rbfNodes):
         """remove tabs and create ones for each node in rbfNodes provided
@@ -1251,6 +1253,8 @@ class RBFManagerUI(MayaQWidgetDockableMixin, QtWidgets.QMainWindow):
             self._associateRBFnodeAndWidget(drivenWidget, rbfNode)
             self.populateDrivenWidgetInfo(drivenWidget, weightInfo, rbfNode)
             self.rbfTabWidget.addTab(drivenWidget, rbfNode.name)
+
+        self.addPoseButton.setEnabled(True)
 
     def displayRBFSetupInfo(self, index):
         """Display the rbfnodes within the desired setups
@@ -1411,6 +1415,7 @@ class RBFManagerUI(MayaQWidgetDockableMixin, QtWidgets.QMainWindow):
             clearDrivenTab (bool, optional): desired section to refresh
         """
         self.addRbfButton.setText("New RBF")
+        self.addPoseButton.setEnabled(False)
         if rbfSelection:
             self.refreshRbfSetupList()
         if driverSelection:
@@ -1818,11 +1823,12 @@ class RBFManagerUI(MayaQWidgetDockableMixin, QtWidgets.QMainWindow):
         return setRBFLayout, rbf_cbox, rbf_refreshButton
 
     @staticmethod
-    def createCustomButton(label, size=(35, 25), tooltip=""):
+    def createCustomButton(label, size=(35, 27), tooltip=""):
         stylesheet = (
             "QPushButton {background-color: #5D5D5D; border-radius: 4px;}"
             "QPushButton:pressed { background-color: #00A6F3;}"
             "QPushButton:hover:!pressed { background-color: #707070;}"
+            "QPushButton:disabled { background-color: #4a4a4a;}"
         )
         button = QtWidgets.QPushButton(label)
         button.setMinimumSize(QtCore.QSize(*size))
@@ -1954,7 +1960,7 @@ class RBFManagerUI(MayaQWidgetDockableMixin, QtWidgets.QMainWindow):
         """
         drivenWidget = QtWidgets.QWidget()
         drivenMainLayout = QtWidgets.QVBoxLayout()
-        drivenMainLayout.setContentsMargins(0, 10, 0, 10)
+        drivenMainLayout.setContentsMargins(0, 10, 0, 2)
         drivenMainLayout.setSpacing(9)
         drivenSetLayout = QtWidgets.QVBoxLayout()
         drivenMainLayout.addLayout(drivenSetLayout)
@@ -1966,7 +1972,7 @@ class RBFManagerUI(MayaQWidgetDockableMixin, QtWidgets.QMainWindow):
         drivenTip = "The node being driven by setup. (Click me!)"
         drivenLineEdit.setToolTip(drivenTip)
 
-        addDrivenButton = self.createCustomButton("+", (20, 25), "")
+        addDrivenButton = self.createCustomButton("+", (20, 26), "")
         addDrivenButton.setToolTip("Add a new driven to the current rbf node")
         #  --------------------------------------------------------------------
         (attributeLayout,
@@ -2001,7 +2007,7 @@ class RBFManagerUI(MayaQWidgetDockableMixin, QtWidgets.QMainWindow):
         """
         drivenWidget = QtWidgets.QWidget()
         drivenMainLayout = QtWidgets.QHBoxLayout()
-        drivenMainLayout.setContentsMargins(0, 10, 0, 10)
+        drivenMainLayout.setContentsMargins(0, 0, 0, 0)
         drivenMainLayout.setSpacing(9)
         drivenWidget.setLayout(drivenMainLayout)
 
@@ -2015,11 +2021,23 @@ class RBFManagerUI(MayaQWidgetDockableMixin, QtWidgets.QMainWindow):
         Returns:
             QTableWidget: QTableWidget
         """
+        stylesheet = """
+        QTableWidget QHeaderView::section {
+            background-color: #3a3b3b;
+            padding: 2px;
+            text-align: center;
+        }
+        QTableCornerButton::section {
+            background-color: #3a3b3b;
+            border: none; 
+        }
+        """
         tableWidget = QtWidgets.QTableWidget()
         tableWidget.insertColumn(0)
         tableWidget.insertRow(0)
         tableWidget.setHorizontalHeaderLabels(["Pose Value"])
         tableWidget.setVerticalHeaderLabels(["Pose #0"])
+        # tableWidget.setStyleSheet(stylesheet)
         tableTip = "Live connections to the RBF Node in your setup."
         tableTip = tableTip + "\nSelect the desired Pose # to recall pose."
         tableWidget.setToolTip(tableTip)
@@ -2049,12 +2067,12 @@ class RBFManagerUI(MayaQWidgetDockableMixin, QtWidgets.QMainWindow):
         optionsLayout.setSpacing(5)
         addTip = "After positioning all controls in the setup, add new pose."
         addTip = addTip + "\nEnsure the driver node has a unique position."
-        addPoseButton = self.createCustomButton("Add Pose", (80, 28), addTip)
-        EditPoseButton = self.createCustomButton("Update Pose", (80, 28), "")
+        addPoseButton = self.createCustomButton("Add Pose", size=(80, 26), tooltip=addTip)
+        EditPoseButton = self.createCustomButton("Update Pose", size=(80, 26))
         EditPoseButton.setToolTip("Recall pose, adjust controls and Edit.")
-        EditPoseValuesButton = self.createCustomButton("Update Pose Values", (80, 28), "")
+        EditPoseValuesButton = self.createCustomButton("Update Pose Values", size=(80, 26))
         EditPoseValuesButton.setToolTip("Set pose based on values in table")
-        deletePoseButton = self.createCustomButton("Delete Pose", (80, 28), "")
+        deletePoseButton = self.createCustomButton("Delete Pose", size=(80, 26))
         deletePoseButton.setToolTip("Recall pose, then Delete")
         optionsLayout.addWidget(addPoseButton)
         optionsLayout.addWidget(EditPoseButton)
@@ -2130,7 +2148,7 @@ class RBFManagerUI(MayaQWidgetDockableMixin, QtWidgets.QMainWindow):
         driverMainLayout.setSpacing(5)  # Adjust spacing between widgets
 
         # Setting the dark color (Example: dark gray)
-        # darkContainer.setStyleSheet("background-color: rgb(40, 40, 40);")
+        # darkContainer.setStyleSheet("background-color: #323232;")
 
         # Driver section
         (self.controlLineEdit,
@@ -2150,10 +2168,13 @@ class RBFManagerUI(MayaQWidgetDockableMixin, QtWidgets.QMainWindow):
          self.drivenWidget,
          self.drivenMainLayout) = self.createDrivenAttributeWidget()
 
-        self.addRbfButton = QtWidgets.QPushButton("New RBF")
+        self.addRbfButton = self.createCustomButton("New RBF")
         self.addRbfButton.setToolTip("Select node to be driven by setup.")
-        self.addRbfButton.setFixedHeight(self.genericWidgetHight)
-        self.addRbfButton.setStyleSheet("background-color: rgb(23, 158, 131)")
+        stylesheet = (
+            "QPushButton {background-color: #179e83; border-radius: 4px;}"
+            "QPushButton:hover:!pressed { background-color: #2ea88f;}"
+        )
+        self.addRbfButton.setStyleSheet(stylesheet)
 
         # Setting up the main layout for driver and driven sections
         driverMainLayout = QtWidgets.QVBoxLayout()
@@ -2173,9 +2194,22 @@ class RBFManagerUI(MayaQWidgetDockableMixin, QtWidgets.QMainWindow):
         self.driverPoseTableWidget = self.createTableWidget()
         self.rbfTabWidget = self.createTabWidget()
 
+        # Options buttons section
+        (optionsLayout,
+         self.addPoseButton,
+         self.editPoseButton,
+         self.editPoseValuesButton,
+         self.deletePoseButton) = self.createOptionsButtonsWidget()
+        self.addPoseButton.setEnabled(False)
+        self.editPoseButton.setEnabled(False)
+        self.editPoseValuesButton.setEnabled(False)
+        self.deletePoseButton.setEnabled(False)
+
         driverDrivenTableLayout.addWidget(self.driverPoseTableWidget, 1)
         driverDrivenTableLayout.addWidget(self.rbfTabWidget, 1)
+        driverDrivenTableLayout.addLayout(optionsLayout)
         tableContainer.setLayout(driverDrivenTableLayout)
+
         return tableContainer
 
     # main assebly ------------------------------------------------------------
@@ -2212,18 +2246,6 @@ class RBFManagerUI(MayaQWidgetDockableMixin, QtWidgets.QMainWindow):
         attributeWidth = (1/3) * totalWidth
         tableWidth = (2/3) * totalWidth
         splitter.setSizes([int(attributeWidth), int(tableWidth)])
-
-        # Options buttons section
-        (optionsLayout,
-         self.addPoseButton,
-         self.editPoseButton,
-         self.editPoseValuesButton,
-         self.deletePoseButton) = self.createOptionsButtonsWidget()
-        self.editPoseButton.setEnabled(False)
-        self.editPoseValuesButton.setEnabled(False)
-        self.deletePoseButton.setEnabled(False)
-        centralWidgetLayout.addWidget(HLine())
-        centralWidgetLayout.addLayout(optionsLayout)
         return centralWidget
 
     # overrides ---------------------------------------------------------------
