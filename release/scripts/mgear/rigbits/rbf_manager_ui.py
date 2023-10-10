@@ -404,6 +404,8 @@ class RBFManagerUI(MayaQWidgetDockableMixin, QtWidgets.QMainWindow):
         self.currentRBFSetupNodes = []
         self.allSetupsInfo = None
         self.drivenWidget = []
+        self.driverAutoAttr = []
+        self.drivenAutoAttr = []
 
         self.setMenuBar(self.createMenuBar(hideMenuBar=hideMenuBar))
         self.setCentralWidget(self.createCentralWidget())
@@ -893,6 +895,24 @@ class RBFManagerUI(MayaQWidgetDockableMixin, QtWidgets.QMainWindow):
         attrListWidget.addItems(sorted(nodeAttrsToDisplay))
         self.highlightListEntries(attrListWidget, displayAttrs)
 
+    def setAttributeToAutoSelect(self, attrListWidget):
+        selectedItems = attrListWidget.selectedItems()
+        selectedTexts = [item.text() for item in selectedItems]
+        attributes = [attrPlug.split(".")[-1] for attrPlug in selectedTexts]
+
+        if "driver" in attrListWidget.objectName():
+            self.driverAutoAttr = attributes
+        elif "driven" in attrListWidget.objectName():
+            self.drivenAutoAttr = attributes
+        print("driverAutoAttr", self.driverAutoAttr)
+
+    @staticmethod
+    def setSelectedForAutoSelect(attrListWidget, itemTexts):
+        for i in range(attrListWidget.count()):
+            item = attrListWidget.item(i)
+            if item.text() in itemTexts:
+                item.setSelected(True)
+
     def updateAttributeDisplay(self,
                                attrListWidget,
                                driverNames,
@@ -923,6 +943,17 @@ class RBFManagerUI(MayaQWidgetDockableMixin, QtWidgets.QMainWindow):
         nodeAttrsToDisplay = getPlugAttrs(driverNames, attrType=attrType)
         attrListWidget.clear()
         attrListWidget.addItems(nodeAttrsToDisplay)
+
+        objName = attrListWidget.objectName()
+        autoAttrs = {
+            "driverListWidget": self.driverAutoAttr, "drivenListWidget": self.drivenAutoAttr
+        }
+
+        if autoAttrs[objName]:
+            attrPlugs = ["{}.{}".format(driverNames[0], attr) for attr in autoAttrs[objName]]
+            print(attrPlugs)
+            self.setSelectedForAutoSelect(attrListWidget, attrPlugs)
+
         if highlight:
             self.highlightListEntries(attrListWidget, highlight)
 
@@ -1267,6 +1298,7 @@ class RBFManagerUI(MayaQWidgetDockableMixin, QtWidgets.QMainWindow):
     def attrListMenu(self,
                      attributeListWidget,
                      driverLineEdit,
+                     attributeListType,
                      QPos,
                      nodeToQuery=None):
         """right click menu for queie qlistwidget
@@ -1308,6 +1340,13 @@ class RBFManagerUI(MayaQWidgetDockableMixin, QtWidgets.QMainWindow):
                                                nodeToQuery,
                                                attrType="all",
                                                force=True))
+
+        self.attrMenu.addSeparator()
+
+        menu_item_04 = self.attrMenu.addAction("Set attribute to auto select")
+        menu_item_04.setToolTip("Set your attribute to be automatically highlighted up in the next operations")
+        menu_item_04.triggered.connect(partial(self.setAttributeToAutoSelect,
+                                               attributeListWidget))
         self.attrMenu.move(parentPosition + QPos)
         self.attrMenu.show()
 
@@ -1713,8 +1752,10 @@ class RBFManagerUI(MayaQWidgetDockableMixin, QtWidgets.QMainWindow):
         # Driver Line Edit and Control Line Edit
         self.driverLineEdit.clicked.connect(selectNode)
         self.controlLineEdit.clicked.connect(selectNode)
-        self.driverLineEdit.textChanged.connect(partial(self.updateAttributeDisplay, self.driverAttributesWidget))
-        self.drivenLineEdit.textChanged.connect(partial(self.updateAttributeDisplay, self.drivenAttributesWidget))
+        self.driverLineEdit.textChanged.connect(partial(self.updateAttributeDisplay,
+                                                        self.driverAttributesWidget))
+        self.drivenLineEdit.textChanged.connect(partial(self.updateAttributeDisplay,
+                                                        self.drivenAttributesWidget))
 
         # Table Widget
         header = self.driverPoseTableWidget.verticalHeader()
@@ -1740,13 +1781,15 @@ class RBFManagerUI(MayaQWidgetDockableMixin, QtWidgets.QMainWindow):
         customMenu.connect(
             partial(self.attrListMenu,
                     self.driverAttributesWidget,
-                    self.driverLineEdit)
+                    self.driverLineEdit,
+                    "driver")
         )
         customMenu = self.drivenAttributesWidget.customContextMenuRequested
         customMenu.connect(
             partial(self.attrListMenu,
                     self.drivenAttributesWidget,
-                    self.driverLineEdit)
+                    self.driverLineEdit,
+                    "driven")
         )
 
         # Tab Widget
@@ -1823,7 +1866,7 @@ class RBFManagerUI(MayaQWidgetDockableMixin, QtWidgets.QMainWindow):
         return nodeLayout, nodeLineEdit, nodeSelectButton
 
     @staticmethod
-    def labelListWidget(label, horizontal=True):
+    def labelListWidget(label, attrListType, horizontal=True):
         """create the listAttribute that users can select their driver/driven
         attributes for the setup
 
@@ -1841,6 +1884,7 @@ class RBFManagerUI(MayaQWidgetDockableMixin, QtWidgets.QMainWindow):
             attributeLayout = QtWidgets.QVBoxLayout()
         attributeLabel = QtWidgets.QLabel(label)
         attributeListWidget = QtWidgets.QListWidget()
+        attributeListWidget.setObjectName("{}ListWidget".format(attrListType))
         attributeLayout.addWidget(attributeLabel)
         attributeLayout.addWidget(attributeListWidget)
         return attributeLayout, attributeListWidget
@@ -1882,7 +1926,7 @@ class RBFManagerUI(MayaQWidgetDockableMixin, QtWidgets.QMainWindow):
         allButton = self.createCustomButton("All", (20, 53), "")
 
         (attributeLayout, attributeListWidget) = self.labelListWidget(
-            label="Select Driver Attributes:", horizontal=False)
+            label="Select Driver Attributes:", attrListType="driver", horizontal=False)
 
         attributeListWidget.setToolTip("List of attributes driving setup.")
         selType = QtWidgets.QAbstractItemView.ExtendedSelection
@@ -1927,6 +1971,7 @@ class RBFManagerUI(MayaQWidgetDockableMixin, QtWidgets.QMainWindow):
         #  --------------------------------------------------------------------
         (attributeLayout,
          attributeListWidget) = self.labelListWidget(label="Select Driven Attributes:",
+                                                     attrListType="driven",
                                                      horizontal=False)
         attributeListWidget.setToolTip("Attributes being driven by setup.")
         attributeLayout.setSpacing(1)
