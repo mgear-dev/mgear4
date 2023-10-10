@@ -1105,11 +1105,52 @@ def convert_transformationmatrix_Unreal_to_Maya(transformationMatrix):
     :return: Unreal transofm now in Maya transform space.
     :rtype: OpenMaya.MTransformationMatrix
     """
-    UNREAL_APP_MATRIX = OpenMaya.MMatrix([
-                                [1, 0,  0, 0],
-                                [0, 0, 1, 0],
-                                [0, 1,  0, 0],
-                                [0, 0,  0, 1]])
+    RADIAN = ( 22/7 / 180.0)
 
-    maya_space_mtx = transformationMatrix.asMatrix() * UNREAL_APP_MATRIX
-    return OpenMaya.MTransformationMatrix(maya_space_mtx)
+    UNREAL_CONVERSION_MATRIX = OpenMaya.MMatrix([
+                                [ 1, 0,  0, 0],
+                                [ 0, 0, -1, 0],
+                                [ 0, 1,  0, 0],
+                                [ 0, 0,  0, 1]])
+
+    world_up = cmds.optionVar(query="upAxisDirection")
+    print("World Up Axis : {}".format(world_up))
+    if world_up == 'z':
+        temp = transformationMatrix.asMatrix() * UNREAL_CONVERSION_MATRIX
+                
+        position = transformationMatrix.translation(OpenMaya.MSpace.kWorld)
+        rotation = transformationMatrix.rotation(False)
+        scale    = transformationMatrix.scale(OpenMaya.MSpace.kWorld)
+
+        tempRotation = OpenMaya.MEulerRotation()
+        tempRotation.setValue(  rotation[0] * RADIAN, 
+                                rotation[2] * RADIAN, 
+                                rotation[1] * RADIAN)
+        rotation = transformationMatrix.setRotation(tempRotation)
+
+        position = OpenMaya.MVector( position[0], -position[1] ,position[2])
+
+        correctedTransform = OpenMaya.MTransformationMatrix(temp)
+        correctedTransform.setRotation(tempRotation)
+        correctedTransform.setTranslation(position, OpenMaya.MSpace.kWorld)
+
+    elif world_up == 'y':
+        temp = transformationMatrix.asMatrix() * UNREAL_CONVERSION_MATRIX
+                
+        position = transformationMatrix.translation(OpenMaya.MSpace.kWorld)
+        rotation = transformationMatrix.rotation(False)
+        scale    = transformationMatrix.scale(OpenMaya.MSpace.kWorld)
+
+        tempRotation = OpenMaya.MEulerRotation()
+        tempRotation.setValue( (rotation[0] -90) * RADIAN, 
+                               -rotation[2] * RADIAN, 
+                                rotation[1] * RADIAN)
+        rotation = transformationMatrix.setRotation(tempRotation)
+
+        position = OpenMaya.MVector( position[0], position[2] ,position[1])
+
+        correctedTransform = OpenMaya.MTransformationMatrix(temp)
+        correctedTransform.setRotation(tempRotation)
+        correctedTransform.setTranslation(position, OpenMaya.MSpace.kWorld)
+
+    return correctedTransform
