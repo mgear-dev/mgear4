@@ -597,6 +597,8 @@ class RBFManagerUI(MayaQWidgetDockableMixin, QtWidgets.QMainWindow):
             currentRbfs = self.currentRBFSetupNodes[0]
             print("Syncing poses indices from  {} >> {}".format(currentRbfs, rbfNode))
             rbfNode.syncPoseIndices(self.currentRBFSetupNodes[0])
+            self.addNewTab(currentRbfs, drivenNode)
+            self.setAttributeDisplay(self.drivenAttributesWidget, drivenNode, drivenAttrs)
         else:
             if self.zeroedDefaults:
                 rbfNode.applyDefaultPose()
@@ -1211,7 +1213,7 @@ class RBFManagerUI(MayaQWidgetDockableMixin, QtWidgets.QMainWindow):
 
         self.setDrivenTable(drivenWidget, rbfNode, weightInfo)
 
-    def addNewTab(self, rbfNode):
+    def addNewTab(self, rbfNode, drivenNode):
         """Create a new tab in the setup
 
         Args:
@@ -1220,9 +1222,13 @@ class RBFManagerUI(MayaQWidgetDockableMixin, QtWidgets.QMainWindow):
         Returns:
             QWidget: created widget
         """
+        weightInfo = rbfNode.getNodeInfo()
         tabDrivenWidget = self.createAndTagDrivenWidget()
         self._associateRBFnodeAndWidget(tabDrivenWidget, rbfNode)
-        self.rbfTabWidget.addTab(tabDrivenWidget, str(rbfNode))
+        self.rbfTabWidget.addTab(tabDrivenWidget, drivenNode)
+        tabDrivenWidget.setProperty("drivenNode", drivenNode)
+        self.setDrivenTable(tabDrivenWidget, rbfNode, weightInfo)
+
         return tabDrivenWidget
 
     def addNewDriven(self):
@@ -1428,7 +1434,9 @@ class RBFManagerUI(MayaQWidgetDockableMixin, QtWidgets.QMainWindow):
             self.drivenLineEdit.clear()
             self.drivenAttributesWidget.clear()
             if clearDrivenTab:
-                self.clearDrivenTabs()
+                self.rbfTabWidget.clear()
+                self.__deleteAssociatedWidgetsMaya(self.rbfTabWidget)
+                self.__deleteAssociatedWidgets(self.rbfTabWidget)
         if currentRBFSetupNodes:
             self.currentRBFSetupNodes = []
 
