@@ -42,7 +42,7 @@ class ConfigCollector(MayaQWidgetDockableMixin, QtWidgets.QDialog, pyqt.Settings
         elif cmds.about(macOS=True):
             self.setWindowFlags(QtCore.Qt.Tool)
 
-        self.settings = QtCore.QSettings("MGear", "Spring Manager")
+        self.settings = QtCore.QSettings("MGear", "SpringManager")
 
         self.create_actions()
         self.create_widgets()
@@ -381,11 +381,14 @@ class ConfigCollector(MayaQWidgetDockableMixin, QtWidgets.QDialog, pyqt.Settings
 
 
 
-    def _namespace_confirmation_dialogue(self, node_name, namespace):
+    def _namespace_confirmation_dialogue(self, preset_namespace, selected_namespace):
         message_box = QtWidgets.QMessageBox()
-        message_box.setText(f"The node name '{node_name}' was found under multiple namespaces")
-        message_box.setInformativeText("Click Accept to apply the preset under each namespace \n"
-                                       f"Decline to apply just under {namespace}")
+
+        message_box.setWindowTitle("Namespace mismatch")
+        message_box.setText(f"Namespace from selection does not match the namespace stored in the preset.")
+        message_box.setInformativeText(f"Click Accept to map nodes from preset namespace '{preset_namespace}' "
+                                       f"to selected namespace '{selected_namespace}'")
+
         message_box.setStandardButtons(QtWidgets.QMessageBox.Apply | QtWidgets.QMessageBox.Ignore)
 
         return message_box.exec_() == QtWidgets.QMessageBox.Apply

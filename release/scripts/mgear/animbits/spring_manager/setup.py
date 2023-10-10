@@ -456,41 +456,35 @@ def apply_preset(preset_file_path, namespace_cb):
     """"
         Applies preset.
     """
-    preset_dic = None
     affected_nodes = []
     with open(preset_file_path, "r") as fp:
         preset_dic = json.load(fp)
 
     # if there's only one namespace, check if user wants to apply to all nodes with the same name
-    check_for_remap = len(preset_dic['namespaces']) == 1
-    apply_to_all_namespaces = None
+    selection = pm.ls(sl=1)
+    check_for_remap = len(preset_dic['namespaces']) == 1 and len(selection) > 0
+    preset_namespace = preset_dic['namespaces'][0]
+    selection_namespace = ''
 
+    replace_namespace = False
+    # check if selection namespace matches with preset namespace
     if check_for_remap:
-        for config in preset_dic["configs"].values():
-            nodes = pm.ls(f"*:{config['node']}")
-            if len(nodes) > 1:
-                apply_to_all_namespaces = namespace_cb(config['node'], config['namespace'])
-                break
-    else:
-        apply_to_all_namespaces = False
+        selection_namespace = selection[-1].namespace(root=True)
+        if selection_namespace != preset_namespace:
+            if namespace_cb(preset_namespace, selection_namespace):
+                replace_namespace = True
+                print(f"Processing configs with new namespace {selection_namespace}")
 
     for key, config in preset_dic["configs"].items():
-        if apply_to_all_namespaces:
-            nodes = pm.ls(f"*:{config['node']}")
-            for node in nodes:
-                if not pm.objExists(node):
-                    mgear.log(f"Node '{node}' does not exist, skipping")
-                    continue
-                result = create_spring(node=node, config=config)
-                if result is not False:
-                    affected_nodes.append(result[1])
-        else:
-            if not pm.objExists(key):
-                mgear.log(f"Node '{key}' does not exist, skipping")
-                continue
-            result = create_spring(node=key, config=config)
-            if result is not False:
-                affected_nodes.append(result[1])
+        node = key
+        if replace_namespace:
+            node = node.replace(preset_namespace, selection_namespace)
+        if not pm.objExists(node):
+            mgear.log(f"Node '{node}' does not exist, skipping")
+            continue
+        result = create_spring(node=node, config=config)
+        if result is not False:
+            affected_nodes.append(result[1])
 
     return affected_nodes
 
