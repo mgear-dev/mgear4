@@ -274,7 +274,12 @@ class ConfigCollector(MayaQWidgetDockableMixin, QtWidgets.QDialog, pyqt.Settings
         self.item_model.clear()
         presets = self.read_preset_from_directory(self.presets_library_directory)
         for preset in presets:
-            self.item_model.appendRow(QtGui.QStandardItem(preset))
+            item = QtGui.QStandardItem(preset)
+            file_path = f"{self.presets_library_directory}/{preset}{setup.SPRING_PRESET_EXTENSION}"
+            target_nodes = setup.get_preset_targets(preset_file_path=file_path)
+            tooltip_text = "Target nodes = " + ", ".join(target_nodes)
+            item.setData(tooltip_text, QtCore.Qt.ToolTipRole)
+            self.item_model.appendRow(item)
 
     def store_preset(self):
         file_name, dialog_result = QtWidgets.QInputDialog.getText(self, "Enter Preset Name", "Name:")
