@@ -329,12 +329,15 @@ class AnimClipWidget(QtWidgets.QFrame):
         self._end_frame_box.setText(max_frame)
 
     def _on_play_button_clicked(self):
-        start_time = str(int(cmds.playbackOptions(query=True, ast=True)))
-        end_time = str(int(cmds.playbackOptions(query=True, aet=True)))
+        start_time = str(int(cmds.playbackOptions(query=True, min=True)))
+        end_time = str(int(cmds.playbackOptions(query=True, max=True)))
+        anim_start_time = str(int(cmds.playbackOptions(query=True, ast=True)))
+        anim_end_time = str(int(cmds.playbackOptions(query=True, aet=True)))
         start_frame = self._start_frame_box.text()
         end_frame = self._end_frame_box.text()
 
-        if not (start_frame == start_time and end_frame == end_time):
+        if not (start_frame == start_time and end_frame == end_time) or \
+           not (start_frame == anim_start_time and end_frame == anim_end_time):
             cmds.playbackOptions(
                 animationStartTime=start_frame,
                 minTime=start_frame,
