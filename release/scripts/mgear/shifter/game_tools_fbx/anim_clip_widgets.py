@@ -171,7 +171,7 @@ class AnimClipWidget(QtWidgets.QFrame):
         self._clip_name_lineedit.setStatusTip("Clip Name")
         clip_name_layout.addWidget(self._clip_name_lineedit)
 
-        self._anim_layer_combo = QtWidgets.QComboBox()
+        self._anim_layer_combo = AnimationLayerCB()
         self._anim_layer_combo.setStatusTip("Animation Layer")
         clip_name_layout.addWidget(self._anim_layer_combo)
 
@@ -379,3 +379,25 @@ class AnimClipWidget(QtWidgets.QFrame):
             utils.open_mgear_playblast_folder
         )
         context_menu.exec_(self.mapToGlobal(pos))
+
+
+class AnimationLayerCB(QtWidgets.QComboBox):
+    """
+    Custom overloaded QComboBox, this will automatically refresh the combobox everytime 
+    it shows the values. Keep the Combobox up to date with the AnimationLayers available.
+    """
+    def __init__(self, parent=None):
+        super(AnimationLayerCB, self).__init__(parent=parent)
+
+    def showPopup(self):
+        super(AnimationLayerCB, self).showPopup()
+        currentText = self.currentText()
+
+        self.clear()
+
+        anim_layers = utils.all_anim_layers_ordered()
+        self.addItems(["None"] + anim_layers)
+        
+        self.setCurrentText(currentText)
+
+        # TODO: Could to a check here to see if the layer still exists, else add a warning.
