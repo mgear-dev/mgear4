@@ -824,9 +824,10 @@ class RBFManagerUI(RBFWidget):
         self.centralWidget().setMouseTracking(True)
         self.refreshRbfSetupList()
         self.connectSignals()
+
         # added because the dockableMixin makes the ui appear small
         self.adjustSize()
-        self.resize(800, 650)
+        # self.resize(800, 650)
         if newSceneCallBack:
             self.newSceneCallBack()
 
@@ -838,6 +839,11 @@ class RBFManagerUI(RBFWidget):
         # Save the size to Maya's optionVars
         mc.optionVar(intValue=('RBF_UI_width', width))
         mc.optionVar(intValue=('RBF_UI_height', height))
+
+        self.deleteAssociatedWidgetsMaya(self.driverPoseTableWidget)
+        self.deleteAssociatedWidgets(self.driverPoseTableWidget)
+        if self.callBackID is not None:
+            self.removeSceneCallback()
 
         # Call the parent class's closeEvent
         super(RBFManagerUI, self).closeEvent(event)
@@ -1081,8 +1087,8 @@ class RBFManagerUI(RBFWidget):
                 drivenNodes = rbfNode.getDrivenNode()
                 if drivenNodes and drivenNodes[0] == drivenNodeName:
                     weightInfo = rbfNode.getNodeInfo()
+                    self.setDriverTable(rbfNode, weightInfo)
                     self.setDrivenTable(drivenWidget, rbfNode, weightInfo)
-                    self.populateDriverInfo(rbfNode, weightInfo)
 
     @staticmethod
     def determineAttrType(node):
@@ -1622,7 +1628,7 @@ class RBFManagerUI(RBFWidget):
 
         self.addPoseButton.setEnabled(True)
 
-    def displayRBFSetupInfo(self, index):
+    def displayRBFSetupInfo(self):
         """Display the rbfnodes within the desired setups
 
         Args:
@@ -1788,15 +1794,18 @@ class RBFManagerUI(RBFWidget):
             self.controlLineEdit.clear()
             self.driverLineEdit.clear()
             self.driverAttributesWidget.clear()
-            self.deleteAssociatedWidgetsMaya(self.driverPoseTableWidget)
-            self.deleteAssociatedWidgets(self.driverPoseTableWidget)
+            self.driverPoseTableWidget.clear()
+
+            self.driverPoseTableWidget.setRowCount(1)
+            self.driverPoseTableWidget.setColumnCount(1)
+            self.driverPoseTableWidget.setHorizontalHeaderLabels(["Pose Value"])
+            self.driverPoseTableWidget.setVerticalHeaderLabels(["Pose #0"])
+
         if drivenSelection:
             self.drivenLineEdit.clear()
             self.drivenAttributesWidget.clear()
             if clearDrivenTab:
                 self.rbfTabWidget.clear()
-                self.deleteAssociatedWidgetsMaya(self.rbfTabWidget)
-                self.deleteAssociatedWidgets(self.rbfTabWidget)
         if currentRBFSetupNodes:
             self.currentRBFSetupNodes = []
 
@@ -2277,15 +2286,3 @@ class RBFManagerUI(RBFWidget):
                 pos = event.pos()
                 self.mousePosition.emit(pos.x(), pos.y())
 
-    def closeEvent(self, evnt):
-        """on UI close, ensure that all attrControlgrps are destroyed in case
-        the user is just reopening the UI. Properly severs ties to the attrs
-
-        Args:
-            evnt (Qt.QEvent): Close event called
-        """
-        self.deleteAssociatedWidgetsMaya(self.driverPoseTableWidget)
-        self.deleteAssociatedWidgets(self.driverPoseTableWidget)
-        if self.callBackID is not None:
-            self.removeSceneCallback()
-        super(RBFManagerUI, self).closeEvent(evnt)
