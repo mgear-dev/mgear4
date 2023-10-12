@@ -33,7 +33,7 @@ class FbxExportNode(object):
     ANIM_CLIP_DATA = {
         "title": "Untitled",
         "enabled": True,
-        "frame_rate": "30 fps",
+        "frame_rate": "",
         "start_frame": int(pm.playbackOptions(min=True, query=True)),
         "end_frame": int(pm.playbackOptions(max=True, query=True)),
     }

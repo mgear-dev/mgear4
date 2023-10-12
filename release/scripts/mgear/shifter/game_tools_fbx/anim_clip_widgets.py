@@ -4,7 +4,7 @@ import maya.cmds as cmds
 
 from mgear.vendor.Qt import QtWidgets, QtCore, QtGui
 
-from mgear.core import pyqt
+from mgear.core import pyqt, utils as coreUtils
 from mgear.shifter.game_tools_fbx import fbx_export_node, utils
 
 
@@ -293,7 +293,7 @@ class AnimClipWidget(QtWidgets.QFrame):
         anim_clip_data = fbx_export_node.FbxExportNode.ANIM_CLIP_DATA.copy()
         anim_clip_data["title"] = self._clip_name_lineedit.text()
         anim_clip_data["enabled"] = self._export_checkbox.isChecked()
-        # anim_clip_data["frame_rate"] = self._frame_rate_combo.currentText()
+        anim_clip_data["frame_rate"] = coreUtils.get_frame_rate()
         anim_clip_data["start_frame"] = int(self._start_frame_box.text())
         anim_clip_data["end_frame"] = int(self._end_frame_box.text())
         anim_layer = self._anim_layer_combo.currentText()

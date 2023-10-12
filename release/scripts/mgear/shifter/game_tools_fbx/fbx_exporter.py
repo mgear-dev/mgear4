@@ -48,6 +48,7 @@ class FBXExporter(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         super(FBXExporter, self).closeEvent(event)
 
     def dockCloseEventTriggered(self):
+        # FIXME: Move the save_data before calling the super close. Check all saving works!
         super(FBXExporter, self).dockCloseEventTriggered()
         self._save_data_to_export_node()
 
@@ -701,8 +702,25 @@ class FBXExporter(MayaQWidgetDockableMixin, QtWidgets.QDialog):
 
         export_config = self._get_current_tool_data()
         anim_clip_data = export_node.get_animation_clips(joint_root)
-        export_config["anim_clips"] = anim_clip_data
-        utils.export_animation_clip(export_config)
+        
+        # Stores the selected objects, before performing the export.
+        # These objects will be selected again, upon completion of
+        # exporting.
+        original_selection = cmds.ls(selection=True)
+
+        # Exports each clip
+        for clip_data in anim_clip_data:
+
+            if not clip_data["enabled"]:
+                # skip disabled clips.
+                continue
+
+            result = utils.export_animation_clip(export_config, clip_data)
+            if not result:
+                print("\t!!! >>> Failed to export clip: {}".format(clip_data["title"]))
+
+        if original_selection:
+            pm.select(original_selection)
 
         return True
 
