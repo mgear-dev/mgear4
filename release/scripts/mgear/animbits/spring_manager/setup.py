@@ -221,7 +221,7 @@ def create_spring(node=None, config=None):
     # add settings attr
     result = create_settings_attr(node, config)
     if not result:
-        mgear.log(f"Spring already exists at {node.name()}")
+        mgear.log("Spring already exists at {}".format(node.name()))
         return False
 
     # Get node transform
@@ -412,7 +412,7 @@ def get_config(node):
     # TODO: get child node name from the spring members
     # child_node = pm.listRelatives(node, c=True)
     if not pm.hasAttr(node, "springSetupMembers"):
-        print(f"{node} doesn't have springSetupMembers attr, skipping...")
+        print("{} doesn't have springSetupMembers attr, skipping...".format(node))
         return
     child_node = pm.listConnections(node.springSetupMembers[2])[0]
     direction = get_child_axis_direction(child_node)
@@ -436,7 +436,7 @@ def store_preset(nodes, filePath=None):
     for node in nodes:
         preset_dic['configs'][node.name()] = get_config(node)
 
-    print(f"file_path = {filePath}")
+    print("file_path = {}".format(filePath))
 
     data_string = json.dumps(preset_dic, indent=4, sort_keys=True)
     with open(filePath, 'w') as f:
@@ -473,14 +473,14 @@ def apply_preset(preset_file_path, namespace_cb):
         if selection_namespace != preset_namespace:
             if namespace_cb(preset_namespace, selection_namespace):
                 replace_namespace = True
-                print(f"Processing configs with new namespace {selection_namespace}")
+                print("Processing configs with new namespace {}".format(selection_namespace))
 
     for key, config in preset_dic["configs"].items():
         node = key
         if replace_namespace:
             node = node.replace(preset_namespace, selection_namespace)
         if not pm.objExists(node):
-            mgear.log(f"Node '{node}' does not exist, skipping")
+            mgear.log("Node '{}' does not exist, skipping".format(node))
             continue
         result = create_spring(node=node, config=config)
         if result is not False:

@@ -8,7 +8,7 @@ import pymel.core as pm
 from maya.app.general.mayaMixin import MayaQWidgetDockableMixin
 from functools import partial
 import os
-import pathlib
+import glob
 from mgear.core.utils import one_undo
 
 import maya.cmds as cmds
@@ -132,7 +132,7 @@ class ConfigCollector(MayaQWidgetDockableMixin, QtWidgets.QDialog, pyqt.Settings
         )
 
         self.presets_library_directory = self._get_presets_library_directory()
-        self.presets_lib_directory_label = QtWidgets.QLabel(f"Library Path: {self.presets_library_directory}")
+        self.presets_lib_directory_label = QtWidgets.QLabel("Library Path: {}".format(self.presets_library_directory))
         self.presets_lib_directory_label.setWordWrap(True)
 
         self.search_le = QtWidgets.QLineEdit()
@@ -235,6 +235,25 @@ class ConfigCollector(MayaQWidgetDockableMixin, QtWidgets.QDialog, pyqt.Settings
         for conf in self.configs:
             setup.create_spring(conf["node"], conf)
 
+    def get_presets(self, directory):
+        """
+        Get a list of preset filenames in a directory, filtering by extension and file size.
+
+        Args:
+            directory (str): The path to the directory containing the presets.
+            extension (str): The file extension to filter by.
+
+        Returns:
+            list: A list of preset filenames without extensions.
+        """
+        preset_paths = glob.glob(os.path.join(directory, "*{}".format(setup.SPRING_PRESET_EXTENSION)))
+        presets = [
+            os.path.splitext(os.path.basename(f))[0]
+            for f in preset_paths
+            if os.stat(f).st_size > 0
+        ]
+        return presets
+
     def read_preset_from_directory(self, directory):
         """
         Parses target directory and gets the files names
@@ -244,8 +263,7 @@ class ConfigCollector(MayaQWidgetDockableMixin, QtWidgets.QDialog, pyqt.Settings
         Returns: (file_name)
 
         """
-        presets = [f.stem for f in pathlib.Path(directory).glob(f"*{setup.SPRING_PRESET_EXTENSION}")
-                   if f.stat().st_size > 0]
+        presets = self.get_presets(directory)
 
         return tuple(presets)
 
@@ -266,7 +284,7 @@ class ConfigCollector(MayaQWidgetDockableMixin, QtWidgets.QDialog, pyqt.Settings
 
         self.presets_library_directory = directory
         self.settings.setValue("presetsLibraryDirectory", directory)
-        self.presets_lib_directory_label.setText(f"Library Path: {self.presets_library_directory}")
+        self.presets_lib_directory_label.setText("Library Path: {}".format(self.presets_library_directory))
 
         self.update_presets()
 
@@ -275,7 +293,7 @@ class ConfigCollector(MayaQWidgetDockableMixin, QtWidgets.QDialog, pyqt.Settings
         presets = self.read_preset_from_directory(self.presets_library_directory)
         for preset in presets:
             item = QtGui.QStandardItem(preset)
-            file_path = f"{self.presets_library_directory}/{preset}{setup.SPRING_PRESET_EXTENSION}"
+            file_path = "{}/{}{}".format(self.presets_library_directory, preset, setup.SPRING_PRESET_EXTENSION)
             target_nodes = setup.get_preset_targets(preset_file_path=file_path)
             tooltip_text = "Target nodes = " + ", ".join(target_nodes)
             item.setData(tooltip_text, QtCore.Qt.ToolTipRole)
@@ -285,7 +303,7 @@ class ConfigCollector(MayaQWidgetDockableMixin, QtWidgets.QDialog, pyqt.Settings
         file_name, dialog_result = QtWidgets.QInputDialog.getText(self, "Enter Preset Name", "Name:")
         if not dialog_result:
             return
-        file_name = f"/{file_name}{setup.SPRING_PRESET_EXTENSION}"
+        file_name = "/{}{}".format(file_name, setup.SPRING_PRESET_EXTENSION)
         setup.store_preset_from_selection(self.presets_library_directory + file_name)
 
         self.update_presets()
@@ -302,9 +320,9 @@ class ConfigCollector(MayaQWidgetDockableMixin, QtWidgets.QDialog, pyqt.Settings
         """
         item = self.item_model.itemFromIndex(self.__proxy_model.mapToSource(clicked_item))
         name = item.text()
-        file_path = f"{self.presets_library_directory}/{name}{setup.SPRING_PRESET_EXTENSION}"
+        file_path = "{}/{}{}".format(self.presets_library_directory, name, setup.SPRING_PRESET_EXTENSION)
         affected_nodes = setup.apply_preset(preset_file_path=file_path, namespace_cb=self._namespace_confirmation_dialogue)
-        print(f"Affected nodes = {affected_nodes}")
+        print("Affected nodes = {}".format(affected_nodes))
         return affected_nodes
 
     def delete_preset(self):
@@ -319,9 +337,9 @@ class ConfigCollector(MayaQWidgetDockableMixin, QtWidgets.QDialog, pyqt.Settings
             return
 
         for item in list_selection:
-            file_path = f"{self.presets_library_directory}/{item}{setup.SPRING_PRESET_EXTENSION}"
+            file_path = "{}/{}{}".format(self.presets_library_directory, item, setup.SPRING_PRESET_EXTENSION)
             if not os.path.exists(file_path):
-                pm.error(f"File was not found. {file_path}")
+                pm.error("File was not found. {}".format(file_path))
             os.remove(file_path)
 
         self.update_presets()
@@ -373,7 +391,7 @@ class ConfigCollector(MayaQWidgetDockableMixin, QtWidgets.QDialog, pyqt.Settings
         for qindex in list_selection:
             item = self.item_model.itemFromIndex(self.__proxy_model.mapToSource(qindex))
             name = item.text()
-            file_path = f"{self.presets_library_directory}/{name}{setup.SPRING_PRESET_EXTENSION}"
+            file_path = "{}/{}{}".format(self.presets_library_directory, name, setup.SPRING_PRESET_EXTENSION)
             affected_nodes.extend(setup.get_preset_targets(preset_file_path=file_path))
         pm.select(affected_nodes)
 
@@ -384,15 +402,13 @@ class ConfigCollector(MayaQWidgetDockableMixin, QtWidgets.QDialog, pyqt.Settings
                                 )
         self.__proxy_model.setFilterRegExp(regExp)
 
-
-
     def _namespace_confirmation_dialogue(self, preset_namespace, selected_namespace):
         message_box = QtWidgets.QMessageBox()
 
         message_box.setWindowTitle("Namespace mismatch")
-        message_box.setText(f"Namespace from selection does not match the namespace stored in the preset.")
-        message_box.setInformativeText(f"Click Accept to map nodes from preset namespace '{preset_namespace}' "
-                                       f"to selected namespace '{selected_namespace}'")
+        message_box.setText("Namespace from selection does not match the namespace stored in the preset.")
+        message_box.setInformativeText("Click Accept to map nodes from preset namespace '{}' ".format(preset_namespace)
+                                       + "\n to selected namespace '{}'".format(selected_namespace))
 
         message_box.setStandardButtons(QtWidgets.QMessageBox.Apply | QtWidgets.QMessageBox.Ignore)
 
