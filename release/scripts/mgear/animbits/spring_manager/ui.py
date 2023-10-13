@@ -16,13 +16,13 @@ import maya.cmds as cmds
 from . import setup
 
 
-class ConfigCollector(MayaQWidgetDockableMixin, QtWidgets.QDialog, pyqt.SettingsMixin):
+class SpringManager(MayaQWidgetDockableMixin, QtWidgets.QDialog, pyqt.SettingsMixin):
     """
     UI to collect configuration data for a node in Maya.
     """
 
     def __init__(self, parent=None):
-        super(ConfigCollector, self).__init__(parent)
+        super(SpringManager, self).__init__(parent)
         pyqt.SettingsMixin.__init__(self)
 
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose, True)
@@ -438,7 +438,10 @@ class ConfigCollector(MayaQWidgetDockableMixin, QtWidgets.QDialog, pyqt.Settings
             return value
 
 
+def openSpringManagerManager(*args):
+    pyqt.showDialog(SpringManager, dockable=True)
+
 
 if __name__ == "__main__":
-    window = ConfigCollector()
+    window = SpringManager()
     window.show()
