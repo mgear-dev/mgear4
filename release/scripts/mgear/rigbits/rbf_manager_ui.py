@@ -1144,9 +1144,9 @@ class RBFManagerUI(RBFWidget):
             return
         driverNode = rbfNodes[0].getDriverNode()[0]
         driverAttrs = rbfNodes[0].getDriverNodeAttributes()
-        poseInputs = rbf_node.getMultipleAttrs(driverNode, driverAttrs)
+        poseInputs = self.approximateZeros(rbf_node.getMultipleAttrs(driverNode, driverAttrs))
         for rbfNode in rbfNodes:
-            poseValues = rbfNode.getPoseValues(resetDriven=True)
+            poseValues = self.approximateZeros(rbfNode.getPoseValues(resetDriven=True))
             rbfNode.addPose(poseInput=poseInputs,
                             poseValue=poseValues,
                             posesIndex=drivenRow)
@@ -1170,7 +1170,7 @@ class RBFManagerUI(RBFWidget):
             return
         driverNode = rbfNodes[0].getDriverNode()[0]
         driverAttrs = rbfNodes[0].getDriverNodeAttributes()
-        poseInputs = rbf_node.getMultipleAttrs(driverNode, driverAttrs)
+        poseInputs = self.approximateZeros(rbf_node.getMultipleAttrs(driverNode, driverAttrs))
         nColumns = drivenTableWidget.columnCount()
         entryWidgets = [drivenTableWidget.cellWidget(drivenRow, c) for c in range(nColumns)]
         newValues = [float(w.text()) for w in entryWidgets]
@@ -1222,6 +1222,18 @@ class RBFManagerUI(RBFWidget):
         # Refresh tables after all updates
         self.refreshAllTables()
 
+    def approximateZeros(self, values, tolerance=1e-10):
+        """Approximate small values to zero.
+
+        Args:
+            values (list of float): The values to approximate.
+            tolerance (float): The tolerance under which a value is considered zero.
+
+        Returns:
+            list of float: The approximated values.
+        """
+        return [0 if abs(v) < tolerance else v for v in values]
+
     def addPose(self):
         """Add pose to rbf nodes in setup. Additional index on all nodes
 
@@ -1233,9 +1245,10 @@ class RBFManagerUI(RBFWidget):
             return
         driverNode = rbfNodes[0].getDriverNode()[0]
         driverAttrs = rbfNodes[0].getDriverNodeAttributes()
-        poseInputs = rbf_node.getMultipleAttrs(driverNode, driverAttrs)
+        poseInputs = self.approximateZeros(rbf_node.getMultipleAttrs(driverNode, driverAttrs))
         for rbfNode in rbfNodes:
             poseValues = rbfNode.getPoseValues(resetDriven=True, absoluteWorld=self.absWorld)
+            poseValues = self.approximateZeros(poseValues)
             rbfNode.addPose(poseInput=poseInputs, poseValue=poseValues)
         self.refreshAllTables()
 
