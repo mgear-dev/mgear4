@@ -407,7 +407,7 @@ class SpringManager(MayaQWidgetDockableMixin, QtWidgets.QDialog, pyqt.SettingsMi
 
         message_box.setWindowTitle("Namespace mismatch")
         message_box.setText("Namespace from selection does not match the namespace stored in the preset.")
-        message_box.setInformativeText("Click Accept to map nodes from preset namespace '{}' ".format(preset_namespace)
+        message_box.setInformativeText("Click Apply to map nodes from preset namespace '{}' ".format(preset_namespace)
                                        + "\n to selected namespace '{}'".format(selected_namespace))
 
         message_box.setStandardButtons(QtWidgets.QMessageBox.Apply | QtWidgets.QMessageBox.Ignore)
