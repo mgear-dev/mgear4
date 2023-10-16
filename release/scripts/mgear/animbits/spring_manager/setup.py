@@ -412,8 +412,8 @@ def get_config(node):
     # TODO: get child node name from the spring members
     # child_node = pm.listRelatives(node, c=True)
     if not pm.hasAttr(node, "springSetupMembers"):
-        print("{} doesn't have springSetupMembers attr, skipping...".format(node))
-        return
+        print("{} doesn't have springSetupMembers attr".format(node))
+        return False
     child_node = pm.listConnections(node.springSetupMembers[2])[0]
     direction = get_child_axis_direction(child_node)
     config = {
@@ -434,7 +434,11 @@ def store_preset(nodes, filePath=None):
     preset_dic['configs'] = {}
 
     for node in nodes:
-        preset_dic['configs'][node.name()] = get_config(node)
+        node_config = get_config(node)
+        if config is False:
+            pm.error("Error on preset. Node '{}' is not a spring.".format(node.name()))
+            return
+        preset_dic['configs'][node.name()] = node_config
 
     print("file_path = {}".format(filePath))
 
@@ -478,7 +482,10 @@ def apply_preset(preset_file_path, namespace_cb):
     for key, config in preset_dic["configs"].items():
         node = key
         if replace_namespace:
-            node = node.replace(preset_namespace, selection_namespace)
+            if ':' not in node:
+                node = selection_namespace + node
+            else:
+                node = node.replace(preset_namespace, selection_namespace)
         if not pm.objExists(node):
             mgear.log("Node '{}' does not exist, skipping".format(node))
             continue
