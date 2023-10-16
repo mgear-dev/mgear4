@@ -58,7 +58,7 @@ class SpringManager(MayaQWidgetDockableMixin, QtWidgets.QDialog, pyqt.SettingsMi
 
         # Delete actions
         self.delete_selected_action = QtWidgets.QAction("Delete Selected Spring", self)
-        self.delete_all_action = QtWidgets.QAction("Delete All Springs")
+        self.delete_all_action = QtWidgets.QAction("Delete All Springs", self)
 
         # preset actions
         self.set_lib_action = QtWidgets.QAction("Set Library", self)
@@ -87,9 +87,9 @@ class SpringManager(MayaQWidgetDockableMixin, QtWidgets.QDialog, pyqt.SettingsMi
         # directions
         self.directions_group_box = QtWidgets.QGroupBox("Directions")
 
-        directions = ["x", "y", "z", "-x", "-y", "-z"]
+        self.directions = ["x", "y", "z", "-x", "-y", "-z"]
         self.direction_buttons = {}
-        for direction in directions:
+        for direction in self.directions:
             btn = QtWidgets.QPushButton(direction)
             self.direction_buttons[direction] = btn
 
@@ -157,8 +157,8 @@ class SpringManager(MayaQWidgetDockableMixin, QtWidgets.QDialog, pyqt.SettingsMi
         main_layout.setMenuBar(self.menu_bar)
 
         directions_grid_layout = QtWidgets.QGridLayout()
-        for i, direction_btn in enumerate(self.direction_buttons.values()):
-            directions_grid_layout.addWidget(direction_btn, i // 3, i % 3)
+        for i, direction in enumerate(self.directions):
+            directions_grid_layout.addWidget(self.direction_buttons[direction], i // 3, i % 3)
 
         self.directions_group_box.setLayout(directions_grid_layout)
         main_layout.addWidget(self.directions_group_box)
