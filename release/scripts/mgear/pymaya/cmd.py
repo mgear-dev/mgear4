@@ -6,8 +6,8 @@ import inspect
 
 
 __ALL__ = []
-__DO_NOT_CAST_FUNCS = ("getAttr", )
-__SCOPE_ATTR_FUNCS = ("listAttr", )
+__DO_NOT_CAST_FUNCS = set()
+__SCOPE_ATTR_FUNCS = {"listAttr"}
 
 
 SCOPE_ATTR = 0
@@ -86,9 +86,32 @@ def _pymaya_cmd_wrap(func, wrap_object=True, scope=SCOPE_NODE):
     return wrapper
 
 
+def getAttr(*args, **kwargs):
+    args = _obj_to_name(args)
+    kwargs = _obj_to_name(kwargs)
+
+    try:
+        return cmds.getAttr(*args, **kwargs)
+    except Exception as e:
+        raise exception.MayaAttributeError(*e.args)
+
+
+def setAttr(*args, **kwargs):
+    args = _obj_to_name(args)
+    kwargs = _obj_to_name(kwargs)
+
+    try:
+        cmds.setAttr(*args, **kwargs)
+    except Exception as e:
+        raise exception.MayaAttributeError(*e.args)
+
+
 local_dict = locals()
 
 for n, func in inspect.getmembers(cmds, callable):
+    if n in local_dict:
+        continue
+
     local_dict[n] = _pymaya_cmd_wrap(func,
                                      wrap_object=(n not in __DO_NOT_CAST_FUNCS),
                                      scope=SCOPE_ATTR if n in __SCOPE_ATTR_FUNCS else SCOPE_NODE)
