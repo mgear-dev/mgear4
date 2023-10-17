@@ -4,3 +4,7 @@ class MayaAttributeError(Exception):
 
 class MayaNodeError(Exception):
     pass
+
+
+class MayaGeometryError(Exception):
+    pass

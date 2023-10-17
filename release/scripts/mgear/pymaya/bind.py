@@ -4,7 +4,7 @@ def PyNode(name):
     from . import geometry
 
     if "." in name:
-        bound = geometry.BindGeometry(name)
+        bound = geometry.BindGeometry(name, silent=True)
         if bound:
             return bound
 
