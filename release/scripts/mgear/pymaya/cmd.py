@@ -1,6 +1,7 @@
 from . import base
 from . import exception
 from maya import cmds
+import functools
 import inspect
 
 
@@ -11,6 +12,8 @@ __SCOPE_ATTR_FUNCS = ("listAttr", )
 
 SCOPE_ATTR = 0
 SCOPE_NODE = 1
+Callback = functools.partial
+__ALL__.append("Callback")
 
 
 def _obj_to_name(arg):
