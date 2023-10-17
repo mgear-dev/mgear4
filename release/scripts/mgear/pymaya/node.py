@@ -35,8 +35,11 @@ class _Node(base.Node):
         self.__fn_dg = OpenMaya.MFnDependencyNode(self.__obj)
 
         if self.__obj.hasFn(OpenMaya.MFn.kDagNode):
-            self.__fn_dag = OpenMaya.MFnDagNode(OpenMaya.MDagPath.getAPathTo(self.__obj))
+            dagpath = OpenMaya.MDagPath.getAPathTo(self.__obj)
+            self.__dagpath = dagpath
+            self.__fn_dag = OpenMaya.MFnDagNode(dagpath)
         else:
+            self.__dagpath = None
             self.__fn_dag = None
 
     def __getattribute__(self, name):
@@ -55,11 +58,17 @@ class _Node(base.Node):
     def __ne__(self, other):
         return self.__obj != other.__obj
 
-    def dg(self):
+    def object(self):
+        return self.__obj
+
+    def dgFn(self):
         return self.__fn_dg
 
-    def dag(self):
+    def dagFn(self):
         return self.__fn_dag
+
+    def dagPath(self):
+        return self.__dagpath
 
     def isDag(self):
         return self.__fn_dag is not None

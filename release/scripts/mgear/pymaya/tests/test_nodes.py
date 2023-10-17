@@ -61,10 +61,10 @@ class TestNode(unittest.TestCase):
 
         self.assertTrue(sphere_dag.isDag())
         self.assertFalse(sphere.isDag())
-        self.assertIsNotNone(sphere_dag.dg())
-        self.assertIsNotNone(sphere.dg())
-        self.assertIsNotNone(sphere_dag.dag())
-        self.assertIsNone(sphere.dag())
+        self.assertIsNotNone(sphere_dag.dgFn())
+        self.assertIsNotNone(sphere.dgFn())
+        self.assertIsNotNone(sphere_dag.dagFn())
+        self.assertIsNone(sphere.dagFn())
 
     def test_eq(self):
         child_name = self.cmds.createNode("transform", n="child")

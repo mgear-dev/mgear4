@@ -37,7 +37,7 @@ class TestCmd(unittest.TestCase):
         self.assertEqual(n.name(), "test2")
         n2 = self.pm.createNode("transform", n="test1")
         self.pm.parent(n, n2)
-        self.assertEqual(n.dag().fullPathName(), "|test1|test2")
+        self.assertEqual(n.dagPath().fullPathName(), "|test1|test2")
         self.assertEqual(self.pm.getAttr(n.tx), 0)
         self.pm.setAttr(n.tx, 10)
         self.assertEqual(self.pm.getAttr(n.tx), 10)
