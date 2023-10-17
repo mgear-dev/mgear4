@@ -18,3 +18,7 @@ class Node(Base):
 
 class Attr(Base):
     pass
+
+
+class Geom(Base):
+    pass

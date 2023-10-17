@@ -24,7 +24,7 @@ class TestAttr(unittest.TestCase):
 
     def test_init(self):
         test_node_name = self.cmds.createNode("transform", n="test")
-        v = self.pm.PyAttr(f"{test_node_name}.v")
+        v = self.pm.PyNode(f"{test_node_name}.v")
         self.assertIsNotNone(v)
         self.assertEqual(v.name(), "test.visibility")
 
@@ -36,8 +36,8 @@ class TestAttr(unittest.TestCase):
     def test_connect(self):
         test1_node_name = self.cmds.createNode("transform", n="test1")
         test2_node_name = self.cmds.createNode("transform", n="test2")
-        t1 = self.pm.PyAttr(f"{test1_node_name}.tx")
-        t2 = self.pm.PyAttr(f"{test2_node_name}.tx")
+        t1 = self.pm.PyNode(f"{test1_node_name}.tx")
+        t2 = self.pm.PyNode(f"{test2_node_name}.tx")
         self.assertIsNone(self.cmds.listConnections(f"{test1_node_name}.tx"))
         t1.connect(t2)
         self.assertIsNotNone(self.cmds.listConnections(f"{test1_node_name}.tx"))
@@ -52,7 +52,7 @@ class TestAttr(unittest.TestCase):
         test1_node_name = self.cmds.createNode("transform", n="test1")
         self.cmds.addAttr(test1_node_name, ln="test_attr_x", at="float")
         self.assertTrue(self.cmds.objExists(f"{test1_node_name}.test_attr_x"))
-        tattr = self.pm.PyAttr(f"{test1_node_name}.test_attr_x")
+        tattr = self.pm.PyNode(f"{test1_node_name}.test_attr_x")
         tattr.delete()
         self.assertFalse(self.cmds.objExists(f"{test1_node_name}.test_attr_x"))
 
@@ -69,7 +69,7 @@ class TestAttr(unittest.TestCase):
     def test_array_compound(self):
         sp = self.cmds.polySphere()[0]
         sps = self.cmds.listRelatives(sp, s=1)[0]
-        vrts = self.pm.PyAttr(f"{sps}.vrts")
+        vrts = self.pm.PyNode(f"{sps}.vrts")
         self.assertEqual(vrts[0].name(), f"{sps}.vrts[0]")
         self.assertIsNotNone(vrts[0].vrtx)
         self.assertIsNotNone(vrts[0].vrty)

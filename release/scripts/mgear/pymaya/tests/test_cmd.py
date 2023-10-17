@@ -17,7 +17,9 @@ class TestCmd(unittest.TestCase):
             sys.path.append(mpath)
 
         import pymaya
+        import pymaya.attr
         cls.pm = pymaya
+        cls.pattr = pymaya.attr
 
     def setUp(self):
         self.cmds.file(new=True, f=True)
@@ -25,8 +27,8 @@ class TestCmd(unittest.TestCase):
     def test_return_pyobject(self):
         n = self.pm.createNode("transform", n="test1")
         self.assertIsNotNone(n)
-        self.assertTrue(isinstance(n, self.pm.PyNode))
-        self.assertTrue(isinstance(self.pm.listAttr("test1")[0], self.pm.PyAttr))
+        self.assertTrue(isinstance(n, self.pm.nt.Transform))
+        self.assertTrue(isinstance(self.pm.listAttr("test1")[0], self.pattr.Attribute))
 
     def test_pyobject_arg(self):
         n = self.pm.createNode("transform", n="test1")

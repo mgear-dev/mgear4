@@ -27,8 +27,7 @@ def _obj_to_name(arg):
 
 def _name_to_obj(arg, scope=SCOPE_NODE, known_node=None):
     # lazy importing
-    from . import node
-    from . import attr
+    from . import bind
 
     if isinstance(arg, (list, set, tuple)):
         return arg.__class__([_name_to_obj(x, scope=scope, known_node=known_node) for x in arg])
@@ -36,20 +35,14 @@ def _name_to_obj(arg, scope=SCOPE_NODE, known_node=None):
     elif isinstance(arg, str):
         if (scope == SCOPE_ATTR and known_node is not None):
             try:
-                return attr.PyAttr(f"{known_node}.{arg}")
-            except:
-                return arg
-        elif "." in arg:
-            try:
-                return attr.PyAttr(arg)
+                return bind.PyNode(f"{known_node}.{arg}")
             except:
                 return arg
         else:
             try:
-                return node.PyNode(arg)
+                return bind.PyNode(arg)
             except:
                 return arg
-
     else:
         return arg
 

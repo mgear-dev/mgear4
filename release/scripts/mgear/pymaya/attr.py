@@ -4,28 +4,28 @@ from . import base
 from . import exception
 
 
-class PyAttr(base.Attr):
+class Attribute(base.Attr):
     __selectionlist = OpenMaya.MSelectionList()
 
     @staticmethod
     def __getPlug(attrname):
-        PyAttr.__selectionlist.clear()
+        Attribute.__selectionlist.clear()
         try:
-            PyAttr.__selectionlist.add(attrname)
+            Attribute.__selectionlist.add(attrname)
         except RuntimeError as e:
             return None
 
-        return PyAttr.__selectionlist.getPlug(0)
+        return Attribute.__selectionlist.getPlug(0)
 
     def __init__(self, attrname_or_mplug):
-        super(PyAttr, self).__init__()
+        super(Attribute, self).__init__()
         self.__attrs = {}
         self.__node_name_func = None
 
         if isinstance(attrname_or_mplug, OpenMaya.MPlug):
             self.__plug = attrname_or_mplug
         else:
-            self.__plug = PyAttr.__getPlug(attrname_or_mplug)
+            self.__plug = Attribute.__getPlug(attrname_or_mplug)
             if self.__plug is None:
                 raise RuntimeError(f"No such attribute '{attrname_or_mplug}'")
 
@@ -37,15 +37,15 @@ class PyAttr(base.Attr):
             print(self.__plug.numElements())
             raise IndexError("index out of range")
 
-        return PyAttr(f"{self.name()}[{index}]")
+        return Attribute(f"{self.name()}[{index}]")
 
     def __getattribute__(self, name):
         try:
-            return super(PyAttr, self).__getattribute__(name)
+            return super(Attribute, self).__getattribute__(name)
         except AttributeError:
-            nfnc = super(PyAttr, self).__getattribute__("name")
+            nfnc = super(Attribute, self).__getattribute__("name")
             if cmds.ls(f"{nfnc()}.{name}"):
-                return super(PyAttr, self).__getattribute__("attr")(name)
+                return super(Attribute, self).__getattribute__("attr")(name)
 
             raise
 
@@ -60,7 +60,7 @@ class PyAttr(base.Attr):
 
     def name(self):
         obj = self.__plug.node()
-        nfunc = super(PyAttr, self).__getattribute__("_PyAttr__node_name_func")
+        nfunc = super(Attribute, self).__getattribute__("_Attribute__node_name_func")
         if nfunc is None:
             if obj.hasFn(OpenMaya.MFn.kDagNode):
                 nfunc = OpenMaya.MFnDagNode(OpenMaya.MDagPath.getAPathTo(obj)).partialPathName
@@ -75,19 +75,19 @@ class PyAttr(base.Attr):
         cmds.deleteAttr(self.name())
 
     def connect(self, other, **kwargs):
-        return cmds.connectAttr(self.name(), other.name() if isinstance(other, PyAttr) else other)
+        return cmds.connectAttr(self.name(), other.name() if isinstance(other, Attribute) else other)
 
     def disconnect(self, other):
-        return cmds.disconnectAttr(self.name(), other.name() if isinstance(other, PyAttr) else other)
+        return cmds.disconnectAttr(self.name(), other.name() if isinstance(other, Attribute) else other)
 
     def attr(self, name):
-        attr_cache = super(PyAttr, self).__getattribute__("_PyAttr__attrs")
+        attr_cache = super(Attribute, self).__getattribute__("_Attribute__attrs")
         if name in self.__attrs:
             return self.__attrs[name]
 
-        nfnc = super(PyAttr, self).__getattribute__("name")
+        nfnc = super(Attribute, self).__getattribute__("name")
         if cmds.ls(f"{nfnc()}.{name}"):
-            at = PyAttr(f"{nfnc()}.{name}")
+            at = Attribute(f"{nfnc()}.{name}")
             self.__attrs[name] = at
             return at
 
