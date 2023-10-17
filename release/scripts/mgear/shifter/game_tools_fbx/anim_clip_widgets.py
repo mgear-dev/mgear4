@@ -4,7 +4,7 @@ import maya.cmds as cmds
 
 from mgear.vendor.Qt import QtWidgets, QtCore, QtGui
 
-from mgear.core import pyqt, utils as coreUtils
+from mgear.core import pyqt, utils as coreUtils, animLayers
 from mgear.shifter.game_tools_fbx import fbx_export_node, utils
 
 
@@ -253,7 +253,7 @@ class AnimClipWidget(QtWidgets.QFrame):
         with pyqt.block_signals(self._anim_layer_combo):
             self._anim_layer_combo.clear()
             # TODO: Maybe we should filter display layers that are set with override mode?
-            anim_layers = utils.all_anim_layers_ordered()
+            anim_layers = animLayers.all_anim_layers_ordered()
             self._anim_layer_combo.addItems(["None"] + anim_layers)
             self._anim_layer_combo.setCurrentText(
                 anim_clip_data.get("anim_layer", "None")
@@ -398,7 +398,7 @@ class AnimationLayerCB(QtWidgets.QComboBox):
 
         self.clear()
 
-        anim_layers = utils.all_anim_layers_ordered()
+        anim_layers = animLayers.all_anim_layers_ordered()
         self.addItems(["None"] + anim_layers)
         
         self.setCurrentText(currentText)

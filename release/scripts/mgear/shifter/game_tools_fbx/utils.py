@@ -304,13 +304,13 @@ def export_animation_clip(config_data, clip_data):
     clip_data: Information about the clip to be exported.
     """
     # Clip Data
-    start_frame = clip_data.get("startFrame", 
+    start_frame = clip_data.get("start_frame", 
                                 cmds.playbackOptions(query=True, minTime=True))
-    end_frame = clip_data.get("endFrame", 
+    end_frame = clip_data.get("end_frame", 
                               cmds.playbackOptions(query=True, maxTime=True))
     title = clip_data.get("title", "")
-    frame_rate = clip_data.get("frameRate", coreUtils.get_frame_rate())
-    anim_layer = clip_data.get("animLayer", "")
+    frame_rate = clip_data.get("geo_root", coreUtils.get_frame_rate())
+    anim_layer = clip_data.get("anim_layer", "")
     
     # Config Data
     root_joint = config_data.get("joint_root", "")
@@ -351,26 +351,12 @@ def export_animation_clip(config_data, clip_data):
     original_end_frame = cmds.playbackOptions(query=True, maxTime=True)
     temp_mesh = None
     temp_skin_cluster = None
-    original_anim_layer_weights = None
+    original_anim_layer_weights = animLayers.get_layer_weights()
 
     try:
         # set anim layer to enable
         if animLayers.animation_layer_exists(anim_layer):
-            to_activate = None
-            to_deactivate = []
-            anim_layers = animLayers.all_anim_layers_ordered(include_base_animation=False)
-            original_anim_layer_weights = {
-                anim_layer: cmds.animLayer(anim_layer, query=True, weight=True)
-                for anim_layer in anim_layers
-            }
-            for found_anim_layer in anim_layers:
-                if found_anim_layer != anim_layer:
-                    to_deactivate.append(found_anim_layer)
-                else:
-                    to_activate = found_anim_layer
-            for anim_layer_to_deactivate in to_deactivate:
-                cmds.animLayer(anim_layer_to_deactivate, edit=True, weight=0.0)
-            cmds.animLayer(to_activate, edit=True, weight=1.0)
+            animLayers.set_layer_weight(anim_layer, toggle_other_off=True)
 
         # disable viewport
         mel.eval("paneLayout -e -manage false $gMainPane")
@@ -463,8 +449,7 @@ def export_animation_clip(config_data, clip_data):
     finally:
         # setup again original anim layer weights
         if anim_layer and original_anim_layer_weights:
-            for name, weight in original_anim_layer_weights.items():
-                cmds.animLayer(name, edit=True, weight=weight)
+            animLayers.set_layer_weights(original_anim_layer_weights)
 
         if temp_skin_cluster and cmds.objExists(temp_skin_cluster):
             cmds.delete(temp_skin_cluster)
