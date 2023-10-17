@@ -1,6 +1,16 @@
 Release Log
 ===========
 
+
+4.1.2
+------
+**New Features**
+	* Animbits: Spring Manager #266
+
+**Enhancements**
+	* shifter: Right click menu add space swich range like synoptic #206
+
+
 4.1.1
 ------
 **Enhancements**
