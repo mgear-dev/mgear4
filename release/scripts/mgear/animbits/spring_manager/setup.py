@@ -435,9 +435,10 @@ def store_preset(nodes, filePath=None):
 
     for node in nodes:
         node_config = get_config(node)
-        if config is False:
-            pm.error("Error on preset. Node '{}' is not a spring.".format(node.name()))
-            return
+        if node_config is False:
+            pm.warning("Node '{}' is not a spring.".format(node.name()))
+            preset_dic['nodes'].remove(node.name())
+            continue
         preset_dic['configs'][node.name()] = node_config
 
     print("file_path = {}".format(filePath))
