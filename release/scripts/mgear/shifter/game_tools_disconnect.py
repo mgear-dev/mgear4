@@ -71,7 +71,6 @@ def connect_joints_from_matrixConstraint():
         cnx_nodes = pm.ls(type="decomposeMatrix")
     for mcon in cnx_nodes:
         if mcon.hasAttr(DRIVEN_JOINT_ATTR) and mcon.getAttr(DRIVEN_JOINT_ATTR):
-            print(mcon)
             jnt_name = mcon.getAttr(DRIVEN_JOINT_ATTR)
             if pm.objExists(jnt_name):
                 connected = True
