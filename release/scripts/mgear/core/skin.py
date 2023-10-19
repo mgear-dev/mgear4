@@ -137,6 +137,7 @@ def getCurrentWeights(skinCls, dagPath, components):
 
     Returns:
         MDoubleArray: The skincluster weights
+        List: Component indices
 
     """
     weights = OpenMaya.MDoubleArray()
@@ -346,7 +347,7 @@ def exportJsonSkinPack(packPath=None, objs=None, *args):
 
 def setInfluenceWeights(skinCls, dagPath, components, dataDic, compressed):
     unusedImports = []
-    weights = getCurrentWeights(skinCls, dagPath, components)
+    weights, component_indices = getCurrentWeights(skinCls, dagPath, components)
     influencePaths = OpenMaya.MDagPathArray()
     numInfluences = skinCls.__apimfn__().influenceObjects(influencePaths)
     numComponentsPerInfluence = int(weights.length() / numInfluences)
@@ -358,13 +359,20 @@ def setInfluenceWeights(skinCls, dagPath, components, dataDic, compressed):
             influenceWithoutNamespace = nnspace
             if influenceWithoutNamespace == importedInfluence:
                 if compressed:
-                    for jj in range(numComponentsPerInfluence):
-                        # json keys can't be integers. The vtx number key
-                        # is unicode. example: vtx[35] would be: u"35": 0.6974,
-                        # But the binary format is still an int, so check both.
-                        # if the key doesn't exist, set it to 0.0
-                        wt = wtValues.get(jj) or wtValues.get(str(jj)) or 0.0
-                        weights.set(wt, jj * numInfluences + ii)
+                    if component_indices:
+                        for jj, compIndex in enumerate(component_indices):
+                            wt = wtValues.get(compIndex) or wtValues.get(str(compIndex)) or 0.0
+                            weights.set(wt, jj * numInfluences + ii)
+                    else:
+
+                        for jj in range(numComponentsPerInfluence):
+                            # json keys can't be integers. The vtx number key
+                            # is unicode. example: vtx[35] would be: u"35": 0.6974,
+                            # But the binary format is still an int, so check both.
+                            # if the key doesn't exist, set it to 0.0
+                            wt = wtValues.get(jj) or wtValues.get(str(jj)) or 0.0
+                            weights.set(wt, jj * numInfluences + ii)
+                            print(f"")
                 else:
                     for jj in range(numComponentsPerInfluence):
                         wt = wtValues[jj]
@@ -446,7 +454,7 @@ def getObjsFromSkinFile(filePath=None, *args):
         for x in objs:
             print(x)
 
-
+import traceback
 def importSkin(filePath=None, *args):
 
     if not filePath:
@@ -483,6 +491,7 @@ def importSkin(filePath=None, *args):
             skinCluster = False
             objName = data["objName"]
             objNode = pm.PyNode(objName)
+            print(objNode)
 
             try:
                 # use getShapes() else meshes with 2+ shapes will fail.
@@ -539,9 +548,10 @@ def importSkin(filePath=None, *args):
                 setData(skinCluster, data, compressed)
                 print('Imported skin for: {}'.format(objName))
 
-        except Exception:
+        except Exception as e:
             warningMsg = "Object: {} Skipped. Can NOT be found in the scene"
             pm.displayWarning(warningMsg.format(objName))
+            traceback.print_exc()
 
 
 def importSkinPack(filePath=None, *args):
