@@ -1,6 +1,8 @@
 from . import base
 from . import exception
 from maya import cmds
+from maya import mel
+from maya.api import OpenMaya
 import functools
 import inspect
 
@@ -13,7 +15,52 @@ __SCOPE_ATTR_FUNCS = {"listAttr"}
 SCOPE_ATTR = 0
 SCOPE_NODE = 1
 Callback = functools.partial
+displayError = OpenMaya.MGlobal.displayError
+displayInfo = OpenMaya.MGlobal.displayInfo
+displayWarning = OpenMaya.MGlobal.displayWarning
+
+
+def exportSelected(*args, **kwargs):
+    cmds.file(*args, es=True, **kwargs)
+
+
+def hasAttr(obj, attr, checkShape=True):
+    obj = _obj_to_name(obj)
+
+    has = cmds.attributeQuery(attr, n=obj, ex=True)
+    if not has and checkShape:
+        shapes = cmds.listRelatives(obj, s=True) or []
+        for s in shapes:
+            has = cmds.attributeQuery(attr, n=s, ex=True)
+            if has:
+                break
+
+    return has
+
+
+def selected(**kwargs):
+    return _name_to_obj(cmds.ls(sl=True, **kwargs))
+
+
+class versions():
+    def current():
+        return cmds.about(api=True)
+
+
+def importFile(filepath, **kwargs):
+    return _name_to_obj(cmds.file(filepath, i=True, **kwargs))
+
+
 __ALL__.append("Callback")
+__ALL__.append("displayError")
+__ALL__.append("displayInfo")
+__ALL__.append("displayWarning")
+__ALL__.append("exportSelected")
+__ALL__.append("mel")
+__ALL__.append("hasAttr")
+__ALL__.append("selected")
+__ALL__.append("versions")
+__ALL__.append("importFile")
 
 
 def _obj_to_name(arg):

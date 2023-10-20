@@ -20,6 +20,7 @@ class TestCmd(unittest.TestCase):
         import pymaya.attr
         cls.pm = pymaya
         cls.pattr = pymaya.attr
+        cls.os = os
 
     def setUp(self):
         self.cmds.file(new=True, f=True)
@@ -45,3 +46,38 @@ class TestCmd(unittest.TestCase):
         self.pm.addAttr(n, ln="testtest", dt="string")
         self.pm.setAttr(n.testtest, "aaa", type="string")
         self.assertEqual(self.pm.getAttr(n.testtest), "aaa")
+
+    def test_original_commands(self):
+        self.pm.displayInfo("TEST DISPLAY")
+        self.pm.displayWarning("TEST WARNING")
+        self.pm.displayError("TEST ERROR")
+
+        self.pm.createNode("transform", n="test")
+        self.pm.select("test")
+        testma = self.os.path.join(self.os.path.dirname(__file__), "exportest.ma")
+        self.pm.exportSelected(testma, f=True, type="mayaAscii")
+        self.assertTrue(self.os.path.isfile(testma))
+        self.os.remove(testma)
+        self.assertFalse(self.os.path.isfile(testma))
+
+        self.pm.mel.eval("createNode -n \"test2\" \"transform\"")
+        self.assertIsNotNone(self.pm.PyNode("test2"))
+
+        sphere = self.pm.polySphere()[0]
+        self.assertTrue(self.pm.hasAttr(sphere, "v"))
+        self.assertTrue(self.pm.hasAttr(sphere, "inMesh", checkShape=True))
+        self.assertFalse(self.pm.hasAttr(sphere, "inMesh", checkShape=False))
+
+        self.pm.select(sphere)
+        self.assertEqual(self.pm.selected(), [sphere])
+        self.pm.select(cl=True)
+        self.assertEqual(self.pm.selected(), [])
+
+        self.cmds.file(new=True, f=True)
+        self.pm.createNode("transform", n="test")
+        self.pm.select("test")
+        testma = self.os.path.join(self.os.path.dirname(__file__), "exportest.ma")
+        self.pm.exportSelected(testma, f=True, type="mayaAscii")
+        imported = self.pm.importFile(testma, ns="testfile", rnn=True)
+        self.assertEqual([x.name() for x in imported], ["testfile:test"])
+        self.os.remove(testma)
