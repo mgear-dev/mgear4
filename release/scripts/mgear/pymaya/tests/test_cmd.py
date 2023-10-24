@@ -10,6 +10,7 @@ mpath = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
 if mpath not in sys.path:
     sys.path.append(mpath)
 
+import math
 import pymaya as pm
 import pymaya.attr
 
@@ -88,5 +89,4 @@ class TestCmd(unittest.TestCase):
         with self.assertRaises(pm.general.MayaNodeError):
             pm.PyNode("No_Such_Node")
 
-        with self.assertRaises(self.pm.general.MayaNodeError):
-            self.pm.PyNode("No_Such_Node")
+        self.assertEqual(pm.util.degrees(math.pi), 180.0)

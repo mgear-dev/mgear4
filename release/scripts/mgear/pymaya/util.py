@@ -1,3 +1,4 @@
+from math import degrees
 from maya import cmds
 
 
