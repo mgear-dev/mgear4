@@ -1,96 +1,92 @@
 import unittest
+import sys
+import os
+
+from maya import standalone
+standalone.initialize()
+from maya import cmds
+
+mpath = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+if mpath not in sys.path:
+    sys.path.append(mpath)
+
+import pymaya as pm
+import pymaya.attr
 
 
 class TestCmd(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls):
-        import sys
-        import os
-        from maya import standalone
-        standalone.initialize()
-
-        from maya import cmds
-        cls.cmds = cmds
-
-        mpath = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
-        if mpath not in sys.path:
-            sys.path.append(mpath)
-
-        import pymaya
-        import pymaya.attr
-        cls.pm = pymaya
-        cls.pattr = pymaya.attr
-        cls.os = os
-
     def setUp(self):
-        self.cmds.file(new=True, f=True)
+        cmds.file(new=True, f=True)
 
     def test_return_pyobject(self):
-        n = self.pm.createNode("transform", n="test1")
+        n = pm.createNode("transform", n="test1")
         self.assertIsNotNone(n)
-        self.assertTrue(isinstance(n, self.pm.nt.Transform))
-        self.assertTrue(isinstance(self.pm.listAttr("test1")[0], self.pattr.Attribute))
+        self.assertTrue(isinstance(n, pm.nt.Transform))
+        self.assertTrue(isinstance(pm.listAttr("test1")[0], pymaya.attr.Attribute))
 
     def test_pyobject_arg(self):
-        n = self.pm.createNode("transform", n="test1")
+        n = pm.createNode("transform", n="test1")
         self.assertEqual(n.name(), "test1")
-        self.pm.rename(n, "test2")
+        pm.rename(n, "test2")
         self.assertEqual(n.name(), "test2")
-        n2 = self.pm.createNode("transform", n="test1")
-        self.pm.parent(n, n2)
+        n2 = pm.createNode("transform", n="test1")
+        pm.parent(n, n2)
         self.assertEqual(n.dagPath().fullPathName(), "|test1|test2")
-        self.assertEqual(self.pm.getAttr(n.tx), 0)
-        self.pm.setAttr(n.tx, 10)
-        self.assertEqual(self.pm.getAttr(n.tx), 10)
+        self.assertEqual(pm.getAttr(n.tx), 0)
+        pm.setAttr(n.tx, 10)
+        self.assertEqual(pm.getAttr(n.tx), 10)
 
-        self.pm.addAttr(n, ln="testtest", dt="string")
-        self.pm.setAttr(n.testtest, "aaa", type="string")
-        self.assertEqual(self.pm.getAttr(n.testtest), "aaa")
+        pm.addAttr(n, ln="testtest", dt="string")
+        pm.setAttr(n.testtest, "aaa", type="string")
+        self.assertEqual(pm.getAttr(n.testtest), "aaa")
 
     def test_original_commands(self):
-        self.pm.displayInfo("TEST DISPLAY")
-        self.pm.displayWarning("TEST WARNING")
-        self.pm.displayError("TEST ERROR")
+        pm.displayInfo("TEST DISPLAY")
+        pm.displayWarning("TEST WARNING")
+        pm.displayError("TEST ERROR")
 
-        self.pm.createNode("transform", n="test")
-        self.pm.select("test")
-        testma = self.os.path.join(self.os.path.dirname(__file__), "exportest.ma")
-        self.pm.exportSelected(testma, f=True, type="mayaAscii")
-        self.assertTrue(self.os.path.isfile(testma))
-        self.os.remove(testma)
-        self.assertFalse(self.os.path.isfile(testma))
+        pm.createNode("transform", n="test")
+        pm.select("test")
+        testma = os.path.join(os.path.dirname(__file__), "exportest.ma")
+        pm.exportSelected(testma, f=True, type="mayaAscii")
+        self.assertTrue(os.path.isfile(testma))
+        os.remove(testma)
+        self.assertFalse(os.path.isfile(testma))
 
-        self.pm.mel.eval("createNode -n \"test2\" \"transform\"")
-        self.assertIsNotNone(self.pm.PyNode("test2"))
+        pm.mel.eval("createNode -n \"test2\" \"transform\"")
+        self.assertIsNotNone(pm.PyNode("test2"))
 
-        sphere = self.pm.polySphere()[0]
-        self.assertTrue(self.pm.hasAttr(sphere, "v"))
-        self.assertTrue(self.pm.hasAttr(sphere, "inMesh", checkShape=True))
-        self.assertFalse(self.pm.hasAttr(sphere, "inMesh", checkShape=False))
+        sphere = pm.polySphere()[0]
+        self.assertTrue(pm.hasAttr(sphere, "v"))
+        self.assertTrue(pm.hasAttr(sphere, "inMesh", checkShape=True))
+        self.assertFalse(pm.hasAttr(sphere, "inMesh", checkShape=False))
 
-        self.pm.select(sphere)
-        self.assertEqual(self.pm.selected(), [sphere])
-        self.pm.select(cl=True)
-        self.assertEqual(self.pm.selected(), [])
+        pm.select(sphere)
+        self.assertEqual(pm.selected(), [sphere])
+        pm.select(cl=True)
+        self.assertEqual(pm.selected(), [])
 
-        self.cmds.file(new=True, f=True)
-        self.pm.createNode("transform", n="test")
-        self.pm.select("test")
-        testma = self.os.path.join(self.os.path.dirname(__file__), "exportest.ma")
-        self.pm.exportSelected(testma, f=True, type="mayaAscii")
-        imported = self.pm.importFile(testma, ns="testfile", rnn=True)
+        cmds.file(new=True, f=True)
+        pm.createNode("transform", n="test")
+        pm.select("test")
+        testma = os.path.join(os.path.dirname(__file__), "exportest.ma")
+        pm.exportSelected(testma, f=True, type="mayaAscii")
+        imported = pm.importFile(testma, ns="testfile", rnn=True)
         self.assertEqual([x.name() for x in imported], ["testfile:test"])
-        self.os.remove(testma)
+        os.remove(testma)
 
-        self.pm.namespace(add="new_name_space")
-        nn = self.pm.createNode("transform", n="new_name_space:mytransform")
-        self.assertNotEqual(self.pm.NameParser(nn).stripNamespace().__str__(), "new_name_space:mytransform")
-        self.assertEqual(self.pm.NameParser(nn).stripNamespace().__str__(), "mytransform")
+        pm.namespace(add="new_name_space")
+        nn = pm.createNode("transform", n="new_name_space:mytransform")
+        self.assertNotEqual(pm.NameParser(nn).stripNamespace().__str__(), "new_name_space:mytransform")
+        self.assertEqual(pm.NameParser(nn).stripNamespace().__str__(), "mytransform")
 
-        self.cmds.file(new=True, f=True)
-        self.assertEqual(self.pm.sceneName(), "")
-        self.cmds.file(rename="test")
-        self.assertNotEqual(self.pm.sceneName(), "")
+        cmds.file(new=True, f=True)
+        self.assertEqual(pm.sceneName(), "")
+        cmds.file(rename="test")
+        self.assertNotEqual(pm.sceneName(), "")
+
+        with self.assertRaises(pm.general.MayaNodeError):
+            pm.PyNode("No_Such_Node")
 
         with self.assertRaises(self.pm.general.MayaNodeError):
             self.pm.PyNode("No_Such_Node")
