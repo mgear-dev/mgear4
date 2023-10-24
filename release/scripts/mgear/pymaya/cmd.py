@@ -7,7 +7,7 @@ import functools
 import inspect
 
 
-__ALL__ = []
+__all__ = []
 __DO_NOT_CAST_FUNCS = set()
 __SCOPE_ATTR_FUNCS = {"listAttr"}
 
@@ -51,16 +51,16 @@ def importFile(filepath, **kwargs):
     return _name_to_obj(cmds.file(filepath, i=True, **kwargs))
 
 
-__ALL__.append("Callback")
-__ALL__.append("displayError")
-__ALL__.append("displayInfo")
-__ALL__.append("displayWarning")
-__ALL__.append("exportSelected")
-__ALL__.append("mel")
-__ALL__.append("hasAttr")
-__ALL__.append("selected")
-__ALL__.append("versions")
-__ALL__.append("importFile")
+__all__.append("Callback")
+__all__.append("displayError")
+__all__.append("displayInfo")
+__all__.append("displayWarning")
+__all__.append("exportSelected")
+__all__.append("mel")
+__all__.append("hasAttr")
+__all__.append("selected")
+__all__.append("versions")
+__all__.append("importFile")
 
 
 def _obj_to_name(arg):
@@ -149,10 +149,8 @@ def setAttr(*args, **kwargs):
 local_dict = locals()
 
 for n, func in inspect.getmembers(cmds, callable):
-    if n in local_dict:
-        continue
-
-    local_dict[n] = _pymaya_cmd_wrap(func,
-                                     wrap_object=(n not in __DO_NOT_CAST_FUNCS),
-                                     scope=SCOPE_ATTR if n in __SCOPE_ATTR_FUNCS else SCOPE_NODE)
-    __ALL__.append(n)
+    if n not in local_dict:
+        local_dict[n] = _pymaya_cmd_wrap(func,
+                                        wrap_object=(n not in __DO_NOT_CAST_FUNCS),
+                                        scope=SCOPE_ATTR if n in __SCOPE_ATTR_FUNCS else SCOPE_NODE)
+    __all__.append(n)
