@@ -81,3 +81,16 @@ class TestCmd(unittest.TestCase):
         imported = self.pm.importFile(testma, ns="testfile", rnn=True)
         self.assertEqual([x.name() for x in imported], ["testfile:test"])
         self.os.remove(testma)
+
+        self.pm.namespace(add="new_name_space")
+        nn = self.pm.createNode("transform", n="new_name_space:mytransform")
+        self.assertNotEqual(self.pm.NameParser(nn).stripNamespace().__str__(), "new_name_space:mytransform")
+        self.assertEqual(self.pm.NameParser(nn).stripNamespace().__str__(), "mytransform")
+
+        self.cmds.file(new=True, f=True)
+        self.assertEqual(self.pm.sceneName(), "")
+        self.cmds.file(rename="test")
+        self.assertNotEqual(self.pm.sceneName(), "")
+
+        with self.assertRaises(self.pm.general.MayaNodeError):
+            self.pm.PyNode("No_Such_Node")

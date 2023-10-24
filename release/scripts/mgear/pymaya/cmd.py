@@ -51,6 +51,23 @@ def importFile(filepath, **kwargs):
     return _name_to_obj(cmds.file(filepath, i=True, **kwargs))
 
 
+class NameParser(object):
+    def __init__(self, name_or_node):
+        super(NameParser, self).__init__()
+        self.__name_or_node = name_or_node
+
+    def stripNamespace(self):
+        n = self.__name_or_node
+        if isinstance(n, base.Base):
+            n = n.name()
+
+        return "|".join([x.split(":")[-1] for x in n.split("|")])
+
+
+def sceneName():
+    return cmds.file(q=True, sn=True)
+
+
 __all__.append("Callback")
 __all__.append("displayError")
 __all__.append("displayInfo")
@@ -61,6 +78,8 @@ __all__.append("hasAttr")
 __all__.append("selected")
 __all__.append("versions")
 __all__.append("importFile")
+__all__.append("NameParser")
+__all__.append("sceneName")
 
 
 def _obj_to_name(arg):
