@@ -1025,7 +1025,12 @@ class RBFManagerUI(RBFWidget):
                 rbfNode.addPose(poseInput=poseInputs, poseValue=defaultVals[1::2])
 
             self.populateDriverInfo(rbfNode, rbfNode.getNodeInfo())
-            self.populateDrivenInfo(rbfNode, rbfNode.getNodeInfo())
+            drivenWidget = self.populateDrivenInfo(rbfNode, rbfNode.getNodeInfo())
+
+            # Add the driven widget to the tab widget.
+            drivenWidget.setProperty("drivenNode", drivenNode)
+            self.rbfTabWidget.addTab(drivenWidget, rbfNode.name)
+            self.setDrivenTable(drivenWidget, rbfNode, rbfNode.getNodeInfo())
 
         # Add newly created RBFNode to list of current
         self.addPoseButton.setEnabled(True)
@@ -1144,14 +1149,59 @@ class RBFManagerUI(RBFWidget):
             return
         driverNode = rbfNodes[0].getDriverNode()[0]
         driverAttrs = rbfNodes[0].getDriverNodeAttributes()
-        poseInputs = self.approximateZeros(rbf_node.getMultipleAttrs(driverNode, driverAttrs))
+        poseInputs = self.approximateAndRound(rbf_node.getMultipleAttrs(driverNode, driverAttrs))
         for rbfNode in rbfNodes:
-            poseValues = self.approximateZeros(rbfNode.getPoseValues(resetDriven=True))
+            poseValues = self.approximateAndRound(rbfNode.getPoseValues(resetDriven=True))
             rbfNode.addPose(poseInput=poseInputs,
                             poseValue=poseValues,
                             posesIndex=drivenRow)
             rbfNode.forceEvaluation()
         self.refreshAllTables()
+
+    def editAutoPoseValues(self, row, column):
+        """Edit an existing pose based on the values in the table
+        Returns:
+            None
+        """
+        print("hello")
+
+        rbfNodes = self.currentRBFSetupNodes
+        if not rbfNodes:
+            return
+
+        drivenWidget = self.rbfTabWidget.currentWidget()
+        drivenTableWidget = getattr(drivenWidget, "tableWidget")
+
+        try:
+            # Disconnecting the signal to prevent an infinite loop
+            drivenTableWidget.cellChanged.disconnect(self.hello)
+
+            driverNode = rbfNodes[0].getDriverNode()[0]
+            driverAttrs = rbfNodes[0].getDriverNodeAttributes()
+            poseInputs = self.approximateAndRound(rbf_node.getMultipleAttrs(driverNode, driverAttrs))
+
+            nColumns = drivenTableWidget.columnCount()
+            entryWidgets = [drivenTableWidget.cellWidget(row, c) for c in range(nColumns)]
+            newValues = [float(w.text()) if w is not None else 0.0 for w in entryWidgets]  # Added check for None widgets
+
+            rbfNode = getattr(drivenWidget, "rbfNode")
+            rbfNodes = [rbfNode]
+            for rbfNode in rbfNodes:
+                print("rbfNode: {}".format(rbfNode))
+                print("poseInputs: {}".format(poseInputs))
+                print("New pose values: {}".format(newValues))
+                print("poseIndex: {}".format(row))
+                rbfNode.addPose(poseInput=poseInputs,
+                                poseValue=newValues,
+                                posesIndex=row)
+                rbfNode.forceEvaluation()
+            self.refreshAllTables()
+
+        except Exception as e:
+            print("An error occurred: {}".format(str(e)))
+        finally:
+            # Always reconnect the signal in a finally block to ensure it is reconnected even if an error occurs
+            drivenTableWidget.cellChanged.connect(self.hello)
 
     def editPoseValues(self):
         """Edit an existing pose based on the values in the table
@@ -1170,7 +1220,7 @@ class RBFManagerUI(RBFWidget):
             return
         driverNode = rbfNodes[0].getDriverNode()[0]
         driverAttrs = rbfNodes[0].getDriverNodeAttributes()
-        poseInputs = self.approximateZeros(rbf_node.getMultipleAttrs(driverNode, driverAttrs))
+        poseInputs = self.approximateAndRound(rbf_node.getMultipleAttrs(driverNode, driverAttrs))
         nColumns = drivenTableWidget.columnCount()
         entryWidgets = [drivenTableWidget.cellWidget(drivenRow, c) for c in range(nColumns)]
         newValues = [float(w.text()) for w in entryWidgets]
@@ -1222,18 +1272,25 @@ class RBFManagerUI(RBFWidget):
         # Refresh tables after all updates
         self.refreshAllTables()
 
-    def approximateZeros(self, values, tolerance=1e-10):
-        """Approximate small values to zero.
-
+    def approximateAndRound(self, values, tolerance=1e-10, decimalPlaces=2):
+        """Approximate small values to zero and rounds the others.
+    
         Args:
-            values (list of float): The values to approximate.
+            values (list of float): The values to approximate and round.
             tolerance (float): The tolerance under which a value is considered zero.
-
+            decimalPlaces (int): The number of decimal places to round to.
+    
         Returns:
-            list of float: The approximated values.
+            list of float: The approximated and rounded values.
         """
-        return [0 if abs(v) < tolerance else v for v in values]
-
+        newValues = []
+        for v in values:
+            if abs(v) < tolerance:
+                newValues.append(0)
+            else:
+                newValues.append(round(v, decimalPlaces))
+        return newValues
+    
     def addPose(self):
         """Add pose to rbf nodes in setup. Additional index on all nodes
 
@@ -1245,12 +1302,24 @@ class RBFManagerUI(RBFWidget):
             return
         driverNode = rbfNodes[0].getDriverNode()[0]
         driverAttrs = rbfNodes[0].getDriverNodeAttributes()
-        poseInputs = self.approximateZeros(rbf_node.getMultipleAttrs(driverNode, driverAttrs))
+        poseInputs = self.approximateAndRound(rbf_node.getMultipleAttrs(driverNode, driverAttrs))
+
+        for index in range(self.rbfTabWidget.count()):
+            drivenWidget = self.rbfTabWidget.widget(index)
+            try:
+                drivenWidget.tableWidget.cellChanged.disconnect(self.hello)
+            except RuntimeError:
+                pass
+
         for rbfNode in rbfNodes:
             poseValues = rbfNode.getPoseValues(resetDriven=True, absoluteWorld=self.absWorld)
-            poseValues = self.approximateZeros(poseValues)
+            poseValues = self.approximateAndRound(poseValues)
             rbfNode.addPose(poseInput=poseInputs, poseValue=poseValues)
         self.refreshAllTables()
+
+        for index in range(self.rbfTabWidget.count()):
+            drivenWidget = self.rbfTabWidget.widget(index)
+            drivenWidget.tableWidget.cellChanged.connect(self.hello)
 
     def updateAllSetupsInfo(self, includeEmpty=False):
         """refresh the instance dictionary of all the setps in the scene.
@@ -1514,18 +1583,12 @@ class RBFManagerUI(RBFWidget):
         drivenWidget = self.createAndTagDrivenWidget()
         self._associateRBFnodeAndWidget(drivenWidget, rbfNode)
 
-        # Populate Driven Widget Info
-        self.populateDrivenWidgetInfo(drivenWidget, weightInfo, rbfNode)
-
         # Set Driven Node and Attributes
         drivenNode = weightInfo.get("drivenNode", [None])[0]
         self.drivenLineEdit.setText(drivenNode or "")
         self.setAttributeDisplay(self.drivenAttributesWidget, drivenNode or "", weightInfo["drivenAttrs"])
+        return drivenWidget
 
-        # Add the driven widget to the tab widget.
-        drivenWidget.setProperty("drivenNode", drivenNode)
-        self.rbfTabWidget.addTab(drivenWidget, rbfNode.name)
-        self.setDrivenTable(drivenWidget, rbfNode, weightInfo)
 
     def createAndTagDrivenWidget(self):
         """create and associate a widget, populated with the information
@@ -1546,8 +1609,7 @@ class RBFManagerUI(RBFWidget):
         tableWidget.itemSelectionChanged.connect(self.setEditDeletePoseEnabled)
         return drivenWidget
 
-    @staticmethod
-    def setDrivenTable(drivenWidget, rbfNode, weightInfo):
+    def setDrivenTable(self, drivenWidget, rbfNode, weightInfo):
         """set the widgets with information from the weightInfo for dispaly
 
         Args:
@@ -1571,6 +1633,12 @@ class RBFManagerUI(RBFWidget):
                 rbfAttrPlug = "{}.poses[{}].poseValue[{}]".format(rbfNode, rowIndex, columnIndex)
                 attrEdit, mAttrFeild = getControlAttrWidget(rbfAttrPlug, label="")
                 drivenWidget.tableWidget.setCellWidget(rowIndex, columnIndex, attrEdit)
+
+                # Adding QTableWidgetItem for the cell and setting the value
+                tableItem = QtWidgets.QTableWidgetItem()
+                tableItem.setFlags(tableItem.flags() | QtCore.Qt.ItemIsEditable)
+                tableItem.setData(QtCore.Qt.DisplayRole, str(pValue))
+                drivenWidget.tableWidget.setItem(rowIndex, columnIndex, tableItem)
 
     def populateDrivenWidgetInfo(self, drivenWidget, weightInfo, rbfNode):
         """set the information from the weightInfo to the widgets child of
@@ -1630,14 +1698,17 @@ class RBFManagerUI(RBFWidget):
         Args:
             rbfNodes (list): [of RBFNodes]
         """
-        rbfNodes = sorted(rbfNodes, key=lambda x: x.name)
-        self.rbfTabWidget.clear()
-        for rbfNode in rbfNodes:
-            weightInfo = rbfNode.getNodeInfo()
-            drivenWidget = self.createAndTagDrivenWidget()
-            self._associateRBFnodeAndWidget(drivenWidget, rbfNode)
-            self.populateDrivenWidgetInfo(drivenWidget, weightInfo, rbfNode)
-            self.rbfTabWidget.addTab(drivenWidget, rbfNode.name)
+        rbfNode = sorted(rbfNodes, key=lambda x: x.name)[0]
+        # self.rbfTabWidget.clear()
+        # for rbfNode in rbfNodes:
+        weightInfo = rbfNode.getNodeInfo()
+        drivenWidget = self.createAndTagDrivenWidget()
+        self._associateRBFnodeAndWidget(drivenWidget, rbfNode)
+        self.populateDrivenWidgetInfo(drivenWidget, weightInfo, rbfNode)
+        self.rbfTabWidget.addTab(drivenWidget, rbfNode.name)
+        is_connected = drivenWidget.tableWidget.cellChanged.connect(self.hello)
+        print("Signal connected:", is_connected)
+        drivenWidget.tableWidget.setItem(1, 1, QtWidgets.QTableWidgetItem("Test"))  # This should trigger the cellChanged signal
 
         self.addPoseButton.setEnabled(True)
 
@@ -2156,8 +2227,7 @@ class RBFManagerUI(RBFWidget):
         header = self.driverPoseTableWidget.verticalHeader()
         header.sectionClicked.connect(self.setConsistentHeaderSelection)
         header.sectionClicked.connect(self.recallDriverPose)
-        selDelFunc = self.setEditDeletePoseEnabled
-        self.driverPoseTableWidget.itemSelectionChanged.connect(selDelFunc)
+        self.driverPoseTableWidget.itemSelectionChanged.connect(self.setEditDeletePoseEnabled)
 
         # Buttons Widget
         self.addRbfButton.clicked.connect(self.addRBFToSetup)
