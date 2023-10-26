@@ -819,3 +819,24 @@ def update_sequencer_camera_from_maya():
             print(p_e)
         except IOError as io_e:
             print(io_e)
+
+
+def get_skeletal_data(skeletal_mesh=False):
+    """
+    Queries Unreal for all the Skeletons or Skeletal Meshes that exist in the project.
+
+    :param bool skeletal_mesh: If True return SkeletalMesh data, False return Skeleton data.
+    :return: The package_name and asset_name. Stored in an Array of Key,Value pairs.
+    :rtype: [{}]
+    """
+    print("[mGear] Retrieving Skeletal Data.")
+
+    uegear_bridge = bridge.UeGearBridge()
+
+    result = uegear_bridge.execute("get_skeletons_data",
+            parameters={"skeletal_mesh":skeletal_mesh}
+        ).get("ReturnValue", [])
+    
+    return result
+
+
