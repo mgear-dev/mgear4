@@ -836,7 +836,22 @@ def get_skeletal_data(skeletal_mesh=False):
     result = uegear_bridge.execute("get_skeletons_data",
             parameters={"skeletal_mesh":skeletal_mesh}
         ).get("ReturnValue", [])
-    
+
     return result
 
 
+def get_selected_content_browser_folder():
+    """
+    Returns the selected folder object in Unreals Content Browser.
+
+    :return: Path to the selected folders in the content browser.
+    :rtype: [str]
+    """
+    print("[mGear] Retrieving Selected Content Browser Folder.")
+
+    uegear_bridge = bridge.UeGearBridge()
+
+    result = uegear_bridge.execute("selected_content_browser_directory",
+        ).get("ReturnValue", [])
+
+    return result
