@@ -61,7 +61,7 @@ class FBXExporter(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.create_source_elements_widget()
         self.create_settings_widget()
         self.create_file_path_widget()
-        # self.create_unreal_import_widget()
+        self.create_unreal_import_widget()
         self.create_export_widget()
 
         # TODO: need for settings manager but currently not in use, consider removing
@@ -289,12 +289,13 @@ class FBXExporter(MayaQWidgetDockableMixin, QtWidgets.QDialog):
             QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Maximum
         )
         self.main_layout.addWidget(self.ue_import_collap_wgt)
-        ue_path_main_layout = QtWidgets.QVBoxLayout()
-        ue_path_main_layout.addSpacing(2)
-        self.ue_import_collap_wgt.addLayout(ue_path_main_layout)
 
         self.ue_import_cbx = QtWidgets.QCheckBox("Enable Unreal Engine Import")
         self.ue_import_collap_wgt.addWidget(self.ue_import_cbx)
+
+        ue_path_main_layout = QtWidgets.QVBoxLayout()
+        ue_path_main_layout.addSpacing(2)
+        self.ue_import_collap_wgt.addLayout(ue_path_main_layout)
 
         ue_file_path_layout = QtWidgets.QHBoxLayout()
         ue_file_path_layout.setContentsMargins(1, 1, 1, 1)
@@ -306,6 +307,23 @@ class FBXExporter(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         ue_file_path_layout.addWidget(ue_directory_label)
         ue_file_path_layout.addWidget(self.ue_file_path_lineedit)
         ue_file_path_layout.addWidget(self.ue_file_set_btn)
+
+        ue_skeleton_label = QtWidgets.QLabel("UE Skeletons")
+        self.ue_skeleton_listwgt = QtWidgets.QListWidget()
+        ue_path_main_layout.addWidget(ue_skeleton_label)
+        ue_path_main_layout.addWidget(self.ue_skeleton_listwgt)
+
+    def populate_unreal_skeletons(self):
+        if not self.ue_import_cbx.isChecked():
+            for item in self.ue_skeleton_listwgt.selectedItems():
+                item.setSelected(False)
+            return
+
+        # clears and populates the skeleton list
+        self.ue_skeleton_listwgt.clear()
+        skeleton_data = uegear.get_skeletal_data()
+        for entry in skeleton_data:
+            self.ue_skeleton_listwgt.addItem(str(entry['Key']))
 
     def create_export_widget(self):
         export_collap_wgt = widgets.CollapsibleWidget("Export")
@@ -444,7 +462,18 @@ class FBXExporter(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.file_name_lineedit.textChanged.connect(self.normalize_name)
 
         # ue file path connection
-        # self.ue_file_set_btn.clicked.connect(self.set_ue_folder_path)
+        self.ue_file_set_btn.clicked.connect(self.set_ue_folder_path)
+
+        # Disables all unreal skeletal fields unless the user enables the checkbox
+        self.ue_file_path_lineedit.setReadOnly(self.ue_import_cbx.checkState()==QtCore.Qt.Unchecked)
+        self.ue_import_cbx.stateChanged.connect(lambda state: self.ue_file_path_lineedit.setReadOnly(state==QtCore.Qt.Unchecked))
+        self.ue_file_path_lineedit.setEnabled(self.ue_import_cbx.checkState()!=QtCore.Qt.Unchecked)
+        self.ue_import_cbx.stateChanged.connect(lambda state: self.ue_file_path_lineedit.setEnabled(state!=QtCore.Qt.Unchecked))
+        self.ue_file_set_btn.setEnabled(self.ue_import_cbx.checkState()!=QtCore.Qt.Unchecked)
+        self.ue_import_cbx.stateChanged.connect(lambda state: self.ue_file_set_btn.setEnabled(state!=QtCore.Qt.Unchecked))
+        self.ue_skeleton_listwgt.setEnabled(self.ue_import_cbx.checkState()!=QtCore.Qt.Unchecked)
+        self.ue_import_cbx.stateChanged.connect(lambda state: self.ue_skeleton_listwgt.setEnabled(state!=QtCore.Qt.Unchecked))
+        self.ue_import_cbx.stateChanged.connect(self.populate_unreal_skeletons)
 
         # skeletal mesh connections
         self.partitions_checkbox.toggled.connect(self.set_use_partitions)
@@ -518,14 +547,10 @@ class FBXExporter(MayaQWidgetDockableMixin, QtWidgets.QDialog):
             )
 
     def set_ue_folder_path(self):
-        content_folder = uegear.content_project_directory()
-        folder_path = cmds.fileDialog2(
-            fileMode=3, startingDirectory=content_folder
-        )
-        if folder_path:
-            self.ue_file_path_lineedit.setText(
-                string.normalize_path(folder_path[0])
-            )
+        folders = uegear.get_selected_content_browser_folder()
+        if len(folders) == 1:
+            path = string.normalize_path(folders[0])
+            self.ue_file_path_lineedit.setText(path)
 
     def set_fbx_sdk_path(self):
         current_fbx_sdk_path = pfbx.get_fbx_sdk_path()

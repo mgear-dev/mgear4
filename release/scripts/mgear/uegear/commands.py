@@ -653,6 +653,7 @@ def import_sequencer_cameras_timeline_from_unreal():
     # Unreal Cameras exported to location
     # export FBX file into a temporal folder
     temp_folder = tempfile.gettempdir()
+    raise NotImplementedError
 
 
 def import_selected_cameras_from_unreal():
