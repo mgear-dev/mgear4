@@ -68,6 +68,21 @@ def sceneName():
     return cmds.file(q=True, sn=True)
 
 
+class MayaGUIs(object):
+    def GraphEditor(self):
+        cmds.GraphEditor()
+
+runtime = MayaGUIs()
+
+
+def confirmBox(title, message, yes="Yes", no="No", *moreButtons, **kwargs):
+    ret = cmds.confirmDialog(t=title, m=message, b=[yes, no] + list(moreButtons), db=yes, ma="center", cb=no, ds=no)
+    if moreButtons:
+        return ret
+    else:
+        return (ret == yes)
+
+
 __all__.append("Callback")
 __all__.append("displayError")
 __all__.append("displayInfo")
@@ -80,6 +95,8 @@ __all__.append("versions")
 __all__.append("importFile")
 __all__.append("NameParser")
 __all__.append("sceneName")
+__all__.append("runtime")
+__all__.append("confirmBox")
 
 
 def _obj_to_name(arg):
