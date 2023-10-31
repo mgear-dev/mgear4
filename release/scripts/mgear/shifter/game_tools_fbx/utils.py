@@ -302,6 +302,9 @@ def export_animation_clip(config_data, clip_data):
 
     config_data: The configuration for the scene/session
     clip_data: Information about the clip to be exported.
+
+    :return: return the path of the newly exported fbx.
+    :rtype: str
     """
     # Clip Data
     start_frame = clip_data.get("start_frame", 
@@ -471,7 +474,7 @@ def export_animation_clip(config_data, clip_data):
         # enable viewport
         mel.eval("paneLayout -e -manage true $gMainPane")
 
-    return True
+    return path
 
 
 def create_mgear_playblast(
