@@ -592,9 +592,13 @@ class FBXExporter(MayaQWidgetDockableMixin, QtWidgets.QDialog):
             export_node.save_root_data("ue_active_skeleton","")
 
     def set_ue_folder_path(self):
-        folders = uegear.get_selected_content_browser_folder()
+        folders = uegear.get_selected_content_browser_folder(relative=True)
         if len(folders) == 1:
-            path = string.normalize_path(folders[0])
+            # Removes the 'All' as we want an unreal package path
+            components = folders[0].split(os.path.sep)
+            components.remove("")
+            ue_package_path = os.path.sep + os.path.sep.join(components[1:])
+            path = string.normalize_path(ue_package_path)
             self.ue_file_path_lineedit.setText(path)
 
             # update attribute on fbx maya node
@@ -755,6 +759,14 @@ class FBXExporter(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         return True
 
     def export_animation_clips(self):
+
+        # Check if UE import is enabled, and if a skeleton is selected.
+        # - If no skeleton is selected, fail.
+        if self.ue_import_cbx.isChecked() and len(self.ue_skeleton_listwgt.selectedItems()) == 0:
+            cmds.warning( "Please select a skeleton, when importing into Unreal." )
+            cmds.confirmDialog(title="Export Failed", message="Please select a skeleton, when importing into Unreal.", messageAlign="center", button=["Okay"], cancelButton="Okay", dismissString="Okay")
+            return False
+
         print("----- Exporting Animation Clips -----")
         export_node = self._get_or_create_export_node()
 
@@ -782,6 +794,9 @@ class FBXExporter(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         # exporting.
         original_selection = cmds.ls(selection=True)
 
+        # Store the fbx locations that were successfully exported.
+        export_fbx_paths = []
+
         # Exports each clip
         for clip_data in anim_clip_data:
 
@@ -792,9 +807,23 @@ class FBXExporter(MayaQWidgetDockableMixin, QtWidgets.QDialog):
             result = utils.export_animation_clip(export_config, clip_data)
             if not result:
                 print("\t!!! >>> Failed to export clip: {}".format(clip_data["title"]))
+            else:
+                export_fbx_paths.append(result)
 
         if original_selection:
             pm.select(original_selection)
+
+        # Unreal Import, if enabled.
+        if self.ue_import_cbx.isChecked():
+            skeleton_path = self.ue_skeleton_listwgt.selectedItems()[0].text()
+            unreal_folder = self.ue_file_path_lineedit.text()
+
+            for path in export_fbx_paths:
+                name = os.path.basename(path)
+                animation_name = ".".join(name.split(".")[:-1])
+                
+                result = uegear.export_animation_to_unreal(path, unreal_folder, animation_name, skeleton_path)
+
 
         return True
 

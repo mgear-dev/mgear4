@@ -841,7 +841,7 @@ def get_skeletal_data(skeletal_mesh=False):
     return result
 
 
-def get_selected_content_browser_folder():
+def get_selected_content_browser_folder(relative=False):
     """
     Returns the selected folder object in Unreals Content Browser.
 
@@ -853,6 +853,22 @@ def get_selected_content_browser_folder():
     uegear_bridge = bridge.UeGearBridge()
 
     result = uegear_bridge.execute("selected_content_browser_directory",
+        parameters={"relative": relative}
+        ).get("ReturnValue", [])
+
+    return result
+
+
+def export_animation_to_unreal(animation_path, unreal_folder_path, animation_name, skeleton_path):
+    print("[mGear] Importing Animation paths into Unreal.")
+
+    uegear_bridge = bridge.UeGearBridge()
+
+    result = uegear_bridge.execute("import_animation",
+        parameters={"animation_path": animation_path,
+                    "dest_path": unreal_folder_path,
+                    "name": animation_name,
+                    "skeleton_path": skeleton_path}
         ).get("ReturnValue", [])
 
     return result
