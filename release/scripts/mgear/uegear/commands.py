@@ -872,3 +872,35 @@ def export_animation_to_unreal(animation_path, unreal_folder_path, animation_nam
         ).get("ReturnValue", [])
 
     return result
+
+
+def export_skeletal_mesh_to_unreal(fbx_path, unreal_package_path, name, skeleton_path=None):
+    """
+    Examples
+        fbx_path = "/Computer/Documents/scenes/mgear_fbx_export/Butcher.fbx"
+        dest_path = "/Game/Character/Boy_4"
+        name = "Boy_4"
+    """
+    uegear_bridge = bridge.UeGearBridge()
+
+    options = str( {
+        "destination_name": name,
+        "skeleton": skeleton_path,
+        "mesh_type_to_import": True, # this is a weird implementation
+        "skeletal_mesh_import_data": str({
+            "preserve_smoothing_groups":True,
+            "import_morph_targets":True,
+            "convert_scene":True
+            })
+        } )
+
+    result = uegear_bridge.execute(
+        "import_skeletal_mesh",
+        parameters={
+            "fbx_file":fbx_path,
+            "import_path":unreal_package_path,
+            "import_options":options
+            }
+    ).get("ReturnValue", [])
+
+    return result

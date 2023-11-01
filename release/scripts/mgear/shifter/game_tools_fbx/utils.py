@@ -193,7 +193,7 @@ def export_skeletal_mesh(export_data):
                         )
                     )
 
-    return True
+    return export_path
 
 
 def export_skeletal_mesh_partitions(jnt_roots, export_data):

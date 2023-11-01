@@ -686,6 +686,20 @@ class FBXExporter(MayaQWidgetDockableMixin, QtWidgets.QDialog):
                 selected_partition_item.delete_node()
 
     def export_skeletal_mesh(self):
+        # Check if UE import is enabled, and if a directory is specified.
+        # - If no directory is specified, fail.
+        if self.ue_import_cbx.isChecked() and self.ue_file_path_lineedit.text() == "":
+            cmds.warning( "Please specify an import location." )
+            cmds.confirmDialog(
+                title="Export Failed",
+                message="Please specify an Unreal package path directory.",
+                messageAlign="center",
+                button=["Okay"],
+                cancelButton="Okay",
+                dismissString="Okay"
+            )
+            return False
+
         print("----- Exporting Skeletal Meshes -----")
         export_node = self._get_or_create_export_node()
 
@@ -703,6 +717,13 @@ class FBXExporter(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self._auto_set_file_path()
         file_path = self.file_path_lineedit.text()
         file_name = self.file_name_lineedit.text()
+
+        # Check file path exists, else creates it
+        if not os.path.exists(file_path):
+            os.makedirs(file_path)
+            if not os.path.exists(file_path):
+                return False
+
         if not (file_path and file_name):
             cmds.warning("Not valid file path and name defined!")
             return False
@@ -737,6 +758,23 @@ class FBXExporter(MayaQWidgetDockableMixin, QtWidgets.QDialog):
             )
             return False
 
+        # Unreal Import, if enabled.
+        if self.ue_import_cbx.isChecked():
+            # If skeleton is option is enabled, then import an SKM and 
+            # share the base skeleton in Unreal.
+            skeleton_path = None
+            if len(self.ue_skeleton_listwgt.selectedItems()) > 0:
+                skeleton_path = self.ue_skeleton_listwgt.selectedItems()[0].text()
+            unreal_folder = self.ue_file_path_lineedit.text()
+
+
+            uegear.export_skeletal_mesh_to_unreal(
+                fbx_path=result,
+                unreal_package_path=unreal_folder,
+                name=file_name,
+                skeleton_path=skeleton_path
+            )
+
         # # automatically import FBX into Unreal if necessary
         # if self.ue_import_cbx.isChecked() and os.path.isfile(path):
         #     uegear_bridge = bridge.UeGearBridge()
@@ -764,7 +802,13 @@ class FBXExporter(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         # - If no skeleton is selected, fail.
         if self.ue_import_cbx.isChecked() and len(self.ue_skeleton_listwgt.selectedItems()) == 0:
             cmds.warning( "Please select a skeleton, when importing into Unreal." )
-            cmds.confirmDialog(title="Export Failed", message="Please select a skeleton, when importing into Unreal.", messageAlign="center", button=["Okay"], cancelButton="Okay", dismissString="Okay")
+            cmds.confirmDialog(
+                title="Export Failed",
+                message="Please select a skeleton, when importing into Unreal.",
+                messageAlign="center",
+                button=["Okay"],
+                cancelButton="Okay",
+                dismissString="Okay")
             return False
 
         print("----- Exporting Animation Clips -----")
@@ -821,10 +865,12 @@ class FBXExporter(MayaQWidgetDockableMixin, QtWidgets.QDialog):
             for path in export_fbx_paths:
                 name = os.path.basename(path)
                 animation_name = ".".join(name.split(".")[:-1])
-                
-                result = uegear.export_animation_to_unreal(path, unreal_folder, animation_name, skeleton_path)
-
-
+                result = uegear.export_animation_to_unreal(
+                    path,
+                    unreal_folder,
+                    animation_name,
+                    skeleton_path
+                    )
         return True
 
     # helper methods
