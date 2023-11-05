@@ -73,7 +73,7 @@ import mgear
 from mgear.core import pyqt
 import mgear.core.string as mString
 from mgear.core import anim_utils
-from mgear.vendor.Qt import QtWidgets, QtCore, QtCompat
+from mgear.vendor.Qt import QtWidgets, QtCore, QtCompat, QtGui
 from maya.app.general.mayaMixin import MayaQWidgetDockableMixin
 from mgear.rigbits.six import PY2
 
@@ -431,17 +431,15 @@ class RBFWidget(MayaQWidgetDockableMixin, QtWidgets.QMainWindow):
         setattr(tabDrivenWidget, "rbfNode", rbfNode)
 
     @staticmethod
-    def createCustomButton(label, size=(35, 27), tooltip=""):
+    def createCustomButton(label, size=(35, 27), icon=None, iconSize=None, tooltip=""):
         stylesheet = (
-            "QPushButton {background-color: #5D5D5D; border-radius: 4px;}"
             "QPushButton:pressed { background-color: #00A6F3;}"
-            "QPushButton:hover:!pressed { background-color: #707070;}"
-            "QPushButton:disabled { background-color: #4a4a4a;}"
         )
         button = QtWidgets.QPushButton(label)
         button.setMinimumSize(QtCore.QSize(*size))
         button.setStyleSheet(stylesheet)
         button.setToolTip(tooltip)
+        button.setIcon(pyqt.get_icon(icon, iconSize))
         return button
 
     @staticmethod
@@ -524,7 +522,9 @@ class RBFWidget(MayaQWidgetDockableMixin, QtWidgets.QMainWindow):
         setRBFLayout = QtWidgets.QHBoxLayout()
         rbfLabel = QtWidgets.QLabel("Select RBF Setup:")
         rbf_cbox = QtWidgets.QComboBox()
-        rbf_refreshButton = self.createCustomButton("Refresh", (60, 25), "Refresh the UI")
+        rbf_refreshButton = self.createCustomButton(
+            "", (35, 25), icon="mgear_refresh-cw", iconSize=16, tooltip="Refresh the UI"
+        )
         rbf_cbox.setFixedHeight(self.genericWidgetHight)
         rbf_refreshButton.setMaximumWidth(80)
         rbf_refreshButton.setFixedHeight(self.genericWidgetHight - 1)
@@ -555,7 +555,7 @@ class RBFWidget(MayaQWidgetDockableMixin, QtWidgets.QMainWindow):
          driverSelectButton) = self.selectNodeWidget("Driver", buttonLabel="Set")
         driverLineEdit.setToolTip("The node driving the setup. (Click me!)")
         #  --------------------------------------------------------------------
-        allButton = self.createCustomButton("All", (20, 53), "")
+        allButton = self.createCustomButton("", (20, 52), tooltip="", icon="mgear_rewind", iconSize=15)
 
         (attributeLayout, attributeListWidget) = self.labelListWidget(
             label="Select Driver Attributes:", attrListType="driver", horizontal=False)
@@ -598,7 +598,7 @@ class RBFWidget(MayaQWidgetDockableMixin, QtWidgets.QMainWindow):
         drivenTip = "The node being driven by setup. (Click me!)"
         drivenLineEdit.setToolTip(drivenTip)
 
-        addDrivenButton = self.createCustomButton("+", (20, 26), "")
+        addDrivenButton = self.createCustomButton("", (20, 25), icon="mgear_plus", iconSize=16, tooltip="")
         addDrivenButton.setToolTip("Add a new driven to the current rbf node")
         #  --------------------------------------------------------------------
         (attributeLayout,
