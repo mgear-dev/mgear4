@@ -770,6 +770,8 @@ def mgear_dagmenu_fill(parent_menu, current_control):
                 ui_host = None
         except ValueError:
             ui_host = None
+        except TypeError:
+            ui_host = None
 
     # check is given control is an mGear control
     if cmds.objExists("{}.uiHost".format(current_control)):
