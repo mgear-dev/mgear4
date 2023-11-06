@@ -255,9 +255,16 @@ class AnimClipWidget(QtWidgets.QFrame):
             # TODO: Maybe we should filter display layers that are set with override mode?
             anim_layers = animLayers.all_anim_layers_ordered()
             self._anim_layer_combo.addItems(["None"] + anim_layers)
-            self._anim_layer_combo.setCurrentText(
-                anim_clip_data.get("anim_layer", "None")
-            )
+            serialised_anim_layer = anim_clip_data.get("anim_layer", "None")
+
+            if not serialised_anim_layer:
+                serialised_anim_layer = "None"
+
+            # If serialised animation layer does not exist, notify user.
+            if self._anim_layer_combo.findText(serialised_anim_layer) > -1:
+                self._anim_layer_combo.setCurrentText(serialised_anim_layer)
+            else:
+                cmds.warning("Animation Layer not found: {}".format(serialised_anim_layer))
 
     def set_enabled(self, flag):
         self._export_checkbox.setChecked(flag)
