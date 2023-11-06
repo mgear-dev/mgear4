@@ -246,12 +246,12 @@ def create_spring(node=None, config=None):
     # translation value for aim
     # aimconstrain config axis and up-vector
     directions = {
-        "x": ["tx", 1, "xy"],
-        "y": ["ty", 1, "yx"],
-        "z": ["tz", 1, "zy"],
-        "-x": ["tx", -1, "-xy"],
-        "-y": ["ty", -1, "-yx"],
-        "-z": ["tz", -1, "-zy"],
+        "x": ["tx", 1, "xy", [0, 1, 0]],
+        "y": ["ty", 1, "yx", [1, 0, 0]],
+        "z": ["tz", 1, "zy", [0, 1, 0]],
+        "-x": ["tx", -1, "-xy", [0, 1, 0]],
+        "-y": ["ty", -1, "-yx", [1, 0, 0]],
+        "-z": ["tz", -1, "-zy", [0, 1, 0]],
     }
     try:
         direction = directions[config["direction"]]
@@ -280,7 +280,7 @@ def create_spring(node=None, config=None):
 
     # aim direction
     applyop.aimCns(
-        driver, aim_goal, direction[2], 2, [0, 1, 0], trans_sprg, False
+        driver, aim_goal, direction[2], 2, direction[3], trans_sprg, False
     )
 
     # connect attrs

@@ -653,6 +653,7 @@ def import_sequencer_cameras_timeline_from_unreal():
     # Unreal Cameras exported to location
     # export FBX file into a temporal folder
     temp_folder = tempfile.gettempdir()
+    raise NotImplementedError
 
 
 def import_selected_cameras_from_unreal():
@@ -819,3 +820,87 @@ def update_sequencer_camera_from_maya():
             print(p_e)
         except IOError as io_e:
             print(io_e)
+
+
+def get_skeletal_data(skeletal_mesh=False):
+    """
+    Queries Unreal for all the Skeletons or Skeletal Meshes that exist in the project.
+
+    :param bool skeletal_mesh: If True return SkeletalMesh data, False return Skeleton data.
+    :return: The package_name and asset_name. Stored in an Array of Key,Value pairs.
+    :rtype: [{}]
+    """
+    print("[mGear] Retrieving Skeletal Data.")
+
+    uegear_bridge = bridge.UeGearBridge()
+
+    result = uegear_bridge.execute("get_skeletons_data",
+            parameters={"skeletal_mesh":skeletal_mesh}
+        ).get("ReturnValue", [])
+
+    return result
+
+
+def get_selected_content_browser_folder(relative=False):
+    """
+    Returns the selected folder object in Unreals Content Browser.
+
+    :return: Path to the selected folders in the content browser.
+    :rtype: [str]
+    """
+    print("[mGear] Retrieving Selected Content Browser Folder.")
+
+    uegear_bridge = bridge.UeGearBridge()
+
+    result = uegear_bridge.execute("selected_content_browser_directory",
+        parameters={"relative": relative}
+        ).get("ReturnValue", [])
+
+    return result
+
+
+def export_animation_to_unreal(animation_path, unreal_folder_path, animation_name, skeleton_path):
+    print("[mGear] Importing Animation paths into Unreal.")
+
+    uegear_bridge = bridge.UeGearBridge()
+
+    result = uegear_bridge.execute("import_animation",
+        parameters={"animation_path": animation_path,
+                    "dest_path": unreal_folder_path,
+                    "name": animation_name,
+                    "skeleton_path": skeleton_path}
+        ).get("ReturnValue", [])
+
+    return result
+
+
+def export_skeletal_mesh_to_unreal(fbx_path, unreal_package_path, name, skeleton_path=None):
+    """
+    Examples
+        fbx_path = "/Computer/Documents/scenes/mgear_fbx_export/Butcher.fbx"
+        dest_path = "/Game/Character/Boy_4"
+        name = "Boy_4"
+    """
+    uegear_bridge = bridge.UeGearBridge()
+
+    options = str( {
+        "destination_name": name,
+        "skeleton": skeleton_path,
+        "mesh_type_to_import": True, # this is a weird implementation
+        "skeletal_mesh_import_data": str({
+            "preserve_smoothing_groups":True,
+            "import_morph_targets":True,
+            "convert_scene":True
+            })
+        } )
+
+    result = uegear_bridge.execute(
+        "import_skeletal_mesh",
+        parameters={
+            "fbx_file":fbx_path,
+            "import_path":unreal_package_path,
+            "import_options":options
+            }
+    ).get("ReturnValue", [])
+
+    return result
