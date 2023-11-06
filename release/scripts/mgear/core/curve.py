@@ -56,28 +56,37 @@ def addCnsCurve(parent, name, centers, degree=1):
 
 
 def addCurve(
-    parent, name, points, close=False, degree=3, m=datatypes.Matrix()
+    parent, name, points, close=False, degree=3, m=datatypes.Matrix(), op=False
 ):
     """Create a NurbsCurve with a single subcurve.
 
     Arguments:
         parent (dagNode): Parent object.
         name (str): Name
-        positions (list of float): points of the curve in a one dimension array
+        points (list of float): points of the curve in a one dimension array
             [point0X, point0Y, point0Z, 1, point1X, point1Y, point1Z, 1, ...].
         close (bool): True to close the curve.
         degree (bool): 1 for linear curve, 3 for Cubic.
         m (matrix): Global transform.
+        op (bool, optional): If True will add a curve that pass over the points
+                            This is equivalent of using"editPoint " flag
 
-    Returns:
+    No Longer Returned:
         dagNode: The newly created curve.
     """
+    kwargs = {"n": name, "d": degree}
     if close:
         points.extend(points[:degree])
         knots = range(len(points) + degree - 1)
-        node = pm.curve(n=name, d=degree, p=points, per=close, k=knots)
+        # node = pm.curve(n=name, d=degree, p=points, per=close, k=knots)
+        kwargs["per"] = close
+        kwargs["k"] = knots
+    if op:
+        # kwargs["ep"] = points
+        kwargs["ep"] = [datatypes.Vector(p) for p in points]
     else:
-        node = pm.curve(n=name, d=degree, p=points)
+        kwargs["p"] = points
+    node = pm.curve(**kwargs)
 
     if m is not None:
         node.setTransformation(m)
@@ -1134,3 +1143,52 @@ def create_locator_at_curve_point(object_names, percentage):
     cmds.setAttr(locator_name + ".translateX", point_on_curve[0])
     cmds.setAttr(locator_name + ".translateY", point_on_curve[1])
     cmds.setAttr(locator_name + ".translateZ", point_on_curve[2])
+
+
+def add_linear_skinning_to_curve(curve_name, joint_list):
+    """
+    Adds a skinCluster to a curve and sets the skinning weights linearly
+    among the list of joints based on the number of control points.
+
+    Args:
+        curve_name (str): The name of the curve to add the skinCluster to.
+        joint_list (list): A list of joint names to be included in the skinCluster.
+
+    Returns:
+        PyNode: The name of the created skinCluster.
+    """
+    # Ensure the curve and joints exist
+    if not pm.objExists(curve_name) or not all(
+        pm.objExists(j) for j in joint_list
+    ):
+        raise RuntimeError("Curve or joints do not exist.")
+
+    # Create skinCluster
+    skin_cluster = pm.skinCluster(joint_list, curve_name, tsb=True)
+
+    # Find the number of control points in the curve
+    curve_shape = pm.listRelatives(curve_name, shapes=True)[0]
+    num_cvs = len(curve_shape.getCVs())
+
+    num_joints = len(joint_list)
+
+    # Calculate the weight distribution
+    for i in range(num_cvs):
+        for j in range(num_joints):
+            lower_bound = float(j) / (num_joints - 1)
+            upper_bound = float(j + 1) / (num_joints - 1)
+
+            normalized_i = float(i) / (num_cvs - 1)
+
+            if lower_bound <= normalized_i <= upper_bound:
+                weight = 1 - abs(normalized_i - lower_bound) * (num_joints - 1)
+            else:
+                weight = 0
+
+            pm.skinPercent(
+                skin_cluster,
+                "{}.cv[{}]".format(curve_name, i),
+                transformValue=[(joint_list[j], weight)],
+            )
+
+    return skin_cluster
