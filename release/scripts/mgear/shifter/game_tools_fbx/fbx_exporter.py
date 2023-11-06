@@ -510,6 +510,10 @@ class FBXExporter(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         # animation connection
         self.anim_export_btn.clicked.connect(self.export_animation_clips)
 
+        # partition skinning connection
+        self.skinning_checkbox.toggled.connect(self.partition_skinning_toggled)
+        self.blendshapes_checkbox.toggled.connect(self.partition_blendshape_toggled)
+
     def get_root_joint(self):
         root_joint = self.joint_root_lineedit.text().split(",")
         return root_joint[0] if root_joint else None
@@ -647,6 +651,18 @@ class FBXExporter(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.partitions_label.setEnabled(flag)
         self.skmesh_add_btn.setEnabled(flag)
         self.skmesh_rem_btn.setEnabled(flag)
+
+    def partition_skinning_toggled(self):
+        """Updates the Maya FBX Node, when checkbox it changed"""
+        skinning_active = self.skinning_checkbox.isChecked()
+        export_node = self._get_or_create_export_node()
+        export_node.save_root_data("skinning", skinning_active)
+
+    def partition_blendshape_toggled(self):
+        """Updates the Maya FBX Node, when checkbox it changed"""
+        skinning_active = self.blendshapes_checkbox.isChecked()
+        export_node = self._get_or_create_export_node()
+        export_node.save_root_data("blendshapes", skinning_active)
 
     def add_skeletal_mesh_partition(self):
         export_node = self._get_or_create_export_node()
@@ -970,6 +986,10 @@ class FBXExporter(MayaQWidgetDockableMixin, QtWidgets.QDialog):
 
         self.partitions_outliner.reset_contents()
         self.anim_clips_listwidget.refresh()
+
+        # Force the population of the Master partitions.
+        item_names = self._get_listwidget_item_names(self.geo_root_list)
+        self.partitions_outliner.set_geo_roots(item_names)
 
     def _update_geo_roots_data(self):
         export_node = self._get_or_create_export_node()
