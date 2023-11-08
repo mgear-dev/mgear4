@@ -599,7 +599,7 @@ class FBXExporter(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         folders = uegear.get_selected_content_browser_folder(relative=True)
         if len(folders) == 1:
             # Removes the 'All' as we want an unreal package path
-            components = folders[0].split(os.path.sep)
+            components = folders[0].split("/")
             components.remove("")
             ue_package_path = os.path.sep + os.path.sep.join(components[1:])
             path = string.normalize_path(ue_package_path)
