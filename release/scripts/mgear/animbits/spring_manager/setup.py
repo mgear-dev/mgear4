@@ -330,8 +330,7 @@ def create_spring(node=None, config=None):
     move_animation_curves(node, root)
 
     # connect driver to node
-    pm.parentConstraint(driver, node)
-    # rigbits.connectLocalTransform([driver, node])
+    applyop.parentCns(driver, node)
 
     return driver, node
 
