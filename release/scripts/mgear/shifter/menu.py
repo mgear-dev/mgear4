@@ -21,6 +21,7 @@ def install():
             str_build_from_file,
             "mgear_play-circle.svg",
         ),
+        ("Rig Builder", str_openRigBuilder, "mgear_rigBuilder.svg"),
         ("-----", None),
         (
             "Import Guide Template",
@@ -351,4 +352,9 @@ guide_manager.extract_guide_from_rig()
 str_extract_match_guide_from_rig = """
 from mgear.shifter import guide_manager
 guide_manager.extract_match_guide_from_rig()
+"""
+
+str_openRigBuilder = """
+from mgear.shifter.rig_builder import ui
+ui.openRigBuilderUI()
 """
