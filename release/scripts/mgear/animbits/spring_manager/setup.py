@@ -14,6 +14,7 @@ from mgear.core.utils import one_undo, viewport_off
 
 SPRING_ATTRS = [
     "springTotalIntensity",
+    "springRigScale",
     "springTranslationalIntensity",
     "springTranslationalDamping",
     "springTranslationalStiffness",
@@ -47,6 +48,14 @@ def create_settings_attr(node, config):
         config["springTotalIntensity"],
         minValue=0,
         maxValue=1,
+    )
+    attribute.addAttribute(
+        node,
+        "springRigScale",
+        "float",
+        config["springRigScale"],
+        minValue=0,
+        maxValue=100,
     )
     attribute.addAttribute(
         node,
@@ -257,8 +266,15 @@ def create_spring(node=None, config=None):
         direction = directions[config["direction"]]
     except KeyError:
         raise KeyError("Invalid direction specified in config.")
-    aim_root.attr(direction[0]).set(direction[1])
-    aim_goal.attr(direction[0]).set(direction[1])
+
+    # aim_root.attr(direction[0]).set(direction[1] * config["springRigScale"])
+    # aim_goal.attr(direction[0]).set(direction[1] * config["springRigScale"])
+
+    cNode.createMulNode(
+        node.attr(SPRING_ATTRS[1]),
+        direction[1],
+        aim_root.attr(direction[0]),
+    )
 
     # spring driver
     driver = primitive.addTransform(trans_sprg, get_name("sprg_driver"), t)
@@ -292,7 +308,7 @@ def create_spring(node=None, config=None):
         sprg_rot_node.damping,
         sprg_rot_node.stiffness,
     ]
-    for at, dat in zip(SPRING_ATTRS[1:], driven_attr):
+    for at, dat in zip(SPRING_ATTRS[2:], driven_attr):
         pm.connectAttr(node.attr(at), dat)
 
     cNode.createMulNode(
@@ -301,8 +317,8 @@ def create_spring(node=None, config=None):
             node.attr(SPRING_ATTRS[0]),
         ],
         [
-            node.attr(SPRING_ATTRS[1]),
-            node.attr(SPRING_ATTRS[4]),
+            node.attr(SPRING_ATTRS[2]),
+            node.attr(SPRING_ATTRS[5]),
         ],
         [
             sprg_pos_node.intensity,
@@ -325,6 +341,7 @@ def create_spring(node=None, config=None):
 config = {
     "node" : "node_name",
     "direction" : "x",
+    "scale" : 1,
     "springTotalIntensity": 1,
     "springTranslationalIntensity": 0,
     "springTranslationalDamping": 0.5,
@@ -337,13 +354,14 @@ config = {
 """
 
 
-def init_config(node, direction):
+def init_config(node, direction, scale):
     # if node is pynode get node str name
     if isinstance(node, pm.PyNode):
         node = node.name()
     config = {
         "node": node,
         "direction": direction,
+        "springRigScale": scale,
         "springTotalIntensity": 1,
         "springTranslationalIntensity": 0,
         "springTranslationalDamping": 0.5,
@@ -385,8 +403,8 @@ def get_child_axis_direction(child_node):
     axis = None
     max_val = 0
     for ax, val in zip(
-            ["x", "y", "z"],
-            [local_translation.x, local_translation.y, local_translation.z],
+        ["x", "y", "z"],
+        [local_translation.x, local_translation.y, local_translation.z],
     ):
         if math.fabs(val) > max_val:
             max_val = math.fabs(val)
@@ -403,6 +421,22 @@ def get_child_axis_direction(child_node):
     return axis
 
 
+def get_rig_scale_value(child_node):
+    """Get the rig scale value based on the distance offset of the child node
+
+    Args:
+        child_node (str or PyNode): The child node name or PyNode object
+
+    Returns:
+        float: scale value distance
+    """
+    # Convert to PyNode if the child node is given as a string
+    if isinstance(child_node, str):
+        child_node = pm.PyNode(child_node)
+    axis = get_child_axis_direction(child_node)
+    return abs(child_node.getAttr("t{}".format(axis[-1])))
+
+
 def get_config(node):
     # get config dict from node attrs
     if isinstance(node, pm.PyNode):
@@ -416,6 +450,8 @@ def get_config(node):
         return False
     child_node = pm.listConnections(node.springSetupMembers[2])[0]
     direction = get_child_axis_direction(child_node)
+    scale = get_rig_scale_value(child_node)
+    print(scale)
     config = {
         "node": node_name,
         "namespace": node.namespace(),
@@ -429,22 +465,24 @@ def get_config(node):
 # store preset configuration
 def store_preset(nodes, filePath=None):
     preset_dic = {}
-    preset_dic['nodes'] = [node.name() for node in nodes]
-    preset_dic['namespaces'] = list({node.namespace(root=True) for node in nodes})
-    preset_dic['configs'] = {}
+    preset_dic["nodes"] = [node.name() for node in nodes]
+    preset_dic["namespaces"] = list(
+        {node.namespace(root=True) for node in nodes}
+    )
+    preset_dic["configs"] = {}
 
     for node in nodes:
         node_config = get_config(node)
         if node_config is False:
             pm.warning("Node '{}' is not a spring.".format(node.name()))
-            preset_dic['nodes'].remove(node.name())
+            preset_dic["nodes"].remove(node.name())
             continue
-        preset_dic['configs'][node.name()] = node_config
+        preset_dic["configs"][node.name()] = node_config
 
     print("file_path = {}".format(filePath))
 
     data_string = json.dumps(preset_dic, indent=4, sort_keys=True)
-    with open(filePath, 'w') as f:
+    with open(filePath, "w") as f:
         f.write(data_string)
 
     return preset_dic
@@ -458,8 +496,8 @@ def store_preset_from_selection(filePath=None):
 
 # apply spring from a  preset
 def apply_preset(preset_file_path, namespace_cb):
-    """"
-        Applies preset.
+    """ "
+    Applies preset.
     """
     affected_nodes = []
     with open(preset_file_path, "r") as fp:
@@ -467,9 +505,9 @@ def apply_preset(preset_file_path, namespace_cb):
 
     # if there's only one namespace, check if user wants to apply to all nodes with the same name
     selection = pm.ls(sl=1)
-    check_for_remap = len(preset_dic['namespaces']) == 1 and len(selection) > 0
-    preset_namespace = preset_dic['namespaces'][0]
-    selection_namespace = ''
+    check_for_remap = len(preset_dic["namespaces"]) == 1 and len(selection) > 0
+    preset_namespace = preset_dic["namespaces"][0]
+    selection_namespace = ""
 
     replace_namespace = False
     # check if selection namespace matches with preset namespace
@@ -478,12 +516,16 @@ def apply_preset(preset_file_path, namespace_cb):
         if selection_namespace != preset_namespace:
             if namespace_cb(preset_namespace, selection_namespace):
                 replace_namespace = True
-                print("Processing configs with new namespace {}".format(selection_namespace))
+                print(
+                    "Processing configs with new namespace {}".format(
+                        selection_namespace
+                    )
+                )
 
     for key, config in preset_dic["configs"].items():
         node = key
         if replace_namespace:
-            if ':' not in node:
+            if ":" not in node:
                 node = selection_namespace + node
             else:
                 node = node.replace(preset_namespace, selection_namespace)
@@ -500,7 +542,8 @@ def apply_preset(preset_file_path, namespace_cb):
 def get_preset_targets(preset_file_path):
     with open(preset_file_path, "r") as fp:
         preset_dic = json.load(fp)
-        return [node for node in preset_dic['nodes'] if pm.objExists(node)]
+        return [node for node in preset_dic["nodes"] if pm.objExists(node)]
+
 
 @one_undo
 @viewport_off
@@ -560,12 +603,13 @@ def bake_all():
     spring_driven = []
     for sn in pm.ls(type="mgear_springNode"):
         if sn.hasAttr("springSetupDriven"):
-            connections = pm.listConnections(sn.attr("springSetupDriven"), plugs=True)
+            connections = pm.listConnections(
+                sn.attr("springSetupDriven"), plugs=True
+            )
             if connections:
                 spring_driven.append(connections[0].node())
     if spring_driven:
         bake(spring_driven)
-
 
 
 @one_undo
@@ -609,7 +653,9 @@ def delete_spring_setup(nodes=None, transfer_animation=True):
 
         # Delete connected node
         connected_node = connections[0].node()
-        pm.delete(pm.parentConstraint(node, query=1))  # deletes constraint to avoid weird offsets
+        pm.delete(
+            pm.parentConstraint(node, query=1)
+        )  # deletes constraint to avoid weird offsets
         if transfer_animation:
             move_animation_curves(connected_node, node)
 
@@ -618,9 +664,10 @@ def delete_spring_setup(nodes=None, transfer_animation=True):
 
         remove_settings_attr(node)
 
+
 @one_undo
 def delete_all_springs():
-    spring_nodes = pm.ls(type='mgear_springNode')
+    spring_nodes = pm.ls(type="mgear_springNode")
     nodes = set()
     for spring_node in spring_nodes:
         source = pm.listConnections(spring_node.damping, source=True)[0]

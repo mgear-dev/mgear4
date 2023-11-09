@@ -101,6 +101,7 @@ class SpringManager(MayaQWidgetDockableMixin, QtWidgets.QDialog, pyqt.SettingsMi
 
         options = [
             ("Total Intensity", "springTotalIntensity", 1),
+            ("Spring Rig Scale", "springRigScale", 1),
             ("Translational Intensity", "springTranslationalIntensity", 0),
             ("Translational Damping", "springTranslationalDamping", 0.5),
             ("Translational Stiffness", "springTranslationalStiffness", 0.5,),
@@ -112,13 +113,19 @@ class SpringManager(MayaQWidgetDockableMixin, QtWidgets.QDialog, pyqt.SettingsMi
         self.spring_options_layout.setSizeConstraint(QtWidgets.QLayout.SetMaximumSize)
 
         for label_text, name, default_value in options:
+            if name == "springRigScale":
+                spin_range = 100
+                slider_range = 10000
+            else:
+                spin_range = 1
+                slider_range = 100
             spin = QtWidgets.QDoubleSpinBox()
             spin.setMinimumWidth(50)
-            spin.setRange(0, 1)
+            spin.setRange(0, spin_range)
             spin.setSingleStep(0.1)
             spin.setValue(default_value)
             slider = QtWidgets.QSlider(QtCore.Qt.Horizontal)
-            slider.setRange(0, 100)
+            slider.setRange(0, slider_range)
             slider.setValue(default_value * 100)
 
             self.spring_options_layout.addRow(label_text, spin)
