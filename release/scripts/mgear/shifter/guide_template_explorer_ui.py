@@ -1,6 +1,7 @@
 import mgear.core.pyqt as gqt
 from mgear.vendor.Qt import QtCore, QtWidgets
 
+
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
@@ -29,6 +30,10 @@ class Ui_MainWindow(object):
         self.actionImport_Partial.setObjectName("actionImport_Partial")
         self.actionOpen = QtWidgets.QAction(MainWindow)
         self.actionOpen.setObjectName("actionOpen")
+        self.actionLoad_Selected_Guide = QtWidgets.QAction(MainWindow)
+        self.actionLoad_Selected_Guide.setObjectName(
+            "actionLoad_Selected_Guide"
+        )
         self.actionSave = QtWidgets.QAction(MainWindow)
         self.actionSave.setObjectName("actionSave")
         self.actionSave_As = QtWidgets.QAction(MainWindow)
@@ -38,6 +43,7 @@ class Ui_MainWindow(object):
         self.actionDiff_Tool = QtWidgets.QAction(MainWindow)
         self.actionDiff_Tool.setObjectName("actionDiff_Tool")
         self.menuFile.addAction(self.actionOpen)
+        self.menuFile.addAction(self.actionLoad_Selected_Guide)
         self.menuFile.addSeparator()
         self.menuFile.addAction(self.actionSave_As)
         self.menuFile.addSeparator()
@@ -55,15 +61,39 @@ class Ui_MainWindow(object):
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
 
     def retranslateUi(self, MainWindow):
-        MainWindow.setWindowTitle(gqt.fakeTranslate("MainWindow", "MainWindow", None, -1))
-        self.menuFile.setTitle(gqt.fakeTranslate("MainWindow", "File", None, -1))
-        self.menuGuide.setTitle(gqt.fakeTranslate("MainWindow", "Guide", None, -1))
-        self.actionBuild.setText(gqt.fakeTranslate("MainWindow", "Build", None, -1))
-        self.actionImport.setText(gqt.fakeTranslate("MainWindow", "Import", None, -1))
-        self.actionImport_Partial.setText(gqt.fakeTranslate("MainWindow", "Import Partial", None, -1))
-        self.actionOpen.setText(gqt.fakeTranslate("MainWindow", "Open", None, -1))
-        self.actionSave.setText(gqt.fakeTranslate("MainWindow", "Save", None, -1))
-        self.actionSave_As.setText(gqt.fakeTranslate("MainWindow", "Save As ...", None, -1))
-        self.actionClear.setText(gqt.fakeTranslate("MainWindow", "Clear", None, -1))
-        self.actionDiff_Tool.setText(gqt.fakeTranslate("MainWindow", "Diff Tool", None, -1))
-
+        MainWindow.setWindowTitle(
+            gqt.fakeTranslate("MainWindow", "MainWindow", None, -1)
+        )
+        self.menuFile.setTitle(
+            gqt.fakeTranslate("MainWindow", "File", None, -1)
+        )
+        self.menuGuide.setTitle(
+            gqt.fakeTranslate("MainWindow", "Guide", None, -1)
+        )
+        self.actionBuild.setText(
+            gqt.fakeTranslate("MainWindow", "Build", None, -1)
+        )
+        self.actionImport.setText(
+            gqt.fakeTranslate("MainWindow", "Import", None, -1)
+        )
+        self.actionImport_Partial.setText(
+            gqt.fakeTranslate("MainWindow", "Import Partial", None, -1)
+        )
+        self.actionOpen.setText(
+            gqt.fakeTranslate("MainWindow", "Open", None, -1)
+        )
+        self.actionLoad_Selected_Guide.setText(
+            gqt.fakeTranslate("MainWindow", "Load Selected Guide", None, -1)
+        )
+        self.actionSave.setText(
+            gqt.fakeTranslate("MainWindow", "Save", None, -1)
+        )
+        self.actionSave_As.setText(
+            gqt.fakeTranslate("MainWindow", "Save As ...", None, -1)
+        )
+        self.actionClear.setText(
+            gqt.fakeTranslate("MainWindow", "Clear", None, -1)
+        )
+        self.actionDiff_Tool.setText(
+            gqt.fakeTranslate("MainWindow", "Diff Tool", None, -1)
+        )
