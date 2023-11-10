@@ -820,12 +820,25 @@ class FBXExporter(MayaQWidgetDockableMixin, QtWidgets.QDialog):
                 ].text()
             unreal_folder = self.ue_file_path_lineedit.text()
 
-            uegear.export_skeletal_mesh_to_unreal(
-                fbx_path=result,
-                unreal_package_path=unreal_folder,
-                name=file_name,
-                skeleton_path=skeleton_path,
-            )
+            if use_partitions:
+                for p in partitions.keys():
+                    result_partition = result.replace(
+                        ".fbx", "_{}.fbx".format(p)
+                    )
+                    partition_file_name = file_name + "_{}".format(p)
+                    uegear.export_skeletal_mesh_to_unreal(
+                        fbx_path=result_partition,
+                        unreal_package_path=unreal_folder,
+                        name=partition_file_name,
+                        skeleton_path=skeleton_path,
+                    )
+            else:
+                uegear.export_skeletal_mesh_to_unreal(
+                    fbx_path=result,
+                    unreal_package_path=unreal_folder,
+                    name=file_name,
+                    skeleton_path=skeleton_path,
+                )
 
         # # automatically import FBX into Unreal if necessary
         # if self.ue_import_cbx.isChecked() and os.path.isfile(path):
