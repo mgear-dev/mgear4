@@ -83,7 +83,7 @@ class FBXExporter(MayaQWidgetDockableMixin, QtWidgets.QDialog):
             "fbx_export_presets": self.fbx_export_presets_combobox,
             "ue_enabled": self.ue_import_cbx,
             "ue_file_path": self.ue_file_path_lineedit,
-            "ue_active_skeleton":self.ue_skeleton_listwgt,
+            "ue_active_skeleton": self.ue_skeleton_listwgt,
         }
 
     def create_menu_bar(self):
@@ -322,7 +322,9 @@ class FBXExporter(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         """
         # update attribute on fbx maya node
         export_node = self._get_or_create_export_node()
-        export_node.save_root_data("ue_enabled", self.ue_import_cbx.isChecked())
+        export_node.save_root_data(
+            "ue_enabled", self.ue_import_cbx.isChecked()
+        )
 
         # clears selected Items, if disabled
         if not self.ue_import_cbx.isChecked():
@@ -334,7 +336,7 @@ class FBXExporter(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.ue_skeleton_listwgt.clear()
         skeleton_data = uegear.get_skeletal_data()
         for entry in skeleton_data:
-            self.ue_skeleton_listwgt.addItem(str(entry['Key']))
+            self.ue_skeleton_listwgt.addItem(str(entry["Key"]))
 
         # select the active skeleton that exists on the fbx node
         if self.ue_import_cbx.isChecked():
@@ -487,17 +489,43 @@ class FBXExporter(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.ue_file_set_btn.clicked.connect(self.set_ue_folder_path)
 
         # Disables all unreal skeletal fields unless the user enables the checkbox
-        self.ue_file_path_lineedit.setReadOnly(self.ue_import_cbx.checkState()==QtCore.Qt.Unchecked)
-        self.ue_import_cbx.stateChanged.connect(lambda state: self.ue_file_path_lineedit.setReadOnly(state==QtCore.Qt.Unchecked))
-        self.ue_file_path_lineedit.setEnabled(self.ue_import_cbx.checkState()!=QtCore.Qt.Unchecked)
-        self.ue_import_cbx.stateChanged.connect(lambda state: self.ue_file_path_lineedit.setEnabled(state!=QtCore.Qt.Unchecked))
-        self.ue_file_set_btn.setEnabled(self.ue_import_cbx.checkState()!=QtCore.Qt.Unchecked)
-        self.ue_import_cbx.stateChanged.connect(lambda state: self.ue_file_set_btn.setEnabled(state!=QtCore.Qt.Unchecked))
-        self.ue_skeleton_listwgt.setEnabled(self.ue_import_cbx.checkState()!=QtCore.Qt.Unchecked)
-        self.ue_import_cbx.stateChanged.connect(lambda state: self.ue_skeleton_listwgt.setEnabled(state!=QtCore.Qt.Unchecked))
+        self.ue_file_path_lineedit.setReadOnly(
+            self.ue_import_cbx.checkState() == QtCore.Qt.Unchecked
+        )
+        self.ue_import_cbx.stateChanged.connect(
+            lambda state: self.ue_file_path_lineedit.setReadOnly(
+                state == QtCore.Qt.Unchecked
+            )
+        )
+        self.ue_file_path_lineedit.setEnabled(
+            self.ue_import_cbx.checkState() != QtCore.Qt.Unchecked
+        )
+        self.ue_import_cbx.stateChanged.connect(
+            lambda state: self.ue_file_path_lineedit.setEnabled(
+                state != QtCore.Qt.Unchecked
+            )
+        )
+        self.ue_file_set_btn.setEnabled(
+            self.ue_import_cbx.checkState() != QtCore.Qt.Unchecked
+        )
+        self.ue_import_cbx.stateChanged.connect(
+            lambda state: self.ue_file_set_btn.setEnabled(
+                state != QtCore.Qt.Unchecked
+            )
+        )
+        self.ue_skeleton_listwgt.setEnabled(
+            self.ue_import_cbx.checkState() != QtCore.Qt.Unchecked
+        )
+        self.ue_import_cbx.stateChanged.connect(
+            lambda state: self.ue_skeleton_listwgt.setEnabled(
+                state != QtCore.Qt.Unchecked
+            )
+        )
         self.ue_import_cbx.stateChanged.connect(self.populate_unreal_skeletons)
         self.ue_skeleton_listwgt.itemClicked.connect(self.ue_skeleton_updated)
-        self.ue_file_path_lineedit.editingFinished.connect(self.ue_filepath_updated)
+        self.ue_file_path_lineedit.editingFinished.connect(
+            self.ue_filepath_updated
+        )
 
         # skeletal mesh connections
         self.partitions_checkbox.toggled.connect(self.set_use_partitions)
@@ -512,7 +540,9 @@ class FBXExporter(MayaQWidgetDockableMixin, QtWidgets.QDialog):
 
         # partition skinning connection
         self.skinning_checkbox.toggled.connect(self.partition_skinning_toggled)
-        self.blendshapes_checkbox.toggled.connect(self.partition_blendshape_toggled)
+        self.blendshapes_checkbox.toggled.connect(
+            self.partition_blendshape_toggled
+        )
 
     def get_root_joint(self):
         root_joint = self.joint_root_lineedit.text().split(",")
@@ -589,11 +619,13 @@ class FBXExporter(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         if len(selected_skeletons) == 1:
             # update attribute on fbx maya node
             export_node = self._get_or_create_export_node()
-            export_node.save_root_data("ue_active_skeleton", selected_skeletons[0].text())
+            export_node.save_root_data(
+                "ue_active_skeleton", selected_skeletons[0].text()
+            )
         elif len(selected_skeletons) == 0:
             # update attribute on fbx maya node
             export_node = self._get_or_create_export_node()
-            export_node.save_root_data("ue_active_skeleton","")
+            export_node.save_root_data("ue_active_skeleton", "")
 
     def set_ue_folder_path(self):
         folders = uegear.get_selected_content_browser_folder(relative=True)
@@ -704,15 +736,18 @@ class FBXExporter(MayaQWidgetDockableMixin, QtWidgets.QDialog):
     def export_skeletal_mesh(self):
         # Check if UE import is enabled, and if a directory is specified.
         # - If no directory is specified, fail.
-        if self.ue_import_cbx.isChecked() and self.ue_file_path_lineedit.text() == "":
-            cmds.warning( "Please specify an import location." )
+        if (
+            self.ue_import_cbx.isChecked()
+            and self.ue_file_path_lineedit.text() == ""
+        ):
+            cmds.warning("Please specify an import location.")
             cmds.confirmDialog(
                 title="Export Failed",
                 message="Please specify an Unreal package path directory.",
                 messageAlign="center",
                 button=["Okay"],
                 cancelButton="Okay",
-                dismissString="Okay"
+                dismissString="Okay",
             )
             return False
 
@@ -776,19 +811,20 @@ class FBXExporter(MayaQWidgetDockableMixin, QtWidgets.QDialog):
 
         # Unreal Import, if enabled.
         if self.ue_import_cbx.isChecked():
-            # If skeleton is option is enabled, then import an SKM and 
+            # If skeleton is option is enabled, then import an SKM and
             # share the base skeleton in Unreal.
             skeleton_path = None
             if len(self.ue_skeleton_listwgt.selectedItems()) > 0:
-                skeleton_path = self.ue_skeleton_listwgt.selectedItems()[0].text()
+                skeleton_path = self.ue_skeleton_listwgt.selectedItems()[
+                    0
+                ].text()
             unreal_folder = self.ue_file_path_lineedit.text()
-
 
             uegear.export_skeletal_mesh_to_unreal(
                 fbx_path=result,
                 unreal_package_path=unreal_folder,
                 name=file_name,
-                skeleton_path=skeleton_path
+                skeleton_path=skeleton_path,
             )
 
         # # automatically import FBX into Unreal if necessary
@@ -816,15 +852,21 @@ class FBXExporter(MayaQWidgetDockableMixin, QtWidgets.QDialog):
 
         # Check if UE import is enabled, and if a skeleton is selected.
         # - If no skeleton is selected, fail.
-        if self.ue_import_cbx.isChecked() and len(self.ue_skeleton_listwgt.selectedItems()) == 0:
-            cmds.warning( "Please select a skeleton, when importing into Unreal." )
+        if (
+            self.ue_import_cbx.isChecked()
+            and len(self.ue_skeleton_listwgt.selectedItems()) == 0
+        ):
+            cmds.warning(
+                "Please select a skeleton, when importing into Unreal."
+            )
             cmds.confirmDialog(
                 title="Export Failed",
                 message="Please select a skeleton, when importing into Unreal.",
                 messageAlign="center",
                 button=["Okay"],
                 cancelButton="Okay",
-                dismissString="Okay")
+                dismissString="Okay",
+            )
             return False
 
         print("----- Exporting Animation Clips -----")
@@ -848,7 +890,7 @@ class FBXExporter(MayaQWidgetDockableMixin, QtWidgets.QDialog):
 
         export_config = self._get_current_tool_data()
         anim_clip_data = export_node.get_animation_clips(joint_root)
-        
+
         # Stores the selected objects, before performing the export.
         # These objects will be selected again, upon completion of
         # exporting.
@@ -866,7 +908,11 @@ class FBXExporter(MayaQWidgetDockableMixin, QtWidgets.QDialog):
 
             result = utils.export_animation_clip(export_config, clip_data)
             if not result:
-                print("\t!!! >>> Failed to export clip: {}".format(clip_data["title"]))
+                print(
+                    "\t!!! >>> Failed to export clip: {}".format(
+                        clip_data["title"]
+                    )
+                )
             else:
                 export_fbx_paths.append(result)
 
@@ -882,11 +928,8 @@ class FBXExporter(MayaQWidgetDockableMixin, QtWidgets.QDialog):
                 name = os.path.basename(path)
                 animation_name = ".".join(name.split(".")[:-1])
                 result = uegear.export_animation_to_unreal(
-                    path,
-                    unreal_folder,
-                    animation_name,
-                    skeleton_path
-                    )
+                    path, unreal_folder, animation_name, skeleton_path
+                )
         return True
 
     # helper methods

@@ -264,7 +264,11 @@ class AnimClipWidget(QtWidgets.QFrame):
             if self._anim_layer_combo.findText(serialised_anim_layer) > -1:
                 self._anim_layer_combo.setCurrentText(serialised_anim_layer)
             else:
-                cmds.warning("Animation Layer not found: {}".format(serialised_anim_layer))
+                cmds.warning(
+                    "Animation Layer not found: {}".format(
+                        serialised_anim_layer
+                    )
+                )
 
     def set_enabled(self, flag):
         self._export_checkbox.setChecked(flag)
@@ -343,8 +347,9 @@ class AnimClipWidget(QtWidgets.QFrame):
         start_frame = self._start_frame_box.text()
         end_frame = self._end_frame_box.text()
 
-        if not (start_frame == start_time and end_frame == end_time) or \
-           not (start_frame == anim_start_time and end_frame == anim_end_time):
+        if not (start_frame == start_time and end_frame == end_time) or not (
+            start_frame == anim_start_time and end_frame == anim_end_time
+        ):
             cmds.playbackOptions(
                 animationStartTime=start_frame,
                 minTime=start_frame,
@@ -393,9 +398,10 @@ class AnimClipWidget(QtWidgets.QFrame):
 
 class AnimationLayerCB(QtWidgets.QComboBox):
     """
-    Custom overloaded QComboBox, this will automatically refresh the combobox everytime 
+    Custom overloaded QComboBox, this will automatically refresh the combobox everytime
     it shows the values. Keep the Combobox up to date with the AnimationLayers available.
     """
+
     def __init__(self, parent=None):
         super(AnimationLayerCB, self).__init__(parent=parent)
 
@@ -407,7 +413,7 @@ class AnimationLayerCB(QtWidgets.QComboBox):
 
         anim_layers = animLayers.all_anim_layers_ordered()
         self.addItems(["None"] + anim_layers)
-        
+
         self.setCurrentText(currentText)
 
         # TODO: Could to a check here to see if the layer still exists, else add a warning.
