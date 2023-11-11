@@ -1,14 +1,30 @@
 Release Log
 ===========
 
+
+4.1.2
+------
+**New Features**
+	* Animbits: Spring Manager #266
+
+**Enhancements**
+	* shifter: Right click menu add space swich range like synoptic #206
+
+
 4.1.1
 ------
+**Enhancements**
+	* EPIC_leg_3jnt_01 add support for 0 division on sections #273
+	* Add a dagmenu to reset all controllers on viewport menu #286
 
 **Bug Fix**
 	* Fixed Error while mgear menu generation on startup #265 #267
 	* Rigbits: Fixed a bug related to the Mirror Control Shape tool. reported by remicc #252 #174
 	* Rigbits: Fixed a bug that can't open a fileDialog to import/export a SDK file throughout the GUI. #250
 	* Shifter: Control_01 and other simple components wrong naming with some custom name rules. #268
+	* Core: getTransformLookingAt fix axis calculation for -zx and -xy #296
+	* Channel wrangler move bool channels #217
+	* SoftTweak tool doesn't keep the right order of the softmod when re-import from .smt #262
 
 4.1.0
 ------

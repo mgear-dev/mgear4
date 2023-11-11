@@ -28,6 +28,7 @@ from mgear.core.anim_utils import IkFkTransfer
 from mgear.core.anim_utils import changeSpace
 from mgear.core.anim_utils import getNamespace
 from mgear.core.anim_utils import stripNamespace
+from mgear.core.anim_utils import ParentSpaceTransfer
 
 
 from mgear import shifter
@@ -37,6 +38,8 @@ from mgear.shifter import io
 from mgear.shifter import guide_template
 
 from .six import string_types
+
+from mgear.vendor.Qt import QtWidgets
 
 
 def __change_rotate_order_callback(*args):
@@ -429,6 +432,123 @@ def __switch_parent_callback(*args):
             )
 
 
+def __space_transfer_callback(*args):
+    """Wrapper function to call mGears change space function
+
+    Args:
+        list: callback from menuItem
+    """
+
+    # creates a map for non logical components controls
+    control_map = {"elbow": "mid", "rot": "orbit", "knee": "mid"}
+
+    # switch_control = args[0].split("|")[-1].split(":")[-1]
+    switch_control = args[0].split("|")[-1]
+    uiHost = pm.PyNode(switch_control)  # UiHost is switch PyNode pointer
+    switch_attr = args[1]
+    combo_box = args[2]
+    search_token = switch_attr.split("_")[-1].split("ref")[0].split("Ref")[0]
+    print(search_token)
+    target_control = None
+
+
+    # control_01 attr don't standard name ane need to be check
+    attr_split_name = switch_attr.split("_")
+    if len(attr_split_name) <= 2:
+        attr_name = attr_split_name[0]
+    else:
+        attr_name = "_".join(attr_split_name[:-1])
+    # search criteria to find all the components sharing the name
+    criteria = attr_name + "_id*_ctl_cnx"
+    component_ctl = (
+        cmds.listAttr(switch_control, ud=True, string=criteria) or []
+    )
+
+    target_control_list = []
+    for comp_ctl_list in component_ctl:
+
+        # first search for tokens match in all controls. If not token is found
+        # we will use all controls for the switch
+        # this token match is a filter for components like arms or legs
+        for ctl in uiHost.attr(comp_ctl_list).listConnections():
+            if ctl.ctl_role.get() == search_token:
+                target_control = ctl.stripNamespace()
+                break
+            elif (
+                search_token in control_map.keys()
+                and ctl.ctl_role.get() == control_map[search_token]
+            ):
+                target_control = ctl.stripNamespace()
+                break
+
+        if target_control:
+            target_control_list.append(target_control)
+        else:
+            # token didn't match with any target control. We will add all
+            # found controls for the match.
+            # This is needed for regular ik match in Control_01
+            for ctl in uiHost.attr(comp_ctl_list).listConnections():
+
+                target_control_list.append(ctl.stripNamespace())
+
+    # gets root node for the given control
+    namespace_value = args[0].split("|")[-1].split(":")
+    if len(namespace_value) > 1:
+        namespace_value = namespace_value[0]
+    else:
+        namespace_value = ""
+
+    root = None
+
+    current_parent = cmds.listRelatives(args[0], fullPath=True, parent=True)
+    if current_parent:
+        current_parent = current_parent[0]
+
+    while not root:
+
+        if cmds.objExists("{}.is_rig".format(current_parent)):
+            root = cmds.ls("{}.is_rig".format(current_parent))[0]
+        else:
+            try:
+                current_parent = cmds.listRelatives(
+                    current_parent, fullPath=True, parent=True
+                )[0]
+            except TypeError:
+                break
+
+    if not root or not target_control_list:
+        pm.displayInfo("Not root or target control list for space transfer")
+        return
+
+    autokey = cmds.listConnections(
+        "{}.{}".format(switch_control, switch_attr), type="animCurve"
+    )
+
+    if autokey:
+        for target_control in target_control_list:
+            cmds.setKeyframe(
+                "{}:{}".format(namespace_value, target_control),
+                "{}.{}".format(switch_control, switch_attr),
+                time=(cmds.currentTime(query=True) - 1.0),
+            )
+
+    # triggers switch
+    ParentSpaceTransfer.showUI(
+        combo_box,
+        switch_control,
+        stripNamespace(switch_control),
+        switch_attr,
+        target_control_list[0]
+    )
+
+    if autokey:
+        for target_control in target_control_list:
+            cmds.setKeyframe(
+                "{}:{}".format(namespace_value, target_control),
+                "{}.{}".format(switch_control, switch_attr),
+                time=(cmds.currentTime(query=True)),
+            )
+
 def __switch_xray_ctl_callback(*args):
     rig_root = None
     if pm.selected():
@@ -650,6 +770,8 @@ def mgear_dagmenu_fill(parent_menu, current_control):
                 ui_host = None
         except ValueError:
             ui_host = None
+        except TypeError:
+            ui_host = None
 
     # check is given control is an mGear control
     if cmds.objExists("{}.uiHost".format(current_control)):
@@ -851,9 +973,13 @@ def mgear_dagmenu_fill(parent_menu, current_control):
             ).split(":")
             current_state = cmds.getAttr("{}.{}".format(ui_host, attr))
 
+            combo_box = QtWidgets.QComboBox()
+
             for idx, k_val in enumerate(k_values):
+                combo_box.addItem(k_val)
                 if idx == current_state:
                     state = True
+                    combo_box.setCurrentIndex(idx)
                 else:
                     state = False
                 cmds.menuItem(
@@ -864,6 +990,13 @@ def mgear_dagmenu_fill(parent_menu, current_control):
                         __switch_parent_callback, ui_host, attr, idx, k_val
                     ),
                 )
+
+            combo_box.addItem("__")  # required to include the last item
+            cmds.menuItem(
+                parent=_p_switch_menu,
+                label="++ Space Transfer ++",
+                command=partial(__space_transfer_callback, ui_host, attr, combo_box)
+            )
 
     # select all rig controls
     selection_set = cmds.ls(

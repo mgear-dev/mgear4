@@ -25,6 +25,7 @@ from mgear.uegear import utils as ueUtils
 
 # DEBUGGING
 import importlib
+
 importlib.reload(mUtils)
 importlib.reload(ueUtils)
 
@@ -400,8 +401,7 @@ def export_cameras(cameras=None):
 
     print("Camera Export Debug: {}".format(cameras_file))
 
-
-    return False # Early exit for debugging reasons
+    return False  # Early exit for debugging reasons
 
     result = self.execute(
         "import_maya_data_from_file", parameters={"data_file": cameras_file}
@@ -482,15 +482,18 @@ def import_layout_from_unreal(export_assets=True):
 
         # Find all tagged objects that have the specific guid
         matching_guid_objs = tag.find_tagged_nodes(
-            tag_name=tag.TAG_ASSET_GUID_ATTR_NAME,
-            tag_value=asset_guid
+            tag_name=tag.TAG_ASSET_GUID_ATTR_NAME, tag_value=asset_guid
         )
 
         # If GUID, Actor Name and Asset Path are all equal, then object is stale.
         for obj in matching_guid_objs:
             dag_path = mUtils.get_dag_path(obj)
-            guid_match = tag.tag_match(dag_path, asset_guid, tag.TAG_ASSET_GUID_ATTR_NAME)
-            name_match = tag.tag_match(dag_path, actor_name, tag.TAG_ACTOR_NAME_ATTR_NAME)
+            guid_match = tag.tag_match(
+                dag_path, asset_guid, tag.TAG_ASSET_GUID_ATTR_NAME
+            )
+            name_match = tag.tag_match(
+                dag_path, actor_name, tag.TAG_ACTOR_NAME_ATTR_NAME
+            )
 
             #   Object passed all checks, it is stale and needs to be deleted.
             if guid_match and name_match:
@@ -516,28 +519,48 @@ def import_layout_from_unreal(export_assets=True):
             scale = actor_data["scale"]
 
             # Apply unreal meta data as tags
-            tag.apply_tag(transform_node, tag.TAG_ASSET_GUID_ATTR_NAME, asset_guid)
+            tag.apply_tag(
+                transform_node, tag.TAG_ASSET_GUID_ATTR_NAME, asset_guid
+            )
             if asset_type:
-                tag.apply_tag(transform_node, tag.TAG_ASSET_TYPE_ATTR_NAME, asset_type)
+                tag.apply_tag(
+                    transform_node, tag.TAG_ASSET_TYPE_ATTR_NAME, asset_type
+                )
             else:
                 tag.auto_tag(transform_node)
-            tag.apply_tag(transform_node, tag.TAG_ASSET_NAME_ATTR_NAME, asset_name)
-            tag.apply_tag(transform_node, tag.TAG_ASSET_PATH_ATTR_NAME, asset_path)
-            tag.apply_tag(transform_node, tag.TAG_ACTOR_NAME_ATTR_NAME, actor_name)
+            tag.apply_tag(
+                transform_node, tag.TAG_ASSET_NAME_ATTR_NAME, asset_name
+            )
+            tag.apply_tag(
+                transform_node, tag.TAG_ASSET_PATH_ATTR_NAME, asset_path
+            )
+            tag.apply_tag(
+                transform_node, tag.TAG_ACTOR_NAME_ATTR_NAME, actor_name
+            )
             transform_node = cmds.rename(transform_node, actor_name)
 
             # Converts the unreal matrix into maya matrix
             obj_trans_matrix = OpenMaya.MTransformationMatrix()
-            obj_trans_matrix.setTranslation(OpenMaya.MVector(translation), OpenMaya.MSpace.kWorld)
+            obj_trans_matrix.setTranslation(
+                OpenMaya.MVector(translation), OpenMaya.MSpace.kWorld
+            )
             obj_trans_matrix.setRotation(OpenMaya.MEulerRotation(rotation))
-            obj_trans_matrix.setScale(OpenMaya.MVector(scale), OpenMaya.MSpace.kWorld)
+            obj_trans_matrix.setScale(
+                OpenMaya.MVector(scale), OpenMaya.MSpace.kWorld
+            )
 
-            maya_trans_matrix = ueUtils.convert_transformationmatrix_Unreal_to_Maya(obj_trans_matrix)
+            maya_trans_matrix = (
+                ueUtils.convert_transformationmatrix_Unreal_to_Maya(
+                    obj_trans_matrix
+                )
+            )
 
             dag_path = mUtils.get_dag_path(transform_node)
             if dag_path:
                 transform_fn = OpenMaya.MFnTransform(dag_path)
-                transform_fn.setTransformation(OpenMaya.MTransformationMatrix(maya_trans_matrix))
+                transform_fn.setTransformation(
+                    OpenMaya.MTransformationMatrix(maya_trans_matrix)
+                )
 
     # Clean up temporary location
     ueUtils.safe_delete_folder(temp_assets_folder)
@@ -554,27 +577,35 @@ def update_selected_transforms():
     uegear_bridge = bridge.UeGearBridge()
 
     selected_nodes = pm.selected()
+    world_up = cmds.optionVar(query="upAxisDirection")
+
     old_rotation_orders = list()
     for selected_node in selected_nodes:
         old_rotation_orders.append(selected_node.getRotationOrder())
-        selected_node.setRotationOrder('XZY', True)
+        selected_node.setRotationOrder("XZY", True)
     try:
         objects = cmds.ls(sl=True, sn=True)
         for obj in objects:
-            ue_world_transform = ueUtils.get_unreal_engine_transform_for_maya_node(obj)
+            ue_world_transform = (
+                ueUtils.get_unreal_engine_transform_for_maya_node(obj)
+            )
 
-            actor_guids = tag.tag_values(tag.TAG_ASSET_GUID_ATTR_NAME,[obj])
+            actor_guids = tag.tag_values(tag.TAG_ASSET_GUID_ATTR_NAME, [obj])
             if actor_guids == None:
                 print("WARNING: Could not find guid: {}".format(obj))
                 continue
             actor_guid = actor_guids[0]
 
-            result = uegear_bridge.execute('set_actor_world_transform', parameters={
-                'actor_guid': actor_guid,
-                'translation': str(ue_world_transform['rotatePivot']),
-                'rotation': str(ue_world_transform['rotation']),
-                'scale': str(ue_world_transform['scale']),
-            })
+            result = uegear_bridge.execute(
+                "set_actor_world_transform",
+                parameters={
+                    "actor_guid": actor_guid,
+                    "translation": str(ue_world_transform["rotatePivot"]),
+                    "rotation": str(ue_world_transform["rotation"]),
+                    "scale": str(ue_world_transform["scale"]),
+                    "world_up": str(world_up),
+                },
+            )
     finally:
         for i, selected_node in enumerate(selected_nodes):
             selected_node.setRotationOrder(old_rotation_orders[i], True)
@@ -650,6 +681,7 @@ def import_sequencer_cameras_timeline_from_unreal():
     # Unreal Cameras exported to location
     # export FBX file into a temporal folder
     temp_folder = tempfile.gettempdir()
+    raise NotImplementedError
 
 
 def import_selected_cameras_from_unreal():
@@ -679,7 +711,7 @@ def import_selected_cameras_from_unreal():
     # UE - Export selected Camera
     asset_export_datas = uegear_bridge.execute(
         "export_selected_sequencer_cameras",
-        parameters={"directory": temp_folder}
+        parameters={"directory": temp_folder},
     ).get("ReturnValue", list())
     if not asset_export_datas:
         logger.warning(
@@ -694,12 +726,12 @@ def import_selected_cameras_from_unreal():
     if sequencer_fps != current_frame_rate:
         # Create a pop-up dialog and to alert user
         result = cmds.confirmDialog(
-            title='Frame Rates Do Not Match',
+            title="Frame Rates Do Not Match",
             message="The Sequencer FPS, do not match those of the current Maya scene. \n\nDo you wish to update Maya's fps?",
-            button=['Yes', 'No'],
-            defaultButton='Yes',
-            cancelButton='No',
-            dismissString='No'
+            button=["Yes", "No"],
+            defaultButton="Yes",
+            cancelButton="No",
+            dismissString="No",
         )
 
         if result == "No":
@@ -761,7 +793,7 @@ def update_sequencer_camera_from_maya():
     objects_map = io.exportable_assets(nodes=nodes_to_export)
     if not objects_map:
         msg = 'No exportable assets found in nodes to export: "{}".'
-        msg += 'Make sure assets are tagged.'
+        msg += "Make sure assets are tagged."
         logger.warning(msg.format(nodes_to_export))
         return False
 
@@ -773,7 +805,9 @@ def update_sequencer_camera_from_maya():
 
     # Create a list of AssetPaths, Camera Name, export_path
     ue_camera_names = tag.tag_values(tag.TAG_ASSET_NAME_ATTR_NAME, cameras)
-    camera_sequence_paths = tag.tag_values(tag.TAG_ASSET_PATH_ATTR_NAME, cameras)
+    camera_sequence_paths = tag.tag_values(
+        tag.TAG_ASSET_PATH_ATTR_NAME, cameras
+    )
     camera_export_path = dict()
 
     # Export Camera to temp location
@@ -785,7 +819,9 @@ def update_sequencer_camera_from_maya():
         fbx_file_path = os.path.join(temp_folder, camera_name + ".fbx")
 
         try:
-            cmds.file(fbx_file_path, force=True, typ="FBX export", pr=True, es=True)
+            cmds.file(
+                fbx_file_path, force=True, typ="FBX export", pr=True, es=True
+            )
             msg = "Camera '{}' exported as FBX to '{}'"
             print(msg.format(camera_name, fbx_file_path))
         except Exception as e:
@@ -793,20 +829,20 @@ def update_sequencer_camera_from_maya():
             continue
 
         if not os.path.isfile(fbx_file_path):
-            msg ='Something went wrong while exporting asset FBX file: "{}"'
+            msg = 'Something went wrong while exporting asset FBX file: "{}"'
             logger.warning(msg.format(fbx_file_path))
             continue
 
         camera_export_path[camera_name] = fbx_file_path
 
-        uegear_bridge.execute("update_sequencer_camera_from_maya",
+        uegear_bridge.execute(
+            "update_sequencer_camera_from_maya",
             parameters={
                 "camera_name": camera_name,
-                "sequencer_package":camera_sequence_paths[i],
-                "fbx_path":fbx_file_path
-            }
+                "sequencer_package": camera_sequence_paths[i],
+                "fbx_path": fbx_file_path,
+            },
         ).get("ReturnValue", False)
-
 
     # Clean up temporary data
     for path in camera_export_path.values():
@@ -816,3 +852,98 @@ def update_sequencer_camera_from_maya():
             print(p_e)
         except IOError as io_e:
             print(io_e)
+
+
+def get_skeletal_data(skeletal_mesh=False):
+    """
+    Queries Unreal for all the Skeletons or Skeletal Meshes that exist in the project.
+
+    :param bool skeletal_mesh: If True return SkeletalMesh data, False return Skeleton data.
+    :return: The package_name and asset_name. Stored in an Array of Key,Value pairs.
+    :rtype: [{}]
+    """
+    print("[mGear] Retrieving Skeletal Data.")
+
+    uegear_bridge = bridge.UeGearBridge()
+
+    result = uegear_bridge.execute(
+        "get_skeletons_data", parameters={"skeletal_mesh": skeletal_mesh}
+    ).get("ReturnValue", [])
+
+    return result
+
+
+def get_selected_content_browser_folder(relative=False):
+    """
+    Returns the selected folder object in Unreals Content Browser.
+
+    :return: Path to the selected folders in the content browser.
+    :rtype: [str]
+    """
+    print("[mGear] Retrieving Selected Content Browser Folder.")
+
+    uegear_bridge = bridge.UeGearBridge()
+
+    result = uegear_bridge.execute(
+        "selected_content_browser_directory", parameters={"relative": relative}
+    ).get("ReturnValue", [])
+
+    return result
+
+
+def export_animation_to_unreal(
+    animation_path, unreal_folder_path, animation_name, skeleton_path
+):
+    print("[mGear] Importing Animation paths into Unreal.")
+
+    uegear_bridge = bridge.UeGearBridge()
+
+    result = uegear_bridge.execute(
+        "import_animation",
+        parameters={
+            "animation_path": animation_path,
+            "dest_path": unreal_folder_path,
+            "name": animation_name,
+            "skeleton_path": skeleton_path,
+        },
+    ).get("ReturnValue", [])
+
+    return result
+
+
+def export_skeletal_mesh_to_unreal(
+    fbx_path, unreal_package_path, name, skeleton_path=None
+):
+    """
+    Examples
+        fbx_path = "/Computer/Documents/scenes/mgear_fbx_export/Butcher.fbx"
+        dest_path = "/Game/Character/Boy_4"
+        name = "Boy_4"
+    """
+    uegear_bridge = bridge.UeGearBridge()
+
+    options = str(
+        {
+            "destination_name": name,
+            "skeleton": skeleton_path,
+            "mesh_type_to_import": True,  # this is a weird implementation
+            "skeletal_mesh_import_data": str(
+                {
+                    "preserve_smoothing_groups": True,
+                    "import_morph_targets": True,
+                    "convert_scene": True,
+                }
+            ),
+        }
+    )
+
+    result = uegear_bridge.execute(
+        "import_skeletal_mesh",
+        parameters={
+            "fbx_file": fbx_path,
+            "import_path": unreal_package_path,
+            "import_options": options,
+        },
+    ).get("ReturnValue", [])
+
+    return result

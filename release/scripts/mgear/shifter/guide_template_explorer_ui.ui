@@ -26,7 +26,7 @@
      <x>0</x>
      <y>0</y>
      <width>412</width>
-     <height>21</height>
+     <height>31</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">
@@ -34,6 +34,7 @@
      <string>File</string>
     </property>
     <addaction name="actionOpen"/>
+    <addaction name="actionLoad_Selected_Guide"/>
     <addaction name="separator"/>
     <addaction name="actionSave_As"/>
     <addaction name="separator"/>
@@ -91,6 +92,11 @@
   <action name="actionDiff_Tool">
    <property name="text">
     <string>Diff Tool</string>
+   </property>
+  </action>
+  <action name="actionLoad_Selected_Guide">
+   <property name="text">
+    <string>Load Selected Guide</string>
    </property>
   </action>
  </widget>

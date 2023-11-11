@@ -55,57 +55,63 @@ CTL_SUFFIX = rbf_node.CTL_SUFFIX
 DRIVEN_SUFFIX = rbf_node.DRIVEN_SUFFIX
 TRANSFORM_SUFFIX = rbf_node.TRANSFORM_SUFFIX
 
-WNODE_DRIVERPOSE_ATTRS = {"poseMatrix": "matrix",
-                          "poseParentMatrix": "matrix",
-                          "poseMode": "enum",
-                          "controlPoseAttributes": "stringArray",
-                          "controlPoseValues": "doubleArray",
-                          "controlPoseRotateOrder": "enum"}
+WNODE_DRIVERPOSE_ATTRS = {
+    "poseMatrix": "matrix",
+    "poseParentMatrix": "matrix",
+    "poseMode": "enum",
+    "controlPoseAttributes": "stringArray",
+    "controlPoseValues": "doubleArray",
+    "controlPoseRotateOrder": "enum",
+}
 
-WNODE_TRANSFORM_ATTRS = ["tx",
-                         "ty",
-                         "tz",
-                         "rx",
-                         "ry",
-                         "rz",
-                         "sx",
-                         "sy",
-                         "sz",
-                         "v"]
+WNODE_TRANSFORM_ATTRS = [
+    "tx",
+    "ty",
+    "tz",
+    "rx",
+    "ry",
+    "rz",
+    "sx",
+    "sy",
+    "sz",
+    "v",
+]
 
-WNODE_SHAPE_ATTRS = ['visibility',
-                     'type',
-                     'direction',
-                     'invert',
-                     'useRotate',
-                     'angle',
-                     'centerAngle',
-                     'twist',
-                     'twistAngle',
-                     'useTranslate',
-                     'grow',
-                     'translateMin',
-                     'translateMax',
-                     'interpolation',
-                     'iconSize',
-                     'drawCone',
-                     'drawCenterCone',
-                     'drawWeight',
-                     'twistAxis',
-                     'opposite',
-                     'rbfMode',
-                     'useInterpolation',
-                     'allowNegativeWeights',
-                     'scale',
-                     'distanceType',
-                     'drawOrigin',
-                     'drawDriver',
-                     'drawPoses',
-                     'drawIndices',
-                     'drawTwist',
-                     'poseLength',
-                     'indexDistance',
-                     'driverIndex']
+WNODE_SHAPE_ATTRS = [
+    "visibility",
+    "type",
+    "direction",
+    "invert",
+    "useRotate",
+    "angle",
+    "centerAngle",
+    "twist",
+    "twistAngle",
+    "useTranslate",
+    "grow",
+    "translateMin",
+    "translateMax",
+    "interpolation",
+    "iconSize",
+    "drawCone",
+    "drawCenterCone",
+    "drawWeight",
+    "twistAxis",
+    "opposite",
+    "rbfMode",
+    "useInterpolation",
+    "allowNegativeWeights",
+    "scale",
+    "distanceType",
+    "drawOrigin",
+    "drawDriver",
+    "drawPoses",
+    "drawIndices",
+    "drawTwist",
+    "poseLength",
+    "indexDistance",
+    "driverIndex",
+]
 
 ENVELOPE_ATTR = "scale"
 
@@ -116,11 +122,12 @@ RBF_TYPE = "weightDriver"
 # General utils
 # ==============================================================================
 
+
 # Check for plugin
 def loadWeightPlugin(dependentFunc):
     """ensure that plugin is always loaded prior to importing from json
 
-    Note: No assumption has been made about plugin location, we loop over 
+    Note: No assumption has been made about plugin location, we loop over
         available plugin, and check for the highest version.
 
     Args:
@@ -138,11 +145,11 @@ def loadWeightPlugin(dependentFunc):
 
     try:
         plugin_list = plugin_utils.get_available_plugins("weightDriver")
-        
+
         # only one weightDriver plugin
         if len(plugin_list) == 1:
             return dependentFunc
-        
+
         # Loop over weight plugins, enable and test version
         for plugin_data in plugin_list:
             plugin_utils.load_plugin(*plugin_data)
@@ -155,19 +162,18 @@ def loadWeightPlugin(dependentFunc):
             else:
                 if wd_version <= maya_2023_upper_limit:
                     usingShapes = True
-
             if usingShapes:
                 msg = "RBF Manager is using weightDriver version {} installed \
 with SHAPES plugin"
                 pm.displayInfo(msg.format(wd_version))
                 break
-
     except RuntimeError:
         pm.displayWarning("RBF Manager couldn't found any valid RBF solver.")
 
     return dependentFunc
 
 
+@loadWeightPlugin
 def createRBF(name, transformName=None):
     """Creates a rbf node of type weightDriver
 
@@ -209,11 +215,9 @@ def getNodeConnections(node):
     """
     connections = []
     attributesToRecreate = []
-    nodePlugConnections = pm.listConnections(node,
-                                             plugs=True,
-                                             scn=True,
-                                             connections=True,
-                                             sourceFirst=True)
+    nodePlugConnections = pm.listConnections(
+        node, plugs=True, scn=True, connections=True, sourceFirst=True
+    )
 
     for connectPair in nodePlugConnections:
         srcPlug = connectPair[0].name()
@@ -292,16 +296,16 @@ def lengthenCompoundAttrs(node):
     valSize = mc.getAttr("{}.output".format(node), s=True)
     for poseIndex in poseLen:
         for index in range(attrSize):
-            nodeInput = "{}.poses[{}].poseInput[{}]".format(node,
-                                                            poseIndex,
-                                                            index)
+            nodeInput = "{}.poses[{}].poseInput[{}]".format(
+                node, poseIndex, index
+            )
             mc.getAttr(nodeInput)
 
     for poseIndex in poseLen:
         for index in range(valSize):
-            nodeValue = "{}.poses[{}].poseValue[{}]".format(node,
-                                                            poseIndex,
-                                                            index)
+            nodeValue = "{}.poses[{}].poseValue[{}]".format(
+                node, poseIndex, index
+            )
             mc.getAttr(nodeValue)
 
 
@@ -315,8 +319,7 @@ def getPoseInfo(node):
         dict: of poseInput:list of values, poseValue:values
     """
     lengthenCompoundAttrs(node)
-    tmp_dict = {"poseInput": [],
-                "poseValue": []}
+    tmp_dict = {"poseInput": [], "poseValue": []}
     numberOfPoses = pm.getAttr("{}.poses".format(node), mi=True) or []
     for index in numberOfPoses:
         nameAttrInput = "{0}.poses[{1}].poseInput".format(node, index)
@@ -384,8 +387,7 @@ def getDriverNode(node):
     Returns:
         list: of driver nodes
     """
-    drivers = list(set(pm.listConnections("{}.input".format(node),
-                                          scn=True)))
+    drivers = list(set(pm.listConnections("{}.input".format(node), scn=True)))
     if node in drivers:
         drivers.remove(node)
     drivers = [str(dNode.name()) for dNode in drivers]
@@ -420,8 +422,7 @@ def getDrivenNode(node):
     Returns:
         list: of driven nodes
     """
-    driven = list(set(pm.listConnections("{}.output".format(node),
-                                         scn=True)))
+    driven = list(set(pm.listConnections("{}.output".format(node), scn=True)))
     if node in driven:
         driven.remove(node)
     driven = [str(dNode.name()) for dNode in driven]
@@ -463,8 +464,11 @@ def getDriverNodeAttributes(node):
     """
     attributesToReturn = []
     driveAttrs = getAttrInOrder(node, "input")
-    attributesToReturn = [attr.attrName(longName=True) for attr in driveAttrs
-                          if attr.nodeName() != node]
+    attributesToReturn = [
+        attr.attrName(longName=True)
+        for attr in driveAttrs
+        if attr.nodeName() != node
+    ]
     return attributesToReturn
 
 
@@ -513,10 +517,9 @@ def copyPoses(nodeA, nodeB, emptyPoseValues=True):
         for poseIndex in range(numberOfPoses):
             poseValues = value[poseIndex]
             for index, pIndexValue in enumerate(poseValues):
-                pathToAttr = "{}.poses[{}].{}[{}]".format(nodeB,
-                                                          poseIndex,
-                                                          attr,
-                                                          index)
+                pathToAttr = "{}.poses[{}].{}[{}]".format(
+                    nodeB, poseIndex, attr, index
+                )
                 if attr == "poseInput":
                     valueToSet = pIndexValue
                 elif attr == "poseValue" and emptyPoseValues:
@@ -542,16 +545,16 @@ def syncPoseIndices(srcNode, destNode):
     destDrivenAttrs = getDrivenNodeAttributes(destNode)
     for poseIndex, piValues in enumerate(src_poseInfo["poseInput"]):
         for index, piValue in enumerate(piValues):
-            pathToAttr = "{}.poses[{}].poseInput[{}]".format(destNode,
-                                                             poseIndex,
-                                                             index)
+            pathToAttr = "{}.poses[{}].poseInput[{}]".format(
+                destNode, poseIndex, index
+            )
             pm.setAttr(pathToAttr, piValue)
 
     for poseIndex, piValues in enumerate(src_poseInfo["poseValue"]):
         for index, piValAttr in enumerate(destDrivenAttrs):
-            pathToAttr = "{}.poses[{}].poseValue[{}]".format(destNode,
-                                                             poseIndex,
-                                                             index)
+            pathToAttr = "{}.poses[{}].poseValue[{}]".format(
+                destNode, poseIndex, index
+            )
             if piValAttr in rbf_node.SCALE_ATTRS:
                 valueToSet = 1.0
             else:
@@ -591,8 +594,9 @@ def getNodeInfo(node):
     driverContol = rbf_node.getDriverControlAttr(node.name())
     weightNodeInfo_dict["driverControl"] = driverContol
     weightNodeInfo_dict["setupName"] = rbf_node.getSetupName(node.name())
-    drivenControlName = rbf_node.getConnectedRBFToggleNode(node.name(),
-                                                           ENVELOPE_ATTR)
+    drivenControlName = rbf_node.getConnectedRBFToggleNode(
+        node.name(), ENVELOPE_ATTR
+    )
     weightNodeInfo_dict["drivenControlName"] = drivenControlName
     weightNodeInfo_dict["rbfType"] = RBF_TYPE
     driverPosesInfo = rbf_node.getDriverControlPoseAttr(node.name())
@@ -671,9 +675,7 @@ def setPosesFromInfo(node, posesInfo):
         for poseIndex in range(numberOfPoses):
             poseValues = value[poseIndex]
             for index, pIndexValue in enumerate(poseValues):
-                pathToAttr = "poses[{}].{}[{}]".format(poseIndex,
-                                                       attr,
-                                                       index)
+                pathToAttr = "poses[{}].{}[{}]".format(poseIndex, attr, index)
                 node.setAttr(pathToAttr, pIndexValue)
 
 
@@ -788,24 +790,32 @@ def createRBFFromInfo(weightNodeInfo_dict):
         setupName = weightInfo.pop("setupName", "")
         drivenControlName = weightInfo.pop("drivenControlName", "")
         driverControl = weightInfo.pop("driverControl", "")
-        driverControlPoseInfo = weightInfo.pop(rbf_node.DRIVER_POSES_INFO_ATTR,
-                                               {})
+        driverControlPoseInfo = weightInfo.pop(
+            rbf_node.DRIVER_POSES_INFO_ATTR, {}
+        )
 
-        if drivenControlName is not None and not mc.objExists(drivenControlName):
+        if drivenControlName is not None and not mc.objExists(
+            drivenControlName
+        ):
             skipped_nodes.append(drivenControlName)
             continue
 
-        transformNode, node = createRBF(weightNodeName,
-                                        transformName=transformName)
+        transformNode, node = createRBF(
+            weightNodeName, transformName=transformName
+        )
         rbf_node.setSetupName(node.name(), setupName)
         # create the driven group for the control
-        if (drivenNodeName and
-            drivenNodeName[0].endswith(DRIVEN_SUFFIX) and
-                drivenControlName):
+        if (
+            drivenNodeName
+            and drivenNodeName[0].endswith(DRIVEN_SUFFIX)
+            and drivenControlName
+        ):
             rbf_node.addDrivenGroup(drivenControlName)
-        elif (drivenNodeName and
-              drivenNodeName[0].endswith(DRIVEN_SUFFIX) and
-              mc.objExists(drivenNodeName[0].replace(DRIVEN_SUFFIX, ""))):
+        elif (
+            drivenNodeName
+            and drivenNodeName[0].endswith(DRIVEN_SUFFIX)
+            and mc.objExists(drivenNodeName[0].replace(DRIVEN_SUFFIX, ""))
+        ):
             drivenControlName = drivenNodeName[0].replace(DRIVEN_SUFFIX, "")
             rbf_node.addDrivenGroup(drivenControlName)
 
@@ -822,7 +832,11 @@ def createRBFFromInfo(weightNodeInfo_dict):
         createdNodes.append(node.name())
 
     if skipped_nodes:
-        mc.warning("RBF Nodes were skipped due to missing controls! \n {}".format(skipped_nodes))
+        mc.warning(
+            "RBF Nodes were skipped due to missing controls! \n {}".format(
+                skipped_nodes
+            )
+        )
     return createdNodes
 
 
@@ -900,10 +914,7 @@ class RBFNode(rbf_node.RBFNode):
         if posesIndex is None:
             posesIndex = len(self.getPoseInfo()["poseInput"])
         self.updateDriverControlPoseAttr(posesIndex)
-        addPose(self.name,
-                poseInput,
-                poseValue,
-                posesIndex=posesIndex)
+        addPose(self.name, poseInput, poseValue, posesIndex=posesIndex)
 
     def deletePose(self, indexToPop):
         deletePose(self.name, indexToPop)
@@ -940,9 +951,9 @@ class RBFNode(rbf_node.RBFNode):
             elif mc.objExists(drivenOtherName):
                 drivenControlName = drivenOtherName
             rbf_node.createRBFToggleAttr(drivenControlName)
-            rbf_node.connectRBFToggleAttr(drivenControlName,
-                                          self.name,
-                                          self.getRBFToggleAttr())
+            rbf_node.connectRBFToggleAttr(
+                drivenControlName, self.name, self.getRBFToggleAttr()
+            )
         return attrs_dict
 
     def copyPoses(self, nodeB):

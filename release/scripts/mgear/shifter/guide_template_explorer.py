@@ -11,14 +11,12 @@ from mgear.vendor.qjsonmodel import QJsonModel
 
 
 class GuideTemplateExplorerUI(QtWidgets.QMainWindow, gteUI.Ui_MainWindow):
-
     def __init__(self, parent=None):
         super(GuideTemplateExplorerUI, self).__init__(parent)
         self.setupUi(self)
 
 
 class GuideTemplateExplorer(MayaQWidgetDockableMixin, QtWidgets.QDialog):
-
     def __init__(self, parent=None):
         self.toolName = "shifterGuideTemplateExplorer"
         super(GuideTemplateExplorer, self).__init__(parent=parent)
@@ -58,18 +56,29 @@ class GuideTemplateExplorer(MayaQWidgetDockableMixin, QtWidgets.QDialog):
     ###########################
     def create_connections(self):
         self.gteUIInst.actionOpen.triggered.connect(self.open_template)
+        self.gteUIInst.actionLoad_Selected_Guide.triggered.connect(
+            self.load_selected_guide
+        )
         self.gteUIInst.actionSave_As.triggered.connect(self.save_as_template)
         self.gteUIInst.actionClear.triggered.connect(self.clear_template)
 
         self.gteUIInst.actionBuild.triggered.connect(self.build_template)
         self.gteUIInst.actionImport.triggered.connect(self.import_template)
         self.gteUIInst.actionImport_Partial.triggered.connect(
-            self.import_partial_template)
+            self.import_partial_template
+        )
         self.gteUIInst.actionDiff_Tool.triggered.connect(self.diff_tool)
 
     #############
     # SLOTS
     #############
+    def load_selected_guide(self):
+        template = io.get_template_from_selection(None)
+        if template:
+            self.__model.load(template)
+        else:
+            pm.displayWarning("Not guide root slected")
+
     def open_template(self):
         template = io._import_guide_template()
         if template:
@@ -116,15 +125,19 @@ class GuideTemplateExplorer(MayaQWidgetDockableMixin, QtWidgets.QDialog):
                         initParent = oSel[0]
                     else:
                         initParent = None
-                    io.import_partial_guide(partial=part,
-                                            initParent=initParent,
-                                            conf=template)
+                    io.import_partial_guide(
+                        partial=part, initParent=initParent, conf=template
+                    )
                 else:
-                    pm.displayWarning("Please select a component guide to "
-                                      "import from components_list")
+                    pm.displayWarning(
+                        "Please select a component guide to "
+                        "import from components_list"
+                    )
             except AttributeError:
-                pm.displayWarning("Please select a component guide to import"
-                                  " from components_list")
+                pm.displayWarning(
+                    "Please select a component guide to import"
+                    " from components_list"
+                )
         else:
             pm.displayWarning("Not guide template load")
 
@@ -136,15 +149,14 @@ def open_guide_template_explorer(*args):
 
 # Guide difference tool
 
-class GuideDiffUI(QtWidgets.QDialog, gdUI.Ui_Form):
 
+class GuideDiffUI(QtWidgets.QDialog, gdUI.Ui_Form):
     def __init__(self, parent=None):
         super(GuideDiffUI, self).__init__(parent)
         self.setupUi(self)
 
 
 class GuideDiffTool(MayaQWidgetDockableMixin, QtWidgets.QDialog):
-
     def __init__(self, parent=None):
         self.toolName = "GuideDiffTool"
         super(GuideDiffTool, self).__init__(parent=parent)
@@ -177,9 +189,9 @@ class GuideDiffTool(MayaQWidgetDockableMixin, QtWidgets.QDialog):
 
         # buttons
         self.gdUIInst.load_pushButton.clicked.connect(
-            self.load_master_template)
-        self.gdUIInst.runTest_pushButton.clicked.connect(
-            self.run_test)
+            self.load_master_template
+        )
+        self.gdUIInst.runTest_pushButton.clicked.connect(self.run_test)
 
     #############
     # SLOTS
@@ -205,7 +217,8 @@ class GuideDiffTool(MayaQWidgetDockableMixin, QtWidgets.QDialog):
             check_guide_transform_diff=guide_tra,
             check_guide_root_settings_diff=root_sett,
             check_component_settings_diff=comp_sett,
-            check_guide_custom_step_diff=custom_step)
+            check_guide_custom_step_diff=custom_step,
+        )
         guide_template.print_guide_diff(guide_diff)
 
 

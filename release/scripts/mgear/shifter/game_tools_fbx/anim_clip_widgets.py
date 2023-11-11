@@ -4,7 +4,7 @@ import maya.cmds as cmds
 
 from mgear.vendor.Qt import QtWidgets, QtCore, QtGui
 
-from mgear.core import pyqt
+from mgear.core import pyqt, utils as coreUtils, animLayers
 from mgear.shifter.game_tools_fbx import fbx_export_node, utils
 
 
@@ -171,7 +171,7 @@ class AnimClipWidget(QtWidgets.QFrame):
         self._clip_name_lineedit.setStatusTip("Clip Name")
         clip_name_layout.addWidget(self._clip_name_lineedit)
 
-        self._anim_layer_combo = QtWidgets.QComboBox()
+        self._anim_layer_combo = AnimationLayerCB()
         self._anim_layer_combo.setStatusTip("Animation Layer")
         clip_name_layout.addWidget(self._anim_layer_combo)
 
@@ -253,11 +253,22 @@ class AnimClipWidget(QtWidgets.QFrame):
         with pyqt.block_signals(self._anim_layer_combo):
             self._anim_layer_combo.clear()
             # TODO: Maybe we should filter display layers that are set with override mode?
-            anim_layers = utils.all_anim_layers_ordered()
+            anim_layers = animLayers.all_anim_layers_ordered()
             self._anim_layer_combo.addItems(["None"] + anim_layers)
-            self._anim_layer_combo.setCurrentText(
-                anim_clip_data.get("anim_layer", "None")
-            )
+            serialised_anim_layer = anim_clip_data.get("anim_layer", "None")
+
+            if not serialised_anim_layer:
+                serialised_anim_layer = "None"
+
+            # If serialised animation layer does not exist, notify user.
+            if self._anim_layer_combo.findText(serialised_anim_layer) > -1:
+                self._anim_layer_combo.setCurrentText(serialised_anim_layer)
+            else:
+                cmds.warning(
+                    "Animation Layer not found: {}".format(
+                        serialised_anim_layer
+                    )
+                )
 
     def set_enabled(self, flag):
         self._export_checkbox.setChecked(flag)
@@ -293,7 +304,7 @@ class AnimClipWidget(QtWidgets.QFrame):
         anim_clip_data = fbx_export_node.FbxExportNode.ANIM_CLIP_DATA.copy()
         anim_clip_data["title"] = self._clip_name_lineedit.text()
         anim_clip_data["enabled"] = self._export_checkbox.isChecked()
-        # anim_clip_data["frame_rate"] = self._frame_rate_combo.currentText()
+        anim_clip_data["frame_rate"] = coreUtils.get_frame_rate()
         anim_clip_data["start_frame"] = int(self._start_frame_box.text())
         anim_clip_data["end_frame"] = int(self._end_frame_box.text())
         anim_layer = self._anim_layer_combo.currentText()
@@ -329,12 +340,16 @@ class AnimClipWidget(QtWidgets.QFrame):
         self._end_frame_box.setText(max_frame)
 
     def _on_play_button_clicked(self):
-        start_time = str(int(cmds.playbackOptions(query=True, ast=True)))
-        end_time = str(int(cmds.playbackOptions(query=True, aet=True)))
+        start_time = str(int(cmds.playbackOptions(query=True, min=True)))
+        end_time = str(int(cmds.playbackOptions(query=True, max=True)))
+        anim_start_time = str(int(cmds.playbackOptions(query=True, ast=True)))
+        anim_end_time = str(int(cmds.playbackOptions(query=True, aet=True)))
         start_frame = self._start_frame_box.text()
         end_frame = self._end_frame_box.text()
 
-        if not (start_frame == start_time and end_frame == end_time):
+        if not (start_frame == start_time and end_frame == end_time) or not (
+            start_frame == anim_start_time and end_frame == anim_end_time
+        ):
             cmds.playbackOptions(
                 animationStartTime=start_frame,
                 minTime=start_frame,
@@ -379,3 +394,26 @@ class AnimClipWidget(QtWidgets.QFrame):
             utils.open_mgear_playblast_folder
         )
         context_menu.exec_(self.mapToGlobal(pos))
+
+
+class AnimationLayerCB(QtWidgets.QComboBox):
+    """
+    Custom overloaded QComboBox, this will automatically refresh the combobox everytime
+    it shows the values. Keep the Combobox up to date with the AnimationLayers available.
+    """
+
+    def __init__(self, parent=None):
+        super(AnimationLayerCB, self).__init__(parent=parent)
+
+    def showPopup(self):
+        super(AnimationLayerCB, self).showPopup()
+        currentText = self.currentText()
+
+        self.clear()
+
+        anim_layers = animLayers.all_anim_layers_ordered()
+        self.addItems(["None"] + anim_layers)
+
+        self.setCurrentText(currentText)
+
+        # TODO: Could to a check here to see if the layer still exists, else add a warning.

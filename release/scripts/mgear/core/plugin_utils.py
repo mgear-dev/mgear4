@@ -21,7 +21,7 @@ class pluginVersion:
                 raise ValueError("Invalid version number format. Must be integers.")
 
     def __str__(self):
-        return f"{self.major}.{self.minor}.{self.patch}"
+        return "{}.{}.{}".format(self.major, self.minor, self.patch)
 
     def __eq__(self, other):
         return (self.major, self.minor, self.patch) == (other.major, other.minor, other.patch)
@@ -74,7 +74,7 @@ def get_all_available_plugins():
     Gets all available plugins, that exist in the environment variables paths.
     """
     # System paths are structured differently on OSs
-    if get_os == "Windows":
+    if get_os() == "Windows":
         plugin_paths = mel.eval("getenv MAYA_PLUG_IN_PATH").split(";")
     else:
         plugin_paths = mel.eval("getenv MAYA_PLUG_IN_PATH").split(":")
@@ -128,7 +128,7 @@ def get_not_loaded_plugins():
 def unload_plugin(plugin_name, plugin_path=None):
     """
     Unloads a plugin.
-    If plugin_path is not None, then a check is performed to make sure the plugin found, 
+    If plugin_path is not None, then a check is performed to make sure the plugin found,
     is the same plugin at the path. As it is possible to have multiple plugins with the same name at differnt locations.
     """
     if cmds.pluginInfo(plugin_name, q=True, loaded=True):

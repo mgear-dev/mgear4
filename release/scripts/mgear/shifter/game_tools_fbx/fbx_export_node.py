@@ -29,11 +29,14 @@ class FbxExportNode(object):
         "partitions": {},
         "anim_clips": {},
         "export_tab": 0,
+        "ue_enabled": False,
+        "ue_file_path": "",
+        "ue_active_skeleton":"",
     }
     ANIM_CLIP_DATA = {
         "title": "Untitled",
         "enabled": True,
-        "frame_rate": "30 fps",
+        "frame_rate": "",
         "start_frame": int(pm.playbackOptions(min=True, query=True)),
         "end_frame": int(pm.playbackOptions(max=True, query=True)),
     }
@@ -199,6 +202,10 @@ class FbxExportNode(object):
             .get("anim_clips", {})
             .get(root_joint_name, [])
         )
+
+    def get_ue_active_skeleton(self):
+        export_data = self.parse_export_data()
+        return export_data.get("ue_active_skeleton", None)
 
     def find_animation_clip(self, root_joint_name, clip_name):
         anim_clips = self.get_animation_clips(root_joint_name)

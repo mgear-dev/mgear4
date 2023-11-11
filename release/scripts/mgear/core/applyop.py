@@ -23,6 +23,49 @@ from .six import string_types
 #############################################
 
 
+def parentCns(driver, driven, maintain_offset=True, **kwargs):
+    """
+    Apply a parent constraint from driver to driven, skipping locked attributes,
+    and allowing additional keyword arguments for the parentConstraint command.
+
+    Args:
+        driver (pm.nt.Transform): The driver object to apply the constraint.
+        driven (pm.nt.Transform): The driven object to be constrained.
+        maintain_offset (bool): Whether to maintain the current offset.
+
+    Returns:
+        pm.nodetypes.ParentConstraint: The created parent constraint node.
+
+    Raises:
+        ValueError: If all translate and rotate attributes on the driven are locked.
+    """
+    # Determine which translate and rotate attributes are locked
+    skip_translate = [
+        axis for axis in "xyz" if driven.attr("t" + axis).isLocked()
+    ]
+    skip_rotate = [
+        axis for axis in "xyz" if driven.attr("r" + axis).isLocked()
+    ]
+
+    # Check if all attributes are locked, raise an exception if so
+    if len(skip_translate) == 3 and len(skip_rotate) == 3:
+        raise ValueError(
+            "All translate and rotate attributes on the driven are locked."
+        )
+
+    # Apply constraint, skipping the locked attributes
+    constraint = pm.parentConstraint(
+        driver,
+        driven,
+        mo=maintain_offset,
+        skipTranslate=skip_translate,
+        skipRotate=skip_rotate,
+        **kwargs  # Pass any additional keyword arguments
+    )
+
+    return constraint
+
+
 def curvecns_op(crv, inputs=[]):
 
     for i, item in enumerate(inputs):

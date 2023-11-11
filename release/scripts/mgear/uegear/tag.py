@@ -185,10 +185,8 @@ def find_tagged_nodes(
         if not cmds.attributeQuery(tag_name, node=node, exists=True):
             continue
         found_tag_value = cmds.getAttr("{}.{}".format(node, tag_name))
-        if (
-            not found_tag_value
-            or (tag_value is not None
-            and found_tag_value != tag_value)
+        if not found_tag_value or (
+            tag_value is not None and found_tag_value != tag_value
         ):
             continue
         found_tagged_nodes.append(node)
@@ -266,10 +264,10 @@ def tag_values(tag_name=TAG_ASSET_TYPE_ATTR_NAME, nodes=None):
 
 def tag_match(dag_path, tag_value, tag):
     """
-    Validates if the object specified by its dag path, has the same tag and value 
+    Validates if the object specified by its dag path, has the same tag and value
     assigned to it.
 
-    :param OpenMaya.DagPath dag_path: The object you want to validate has the 
+    :param OpenMaya.DagPath dag_path: The object you want to validate has the
            following tag and data assigned.
     :param str tag_value: value assigned to the tag.
     :param str tag: tag to correlate with.

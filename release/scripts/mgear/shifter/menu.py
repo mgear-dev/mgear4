@@ -21,6 +21,7 @@ def install():
             str_build_from_file,
             "mgear_play-circle.svg",
         ),
+        ("Rig Builder", str_openRigBuilder, "mgear_rigBuilder.svg"),
         ("-----", None),
         (
             "Import Guide Template",
@@ -140,8 +141,8 @@ def game_submenu(parent_menu_id):
         parent_menu_id (str): Parent menu. i.e: "MayaWindow|mGear|menuItem355"
     """
     commands = (
-        # ("FBX Export (BETA)", str_game_fbx_export),
-        # ("-----", None),
+        ("FBX Export", str_game_fbx_export),
+        ("-----", None),
         ("Disconnect Joints", str_game_disconnet),
         ("Connect Joints", str_game_connect),
         ("Delete Rig + Keep Joints", str_game_delete_rig),
@@ -351,4 +352,9 @@ guide_manager.extract_guide_from_rig()
 str_extract_match_guide_from_rig = """
 from mgear.shifter import guide_manager
 guide_manager.extract_match_guide_from_rig()
+"""
+
+str_openRigBuilder = """
+from mgear.shifter.rig_builder import ui
+ui.openRigBuilderUI()
 """

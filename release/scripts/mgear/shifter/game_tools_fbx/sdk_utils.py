@@ -324,7 +324,11 @@ class FbxSdkGameToolsWrapper(object):
             _parent = parent.GetParent()
             while True:
                 top_parent = _parent
-                _parent = _parent.GetParent()
+                try:
+                    _parent = _parent.GetParent()
+                except AttributeError:
+                    _parent = self._root_node
+                    break
                 if _parent == self._root_node:
                     break
         if top_parent:

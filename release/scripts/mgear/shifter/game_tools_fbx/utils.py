@@ -9,10 +9,17 @@ from collections import OrderedDict
 import pymel.core as pm
 import maya.cmds as cmds
 import maya.mel as mel
+import maya.api.OpenMaya as om
 
 from mgear.vendor.Qt import QtWidgets, QtCore
 
-from mgear.core import pyFBX as pfbx, pyqt, string
+from mgear.core import (
+    pyFBX as pfbx,
+    pyqt,
+    string,
+    utils as coreUtils,
+    animLayers,
+)
 from mgear.shifter.game_tools_fbx import sdk_utils
 
 NO_EXPORT_TAG = "no_export"
@@ -192,7 +199,7 @@ def export_skeletal_mesh(export_data):
                         )
                     )
 
-    return True
+    return export_path
 
 
 def export_skeletal_mesh_partitions(jnt_roots, export_data):
@@ -295,56 +302,52 @@ def export_skeletal_mesh_partitions(jnt_roots, export_data):
     return True
 
 
-def export_animation_clip(root_joint, **export_data):
-    if not root_joint or not cmds.objExists(root_joint):
-        cmds.warning(
-            'Was not possible to export animation clip because root joint "{}" was not found within scene'.format(
-                root_joint
-            )
-        )
-        return False
+def export_animation_clip(config_data, clip_data):
+    """
+    Exports a singular animation clip.
 
-    # only enabled animation clips will be exported
-    enabled = export_data.get("enabled", False)
-    if not enabled:
-        return False
+    config_data: The configuration for the scene/session
+    clip_data: Information about the clip to be exported.
 
-    # namespace = pm.PyNode(root_joint).namespace()
-    # if not namespace:
-    # 	cmds.warning('Only animations with namespaces can be exported')
-    # 	return False
-    # namespace = namespace[:-1]
+    :return: return the path of the newly exported fbx.
+    :rtype: str
+    """
+    # Clip Data
+    start_frame = clip_data.get(
+        "start_frame", cmds.playbackOptions(query=True, minTime=True)
+    )
+    end_frame = clip_data.get(
+        "end_frame", cmds.playbackOptions(query=True, maxTime=True)
+    )
+    title = clip_data.get("title", "")
+    frame_rate = clip_data.get("geo_root", coreUtils.get_frame_rate())
+    anim_layer = clip_data.get("anim_layer", "")
 
-    time_range = cmds.playbackOptions(
-        query=True, minTime=True
-    ), cmds.playbackOptions(query=True, maxTime=True)
-    start_frame = export_data.get("startFrame", time_range[0])
-    end_frame = export_data.get("endFrame", time_range[1])
+    # Config Data
+    root_joint = config_data.get("joint_root", "")
+    file_path = config_data.get("file_path", "")
+    file_name = config_data.get("file_name", "")
+    preset_path = config_data.get("preset_path", None)
+    up_axis = config_data.get(
+        "up_axis", cmds.optionVar(query="upAxisDirection")
+    )
+    file_type = config_data.get("file_type", "binary").lower()
+    fbx_version = config_data.get("fbx_version", None)
+    remove_namespaces = config_data.get("remove_namespace")
+    scene_clean = config_data.get("scene_clean", True)
+
+    # Validate timeline range
     if start_frame > end_frame:
-        cmds.error(
-            "Start frame {} must be lower than the end frame {}".format(
-                start_frame, end_frame
-            )
-        )
+        msg = "Start frame {} must be lower than the end frame {}"
+        cmds.error(msg.format(start_frame, end_frame))
         return False
 
-    title = export_data.get("title", "")
-    file_path = export_data.get("file_path", "")
-    file_name = export_data.get("file_name", "")
-    preset_path = export_data.get("preset_path", None)
-    up_axis = export_data.get("up_axis", None)
-    file_type = export_data.get("file_type", "binary").lower()
-    fbx_version = export_data.get("fbx_version", None)
-    remove_namespaces = export_data.get("remove_namespace")
-    scene_clean = export_data.get("scene_clean", True)
-    frame_rate = export_data.get("frameRate", "30 FPS")
-    anim_layer = export_data.get("animLayer", "")
-
+    # Validate file path
     if not file_path or not file_name:
-        cmds.warning(
-            "No valid file path or file name given for the FBX to export!"
-        )
+        msg = "No valid file path or file name given for the FBX to export!"
+        cmds.warning(msg)
         return False
+
     if title:
         file_name = "{}_{}".format(file_name, title)
     if not file_name.endswith(".fbx"):
@@ -352,40 +355,21 @@ def export_animation_clip(root_joint, **export_data):
     path = string.normalize_path(os.path.join(file_path, file_name))
     print("\t>>> Export Path: {}".format(path))
 
-    original_selection = pm.ls(sl=True)
-    auto_key_state = pm.autoKeyframe(query=True, state=True)
-    cycle_check = pm.cycleCheck(query=True, evaluation=True)
+    auto_key_state = cmds.autoKeyframe(query=True, state=True)
+    cycle_check = cmds.cycleCheck(query=True, evaluation=True)
     scene_modified = cmds.file(query=True, modified=True)
     current_frame_range = cmds.currentUnit(query=True, time=True)
     current_frame = cmds.currentTime(query=True)
-    original_start_frame = int(pm.playbackOptions(min=True, query=True))
-    original_end_frame = int(pm.playbackOptions(max=True, query=True))
+    original_start_frame = cmds.playbackOptions(query=True, minTime=True)
+    original_end_frame = cmds.playbackOptions(query=True, maxTime=True)
     temp_mesh = None
     temp_skin_cluster = None
-    original_anim_layer_weights = None
+    original_anim_layer_weights = animLayers.get_layer_weights()
 
     try:
         # set anim layer to enable
-        if (
-            anim_layer
-            and cmds.objExists(anim_layer)
-            and cmds.nodeType(anim_layer) == "animLayer"
-        ):
-            to_activate = None
-            to_deactivate = []
-            anim_layers = all_anim_layers_ordered(include_base_animation=False)
-            original_anim_layer_weights = {
-                anim_layer: cmds.animLayer(anim_layer, query=True, weight=True)
-                for anim_layer in anim_layers
-            }
-            for found_anim_layer in anim_layers:
-                if found_anim_layer != anim_layer:
-                    to_deactivate.append(found_anim_layer)
-                else:
-                    to_activate = found_anim_layer
-            for anim_layer_to_deactivate in to_deactivate:
-                cmds.animLayer(anim_layer_to_deactivate, edit=True, weight=0.0)
-            cmds.animLayer(to_activate, edit=True, weight=1.0)
+        if animLayers.animation_layer_exists(anim_layer):
+            animLayers.set_layer_weight(anim_layer, toggle_other_off=True)
 
         # disable viewport
         mel.eval("paneLayout -e -manage false $gMainPane")
@@ -419,15 +403,15 @@ def export_animation_clip(root_joint, **export_data):
 
         # Set frame range
         cmds.currentTime(start_frame)
-        old_frame_rate = AS_FRAMES[cmds.currentUnit(query=True, time=True)]
-        new_frame_rate = FRAMES_PER_SECOND[frame_rate][1]
+        old_frame_rate = coreUtils.get_frame_rate()
+        new_frame_rate = frame_rate
         # only set if frame rate changed
         mult_rate = new_frame_rate / old_frame_rate
         if mult_rate != 1:
             old_range = start_frame, end_frame
             start_frame = old_range[0] * mult_rate
             end_frame = old_range[1] * mult_rate
-            cmds.currentUnit(time=FRAMES_PER_SECOND[frame_rate][0])
+            coreUtils.set_frame_rate(frame_rate)
 
         pm.autoKeyframe(state=False)
         pfbx.FBXExportAnimationOnly(v=False)
@@ -478,8 +462,7 @@ def export_animation_clip(root_joint, **export_data):
     finally:
         # setup again original anim layer weights
         if anim_layer and original_anim_layer_weights:
-            for name, weight in original_anim_layer_weights.items():
-                cmds.animLayer(name, edit=True, weight=weight)
+            animLayers.set_layer_weights(original_anim_layer_weights)
 
         if temp_skin_cluster and cmds.objExists(temp_skin_cluster):
             cmds.delete(temp_skin_cluster)
@@ -493,9 +476,6 @@ def export_animation_clip(root_joint, **export_data):
         pm.cycleCheck(evaluation=cycle_check)
         cmds.playbackOptions(min=original_start_frame, max=original_end_frame)
 
-        if original_selection:
-            pm.select(original_selection)
-
         # if the scene was not modified before doing our changes, we force it back now
         if scene_modified is False:
             cmds.file(modified=False)
@@ -503,7 +483,7 @@ def export_animation_clip(root_joint, **export_data):
         # enable viewport
         mel.eval("paneLayout -e -manage true $gMainPane")
 
-    return True
+    return path
 
 
 def create_mgear_playblast(
@@ -739,34 +719,6 @@ def get_end_joint(start_joint):
             next_joint = None
 
     return end_joint
-
-
-def all_anim_layers_ordered(include_base_animation=True):
-    """Recursive function that returns all available animation layers within current scene.
-
-    Returns:
-            list[str]: list of animation layers.
-    """
-
-    def _add_node_recursive(layer_node):
-        all_layers.append(layer_node)
-        child_layers = (
-            cmds.animLayer(layer_node, query=True, children=True) or list()
-        )
-        for child_layer in child_layers:
-            _add_node_recursive(child_layer)
-
-    all_layers = list()
-    root_layer = cmds.animLayer(query=True, root=True)
-    if not root_layer:
-        return all_layers
-    _add_node_recursive(root_layer)
-
-    if not include_base_animation:
-        if "BaseAnimation" in all_layers:
-            all_layers.remove("BaseAnimation")
-
-    return all_layers
 
 
 if __name__ == "__main__":
