@@ -21,11 +21,7 @@ Menu
 The menu can be found under **mGear > ueGear**
 
 .. figure:: images/uegear/maya_uegear_menu.png
-    :width: 800px
     :align: center
-    :height: 500px
-    :alt: alternate text
-    :figclass: align-center
 
 As Unreal has multiple locations [**Content Browser**, **Active Level**] for assets, do be aware of where you are sending assets to and from.
 
@@ -37,11 +33,7 @@ ueGear tags, are extra attributes that are added onto the Maya DAG object as a b
 These attributes help keep data in sync, with objects that exist in Unreal.
 
 .. figure:: images/uegear/unreal_tag.png
-    :width: 800px
     :align: center
-    :height: 140px
-    :alt: alternate text
-    :figclass: align-center
 
 As Unreal allows for multiple objects to be instantiated in a Level and have the same name, we need a way to keep track of which object is associated in Maya, as Maya does not allow for objects to have the same name.
 
@@ -49,7 +41,8 @@ As Unreal allows for multiple objects to be instantiated in a Level and have the
 * ue_gear_asset_name: Name of the asset in Unreal's ContentBrowser
 * ue_gear_asset_path: Unreal package path, to where the asset will exist.
 
-**Note:** For most of the current ueGear tooling this will be **staticmesh**, if you want to export SkeletalMeshes(SKM) then please refer to the **Shifter FBX Exporter**, as that tool has special Unreal intergrations for exporting skeleton and animations into Unreal from Maya.
+.. note::
+    For most of the current ueGear tooling this will be **staticmesh**, if you want to export SkeletalMeshes(SKM) then please refer to the **Shifter FBX Exporter**, as that tool has special Unreal intergrations for exporting skeleton and animations into Unreal from Maya.
 
 
 Assets
@@ -57,7 +50,8 @@ Assets
 
 **Static Meshes (SM)** can be synced between Maya and Unreal.
 
-**Note:** All assets require a :ref:`unreal-tag` for syncing.
+.. note::
+    All assets require a :ref:`unreal-tag` for syncing.
 
 Import
 ---------
@@ -67,29 +61,18 @@ To import an object.
 1)  Open Unreal
 
 .. figure:: images/uegear/asset_content_browser.png
-    :width: 800px
     :align: center
-    :height: 400px
-    :alt: alternate text
-    :figclass: align-center
 2)  Select the object you wish to import in the Content Browser.
 
 3)  In Maya click **ueGear > Import Selected Asset from Unreal**
 
 .. figure:: images/uegear/asset_maya_import.png
-    :width: 800px
     :align: center
-    :height: 500px
-    :alt: alternate text
-    :figclass: align-center
 4) The selected asset should now be imported into Maya.
 
 .. figure:: images/uegear/unreal_tag.png
-    :width: 800px
     :align: center
-    :height: 140px
-    :alt: alternate text
-    :figclass: align-center
+
 **Note:** It will not bring in any texture or shading data. It will import the triangulated geo, and setup the tags.
 
 Export
@@ -114,19 +97,11 @@ Import
 To import a Camera into Maya
 
 .. figure:: images/uegear/sequencer_camera.png
-    :width: 800px
     :align: center
-    :height: 350px
-    :alt: alternate text
-    :figclass: align-center
 1) Open up the LevelSequence, which contains the camer you want to export.
 
 .. figure:: images/uegear/sequencer_camera_selected.png
-    :width: 800px
     :align: center
-    :height: 150px
-    :alt: alternate text
-    :figclass: align-center
 2) Select the camera layer. **Note**: Make sure it goes blue and is highlighted, else it will not be detected.
 3) In Maya click **ueGear > Import Selected Cameras From Sequencer**
 4) The camera is now be imported into your Maya scene.
@@ -155,29 +130,23 @@ Import
 To import an SM from an Unreal Level
 
 .. figure:: images/uegear/maya_level_asset_selection.png
-    :width: 800px
     :align: center
-    :height: 350px
-    :alt: alternate text
-    :figclass: align-center
 #) Select the asset or assets in Unreal.
 #) In Maya click **ueGear > Import Selected Assets from Unreal Level**
 
 .. figure:: images/uegear/maya_level_asset_import.png
-    :width: 800px
     :align: center
-    :height: 350px
-    :alt: alternate text
-    :figclass: align-center
 The asset should now appear in Maya in the same location as it was in the Unreal Level.
 
 .. figure:: images/uegear/asset_maya_import_tag.png
-    :width: 800px
     :align: center
-    :height: 200px
-    :alt: alternate text
-    :figclass: align-center
-**Note**: Tags will automatically be generated for each asset, as Unreal has the ability to handle multiple assets with the same name, the tag will store the object guid.
+
+.. raw:: html
+
+   <br/>
+
+.. note::
+    Tags will automatically be generated for each asset, as Unreal has the ability to handle multiple assets with the same name, the tag will store the object guid.
 
 Export
 ---------
@@ -191,12 +160,12 @@ The transformation data will now be updated in the Unreal Level.
 
 
 Skeleton/Rigged Geo
-=============
+======================
 
-Please see the Shifter FBX Exporter
+Please see the :ref:`shifter-fbx-exporter`
 
 
 Animation
 =============
 
-Please see the Shifter FBX Exporter
+Please see the :ref:`shifter-fbx-exporter`
