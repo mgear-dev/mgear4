@@ -41,12 +41,12 @@ class Main(object):
         "Finalize",
     ]
 
-    local_params = ("tx", "ty", "tz", "rx", "ry", "rz", "ro", "sx", "sy", "sz")
+    local_params = ("tx", "ty", "tz", "rx", "ry", "rz", "sx", "sy", "sz")
     t_params = ("tx", "ty", "tz")
-    r_params = ("rx", "ry", "rz", "ro")
+    r_params = ("rx", "ry", "rz")
     s_params = ("sx", "sy", "sz")
-    tr_params = ("tx", "ty", "tz", "rx", "ry", "rz", "ro")
-    rs_params = ("rx", "ry", "rz", "ro", "sx", "sy", "sz")
+    tr_params = ("tx", "ty", "tz", "rx", "ry", "rz")
+    rs_params = ("rx", "ry", "rz", "sx", "sy", "sz")
     x_axis = datatypes.Vector(1, 0, 0)
     y_axis = datatypes.Vector(0, 1, 0)
     z_axis = datatypes.Vector(0, 0, 1)
@@ -831,6 +831,7 @@ class Main(object):
         iconShape,
         tp=None,
         lp=True,
+        customRotOrder=False,
         mirrorConf=[0, 0, 0, 0, 0, 0, 0, 0, 0],
         guide_loc_ref=None,
         add_2_grp=True,
@@ -985,6 +986,16 @@ class Main(object):
             keyable=False,
             value=self.options["side_center_name"],
         )
+
+        attribute.addEnumAttribute(
+            ctl,
+            "customRotateOrder",
+            0,
+            ("xyz", "yzx", "zxy", "xzy", "yxz", "zyx"),
+            niceName="Rotate Order"
+        )
+        if not customRotOrder:
+            attribute.lockAttribute(ctl, attributes=["customRotateOrder"])
 
         # create the attributes to handlde mirror and symetrical pose
         attribute.add_mirror_config_channels(ctl, mirrorConf)

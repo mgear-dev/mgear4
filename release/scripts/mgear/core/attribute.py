@@ -526,7 +526,7 @@ def _lockUnlockAttribute(node, attributes, lock, keyable):
 
 
 def setKeyableAttributes(
-    nodes, params=["tx", "ty", "tz", "ro", "rx", "ry", "rz", "sx", "sy", "sz"]
+    nodes, params=["tx", "ty", "tz", "rx", "ry", "rz", "sx", "sy", "sz"]
 ):
     """Set keyable attributes of a node.
 
@@ -545,7 +545,6 @@ def setKeyableAttributes(
         "tx",
         "ty",
         "tz",
-        "ro",
         "rx",
         "ry",
         "rz",
