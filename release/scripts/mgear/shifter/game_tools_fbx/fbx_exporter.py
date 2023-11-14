@@ -30,7 +30,7 @@ class FBXExporter(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         super(FBXExporter, self).__init__(parent)
         self.setWindowFlags(QtCore.Qt.Tool)
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose, True)
-        self.setWindowTitle("Shifter's FBX Export")
+        self.setWindowTitle("Shifter's FBX Export (Beta)")
         min_w = 300
         default_w = 400
         default_h = 1000

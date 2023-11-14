@@ -141,7 +141,7 @@ def game_submenu(parent_menu_id):
         parent_menu_id (str): Parent menu. i.e: "MayaWindow|mGear|menuItem355"
     """
     commands = (
-        ("FBX Export", str_game_fbx_export),
+        ("FBX Export (Beta)", str_game_fbx_export),
         ("-----", None),
         ("Disconnect Joints", str_game_disconnet),
         ("Connect Joints", str_game_connect),
