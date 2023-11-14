@@ -629,7 +629,10 @@ def setRotOrder(node, s="XYZ"):
     )
     er.reorderIt(s)
 
-    node.setAttr("ro", a.index(s))
+    if node.hasAttr("customRotateOrder"):
+        change_default_value(node.customRotateOrder, a.index(s))
+    else:
+        node.setAttr("ro", a.index(s))
     node.setAttr("rotate", er.x, er.y, er.z)
 
 

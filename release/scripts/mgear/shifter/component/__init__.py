@@ -994,6 +994,9 @@ class Main(object):
             ("xyz", "yzx", "zxy", "xzy", "yxz", "zyx"),
             niceName="Rotate Order"
         )
+
+        pm.connectAttr(ctl.customRotateOrder, ctl.rotateOrder)
+
         if not customRotOrder:
             attribute.lockAttribute(ctl, attributes=["customRotateOrder"])
 

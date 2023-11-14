@@ -823,7 +823,10 @@ def gear_inverseRotorder_op(out_obj, in_obj):
     node = pm.createNode("mgear_inverseRotOrder")
 
     pm.connectAttr(in_obj + ".ro", node + ".ro")
-    pm.connectAttr(node + ".output", out_obj + ".ro")
+    if out_obj.hasAttr("customRotateOrder"):
+        pm.connectAttr(node + ".output", out_obj + ".customRotateOrder")
+    else:
+        pm.connectAttr(node + ".output", out_obj + ".ro")
 
     return node
 
