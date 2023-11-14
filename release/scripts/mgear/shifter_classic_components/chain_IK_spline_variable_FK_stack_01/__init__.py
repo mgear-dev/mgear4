@@ -89,6 +89,7 @@ class Component(component.Main):
                 d=self.size * .15,
                 ro=datatypes.Vector([0, 0, 1.5708]),
                 tp=self.previusTag,
+                customRotOrder=True,
                 mirrorConf=self.mirror_conf)
 
             attribute.setKeyableAttributes(ik_ctl, self.tr_params)
@@ -190,6 +191,7 @@ class Component(component.Main):
                         h=self.size * .1,
                         d=self.size * .1,
                         tp=self.preiviousCtlTag,
+                        customRotOrder=True,
                         mirrorConf=self.mirror_conf)
 
                     attribute.setKeyableAttributes(self.fk_ctl)

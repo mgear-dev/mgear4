@@ -33,6 +33,7 @@ class Component(component.Main):
                                        "sphere",
                                        w=1 * self.size,
                                        tp=self.parentCtlTag,
+                                       customRotOrder=True,
                                        guide_loc_ref="root")
         self.eye_npo = primitive.addTransform(self.eyeOver_ctl,
                                               self.getName("eye_npo"),
@@ -43,6 +44,7 @@ class Component(component.Main):
                                      self.color_fk,
                                      "arrow",
                                      w=1 * self.size,
+                                     customRotOrder=True,
                                      tp=self.eyeOver_ctl)
 
         # look at

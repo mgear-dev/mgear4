@@ -72,6 +72,7 @@ class Component(component.Main):
             self.color_ik,
             "sphere",
             w=self.size * 0.1,
+            customRotOrder=True,
             tp=self.parentCtlTag,
         )
 
@@ -89,6 +90,7 @@ class Component(component.Main):
             self.color_ik,
             "circle",
             w=self.size,
+            customRotOrder=True,
             tp=self.heel_ctl,
         )
         attribute.setKeyableAttributes(self.tip_ctl, self.r_params)
@@ -150,6 +152,7 @@ class Component(component.Main):
                 self.color_ik,
                 "sphere",
                 w=self.size * 0.15,
+                customRotOrder=True,
                 tp=self.previousTag,
             )
             attribute.setKeyableAttributes(bk_ctl, self.r_params)
@@ -195,6 +198,7 @@ class Component(component.Main):
                 h=self.size * 0.5,
                 d=self.size * 0.5,
                 po=po_vec,
+                customRotOrder=True,
                 tp=self.previousTag,
             )
 
@@ -353,7 +357,6 @@ class Component(component.Main):
             o_node = applyop.gear_inverseRotorder_op(bk_ctl, fk_ctl)
             pm.connectAttr(o_node + ".output", bk_loc.attr("ro"))
             pm.connectAttr(fk_ctl.attr("ro"), fk_loc.attr("ro"))
-            attribute.lockAttribute(bk_ctl, "ro")
 
             # Compensate the backward rotation
             # ik

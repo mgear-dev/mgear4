@@ -71,6 +71,7 @@ class Component(component.Main):
                 h=self.size * .1,
                 d=self.size * .1,
                 po=datatypes.Vector(self.dist * .5 * self.n_factor, 0, 0),
+                customRotOrder=True,
                 tp=self.previusTag)
 
             tweak_npo = primitive.addTransform(
@@ -87,6 +88,7 @@ class Component(component.Main):
                 w=self.size * .15,
                 h=self.size * .05,
                 d=self.size * .15,
+                customRotOrder=True,
                 ro=datatypes.Vector([0, 0, 1.5708]),
                 tp=self.previusTag)
 
@@ -327,6 +329,7 @@ class Component(component.Main):
                                           w=self.size * .15,
                                           d=self.size * .15,
                                           ro=datatypes.Vector([0, 0, 1.5708]),
+                                          customRotOrder=True,
                                           tp=tagP)
             attribute.setKeyableAttributes(Extra_tweak_ctl)
             self.Extra_tweak_ctl.append(Extra_tweak_ctl)

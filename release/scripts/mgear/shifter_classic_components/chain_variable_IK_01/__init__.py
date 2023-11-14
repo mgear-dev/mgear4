@@ -105,6 +105,7 @@ class Component(component.Main):
                 w=self.size * .15,
                 h=self.size * .15,
                 d=self.size * .15,
+                customRotOrder=True,
                 ro=datatypes.Vector([0, 0, 1.5708]),
                 tp=tagP)
 
@@ -219,6 +220,7 @@ class Component(component.Main):
                                         w=self.size * .08,
                                         d=self.size * .08,
                                         ro=datatypes.Vector([0, 0, 1.5708]),
+                                        customRotOrder=True,
                                         tp=tagP)
                 attribute.setKeyableAttributes(tweak_ctl)
 

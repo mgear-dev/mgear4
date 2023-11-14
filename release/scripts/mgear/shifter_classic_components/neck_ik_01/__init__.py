@@ -45,6 +45,7 @@ class Component(component.Main):
                                   self.color_ik,
                                   "compas",
                                   w=self.size * .5,
+                                  customRotOrder=True,
                                   tp=self.parentCtlTag)
 
         attribute.setKeyableAttributes(self.ik_ctl, self.tr_params)
@@ -206,6 +207,7 @@ class Component(component.Main):
                                      w=self.size * .2,
                                      h=self.size * .05,
                                      d=self.size * .2,
+                                     customRotOrder=True,
                                      tp=self.previousCtlTag)
 
                 attribute.setKeyableAttributes(self.fk_ctl)
@@ -264,6 +266,7 @@ class Component(component.Main):
                                     w=self.size * .5,
                                     h=dist, d=self.size * .5,
                                     po=datatypes.Vector(0, dist * .5, 0),
+                                    customRotOrder=True,
                                     tp=self.previousCtlTag)
 
         attribute.setRotOrder(self.head_ctl, "ZXY")

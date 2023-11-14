@@ -76,6 +76,7 @@ class Component(component.Main):
                 d=self.size * .1,
                 po=datatypes.Vector(self.dist * .5 * self.n_factor, 0, 0),
                 tp=self.previusTag,
+                customRotOrder=True,
                 mirrorConf=self.mirror_conf)
 
             tweak_ctl = self.addCtl(
@@ -89,6 +90,7 @@ class Component(component.Main):
                 d=self.size * .15,
                 ro=datatypes.Vector([0, 0, 1.5708]),
                 tp=self.previusTag,
+                customRotOrder=True,
                 mirrorConf=self.mirror_conf)
 
             upv_curv_lvl = primitive.addTransform(
@@ -119,6 +121,7 @@ class Component(component.Main):
             d=self.size * .15,
             ro=datatypes.Vector([0, 0, 1.5708]),
             tp=self.previusTag,
+            customRotOrder=True,
             mirrorConf=self.mirror_conf)
 
         upv_curv_lvl = primitive.addTransform(
@@ -148,6 +151,7 @@ class Component(component.Main):
                 w=self.size * .1,
                 h=self.size * .1,
                 d=self.size * .1,
+                customRotOrder=True,
                 ro=datatypes.Vector([0, 0, 1.5708]),
                 tp=self.previusTag,
                 mirrorConf=self.mirror_conf)

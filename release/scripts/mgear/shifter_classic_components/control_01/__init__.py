@@ -49,6 +49,7 @@ class Component(component.Main):
                                    h=self.settings["ctlSize"] * self.size,
                                    d=self.settings["ctlSize"] * self.size,
                                    tp=self.parentCtlTag,
+                                   customRotOrder=True,
                                    guide_loc_ref="root")
 
             # we need to set the rotation order before lock any rotation axis
@@ -58,7 +59,7 @@ class Component(component.Main):
                     self.ctl, rotOderList[self.settings["default_rotorder"]])
 
             params = [s for s in
-                      ["tx", "ty", "tz", "ro", "rx",
+                      ["tx", "ty", "tz", "rx",
                        "ry", "rz", "sx", "sy", "sz"]
                       if self.settings["k_" + s]]
             attribute.setKeyableAttributes(self.ctl, params)

@@ -54,6 +54,7 @@ class Component(component.Main):
                                  w=self.size,
                                  h=self.size * .05,
                                  d=self.size,
+                                 customRotOrder=True,
                                  tp=self.preiviousCtlTag)
 
             self.fk_ctl.append(fk_ctl)
@@ -81,6 +82,7 @@ class Component(component.Main):
                                    self.color_ik,
                                    "compas",
                                    w=self.size,
+                                   customRotOrder=True,
                                    tp=self.parentCtlTag)
 
         attribute.setKeyableAttributes(self.ik0_ctl, self.tr_params)
@@ -97,6 +99,7 @@ class Component(component.Main):
                                    self.color_ik,
                                    "compas",
                                    w=self.size,
+                                   customRotOrder=True,
                                    tp=self.ik0_ctl)
 
         attribute.setKeyableAttributes(self.ik1_ctl, self.tr_params)

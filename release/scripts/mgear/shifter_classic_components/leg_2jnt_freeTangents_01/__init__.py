@@ -62,6 +62,7 @@ class Component(component.Main):
             self.color_fk,
             "circle",
             w=self.length0 / 6,
+            customRotOrder=True,
             tp=self.parentCtlTag,
         )
 
@@ -85,11 +86,12 @@ class Component(component.Main):
             w=self.length0,
             h=self.size * 0.1,
             d=self.size * 0.1,
+            customRotOrder=True,
             po=datatypes.Vector(0.5 * self.length0 * self.n_factor, 0, 0),
             tp=self.root_ctl,
         )
         attribute.setKeyableAttributes(
-            self.fk0_ctl, ["tx", "ty", "tz", "ro", "rx", "ry", "rz", "sx"]
+            self.fk0_ctl, ["tx", "ty", "tz", "rx", "ry", "rz", "sx"]
         )
 
         t = transform.getTransformLookingAt(
@@ -111,12 +113,13 @@ class Component(component.Main):
             w=self.length1,
             h=self.size * 0.1,
             d=self.size * 0.1,
+            customRotOrder=True,
             po=datatypes.Vector(0.5 * self.length1 * self.n_factor, 0, 0),
             tp=self.fk0_ctl,
         )
 
         attribute.setKeyableAttributes(
-            self.fk1_ctl, ["tx", "ty", "tz", "ro", "rx", "ry", "rz", "sx"]
+            self.fk1_ctl, ["tx", "ty", "tz", "rx", "ry", "rz", "sx"]
         )
 
         t = transform.getTransformLookingAt(
@@ -140,6 +143,7 @@ class Component(component.Main):
             w=self.length2,
             h=self.size * 0.1,
             d=self.size * 0.1,
+            customRotOrder=True,
             po=datatypes.Vector(0.5 * self.length2 * self.n_factor, 0, 0),
             tp=self.fk1_ctl,
         )
@@ -184,6 +188,7 @@ class Component(component.Main):
             w=self.size * 0.12,
             h=self.size * 0.12,
             d=self.size * 0.12,
+            customRotOrder=True,
             tp=self.ikcns_ctl,
         )
         attribute.setKeyableAttributes(self.ik_ctl)

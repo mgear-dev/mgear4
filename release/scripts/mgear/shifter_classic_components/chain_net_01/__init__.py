@@ -91,6 +91,7 @@ class Component(component.Main):
                 d=self.size * .1,
                 po=datatypes.Vector(self.dist * .5 * self.n_factor, 0, 0),
                 tp=self.previusTag,
+                customRotOrder=True,
                 mirrorConf=self.mirror_conf)
 
             self.fk_ctl.append(fk_ctl)
@@ -116,6 +117,7 @@ class Component(component.Main):
                 d=self.size * .15,
                 ro=datatypes.Vector([0, 0, 1.5708]),
                 tp=self.previusTagIk,
+                customRotOrder=True,
                 mirrorConf=self.mirror_conf)
 
             self.ik_ctl.append(ik_ctl)
@@ -191,6 +193,7 @@ class Component(component.Main):
                 d=self.size * .1,
                 ro=datatypes.Vector([0, 0, 1.5708]),
                 tp=self.previusTagIk,
+                customRotOrder=True,
                 mirrorConf=self.mirror_conf)
             if not self.settings["onlyMaster"]:
                 upv_curv_lvl = primitive.addTransform(
@@ -266,6 +269,7 @@ class Component(component.Main):
                                          "square",
                                          w=self.size * .08,
                                          d=self.size * .08,
+                                         customRotOrder=True,
                                          ro=ro_vector,
                                          tp=tagP)
                     attribute.setKeyableAttributes(ik_ctl)

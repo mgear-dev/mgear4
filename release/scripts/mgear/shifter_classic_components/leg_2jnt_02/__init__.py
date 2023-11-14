@@ -64,6 +64,7 @@ class Component(component.Main):
             self.color_fk,
             "circle",
             w=self.length0 / 6,
+            customRotOrder=True,
             tp=self.parentCtlTag,
         )
 
@@ -89,10 +90,11 @@ class Component(component.Main):
             h=self.size * 0.1,
             d=self.size * 0.1,
             po=po_vec,
+            customRotOrder=True,
             tp=self.root_ctl,
         )
         attribute.setKeyableAttributes(
-            self.fk0_ctl, ["tx", "ty", "tz", "ro", "rx", "ry", "rz", "sx"]
+            self.fk0_ctl, ["tx", "ty", "tz", "rx", "ry", "rz", "sx"]
         )
 
         t = transform.getTransformLookingAt(
@@ -118,11 +120,12 @@ class Component(component.Main):
             h=self.size * 0.1,
             d=self.size * 0.1,
             po=po_vec,
+            customRotOrder=True,
             tp=self.fk0_ctl,
         )
 
         attribute.setKeyableAttributes(
-            self.fk1_ctl, ["tx", "ty", "tz", "ro", "rx", "ry", "rz", "sx"]
+            self.fk1_ctl, ["tx", "ty", "tz", "rx", "ry", "rz", "sx"]
         )
 
         t = transform.getTransformLookingAt(
@@ -148,6 +151,7 @@ class Component(component.Main):
             h=self.size * 0.1,
             d=self.size * 0.1,
             po=po_vec,
+            customRotOrder=True,
             tp=self.fk1_ctl,
         )
         attribute.setKeyableAttributes(self.fk2_ctl)
@@ -188,6 +192,7 @@ class Component(component.Main):
             transform.getTransformFromPos(self.guide.pos["ankle"]),
             self.color_ik,
             "cube",
+            customRotOrder=True,
             w=self.size * 0.12,
             h=self.size * 0.12,
             d=self.size * 0.12,
@@ -297,12 +302,13 @@ class Component(component.Main):
             self.color_ik,
             "sphere",
             w=self.size * 0.2,
+            customRotOrder=True,
             tp=self.root_ctl,
         )
 
         attribute.setKeyableAttributes(
             self.mid_ctl,
-            params=["tx", "ty", "tz", "ro", "rx", "ry", "rz", "sx"],
+            params=["tx", "ty", "tz", "rx", "ry", "rz", "sx"],
         )
 
         if self.settings["mirrorMid"]:
@@ -449,6 +455,7 @@ class Component(component.Main):
                     "square",
                     w=self.size * 0.15,
                     d=self.size * 0.15,
+                    customRotOrder=True,
                     ro=datatypes.Vector([0, 0, 1.5708]),
                     tp=tagP,
                 )

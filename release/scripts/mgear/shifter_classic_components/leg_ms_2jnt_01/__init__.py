@@ -59,6 +59,7 @@ class Component(component.Main):
             w=self.length0 * .7,
             h=self.size * .1,
             d=self.size * .1,
+            customRotOrder=True,
             po=datatypes.Vector(.35 * self.length0 * self.n_factor, 0, 0),
             tp=self.parentCtlTag)
 
@@ -73,6 +74,7 @@ class Component(component.Main):
             w=self.length0 * .3,
             h=self.size * .1,
             d=self.size * .1,
+            customRotOrder=True,
             po=datatypes.Vector(.85 * self.length0 * self.n_factor, 0, 0),
             tp=self.fk0_ctl)
 
@@ -102,6 +104,7 @@ class Component(component.Main):
             w=self.length1 * .7,
             h=self.size * .1,
             d=self.size * .1,
+            customRotOrder=True,
             po=datatypes.Vector(.35 * self.length1 * self.n_factor, 0, 0),
             tp=self.fk0_roll_ctl)
 
@@ -119,6 +122,7 @@ class Component(component.Main):
             w=self.length1 * .3,
             h=self.size * .1,
             d=self.size * .1,
+            customRotOrder=True,
             po=datatypes.Vector(.85 * self.length1 * self.n_factor, 0, 0),
             tp=self.fk1_ctl)
 
@@ -155,6 +159,7 @@ class Component(component.Main):
             w=self.length2,
             h=self.size * .1,
             d=self.size * .1,
+            customRotOrder=True,
             po=datatypes.Vector(.5 * self.length2 * self.n_factor, 0, 0),
             tp=self.fk1_roll_ctl)
 
@@ -190,6 +195,7 @@ class Component(component.Main):
             transform.getTransform(self.ctrn_loc),
             self.color_ik,
             "sphere",
+            customRotOrder=True,
             w=self.size * .2,
             tp=self.parentCtlTag)
 
@@ -224,6 +230,7 @@ class Component(component.Main):
             w=self.size * .12,
             h=self.size * .12,
             d=self.size * .12,
+            customRotOrder=True,
             tp=self.ikcns_ctl)
 
         attribute.setKeyableAttributes(self.ik_ctl)
@@ -389,6 +396,7 @@ class Component(component.Main):
                     w=self.size * .1,
                     po=datatypes.Vector(0, self.size * -0.05, 0),
                     ro=datatypes.Vector(0, 0, datatypes.radians(90)),
+                    customRotOrder=True,
                     tp=self.previousCtlTag)
             else:
                 div_ctl = self.addCtl(
@@ -401,6 +409,7 @@ class Component(component.Main):
                     w=self.size * .1,
                     po=datatypes.Vector(0, self.size * 0.05, 0),
                     ro=datatypes.Vector(0, 0, datatypes.radians(90)),
+                    customRotOrder=True,
                     tp=self.previousCtlTag)
 
             self.previousCtlTag = div_ctl
@@ -424,6 +433,7 @@ class Component(component.Main):
                 "square",
                 d=self.size * .05,
                 w=self.size * .1,
+                customRotOrder=True,
                 po=datatypes.Vector(0, self.size * -0.05, 0),
                 ro=datatypes.Vector(0, 0, datatypes.radians(90)),
                 tp=self.previousCtlTag)
@@ -436,6 +446,7 @@ class Component(component.Main):
                 "square",
                 d=self.size * .05,
                 w=self.size * .1,
+                customRotOrder=True,
                 po=datatypes.Vector(0, self.size * 0.05, 0),
                 ro=datatypes.Vector(0, 0, datatypes.radians(90)),
                 tp=self.previousCtlTag)
@@ -460,6 +471,7 @@ class Component(component.Main):
                     "square",
                     d=self.size * .05,
                     w=self.size * .1,
+                    customRotOrder=True,
                     po=datatypes.Vector(0, self.size * -0.05, 0),
                     ro=datatypes.Vector(0, 0, datatypes.radians(90)),
                     tp=self.previousCtlTag)
@@ -472,6 +484,7 @@ class Component(component.Main):
                     "square",
                     d=self.size * .05,
                     w=self.size * .1,
+                    customRotOrder=True,
                     po=datatypes.Vector(0, self.size * 0.05, 0),
                     ro=datatypes.Vector(0, 0, datatypes.radians(90)),
                     tp=self.previousCtlTag)

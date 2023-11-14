@@ -137,6 +137,7 @@ class Component(component.Main):
             t,
             self.color_fk,
             "circle",
+            customRotOrder=True,
             w=self.length0 / 6,
             tp=self.parentCtlTag,
         )
@@ -164,6 +165,7 @@ class Component(component.Main):
             w=self.length0,
             h=self.size * 0.1,
             d=self.size * 0.1,
+            customRotOrder=True,
             po=datatypes.Vector(0.5 * self.length0 * self.n_factor, 0, 0),
             tp=self.root_ctl,
         )
@@ -188,6 +190,7 @@ class Component(component.Main):
             w=self.length1,
             h=self.size * 0.1,
             d=self.size * 0.1,
+            customRotOrder=True,
             po=datatypes.Vector(0.5 * self.length1 * self.n_factor, 0, 0),
             tp=self.fk0_ctl,
         )
@@ -214,6 +217,7 @@ class Component(component.Main):
             w=self.length2,
             h=self.size * 0.1,
             d=self.size * 0.1,
+            customRotOrder=True,
             po=datatypes.Vector(0.5 * self.length2 * self.n_factor, 0, 0),
             tp=self.fk1_ctl,
         )
@@ -241,6 +245,7 @@ class Component(component.Main):
             w=self.length3,
             h=self.size * 0.1,
             d=self.size * 0.1,
+            customRotOrder=True,
             po=datatypes.Vector(0.5 * self.length3 * self.n_factor, 0, 0),
             tp=self.fk2_ctl,
         )
@@ -266,6 +271,7 @@ class Component(component.Main):
             self.color_ik,
             "sphere",
             w=self.size * 0.2,
+            customRotOrder=True,
             tp=self.root_ctl,
         )
 
@@ -285,6 +291,7 @@ class Component(component.Main):
             self.color_ik,
             "sphere",
             w=self.size * 0.2,
+            customRotOrder=True,
             tp=self.knee_ctl,
         )
 
@@ -336,6 +343,7 @@ class Component(component.Main):
             w=self.size * 0.12,
             h=self.size * 0.12,
             d=self.size * 0.12,
+            customRotOrder=True,
             tp=self.ikcns_ctl,
         )
         attribute.setKeyableAttributes(self.ik_ctl)
@@ -361,6 +369,7 @@ class Component(component.Main):
             self.color_ik,
             "crossarrow",
             w=self.length2 * 0.5 * self.n_factor,
+            customRotOrder=True,
             tp=self.ik_ctl,
         )
 
@@ -561,6 +570,7 @@ class Component(component.Main):
                 "square",
                 w=self.size * 0.15,
                 d=self.size * 0.15,
+                customRotOrder=True,
                 ro=datatypes.Vector([0, 0, 1.5708]),
                 tp=tagP,
             )

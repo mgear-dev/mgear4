@@ -66,11 +66,12 @@ class Component(component.Main):
                                    h=self.size * .1,
                                    d=self.size * .1,
                                    po=po_vec,
+                                   customRotOrder=True,
                                    tp=self.parentCtlTag)
 
         attribute.setKeyableAttributes(
             self.fk0_ctl,
-            ["tx", "ty", "tz", "ro", "rx", "ry", "rz", "sx"])
+            ["tx", "ty", "tz", "rx", "ry", "rz", "sx"])
 
         t = transform.getTransformLookingAt(self.guide.apos[1],
                                             self.guide.apos[2],
@@ -91,11 +92,12 @@ class Component(component.Main):
                                    h=self.size * .1,
                                    d=self.size * .1,
                                    po=po_vec,
+                                   customRotOrder=True,
                                    tp=self.fk0_ctl)
 
         attribute.setKeyableAttributes(
             self.fk1_ctl,
-            ["tx", "ty", "tz", "ro", "rx", "ry", "rz", "sx"])
+            ["tx", "ty", "tz", "rx", "ry", "rz", "sx"])
 
         t = transform.getTransformLookingAt(self.guide.apos[2],
                                             self.guide.apos[3],
@@ -116,6 +118,7 @@ class Component(component.Main):
                                    h=self.size * .1,
                                    d=self.size * .1,
                                    po=po_vec,
+                                   customRotOrder=True,
                                    tp=self.fk1_ctl)
 
         attribute.setKeyableAttributes(self.fk2_ctl)
@@ -162,6 +165,7 @@ class Component(component.Main):
                                   w=self.size * .12,
                                   h=self.size * .12,
                                   d=self.size * .12,
+                                  customRotOrder=True,
                                   tp=self.ikcns_ctl)
         if self.settings["mirrorIK"]:
             if self.negate:
@@ -215,6 +219,7 @@ class Component(component.Main):
                                          self.color_ik,
                                          "sphere",
                                          w=self.size * .12,
+                                         customRotOrder=True,
                                          tp=self.ik_ctl)
             attribute.setKeyableAttributes(self.ikRot_ctl, self.r_params)
 

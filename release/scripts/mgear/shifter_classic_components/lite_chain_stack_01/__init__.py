@@ -116,6 +116,7 @@ class Component(component.Main):
                 h=self.size * .1,
                 d=self.size * .1,
                 po=datatypes.Vector(self.dist * .5 * self.n_factor, 0, 0),
+                customRotOrder=True,
                 tp=self.previusTag,
                 mirrorConf=self.mirror_conf)
 

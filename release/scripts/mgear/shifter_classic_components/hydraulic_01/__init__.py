@@ -35,6 +35,7 @@ class Component(component.Main):
                                self.color_ik,
                                "square",
                                w=1.0,
+                               customRotOrder=True,
                                tp=self.parentCtlTag)
         attribute.setKeyableAttributes(self.ctl, self.tr_params)
 
@@ -53,6 +54,7 @@ class Component(component.Main):
                                    self.color_ik,
                                    "square",
                                    w=1.0,
+                                   customRotOrder=True,
                                    tp=self.ctl)
 
         attribute.setKeyableAttributes(self.tip_ctl, self.tr_params)

@@ -79,6 +79,7 @@ class Component(component.Main):
                     w=dist,
                     h=self.size * .1,
                     d=self.size * .1,
+                    customRotOrder=True,
                     po=datatypes.Vector(dist * .5 * self.n_factor, 0, 0),
                     tp=self.previusTag)
 

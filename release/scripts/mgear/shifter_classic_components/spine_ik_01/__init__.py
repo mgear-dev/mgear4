@@ -87,6 +87,7 @@ class Component(component.Main):
                                    "compas",
                                    w=self.size,
                                    ro=ro_vec,
+                                   customRotOrder=True,
                                    tp=self.parentCtlTag)
 
         attribute.setKeyableAttributes(self.ik0_ctl, self.tr_params)
@@ -106,6 +107,7 @@ class Component(component.Main):
                                             w=self.size,
                                             d=.3 * self.size,
                                             ro=ro_vec,
+                                            customRotOrder=True,
                                             tp=self.parentCtlTag)
 
             attribute.setKeyableAttributes(self.autoBend_ctl,
@@ -126,6 +128,7 @@ class Component(component.Main):
                                        "compas",
                                        w=self.size,
                                        ro=ro_vec,
+                                       customRotOrder=True,
                                        tp=self.autoBend_ctl)
         else:
             t = transform.setMatrixPosition(t, self.guide.apos[1])
@@ -138,6 +141,7 @@ class Component(component.Main):
                                        "compas",
                                        w=self.size,
                                        ro=ro_vec,
+                                       customRotOrder=True,
                                        tp=self.ik0_ctl)
 
         attribute.setKeyableAttributes(self.ik1_ctl, self.tr_params)
@@ -331,6 +335,7 @@ class Component(component.Main):
                                      h=self.size * .05,
                                      d=self.size,
                                      ro=ro_vec,
+                                     customRotOrder=True,
                                      tp=self.preiviousCtlTag)
 
                 attribute.setKeyableAttributes(self.fk_ctl)

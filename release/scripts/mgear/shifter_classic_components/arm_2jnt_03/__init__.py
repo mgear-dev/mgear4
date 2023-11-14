@@ -64,11 +64,12 @@ class Component(component.Main):
                                    h=self.size * .1,
                                    d=self.size * .1,
                                    po=vec_po,
+                                   customRotOrder=True,
                                    tp=self.parentCtlTag)
 
         attribute.setKeyableAttributes(
             self.fk0_ctl,
-            ["tx", "ty", "tz", "ro", "rx", "ry", "rz", "sx"])
+            ["tx", "ty", "tz", "rx", "ry", "rz", "sx"])
 
         t = transform.getTransformLookingAt(self.guide.apos[1],
                                             self.guide.apos[2],
@@ -89,11 +90,12 @@ class Component(component.Main):
                                    h=self.size * .1,
                                    d=self.size * .1,
                                    po=vec_po,
+                                   customRotOrder=True,
                                    tp=self.fk0_ctl)
 
         attribute.setKeyableAttributes(
             self.fk1_ctl,
-            ["tx", "ty", "tz", "ro", "rx", "ry", "rz", "sx"])
+            ["tx", "ty", "tz", "rx", "ry", "rz", "sx"])
 
         t = transform.getTransformLookingAt(self.guide.apos[2],
                                             self.guide.apos[3],
@@ -115,6 +117,7 @@ class Component(component.Main):
                                    h=self.size * .1,
                                    d=self.size * .1,
                                    po=vec_po,
+                                   customRotOrder=True,
                                    tp=self.fk1_ctl)
 
         attribute.setKeyableAttributes(self.fk2_ctl)
@@ -223,6 +226,7 @@ class Component(component.Main):
                                   w=self.size * .12,
                                   h=self.size * .12,
                                   d=self.size * .12,
+                                  customRotOrder=True,
                                   tp=self.roll_ctl)
 
         if self.settings["mirrorIK"]:
@@ -250,6 +254,7 @@ class Component(component.Main):
                                          self.color_ik,
                                          "sphere",
                                          w=self.size * .12,
+                                         customRotOrder=True,
                                          tp=self.ik_ctl)
 
             attribute.setKeyableAttributes(self.ikRot_ctl, self.r_params)
@@ -310,11 +315,12 @@ class Component(component.Main):
                                    self.color_ik,
                                    "sphere",
                                    w=self.size * .2,
+                                   customRotOrder=True,
                                    tp=self.parentCtlTag)
 
         attribute.setKeyableAttributes(self.mid_ctl,
                                        params=["tx", "ty", "tz",
-                                               "ro", "rx", "ry", "rz",
+                                               "rx", "ry", "rz",
                                                "sx"])
 
         if self.settings["mirrorMid"]:
@@ -450,6 +456,7 @@ class Component(component.Main):
                                         w=self.size * .15,
                                         d=self.size * .15,
                                         ro=datatypes.Vector([0, 0, 1.5708]),
+                                        customRotOrder=True,
                                         tp=tagP)
                 attribute.setKeyableAttributes(tweak_ctl)
 

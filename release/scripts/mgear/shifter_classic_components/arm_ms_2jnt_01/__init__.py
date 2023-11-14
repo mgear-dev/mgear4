@@ -82,6 +82,7 @@ class Component(component.Main):
                                    h=self.size * .1,
                                    d=self.size * .1,
                                    po=po_off,
+                                   customRotOrder=True,
                                    tp=self.parentCtlTag)
         attribute.setKeyableAttributes(self.fk0_ctl)
         # *ms* add fk roll control Simage style
@@ -126,6 +127,7 @@ class Component(component.Main):
                                    w=self.length1 * .7,
                                    h=self.size * .1,
                                    d=self.size * .1,
+                                   customRotOrder=True,
                                    po=po_off, tp=self.fk0_roll_ctl)
 
         attribute.setKeyableAttributes(self.fk1_ctl)
@@ -179,6 +181,7 @@ class Component(component.Main):
                                    h=self.size * .1,
                                    d=self.size * .1,
                                    po=po_off,
+                                   customRotOrder=True,
                                    tp=self.fk1_roll_ctl)
         attribute.setKeyableAttributes(self.fk2_ctl)
 
@@ -226,6 +229,7 @@ class Component(component.Main):
                                   w=self.size * .12,
                                   h=self.size * .12,
                                   d=self.size * .12,
+                                  customRotOrder=True,
                                   tp=self.ikcns_ctl)
         attribute.setKeyableAttributes(self.ik_ctl)
         attribute.setInvertMirror(self.ik_ctl, ["tx", "ry", "rz"])
@@ -317,6 +321,7 @@ class Component(component.Main):
                                    self.color_ik,
                                    "sphere",
                                    w=self.size * .2,
+                                   customRotOrder=True,
                                    tp=self.parentCtlTag)
         attribute.setInvertMirror(self.mid_ctl, ["tx", "ty", "tz"])
         # *ms* add elbow thickness
@@ -403,6 +408,7 @@ class Component(component.Main):
                     w=self.size * .1,
                     po=datatypes.Vector(0, self.size * -0.05, 0),
                     ro=datatypes.Vector(0, 0, datatypes.radians(90)),
+                    customRotOrder=True,
                     tp=self.previousTag)
             else:
                 div_ctl = self.addCtl(
@@ -415,6 +421,7 @@ class Component(component.Main):
                     w=self.size * .1,
                     po=datatypes.Vector(0, self.size * 0.05, 0),
                     ro=datatypes.Vector(0, 0, datatypes.radians(90)),
+                    customRotOrder=True,
                     tp=self.previousTag)
             attribute.setKeyableAttributes(div_ctl)
             self.previousTag = div_ctl
@@ -437,6 +444,7 @@ class Component(component.Main):
                 "square",
                 d=self.size * .05,
                 w=self.size * .1,
+                customRotOrder=True,
                 po=datatypes.Vector(0, self.size * -0.05, 0),
                 ro=datatypes.Vector(0, 0, datatypes.radians(90)),
                 tp=self.previousTag)
@@ -448,6 +456,7 @@ class Component(component.Main):
                 "square",
                 d=self.size * .05,
                 w=self.size * .1,
+                customRotOrder=True,
                 po=datatypes.Vector(0, self.size * 0.05, 0),
                 ro=datatypes.Vector(0, 0, datatypes.radians(90)),
                 tp=self.previousTag)
@@ -472,6 +481,7 @@ class Component(component.Main):
                     "square",
                     d=self.size * .05,
                     w=self.size * .1,
+                    customRotOrder=True,
                     po=datatypes.Vector(0, self.size * -0.05, 0),
                     ro=datatypes.Vector(0, 0, datatypes.radians(90)),
                     tp=self.previousTag)
@@ -484,6 +494,7 @@ class Component(component.Main):
                     "square",
                     d=self.size * .05,
                     w=self.size * .1,
+                    customRotOrder=True,
                     po=datatypes.Vector(0, self.size * 0.05, 0),
                     ro=datatypes.Vector(0, 0, datatypes.radians(90)),
                     tp=self.previousTag)

@@ -57,6 +57,7 @@ class Component(component.Main):
             self.color_ik,
             "compas",
             w=self.size,
+            customRotOrder=True,
             tp=self.parentCtlTag
         )
 
@@ -105,6 +106,7 @@ class Component(component.Main):
                 self.color_ik,
                 "compas",
                 w=self.size,
+                customRotOrder=True,
                 tp=self.autoBend_ctl
             )
         else:
@@ -119,6 +121,7 @@ class Component(component.Main):
                 self.color_ik,
                 "compas",
                 w=self.size,
+                customRotOrder=True,
                 tp=self.ik0_ctl
             )
 
@@ -326,6 +329,7 @@ class Component(component.Main):
                     w=self.size,
                     h=self.size * .05,
                     d=self.size,
+                    customRotOrder=True,
                     tp=self.preiviousCtlTag)
 
                 attribute.setKeyableAttributes(self.fk_ctl)

@@ -73,6 +73,7 @@ class Component(component.Main):
                 w=self.size * .4,
                 ro=datatypes.Vector([0, 0, 1.5708]),
                 tp=self.previusTag,
+                customRotOrder=True,
                 mirrorConf=self.mirror_conf)
 
             self.fk_npo.append(fk_npo)
