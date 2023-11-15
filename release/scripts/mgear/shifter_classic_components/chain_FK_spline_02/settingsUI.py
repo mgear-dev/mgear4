@@ -4,7 +4,7 @@ QtGui, QtCore, QtWidgets, wrapInstance = gqt.qt_import()
 class Ui_Form(object):
     def setupUi(self, Form):
         Form.setObjectName("Form")
-        Form.resize(294, 211)
+        Form.resize(525, 438)
         self.gridLayout = QtWidgets.QGridLayout(Form)
         self.gridLayout.setObjectName("gridLayout")
         self.groupBox = QtWidgets.QGroupBox(Form)
@@ -30,6 +30,9 @@ class Ui_Form(object):
         self.extraTweak_checkBox.setText("Extra Tweaks")
         self.extraTweak_checkBox.setObjectName("extraTweak_checkBox")
         self.verticalLayout.addWidget(self.extraTweak_checkBox)
+        self.leafJoints_checkBox = QtWidgets.QCheckBox(self.groupBox)
+        self.leafJoints_checkBox.setObjectName("leafJoints_checkBox")
+        self.verticalLayout.addWidget(self.leafJoints_checkBox)
         self.gridLayout_2.addLayout(self.verticalLayout, 0, 0, 1, 1)
         self.gridLayout.addWidget(self.groupBox, 0, 0, 1, 1)
         self.groupBox_2 = QtWidgets.QGroupBox(Form)
@@ -60,6 +63,7 @@ class Ui_Form(object):
 
     def retranslateUi(self, Form):
         Form.setWindowTitle(gqt.fakeTranslate("Form", "Form", None, -1))
+        self.leafJoints_checkBox.setText(gqt.fakeTranslate("Form", "Leaf Joints", None, -1))
         self.groupBox_2.setTitle(gqt.fakeTranslate("Form", "Joint Options", None, -1))
         self.jntNb_label.setText(gqt.fakeTranslate("Form", "Joints Number", None, -1))
 
