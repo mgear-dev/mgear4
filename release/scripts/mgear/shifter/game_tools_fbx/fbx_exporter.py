@@ -804,11 +804,19 @@ class FBXExporter(MayaQWidgetDockableMixin, QtWidgets.QDialog):
             partitions.update(master_partition)
             partitions.update(export_node.get_partitions())
             print("\t>>> Partitions:")
-            for partition_name, partition_data in partitions.items():
+            
+            # Loops over partitions, and removes any disabled partitions, from being exported.
+            keys = list(partitions.keys())
+            for partition_name in reversed(keys):
+                partition_data = partitions[partition_name]
                 enabled = partition_data.get("enabled", True)
                 skeletal_meshes = partition_data.get("skeletal_meshes", [])
+
                 if not (enabled and skeletal_meshes):
+                    partitions.pop(partition_name)
+                    print("\t\t[!Partition Disabled!] - {}: {}".format(partition_name, skeletal_meshes))
                     continue
+
                 print("\t\t{}: {}".format(partition_name, skeletal_meshes))
             export_config["partitions"] = partitions
 
