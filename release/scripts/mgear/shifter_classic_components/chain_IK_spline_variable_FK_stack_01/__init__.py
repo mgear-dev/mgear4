@@ -461,22 +461,24 @@ class Component(component.Main):
     def setRelation(self):
         """Set the relation beetween object from guide to rig"""
         if not self.settings["isGlobalMaster"]:
-            every_each = len(self.fk_ctl) / (len(self.ik_ctl) - 1)
+            num_ik_ctl = len(self.ik_ctl)
+            num_fk_ctl = len(self.fk_ctl)
+            every_each = num_fk_ctl // (num_ik_ctl - 1)
 
             self.relatives["root"] = self.fk_ctl[0]
             self.controlRelatives["root"] = self.fk_ctl[0]
             self.jointRelatives["root"] = 0
-            for i in range(0, len(self.ik_ctl) - 2):
-                fk_each = self.fk_ctl[(i + 1) * every_each]
-                self.relatives["%s_loc" % i] = fk_each
-                self.controlRelatives["%s_loc" % i] = self.fk_ctl[
-                    (i + 1) * every_each]
-                self.jointRelatives["%s_loc" % i] = (i + 1) * every_each
-                self.aliasRelatives["%s_ctl" % i] = (i + 1) * every_each
-            self.relatives["%s_loc" % (len(self.ik_ctl) - 2)] = self.fk_ctl[-1]
-            self.controlRelatives["%s_loc" % (
-                len(self.ik_ctl) - 2)] = self.fk_ctl[-1]
-            self.jointRelatives["%s_loc" % (
-                len(self.ik_ctl) - 2)] = len(self.fk_ctl) - 1
-            self.aliasRelatives["%s_loc" % (
-                len(self.ik_ctl) - 2)] = len(self.fk_ctl) - 1
+
+            for i in range(num_ik_ctl - 2):
+                fk_index = (i + 1) * every_each
+                loc_key = "%s_loc" % i
+                self.relatives[loc_key] = self.fk_ctl[fk_index]
+                self.controlRelatives[loc_key] = self.fk_ctl[fk_index]
+                self.jointRelatives[loc_key] = fk_index
+                self.aliasRelatives[loc_key] = fk_index
+
+            last_loc_key = "%s_loc" % (num_ik_ctl - 2)
+            self.relatives[last_loc_key] = self.fk_ctl[-1]
+            self.controlRelatives[last_loc_key] = self.fk_ctl[-1]
+            self.jointRelatives[last_loc_key] = num_fk_ctl - 1
+            self.aliasRelatives[last_loc_key] = num_fk_ctl - 1
