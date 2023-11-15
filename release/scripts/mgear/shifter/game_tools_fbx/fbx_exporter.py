@@ -485,6 +485,9 @@ class FBXExporter(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.file_set_btn.clicked.connect(self.set_folder_path)
         self.file_name_lineedit.textChanged.connect(self.normalize_name)
 
+        self.file_path_lineedit.textChanged.connect(self.set_fbx_directory)
+        self.file_name_lineedit.textChanged.connect(self.set_fbx_file)
+
         # ue file path connection
         self.ue_file_set_btn.clicked.connect(self.set_ue_folder_path)
 
@@ -640,6 +643,16 @@ class FBXExporter(MayaQWidgetDockableMixin, QtWidgets.QDialog):
             # update attribute on fbx maya node
             export_node = self._get_or_create_export_node()
             export_node.save_root_data("ue_file_path", path)
+
+    def set_fbx_directory(self):
+        path = self.file_path_lineedit.text()
+        export_node = self._get_or_create_export_node()
+        export_node.save_root_data("file_path", path)
+
+    def set_fbx_file(self):
+        path = self.file_name_lineedit.text()
+        export_node = self._get_or_create_export_node()
+        export_node.save_root_data("file_name", path)
 
     def set_fbx_sdk_path(self):
         current_fbx_sdk_path = pfbx.get_fbx_sdk_path()
