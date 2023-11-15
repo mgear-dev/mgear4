@@ -357,6 +357,7 @@ class Component(component.Main):
             o_node = applyop.gear_inverseRotorder_op(bk_ctl, fk_ctl)
             pm.connectAttr(o_node + ".output", bk_loc.attr("ro"))
             pm.connectAttr(fk_ctl.attr("ro"), fk_loc.attr("ro"))
+            pm.setAttr(bk_ctl.customRotateOrder, k=False, cb=False)
 
             # Compensate the backward rotation
             # ik

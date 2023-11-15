@@ -132,6 +132,7 @@ class Component(component.Main):
                     h=self.size * .07,
                     d=self.size * .07,
                     ro=datatypes.Vector([0, 0, 1.5708]),
+                    customRotOrder=True,
                     tp=self.previusTag)
 
                 upv_tang_curv_lvl = primitive.addTransform(
@@ -178,6 +179,7 @@ class Component(component.Main):
             w=self.size * .15,
             h=self.size * .05,
             d=self.size * .15,
+            customRotOrder=True,
             ro=datatypes.Vector([0, 0, 1.5708]),
             tp=self.previusTag)
 
@@ -209,6 +211,7 @@ class Component(component.Main):
             w=self.size * .07,
             h=self.size * .07,
             d=self.size * .07,
+            customRotOrder=True,
             ro=datatypes.Vector([0, 0, 1.5708]),
             tp=self.previusTag)
 
@@ -242,6 +245,7 @@ class Component(component.Main):
                 w=self.size * .1,
                 h=self.size * .1,
                 d=self.size * .1,
+                customRotOrder=True,
                 ro=datatypes.Vector([0, 0, 1.5708]),
                 tp=self.previusTag)
 

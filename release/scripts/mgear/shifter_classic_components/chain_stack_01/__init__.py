@@ -142,7 +142,6 @@ class Component(component.Main):
                     w=self.size * .15,
                     h=self.size * .15,
                     d=self.size * .15,
-                    customRotOrder=True,
                     ro=datatypes.Vector([0, 0, 1.5708]),
                     tp=self.previusTag,
                     mirrorConf=self.mirror_conf)
@@ -170,7 +169,6 @@ class Component(component.Main):
                 w=self.size * .15,
                 h=self.size * .15,
                 d=self.size * .15,
-                customRotOrder=True,
                 ro=datatypes.Vector([0, 0, 1.5708]),
                 tp=self.previusTag,
                 mirrorConf=self.mirror_conf)
@@ -202,7 +200,6 @@ class Component(component.Main):
                     w=self.size * .1,
                     h=self.size * .1,
                     d=self.size * .1,
-                    customRotOrder=True,
                     ro=datatypes.Vector([0, 0, 1.5708]),
                     tp=self.previusTag,
                     mirrorConf=self.mirror_conf)

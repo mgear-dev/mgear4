@@ -105,11 +105,8 @@ class Component(component.Main):
                 w=self.size * .15,
                 h=self.size * .15,
                 d=self.size * .15,
-                customRotOrder=True,
                 ro=datatypes.Vector([0, 0, 1.5708]),
                 tp=tagP)
-
-            attribute.setKeyableAttributes(ik_ctl)
 
             tagP = ik_ctl
             self.ik_ctl.append(ik_ctl)
