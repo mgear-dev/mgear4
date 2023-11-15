@@ -262,20 +262,49 @@ class TreeItem(QtWidgets.QTreeWidgetItem):
         export_node = fbx_export_node.FbxExportNode.get()
         if not export_node:
             return
+
+        # Partition Node
         if self.is_root():
             result = export_node.delete_skeletal_mesh_partition(
                 self.get_name()
             )
+
             if result:
+                master_item = self.parent()._master_item
+
+                # Moves geo back to master partition
+                for i in reversed(range(self.childCount())):
+                    child = self.child(i)
+                    master_item.addChild(child)
+
+                # Deletes selected partition
                 self.parent().takeTopLevelItem(
                     self.parent().indexOfTopLevelItem(self)
                 )
+
+                # Redraws the UI
+                self.parent().reset_contents()
+
+        # Geometry Node
         else:
             result = export_node.delete_skeletal_mesh_from_partition(
                 self.parent().get_name(), self.get_name()
             )
+
             if result:
+                # Remove child from partition node
                 self.parent().takeChild(self.parent().indexOfChild(self))
+                # Get master partition
+                master_item = self.parent().parent()._master_item
+                # Parent node under master partition
+                export_node.add_skeletal_meshes_to_partition(
+                    master_item.get_name(),
+                    [self.get_name()]
+                )
+
+                # refresh the UI, which will redraw the geometry as it is on the Maya Node.
+                self.parent().parent().reset_contents()
+
 
 
 class OutlinerTreeView(QtWidgets.QTreeWidget):
