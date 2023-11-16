@@ -8,6 +8,9 @@ from mgear.core import pyqt
 from mgear.shifter.rig_builder import builder
 
 
+builder.setup_pyblish()
+
+
 class RigBuilderUI(MayaQWidgetDockableMixin, QtWidgets.QDialog, pyqt.SettingsMixin):
     """
     A UI class for building mGear rigs from .sgt files.
@@ -143,18 +146,11 @@ class RigBuilderUI(MayaQWidgetDockableMixin, QtWidgets.QDialog, pyqt.SettingsMix
 
     def build_rig(self):
         data = self.collect_data()
-        builder.run_validators()
-        # builder.execute_build_logic(data)
+        builder.execute_build_logic(data)
 
 
 def openRigBuilderUI(*args):
     pyqt.showDialog(RigBuilderUI, dockable=True)
-
-    # import pyblish.api
-    # import pyblish_lite
-
-    # pyblish.api.register_host("maya")
-    # window = pyblish_lite.show()
 
 
 if __name__ == "__main__":
