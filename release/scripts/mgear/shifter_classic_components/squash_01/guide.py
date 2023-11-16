@@ -64,6 +64,12 @@ class Guide(guide.ComponentGuide):
                                                -1,
                                                None,
                                                None)
+        self.pSquashX = self.addParam("squashX", "double", 1, 0, 1)
+        self.pSquashY = self.addParam("squashY", "double", 1, 0, 1)
+        self.pSquashZ = self.addParam("squashZ", "double", 1, 0, 1)
+        self.pStretchX = self.addParam("stretchX", "double", 1, 0, 1)
+        self.pStretchY = self.addParam("stretchY", "double", 1, 0, 1)
+        self.pStretchZ = self.addParam("stretchZ", "double", 1, 0, 1)
 
 ##########################################################
 # Setting Page
@@ -120,6 +126,27 @@ class componentSettings(MayaQWidgetDockableMixin, guide.componentMainSettings):
         for item in refArrayItems:
             self.settingsTab.refArray_listWidget.addItem(item)
 
+        self.settingsTab.squashX_slider.setValue(int(self.root.attr("squashX").get() * 100))
+        self.settingsTab.squashX_spinBox.setValue(int(self.root.attr("squashX").get() * 100))
+
+        self.settingsTab.squashY_slider.setValue(int(self.root.attr("squashY").get() * 100))
+        self.settingsTab.squashY_spinBox.setValue(int(self.root.attr("squashY").get() * 100))
+
+        self.settingsTab.squashZ_slider.setValue(int(self.root.attr("squashZ").get() * 100))
+        self.settingsTab.squashZ_spinBox.setValue(int(self.root.attr("squashZ").get() * 100))
+
+
+        self.settingsTab.stretchX_slider.setValue(int(self.root.attr("stretchX").get() * 100))
+        self.settingsTab.stretchX_spinBox.setValue(int(self.root.attr("stretchX").get() * 100))
+
+        self.settingsTab.stretchY_slider.setValue(int(self.root.attr("stretchY").get() * 100))
+        self.settingsTab.stretchY_spinBox.setValue(int(self.root.attr("stretchY").get() * 100))
+
+        self.settingsTab.stretchZ_slider.setValue(int(self.root.attr("stretchZ").get() * 100))
+        self.settingsTab.stretchZ_spinBox.setValue(int(self.root.attr("stretchZ").get() * 100))
+
+
+
     def create_componentLayout(self):
 
         self.settings_layout = QtWidgets.QVBoxLayout()
@@ -139,6 +166,24 @@ class componentSettings(MayaQWidgetDockableMixin, guide.componentMainSettings):
                     self.settingsTab.refArray_listWidget,
                     "ikrefarray"))
         self.settingsTab.refArray_listWidget.installEventFilter(self)
+
+        self.settingsTab.squashX_slider.valueChanged.connect(partial(self.updateSlider, self.settingsTab.squashX_slider, "squashX"))
+        self.settingsTab.squashX_spinBox.valueChanged.connect(partial(self.updateSlider, self.settingsTab.squashX_spinBox, "squashX"))
+
+        self.settingsTab.squashY_slider.valueChanged.connect(partial(self.updateSlider, self.settingsTab.squashY_slider, "squashY"))
+        self.settingsTab.squashY_spinBox.valueChanged.connect(partial(self.updateSlider, self.settingsTab.squashY_spinBox, "squashY"))
+
+        self.settingsTab.squashZ_slider.valueChanged.connect(partial(self.updateSlider, self.settingsTab.squashZ_slider, "squashZ"))
+        self.settingsTab.squashZ_spinBox.valueChanged.connect(partial(self.updateSlider, self.settingsTab.squashZ_spinBox, "squashZ"))
+
+        self.settingsTab.stretchX_slider.valueChanged.connect(partial(self.updateSlider, self.settingsTab.stretchX_slider, "stretchX"))
+        self.settingsTab.stretchX_spinBox.valueChanged.connect(partial(self.updateSlider, self.settingsTab.stretchX_spinBox, "stretchX"))
+
+        self.settingsTab.stretchY_slider.valueChanged.connect(partial(self.updateSlider, self.settingsTab.stretchY_slider, "stretchY"))
+        self.settingsTab.stretchY_spinBox.valueChanged.connect(partial(self.updateSlider, self.settingsTab.stretchY_spinBox, "stretchY"))
+
+        self.settingsTab.stretchZ_slider.valueChanged.connect(partial(self.updateSlider, self.settingsTab.stretchZ_slider, "stretchZ"))
+        self.settingsTab.stretchZ_spinBox.valueChanged.connect(partial(self.updateSlider, self.settingsTab.stretchZ_spinBox, "stretchZ"))
 
     def eventFilter(self, sender, event):
         if event.type() == QtCore.QEvent.ChildRemoved:
