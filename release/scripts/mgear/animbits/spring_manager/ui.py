@@ -275,6 +275,14 @@ class SpringManager(MayaQWidgetDockableMixin, QtWidgets.QDialog, pyqt.SettingsMi
         return tuple(presets)
 
     def set_library(self, directory=None):
+        """
+        Clears the preset list and populates a new one with the items of the given directory
+        Args:
+            directory:
+
+        Returns:
+
+        """
         if not directory:
             directory = pm.fileDialog2(fileMode=3)[0]
 
@@ -282,8 +290,9 @@ class SpringManager(MayaQWidgetDockableMixin, QtWidgets.QDialog, pyqt.SettingsMi
             if not os.path.isdir(directory):
                 print("Directory does not exist. Creating...")
                 os.makedirs(directory, exist_ok=True)
+
         except:
-            pm.error("Could not create a directory.")
+            pm.error("Could not create directory")
             return
 
         if not os.path.isdir(directory):
