@@ -14,45 +14,52 @@ def setup_pyblish():
     pyblish.api.register_plugin_path(plugin_dir)
 
 
-def run_validators():
-    context = pyblish.util.publish()
-    valid = generate_report(context)
-    return valid
+def run_validators(output_name):
+    context = pyblish.util.collect()
+    pyblish.util.validate(context)
+    context, report = generate_instance_report(context, output_name)
+    passed_validation = context.data.get("valid")
+    return passed_validation, report
 
 
-def generate_report(context):
+def format_report_header():
     header_string = "{:<10}{:<40}{:<80}".format("Success", "Plug-in", "Instance")
-    result_string = "{success:<10}{plugin.__name__:<40}{instance}"
+    header = "{}\n{}\n".format(header_string, "-" * 70)
+    return header
+
+
+def generate_instance_report(context, output_name):
+    result_string = "{success:<10}{plugin.__name__:<40}{instance} - {name}"
     error_string = "{:<10} > error: {:<80}"
-    valid = True
+    context.data["valid"] = True
 
     results = []
     for result in context.data.get("results"):
+        result["name"] = output_name
         results.append(result_string.format(**result))
         r_error = result.get("error")
         if r_error is not None:
-            valid = False
+            context.data["valid"] = False
             results.append(error_string.format("", str(r_error)))
     results = "\n".join(results)
-    report = "{header}\n{line}\n{results}"
-    print(report.format(header=header_string, results=results, line="-" * 70))
-    return valid
+
+    return context, results
 
 
-def execute_build_logic(json_data):
+def execute_build_logic(json_data, validate=True):
     """Execute the rig building logic based on the provided JSON data.
 
     Args:
         json_data (str): A JSON string containing the necessary data.
     """
     data = json.loads(json_data)
+    report_string = format_report_header()
+
     data_rows = data.get("rows")
     if not data_rows:
         return
-
     for row in data_rows:
         file_path = row.get("file_path")
-        print(f"running {file_path}")
 
         # Continue with the logic only if file_path is provided
         if not file_path:
@@ -69,11 +76,15 @@ def execute_build_logic(json_data):
         maya_file_path = os.path.join(output_folder, maya_file_name)
 
         save_build = True
-        valid = run_validators()
-        if not valid:
-            save_build = False
-            print("Found errors, please fix and rebuild the rig.")
+        if validate:
+            passed_validation, report = run_validators(output_name)
+            report_string += "{}\n".format(report)
+            if not passed_validation:
+                save_build = False
+                print("Found errors, please fix and rebuild the rig.")
 
         cmds.file(rename=maya_file_path)
         cmds.file(save=save_build, type="mayaAscii")
         cmds.file(new=True, force=True)
+
+    print(report_string)
