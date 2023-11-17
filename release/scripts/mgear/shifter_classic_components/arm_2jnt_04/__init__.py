@@ -102,12 +102,11 @@ class Component(component.Main):
                                             self.negate)
        # Define the wrist transform (wt)
         if self.settings["guideOrientWrist"]:
-            wt = self.guide.tra["wrist"]
             if self.settings["mirrorIK"] and self.negate:
                 scl = [1, 1, -1]
             else:
                 scl = [1, 1, 1]
-            wt = transform.setMatrixScale(wt, scl)
+            wt = transform.setMatrixScale(t, scl)
             t = wt
 
         self.fk2_npo = primitive.addTransform(self.fk1_ctl,
