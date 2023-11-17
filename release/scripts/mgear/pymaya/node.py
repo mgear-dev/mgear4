@@ -88,6 +88,46 @@ class _Node(base.Node):
 
         raise exception.MayaAttributeError(f"No '{name}' attr found")
 
+    def addAttr(self, name, **kwargs):
+        kwargs.pop("ln")
+        kwargs.pop("longName")
+        kwargs["longName"] = name
+        return cmds.addAttr(self.name(), **kwargs)
+
+    def getAttr(self, name, **kwargs):
+        return cmds.getAttr(f"{self.name()}.{name}", **kwargs)
+
+    def hasAttr(self, name, checkShape=True):
+        return cmds.objExists(f"{self.name()}.{name}")
+
+    def listConnections(self, **kwargs):
+        return cmds.listConnections(f"{self.name()}.{name}", **kwargs)
+
+    def namespace(self):
+        nss = self.name().split("|")[-1].split(":")[:-1]
+        if not nss:
+            return ""
+
+        return ":".join(nss) + ":"
+
+    def node(self):
+        return self
+
+    def rename(self, name):
+        return cmds.rename(self.name(), name)
+
+    def startswith(self, word):
+        return self.name().startswith(word)
+
+    def endswith(self, word):
+        return self.name().endswith(word)
+
+    def replace(self, old, new):
+        return self.name().replace(old, new)
+
+    def split(self, word):
+        return self.name().split(word)
+
 
 class _NodeTypes(object):
     __Instance = None

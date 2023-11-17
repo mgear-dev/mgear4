@@ -18,6 +18,7 @@ Callback = functools.partial
 displayError = OpenMaya.MGlobal.displayError
 displayInfo = OpenMaya.MGlobal.displayInfo
 displayWarning = OpenMaya.MGlobal.displayWarning
+# TODO : None to list
 
 
 def exportSelected(*args, **kwargs):
