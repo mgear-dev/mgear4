@@ -1498,6 +1498,13 @@ def reset_all_keyable_attributes(dagnodes, *args):  # @unusedVariable
         keyable_attrs = cmds.listAttr(node, keyable=True)
         reset_selected_channels_value([node], keyable_attrs)
 
+        rotOrder = "rotate_order"
+        if cmds.attributeQuery(rotOrder, node=node, exists=True):
+            intNum = cmds.getAttr("{}.{}".format(node, rotOrder))
+            if cmds.getAttr("{}.rotateOrder".format(node), lock=True):
+                continue
+            cmds.setAttr("{}.rotateOrder".format(node), intNum)
+
 
 ##################################################
 # Transfer space
