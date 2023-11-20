@@ -74,6 +74,7 @@ class Guide(guide.ComponentGuide):
 
         self.pJoint = self.addParam("joint", "bool", False)
         self.pLeafJoint = self.addParam("leafJoint", "bool", False)
+        self.pAddLeafJoint = self.addParam("addLeafJoint", "bool", False)
         self.pJoint = self.addParam("uniScale", "bool", False)
 
         for s in ["tx", "ty", "tz", "ro", "rx", "ry", "rz", "sx", "sy", "sz"]:
@@ -171,6 +172,7 @@ class componentSettings(MayaQWidgetDockableMixin, guide.componentMainSettings):
         self.populateCheck(self.settingsTab.joint_checkBox, "joint")
         self.enable_leaf_joint()
         self.populateCheck(self.settingsTab.leafJoint_checkBox, "leafJoint")
+        self.populateCheck(self.settingsTab.addLeafJoint_checkBox, "addLeafJoint")
         self.populateCheck(self.settingsTab.uniScale_checkBox, "uniScale")
         self.populateCheck(self.settingsTab.neutralRotation_checkBox,
                            "neutralRotation")
@@ -234,6 +236,10 @@ class componentSettings(MayaQWidgetDockableMixin, guide.componentMainSettings):
             partial(self.updateCheck,
                     self.settingsTab.leafJoint_checkBox,
                     "leafJoint"))
+        self.settingsTab.addLeafJoint_checkBox.stateChanged.connect(
+            partial(self.updateCheck,
+                    self.settingsTab.addLeafJoint_checkBox,
+                    "addLeafJoint"))
         self.settingsTab.uniScale_checkBox.stateChanged.connect(
             partial(self.updateCheck,
                     self.settingsTab.uniScale_checkBox,
@@ -310,3 +316,4 @@ class componentSettings(MayaQWidgetDockableMixin, guide.componentMainSettings):
     def enable_leaf_joint(self):
         state = self.settingsTab.joint_checkBox.isChecked()
         self.settingsTab.leafJoint_checkBox.setEnabled(state)
+        self.settingsTab.addLeafJoint_checkBox.setEnabled(state)

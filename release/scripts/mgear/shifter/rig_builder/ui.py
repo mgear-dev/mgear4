@@ -1,16 +1,17 @@
-from mgear.core import pyqt
-from mgear.vendor.Qt import QtWidgets
-from maya.app.general.mayaMixin import MayaQWidgetDockableMixin
 import os
 import json
 
+from maya.app.general.mayaMixin import MayaQWidgetDockableMixin
 
-from . import builder
+from mgear.vendor.Qt import QtWidgets
+from mgear.core import pyqt
+from mgear.shifter.rig_builder import builder
 
 
-class RigBuilderUI(
-    MayaQWidgetDockableMixin, QtWidgets.QDialog, pyqt.SettingsMixin
-):
+builder.setup_pyblish()
+
+
+class RigBuilderUI(MayaQWidgetDockableMixin, QtWidgets.QDialog, pyqt.SettingsMixin):
     """
     A UI class for building mGear rigs from .sgt files.
     """
@@ -36,12 +37,8 @@ class RigBuilderUI(
         # File Table UI
         self.table_widget = QtWidgets.QTableWidget()
         self.table_widget.setColumnCount(2)
-        self.table_widget.setHorizontalHeaderLabels(
-            [".sgt File", "Output Name"]
-        )
-        self.table_widget.setEditTriggers(
-            QtWidgets.QAbstractItemView.AllEditTriggers
-        )
+        self.table_widget.setHorizontalHeaderLabels([".sgt File", "Output Name"])
+        self.table_widget.setEditTriggers(QtWidgets.QAbstractItemView.AllEditTriggers)
         # Resize the first column to fit its content
         self.table_widget.horizontalHeader().setSectionResizeMode(
             0, QtWidgets.QHeaderView.ResizeToContents
@@ -141,13 +138,9 @@ class RigBuilderUI(
             output_name_item = self.table_widget.item(i, 1)
 
             file_path = file_path_item.text().strip() if file_path_item else ""
-            output_name = (
-                output_name_item.text().strip() if output_name_item else ""
-            )
+            output_name = output_name_item.text().strip() if output_name_item else ""
 
-            data["rows"].append(
-                {"file_path": file_path, "output_name": output_name}
-            )
+            data["rows"].append({"file_path": file_path, "output_name": output_name})
 
         return json.dumps(data)
 

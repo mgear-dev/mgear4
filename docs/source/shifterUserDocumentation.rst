@@ -93,3 +93,152 @@ The templates look like this:
 - **joints** - List of mGear joints and which of the character's joints to constrain to it.
     - **joint** - Name of the character's joint to constrain to mGear.
     - **constain** - Three 0 or 1's. First is if to point constraint, second is orient and third is scale.
+
+.. _shifter-fbx-exporter:
+
+Shifter's FBX Exporter
+==============================================
+
+The FBX exporter, allows you to export FBXs, as well having an integration into Unreal.
+
+It supports the following Unreal processes:
+
+- Exporting SKMs
+- Exporting SKMs and using existing Skeletons
+- Exporting Animation
+- Exporting Animation layers
+
+UI
+-----------------
+
+.. image:: images/shifter/fbx_exporter/fbx_shifter.png
+
+* **File** - Allows for users to serialise there settings, incase they want to reload them, or use them in a scripted pipeline.
+* **FBX SDK(Optional)** - Allows the specify where the FBX SDK can be found. This allows the UI to perform some extra :ref:`features <shifter-fbx-sdk-features>`
+
+
+Source Elements
+++++++++++++++++++
+
+These are the elements that make up the FBX, Geometry and Skeleton structure.
+
+.. image:: images/shifter/fbx_exporter/fbx_shifter_roots.png
+    :align: center
+
+In the image above you can see that the **geo_root** is a group that contains all the geometry objects.
+
+**Geo Root**: The list of geometry object roots. There can be more then one depending on how you have structured your character.
+
+**Joint Root**: The root bone of the skeleton.
+
+Settings
+++++++++++++++++++
+
+You can specify the FBX export settings here.
+
+If *FBX SDK* enabled, then you can also perform additional commands post export.
+
+- Remove Namespace
+- Clean up scene.
+
+File Path
+++++++++++++++++++
+
+- **Directory**: Location of the exported FBX files.
+- **File Name**: Name of the fbx file that will be generated. This will also be used as the name of the **Unreal Assets**.
+
+Unreal Engine Import
+++++++++++++++++++++++
+
+- **Enable Unreal Engine Import**: Enabling this, will allow for the other Unreal UI elements to become active. 
+It also **refreshes** the **Unreal Skeleton** list, by querying the current open Unreal Project.
+
+.. image:: images/shifter/fbx_exporter/fbx_shifter_ue_no_path.png
+    :align: center
+
+- **Directory**: The import location in Unreal for the SKM and Animations.
+
+    .. image:: images/shifter/fbx_exporter/fbx_shifter_ue_select_folder.png
+        :align: center
+    1) Navigate to the folder in Unreal that you want to import to.
+    2) Select the folder in Unreal's **Content Browser**
+    
+    .. image:: images/shifter/fbx_exporter/fbx_shifter_ue_path.png
+        :align: center
+    3) Click the folder icon in the Shifter UI. 
+    4) The Package path to the directory will be retrieved from Unreal. You can modify it as you please, and the folder structure will be generated on import.
+
+Export
+-----------------
+
+Skeletal Mesh
+++++++++++++++++++
+
+Allows for the exporting of Skeletons and Geometry.
+
+.. image:: images/shifter/fbx_exporter/fbx_shifter_export_geo.png
+        :align: center
+
+- **Skinning**: Export Skinning data
+- **Blendshapes**: Export Blendshapes that exist on the geometry.
+
+**Partitions**
+
+*(If available)* Performs partitioning of skeleton hierarchy data.
+
+- When you add the **geometry roots**, all geometry child objects will get added to the **Master** partition.
+
+Partitions are designed to allow you to export once, and generate new skeletons hierarchies that share the same root structure, but have all unneccesary leaf nodes removed.
+*Unnessary leaf nodes*, would be any joint that is no longer driving geometry and no longer required to drive any other joints that have skinning. 
+
+.. image:: images/shifter/fbx_exporter/fbx_shifter_export_geo_partitions.png
+        :align: center
+
+- Press the **"+"** button to create a custom partition. Once it has been created you can drag any other geometry objects from the master partition, to the custom partition.
+- Right click on a Partition to change its colour, duplicate or delete it.
+
+**Export Skeletal/SkinnedMesh**: Performs the FBX export, and if **"Enable Unreal Engine Import"** is active, the fbx's will be imported into the active Unreal Engine project.
+
+.. note::
+    If you want to use a pre-existing skeleton in Unreal, make sure to have selected the *skeleton* in the *Unreal Engine Imports* section. If you have not, a new Skeleton will be generated on import into Unreal. 
+
+.. _shifter-fbx-sdk-features:
+
+**FBX SDK Features**
+
+If you have FBX SDK enabled, it will allow you to export the fbx SKM, and create a Skeleton per a partition group.
+The skeleton that is created per a group, has trimmed all bones that no longer drive any geometry objects in the partition.
+
+Animation
+++++++++++++++++++
+
+Exports the Maya animation as an FBX. **Clips** allow for sections of the maya timeline to be exported, while also utilising the animation layers.
+
+.. image:: images/shifter/fbx_exporter/fbx_shifter_export_anim.png
+        :align: center
+
+**Clip**
+
+Clips allow you to create named animation exportd, that represent a section of time on the maya timeline.
+
+- **Trash can**: Removes the clip.
+- **Name of the clip** will be appended to the file. eg. *BoyA_ROM*, *BoyA_Clip_2*
+- **Drop-down**: represents the animation layer that will have its animation read, and exported as the final FBX.
+- **Start Frame**: The frame number that the animation will start at.
+- **End Frame**: The frame number that the animation will end at.
+- **Set timeline range**: Updated Mayas timeline to fit the range that is specified.
+- **Play**: Plays back the clip on loop.
+- **Tick Box**: Disabled the animation clip, stopping the clip from being exported.
+
+
+
+**Animation Layers**
+
+.. image:: images/shifter/fbx_exporter/fbx_shifter_animation_cb.png
+        :align: center
+
+- **None**: Uses the current configuration of active and disabled Animation Layers. Exporting exactly what you see in scene.
+- Any other selected animation layer, will export the **Animation Layer** and **Mayas BaseAnimation**
+
+.. image:: images/shifter/fbx_exporter/fbx_shifter_maya_anim_layers.png
+        :align: center

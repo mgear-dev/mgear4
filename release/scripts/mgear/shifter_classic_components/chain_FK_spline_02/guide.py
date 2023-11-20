@@ -67,6 +67,7 @@ class Guide(guide.ComponentGuide):
         self.pOverrideJointNb = self.addParam("overrideJntNb", "bool", False)
         self.pJntNb = self.addParam("jntNb", "long", 3, 1)
         self.pExtraTweak = self.addParam("extraTweak", "bool", False)
+        self.pleafJoints = self.addParam("leafJoints", "bool", False)
 
         self.pUseIndex = self.addParam("useIndex", "bool", False)
         self.pParentJointIndex = self.addParam(
@@ -133,6 +134,7 @@ class componentSettings(MayaQWidgetDockableMixin, guide.componentMainSettings):
         self.populateCheck(self.settingsTab.extraTweak_checkBox,
                            "extraTweak")
         self.settingsTab.jntNb_spinBox.setValue(self.root.attr("jntNb").get())
+        self.populateCheck(self.settingsTab.leafJoints_checkBox, "leafJoints")
 
     def create_componentLayout(self):
 
@@ -173,6 +175,13 @@ class componentSettings(MayaQWidgetDockableMixin, guide.componentMainSettings):
             partial(self.updateCheck,
                     self.settingsTab.extraTweak_checkBox,
                     "extraTweak"))
+        self.settingsTab.leafJoints_checkBox.stateChanged.connect(
+            partial(
+                self.updateCheck,
+                self.settingsTab.leafJoints_checkBox,
+                "leafJoints",
+            )
+        )
 
     def dockCloseEventTriggered(self):
         pyqt.deleteInstances(self, MayaQDockWidget)

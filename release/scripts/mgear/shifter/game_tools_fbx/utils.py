@@ -13,7 +13,13 @@ import maya.api.OpenMaya as om
 
 from mgear.vendor.Qt import QtWidgets, QtCore
 
-from mgear.core import pyFBX as pfbx, pyqt, string, utils as coreUtils, animLayers
+from mgear.core import (
+    pyFBX as pfbx,
+    pyqt,
+    string,
+    utils as coreUtils,
+    animLayers,
+)
 from mgear.shifter.game_tools_fbx import sdk_utils
 
 NO_EXPORT_TAG = "no_export"
@@ -307,20 +313,24 @@ def export_animation_clip(config_data, clip_data):
     :rtype: str
     """
     # Clip Data
-    start_frame = clip_data.get("start_frame", 
-                                cmds.playbackOptions(query=True, minTime=True))
-    end_frame = clip_data.get("end_frame", 
-                              cmds.playbackOptions(query=True, maxTime=True))
+    start_frame = clip_data.get(
+        "start_frame", cmds.playbackOptions(query=True, minTime=True)
+    )
+    end_frame = clip_data.get(
+        "end_frame", cmds.playbackOptions(query=True, maxTime=True)
+    )
     title = clip_data.get("title", "")
     frame_rate = clip_data.get("geo_root", coreUtils.get_frame_rate())
     anim_layer = clip_data.get("anim_layer", "")
-    
+
     # Config Data
     root_joint = config_data.get("joint_root", "")
     file_path = config_data.get("file_path", "")
     file_name = config_data.get("file_name", "")
     preset_path = config_data.get("preset_path", None)
-    up_axis = config_data.get("up_axis", cmds.optionVar(query="upAxisDirection"))
+    up_axis = config_data.get(
+        "up_axis", cmds.optionVar(query="upAxisDirection")
+    )
     file_type = config_data.get("file_type", "binary").lower()
     fbx_version = config_data.get("fbx_version", None)
     remove_namespaces = config_data.get("remove_namespace")
@@ -465,7 +475,6 @@ def export_animation_clip(config_data, clip_data):
         pm.autoKeyframe(state=auto_key_state)
         pm.cycleCheck(evaluation=cycle_check)
         cmds.playbackOptions(min=original_start_frame, max=original_end_frame)
-
 
         # if the scene was not modified before doing our changes, we force it back now
         if scene_modified is False:
@@ -710,7 +719,6 @@ def get_end_joint(start_joint):
             next_joint = None
 
     return end_joint
-
 
 
 if __name__ == "__main__":
