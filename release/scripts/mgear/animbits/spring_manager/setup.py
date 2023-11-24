@@ -40,6 +40,16 @@ def create_settings_attr(node, config):
     # Check if attr already exists at node
     if pm.attributeQuery("springTotalIntensity", node=node, exists=True):
         return False
+    lock = True
+    keyable = True
+    # separator Attr
+    attr_name = "springConfig"
+    attribute.addEnumAttribute(
+        node, attr_name, 0, ["Spring Config"], niceName="__________"
+    )
+    node.setAttr(attr_name, lock=lock, keyable=keyable)
+
+    # Keyable attr
 
     attribute.addAttribute(
         node,
@@ -57,6 +67,14 @@ def create_settings_attr(node, config):
         minValue=0,
         maxValue=100,
     )
+    # separator Attr
+    attr_name = "springTranslation"
+    attribute.addEnumAttribute(
+        node, attr_name, 0, ["Spring Translation"], niceName="__________"
+    )
+    node.setAttr(attr_name, lock=lock, keyable=keyable)
+
+    # Keyable attr
     attribute.addAttribute(
         node,
         "springTranslationalIntensity",
@@ -81,6 +99,14 @@ def create_settings_attr(node, config):
         minValue=0,
         maxValue=1,
     )
+    # separator Attr
+    attr_name = "springRotation"
+    attribute.addEnumAttribute(
+        node, attr_name, 0, ["Spring Rotation"], niceName="__________"
+    )
+    node.setAttr(attr_name, lock=lock, keyable=keyable)
+
+    # Keyable attr
     attribute.addAttribute(
         node,
         "springRotationalIntensity",
@@ -330,7 +356,8 @@ def create_spring(node=None, config=None):
     move_animation_curves(node, root)
 
     # connect driver to node
-    applyop.parentCns(driver, node)
+    cns = applyop.parentCns(driver, node, maintain_offset=False)
+    cns.isHistoricallyInteresting.set(False)
 
     return driver, node
 
@@ -664,15 +691,29 @@ def delete_spring_setup(nodes=None, transfer_animation=True):
         remove_settings_attr(node)
 
 
-@one_undo
-def delete_all_springs():
+def get_spring_targets():
+    """Get all the spring target controls
+
+    Returns:
+        set: spring target controls in the scene
+    """
     spring_nodes = pm.ls(type="mgear_springNode")
     nodes = set()
     for spring_node in spring_nodes:
         source = pm.listConnections(spring_node.damping, source=True)[0]
         nodes.add(source)
 
-    delete_spring_setup(nodes)
+    return nodes
+
+
+@one_undo
+def delete_all_springs():
+    delete_spring_setup(get_spring_targets)
+
+
+@one_undo
+def select_all_springs_targets():
+    pm.select(get_spring_targets)
 
 
 def move_animation_curves(source_node, target_node):
