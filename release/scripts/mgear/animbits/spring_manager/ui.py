@@ -415,7 +415,7 @@ class SpringManager(MayaQWidgetDockableMixin, QtWidgets.QDialog, pyqt.SettingsMi
             item = self.item_model.itemFromIndex(self.__proxy_model.mapToSource(qindex))
             name = item.text()
             file_path = "{}/{}{}".format(self.presets_library_directory, name, setup.SPRING_PRESET_EXTENSION)
-            affected_nodes.extend(setup.get_preset_targets(preset_file_path=file_path))
+            affected_nodes.extend(setup.get_preset_targets(preset_file_path=file_path, namespace_cb=self._namespace_confirmation_dialogue))
         pm.select(affected_nodes)
 
     def filter_changed(self, filter):
