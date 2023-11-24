@@ -447,7 +447,7 @@ def moveChannel(attr, sourceNode, targetNode, duplicatedPolicy=None):
                     niceName=nName,
                     attributeType="bool",
                     defaultValue=value,
-                    keyable=True
+                    keyable=True,
                 )
 
             newAtt = pm.PyNode(".".join([targetNode.name(), attrName]))
@@ -1105,8 +1105,29 @@ def set_default_value(node, attribute):
 
     defVal = get_default_value(node, attribute)
     try:
-        node.attr(attribute).set(defVal)
+        if attribute in ["ro", "rotateOrder"]:
+            # custom metadata rot order attr
+            rotOrder = "rotate_order"
+            if pm.attributeQuery(rotOrder, node=node, exists=True):
+                # print(
+                #     "Resetting rotate Order for {} using custom metadata".format(
+                #         node
+                #     )
+                # )
+                intNum = pm.getAttr("{}.{}".format(node, rotOrder))
+                if not pm.getAttr("{}.rotateOrder".format(node), lock=True):
+                    pm.setAttr("{}.rotateOrder".format(node), intNum)
+            else:
+                pm.displayWarning(
+                    "No custom rotate order metadata found in {}. Resetting to XYZ rotate order".format(
+                        node
+                    )
+                )
+                node.attr(attribute).set(defVal)
+        else:
+            node.attr(attribute).set(defVal)
     except RuntimeError:
+        # print("Failed to reset: {}".format(attribute))
         pass
 
 
@@ -1143,7 +1164,19 @@ def reset_selected_channels_value(objects=None, attributes=None):
 
 def reset_SRT(
     objects=None,
-    attributes=["tx", "ty", "tz", "rx", "ry", "rz", "sx", "sy", "sz", "v"],
+    attributes=[
+        "tx",
+        "ty",
+        "tz",
+        "rx",
+        "ry",
+        "rz",
+        "sx",
+        "sy",
+        "sz",
+        "v",
+        "ro",
+    ],
 ):
     """Reset Scale Rotation and translation attributes to default value
 
