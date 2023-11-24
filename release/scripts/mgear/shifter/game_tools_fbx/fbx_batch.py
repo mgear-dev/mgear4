@@ -26,14 +26,16 @@ import sys, os
 import maya.cmds as cmds
 import maya.api.OpenMaya as om
 
+from mgear.core import pyFBX as pfbx
 
-def perform_fbx_condition(remove_namespace, scene_clean, master_fbx_path, root_joint, root_geos, skinning=True, blendshapes=True):
+
+def perform_fbx_condition(remove_namespace, scene_clean, master_fbx_path, root_joint, root_geos, skinning=True, blendshapes=True, partitions=True):
     """
      [X] Import FBX Master
      [X] Remove Namespace
      [X] Scene Clean
-     [ ] Skinning
-     [ ] Blendshapes
+     [X] Skinning
+     [X] Blendshapes
      [ ] Save out master maya scene, to perform Partitions
     """
     print("-----------------------")
@@ -51,16 +53,24 @@ def perform_fbx_condition(remove_namespace, scene_clean, master_fbx_path, root_j
     # formats the output location from the master fbx path.
     output_dir = os.path.dirname(master_fbx_path)
     fbx_file = os.path.basename(master_fbx_path)
-    conditioned_file = fbx_file.split(".")[0] + "_conditioned.fbx"
-    print(output_dir)
-    print(fbx_file)
-    print(conditioned_file)
+    conditioned_file = fbx_file.split(".")[0] + "_conditioned.ma"
+    
+    print(f"  Output location: {output_dir}")
+    print(f"  FBX file: {fbx_file}")
+    print(f"  Conditioned file: {conditioned_file}")
 
     # Removes all namespaces from any DG or DAG object.
     if remove_namespace:
+        print("Removing Namespace..")
         _clean_namespaces()
 
+        # updates root joint name if namespace is found
+        root_joint = root_joint.split(":")[-1]
+        for i in range(len(root_geos)):
+            root_geos[i] = root_geos[i].split(":")[-1]
+
     if scene_clean:
+        print("Clean Scene..")
         # Move the root_joint and root_geos to the scene root
         _parent_to_root(root_joint)
         for r_geo in root_geos:
@@ -70,15 +80,53 @@ def perform_fbx_condition(remove_namespace, scene_clean, master_fbx_path, root_j
         _cleanup_stale_dag_hierarchies([root_joint] + root_geos)
     
     if not skinning:
+        print("Removing Skinning..")
         # Remove skinning from geometry
         _delete_bind_poses()
 
-
     if not blendshapes:
         # Remove blendshapes from geometry
-        pass
+        print("Removing Blendshapes..")
+        _delete_blendshapes()
 
-    # Save out conditioned file
+    if partitions:
+        print("Getting Scene ready for Partition creation..")
+        # Save out conditioned file, as this will be used by other partition processes
+        cmds.file( rename=conditioned_file)
+        cmds.file( save=True, force=True, type="mayaAscii")
+
+        # Trigger partitions
+        # TODO: Check partitions
+        #   [ ] If only master partition, perform fbx export
+        #   [ ] If Multiple partitions...
+
+        # Delete temporary conditioned .ma file
+        cmds.file( new=True, force=True)
+        if os.path.exists(conditioned_file):
+            os.remove(conditioned_file)
+        else:
+            print("  Cleaned up conditional file")
+    else:
+        # Partitions deactivated, updates master fbx file.
+        print("Partitions deactivated - Save out master fbx.. ")
+        print(  "Path: {}".format(master_fbx_path))
+        cmds.select( clear=True )
+        cmds.select([root_joint] + root_geos)
+        pfbx.FBXExport(f=master_fbx_path, s=True)
+
+
+def _delete_blendshapes():
+    """
+    Deletes all blendshape objects in the scene.
+    """
+    blendshape_mobjs = find_dg_nodes_by_type(om.MFn.kBlendShape)
+    
+    dg_mod = om.MDGModifier()
+    for mobj in blendshape_mobjs:
+        print("   - {}".format(om.MFnDependencyNode(mobj).name()))
+        dg_mod.deleteNode(mobj)
+
+    dg_mod.doIt()
 
 
 def find_geometry_dag_objects(parent_object_name):
@@ -119,8 +167,6 @@ def _delete_bind_poses():
     """
     Removes all skin clusters and bind poses nodes from the scene.
     """
-    print("[Delete] Skin Cluster and Bind pose")
-
     bind_poses_mobjs = find_dg_nodes_by_type(om.MFn.kDagPose)
     skin_cluster = find_dg_nodes_by_type(om.MFn.kSkinClusterFilter)
 
@@ -241,6 +287,7 @@ def _clean_namespaces():
     """
     namespaces = _get_scene_namespaces()
     for namespace in namespaces:
+        print("  - {}".format(namespace))
         child_namespaces = om.MNamespace.getNamespaces(namespace, True)
 
         for chld_ns in child_namespaces:
