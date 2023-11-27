@@ -763,7 +763,7 @@ def move_animation_curves(source_node, target_node):
         None
     """
 
-    attributes_to_check = ["translate", "rotate", "scale"]
+    attributes_to_check = ["translate", "rotate"]
 
     for attr in attributes_to_check:
         for axis in ["X", "Y", "Z"]:
