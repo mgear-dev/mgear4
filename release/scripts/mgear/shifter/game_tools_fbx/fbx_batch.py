@@ -36,7 +36,10 @@ def perform_fbx_condition(remove_namespace, scene_clean, master_fbx_path, root_j
      [X] Scene Clean
      [X] Skinning
      [X] Blendshapes
-     [ ] Save out master maya scene, to perform Partitions
+     [X] Save out master maya scene, to perform Partitions
+     [ ] Perform Partition exportation.
+        [ ] get partition data
+
     """
     print("-----------------------")
     print(" perform fbx condition")
@@ -113,6 +116,106 @@ def perform_fbx_condition(remove_namespace, scene_clean, master_fbx_path, root_j
         cmds.select( clear=True )
         cmds.select([root_joint] + root_geos)
         pfbx.FBXExport(f=master_fbx_path, s=True)
+
+
+def _export_skeletal_mesh_partitions(jnt_roots, export_data):
+    if not pfbx.FBX_SDK:
+        cmds.warning(
+            "Python FBX SDK is not available. Skeletal Mesh partitions export functionality is not available!"
+        )
+        return False
+
+    file_path = export_data.get("file_path", "")
+    file_name = export_data.get("file_name", "")
+    deformations = export_data.get("deformations", True)
+    skinning = export_data.get("skinning", True)
+    blendshapes = export_data.get("blendshapes", True)
+
+    if not file_name.endswith(".fbx"):
+        file_name = "{}.fbx".format(file_name)
+    path = string.normalize_path(os.path.join(file_path, file_name))
+    print("\t>>> Export Path: {}".format(path))
+
+    partitions = export_data.get("partitions", dict())
+    if not partitions:
+        cmds.warning("Partitions not defined!")
+        return False
+
+    # data that will be exported into a temporal file
+    partitions_data = OrderedDict()
+
+    for partition_name, data in partitions.items():
+        meshes = data.get("skeletal_meshes", None)
+
+        joint_hierarchy = OrderedDict()
+        for mesh in meshes:
+            # we retrieve all end joints from the influenced joints
+            influences = pm.skinCluster(mesh, query=True, influence=True)
+
+            # make sure the hierarchy from the root joint to the influence joints is retrieved.
+            for jnt_root in jnt_roots:
+                joint_hierarchy.setdefault(jnt_root, list())
+                for inf_jnt in influences:
+                    jnt_hierarchy = get_joint_list(jnt_root, inf_jnt)
+                    for hierarchy_jnt in jnt_hierarchy:
+                        if hierarchy_jnt not in joint_hierarchy[jnt_root]:
+                            joint_hierarchy[jnt_root].append(hierarchy_jnt)
+
+        partitions_data.setdefault(partition_name, dict())
+
+        # the joint chain to export will be the shorter one between the root joint and the influences
+        short_hierarchy = None
+        for root_jnt, joint_hierarchy in joint_hierarchy.items():
+            total_joints = len(joint_hierarchy)
+            if total_joints <= 0:
+                continue
+            if short_hierarchy is None:
+                short_hierarchy = joint_hierarchy
+                partitions_data[partition_name]["root"] = root_jnt
+            elif len(short_hierarchy) > len(joint_hierarchy):
+                short_hierarchy = joint_hierarchy
+                partitions_data[partition_name]["root"] = root_jnt
+        if short_hierarchy is None:
+            continue
+
+        # we make sure we update the hierarchy to include all joints between the skeleton root joint and
+        # the first joint of the found joint hierarchy
+        root_jnt = get_root_joint(short_hierarchy[0])
+        if root_jnt not in short_hierarchy:
+            parent_hierarchy = get_joint_list(root_jnt, short_hierarchy[0])
+            short_hierarchy = parent_hierarchy + short_hierarchy
+
+        partitions_data[partition_name]["hierarchy"] = [
+            jnt.name() for jnt in short_hierarchy
+        ]
+
+    try:
+        for partition_name, partition_data in partitions_data.items():
+            if not partition_data:
+                continue
+            fbx_file = sdk_utils.FbxSdkGameToolsWrapper(path)
+            partition_meshes = partitions.get(partition_name).get(
+                "skeletal_meshes"
+            )
+            fbx_file.export_skeletal_mesh(
+                file_name=partition_name,
+                mesh_names=partition_meshes,
+                hierarchy_joints=partition_data.get("hierarchy", []),
+                deformations=deformations,
+                skins=skinning,
+                blendshapes=blendshapes,
+            )
+            fbx_file.close()
+
+    except Exception:
+        cmds.error(
+            "Something wrong happened while export skeleton mesh: {}".format(
+                traceback.format_exc()
+            )
+        )
+        return False
+
+    return True
 
 
 def _delete_blendshapes():
