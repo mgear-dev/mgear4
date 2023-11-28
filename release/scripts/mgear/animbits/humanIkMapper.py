@@ -115,6 +115,8 @@ class HumanIKMapper():
         'LeafLeftLegRoll5',
     ]
 
+    CHAR_NAME = 'MGearIKHuman'
+
     @classmethod
     def set_character(cls):
         selection = cmds.ls(sl=1)
@@ -125,18 +127,20 @@ class HumanIKMapper():
 
         pm.mel.HIKCharacterControlsTool()
      
-        charName = 'MGearIKHuman'
-
         tmp = set(pm.ls(type='HIKCharacterNode'))
         pm.mel.hikCreateDefinition()
         hikChar = list(set(pm.ls(type='HIKCharacterNode')) - tmp)[0]
-        hikChar.rename(charName)
+        hikChar.rename(cls.CHAR_NAME)
         pm.mel.hikSetCurrentCharacter(hikChar)
         
         if reference_bone:
             pm.mel.setCharacterObject(reference_bone, hikChar, pm.mel.hikGetNodeIdFromName('Reference'), 0)
 
         pm.mel.hikUpdateDefinitionUI()
+
+    @classmethod
+    def is_initialized(cls):
+        return pm.mel.hikGetCurrentCharacter()
         
 
     @classmethod
@@ -330,6 +334,9 @@ class HumanIKMapperUI(MayaQWidgetDockableMixin, QtWidgets.QDialog):
     
     def display_list_mb_cb(self, bone_list):
         def display():
+            if not HumanIKMapper.is_initialized():
+                pm.error("HumanIK character is not initialized, aborting.")
+                return
             dialog = BoneListDialog(self, bone_list, self.mirror_checkbox.isChecked())
             dialog.show()
             
