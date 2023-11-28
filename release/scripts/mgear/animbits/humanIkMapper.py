@@ -1,6 +1,8 @@
 import pymel.core as pm
 from maya.app.general.mayaMixin import MayaQWidgetDockableMixin
 import maya.cmds as cmds
+from maya import OpenMayaUI as omui
+from shiboken2 import wrapInstance
 
 from mgear.core import callbackManager
 import mgear
@@ -12,8 +14,15 @@ from mgear.rigbits.mirror_controls import MirrorController
 ########################################
 #   Load Plugins
 ########################################
-pm.loadPlugin('fbxmaya')
-pm.loadPlugin('mayaHIK')
+if not pm.pluginInfo('fbxmaya', query=True, loaded=True):
+    pm.loadPlugin('fbxmaya')
+if not pm.pluginInfo('mayaHIK', query=True, loaded=True):
+    pm.loadPlugin('mayaHIK')
+
+
+def maya_main_window():
+    main_window_ptr = omui.MQtUtil.mainWindow()
+    return wrapInstance(int(main_window_ptr), QtWidgets.QWidget)
 
 class HumanIKMapper():
     HEAD_NAMES = [
@@ -92,23 +101,19 @@ class HumanIKMapper():
     ]
 
     LEFT_UPPER_LEG_ROLLS = [
-        'LeafLegUpLegRoll1',
-        'LeafLegUpLegRoll2',
-        'LeafLegUpLegRoll3',
-        'LeafLegUpLegRoll4',
-        'LeafLegUpLegRoll5',
+        'LeafLeftUpLegRoll1',
+        'LeafLeftUpLegRoll2',
+        'LeafLeftUpLegRoll3',
+        'LeafLeftUpLegRoll4',
+        'LeafLeftUpLegRoll5',
     ]
     LEFT_LOWER_LEG_ROLLS = [
-        'LeafLegLegRoll1',
-        'LeafLegLegRoll2',
-        'LeafLegLegRoll3',
-        'LeafLegLegRoll4',
-        'LeafLegLegRoll5',
+        'LeafLeftLegRoll1',
+        'LeafLeftLegRoll2',
+        'LeafLeftLegRoll3',
+        'LeafLeftLegRoll4',
+        'LeafLeftLegRoll5',
     ]
-
-    # def __init__(self):
-    #     selection = cmds.ls(sl=1)[0]
-    #     self.hikChar = self.set_character(selection)
 
     @classmethod
     def set_character(cls):
@@ -135,24 +140,26 @@ class HumanIKMapper():
         
 
     @classmethod
-    def set_list_of_bones_from_selection(cls, bones_list, sel, do_mirror=False):
+    def set_list_of_bones_from_selection(cls, bones_list, ctrls, do_mirror=False):
         if do_mirror:
             if 'Left' in bones_list[0]:
-                mirror_bone_list = [bone.replace('Left', 'Right') for bone in bones_list]
+                bones_list.extend([bone.replace('Left', 'Right') for bone in bones_list])
+                ctrls.extend([MirrorController.get_opposite_control(ctrl) for ctrl in ctrls])
             elif 'Right' in bones_list[0]:
-                mirror_bone_list = [bone.replace('Right', 'Left') for bone in bones_list]
-            else:
-                do_mirror = False
+                bones_list.extend([bone.replace('Right', 'Left') for bone in bones_list])
+                ctrls.extend([MirrorController.get_opposite_control(ctrl) for ctrl in ctrls])
 
         hikChar = pm.mel.hikGetCurrentCharacter()
+        locked_ctrls = cls.get_locked_ctrls(ctrls)
+        print(f"ctrls = {ctrls} \n locked={locked_ctrls}")
+        if locked_ctrls:
+            if LockedCtrlsDialog(ctrls_list=locked_ctrls).exec_():
+                cls.unlock_ctrls_srt(locked_ctrls)
+            else:
+                return
 
-        for index, ctrl in enumerate(sel):
-            pm.mel.setCharacterObject(ctrl, hikChar, pm.mel.hikGetNodeIdFromName(bones_list[index]), 0)
-            if do_mirror:
-                opposite_ctrl = MirrorController.get_opposite_control(pm.PyNode(sel[index]))
-                pm.mel.setCharacterObject(opposite_ctrl, hikChar, pm.mel.hikGetNodeIdFromName(mirror_bone_list[index]), 0)
-
-
+        for bone, ctrl in zip(bones_list, ctrls):
+            pm.mel.setCharacterObject(ctrl, hikChar, pm.mel.hikGetNodeIdFromName(bone), 0)
 
         pm.mel.hikUpdateDefinitionUI()
         return
@@ -207,7 +214,6 @@ class HumanIKMapperUI(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.initialize_btn = QtWidgets.QPushButton("Initialize")
         
         self.head_btn = QtWidgets.QPushButton("Head")
-        self.head_btn.setToolTip("\n".join(HumanIKMapper.SPINE_NAMES))
         self.spine_btn = QtWidgets.QPushButton("Spine")
 
         self.left_arm_btn = QtWidgets.QPushButton("Left Arm")
@@ -314,10 +320,11 @@ class HumanIKMapperUI(MayaQWidgetDockableMixin, QtWidgets.QDialog):
             h_layout.addWidget(i)
             
         return h_layout
+
     def _change_bones_2_right(self, bones):
         new_bones_list = list(bones)
-        for bone in new_bones_list:
-            bone = bone.replace('Left', 'Right')
+        for i in range(len(new_bones_list)):
+            new_bones_list[i] = bones[i].replace('Left', 'Right')
 
         return new_bones_list
     
@@ -340,7 +347,7 @@ class BoneListDialog(QtWidgets.QDialog):
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose, 1)
         self.setMinimumSize(QtCore.QSize(350, 250))
         
-        self.bone_list = bone_list
+        self.bone_list = list(bone_list)
         self.do_mirror = do_mirror
 
         self.create_widgets()
@@ -403,25 +410,11 @@ class BoneListDialog(QtWidgets.QDialog):
 
     def confirm_cb(self):
         selection = pm.ls(sl=1)
-        locked_ctrls = HumanIKMapper.get_locked_ctrls(selection)
-
-        if not locked_ctrls:
-            HumanIKMapper.set_list_of_bones_from_selection(self.bone_list, selection, self.do_mirror)
-            self.close()
-            return
-
-        unlock_attributes_window = LockedCtrlsDialog(self, locked_ctrls)
-        if unlock_attributes_window.exec_():
-            HumanIKMapper.unlock_ctrls_srt(locked_ctrls)
-            HumanIKMapper.set_list_of_bones_from_selection(self.bone_list, selection, self.do_mirror)
-            self.close()
-        else:
-            self.close()
-            return
-
+        HumanIKMapper.set_list_of_bones_from_selection(self.bone_list, selection, self.do_mirror)
+        self.close()
 
 class LockedCtrlsDialog(QtWidgets.QDialog):
-    def __init__(self, parent=None, ctrls_list=[]):
+    def __init__(self, parent=maya_main_window(), ctrls_list=[]):
         super(LockedCtrlsDialog, self).__init__(parent)
 
         self.setWindowTitle("Locked attributes detected")
