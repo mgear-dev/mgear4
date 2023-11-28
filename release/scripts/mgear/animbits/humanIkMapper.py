@@ -121,10 +121,6 @@ class HumanIKMapper():
         pm.mel.HIKCharacterControlsTool()
      
         charName = 'MGearIKHuman'
-        if pm.mel.hikGetCurrentCharacter() != charName:
-            print('doesnt match')
-        else:
-            print('match')
 
         tmp = set(pm.ls(type='HIKCharacterNode'))
         pm.mel.hikCreateDefinition()
@@ -149,10 +145,8 @@ class HumanIKMapper():
                 do_mirror = False
 
         hikChar = pm.mel.hikGetCurrentCharacter()
-        print(bones_list)
+
         for index, ctrl in enumerate(sel):
-            print(ctrl)
-            print(bones_list[index])
             pm.mel.setCharacterObject(ctrl, hikChar, pm.mel.hikGetNodeIdFromName(bones_list[index]), 0)
             if do_mirror:
                 opposite_ctrl = MirrorController.get_opposite_control(pm.PyNode(sel[index]))
