@@ -5,7 +5,7 @@ import maya.cmds as cmds
 from mgear.core import callbackManager
 import mgear
 
-from mgear.vendor.Qt import QtCore, QtWidgets
+from mgear.vendor.Qt import QtCore, QtWidgets, QtGui
 
 from mgear.rigbits.mirror_controls import MirrorController
 
@@ -15,7 +15,7 @@ from mgear.rigbits.mirror_controls import MirrorController
 pm.loadPlugin('fbxmaya')
 pm.loadPlugin('mayaHIK')
 
-class ConfigureIK():
+class HumanIKMapper():
     HEAD_NAMES = [
         'Head',
         'Neck',
@@ -65,6 +65,24 @@ class ConfigureIK():
         'LeafLeftForeArmRoll4',
         'LeafLeftForeArmRoll5',
     ]
+    
+    LEFT_HAND = [
+        'LeftHandThumb1',
+        'LeftHandThumb2',
+        'LeftHandThumb3',
+        'LeftHandIndex1',
+        'LeftHandIndex2',
+        'LeftHandIndex3',
+        'LeftHandMiddle1',
+        'LeftHandMiddle2',
+        'LeftHandMiddle3',
+        'LeftHandRing1',
+        'LeftHandRing2',
+        'LeftHandRing3',
+        'LeftHandPinky1',
+        'LeftHandPinky2',
+        'LeftHandPinky3',
+    ]
 
     LEFT_LEG_NAMES = [
         'LeftUpLeg',
@@ -103,10 +121,6 @@ class ConfigureIK():
         pm.mel.HIKCharacterControlsTool()
      
         charName = 'MGearIKHuman'
-        if pm.mel.hikGetCurrentCharacter() != charName:
-            print('doesnt match')
-        else:
-            print('match')
 
         tmp = set(pm.ls(type='HIKCharacterNode'))
         pm.mel.hikCreateDefinition()
@@ -131,10 +145,8 @@ class ConfigureIK():
                 do_mirror = False
 
         hikChar = pm.mel.hikGetCurrentCharacter()
-        print(bones_list)
+
         for index, ctrl in enumerate(sel):
-            print(ctrl)
-            print(bones_list[index])
             pm.mel.setCharacterObject(ctrl, hikChar, pm.mel.hikGetNodeIdFromName(bones_list[index]), 0)
             if do_mirror:
                 opposite_ctrl = MirrorController.get_opposite_control(pm.PyNode(sel[index]))
@@ -145,18 +157,42 @@ class ConfigureIK():
         pm.mel.hikUpdateDefinitionUI()
         return
 
+    @classmethod
+    def get_locked_ctrls(cls, ctrl_list):
+        locked_ctrls = []
+        for ctrl in ctrl_list:
+            attrs = []
+            attrs.extend(ctrl.scale.children())
+            attrs.extend(ctrl.rotate.children())
+            attrs.extend(ctrl.translate.children())
+            for attr in attrs:
+                if not attr.get(settable=1):
+                    locked_ctrls.append(ctrl)
+                    break
+
+        return locked_ctrls
+
+    @classmethod
+    def unlock_ctrls_srt(cls, ctrl_list):
+        for ctrl in ctrl_list:
+            attrs = []
+            attrs.extend(ctrl.scale.children())
+            attrs.extend(ctrl.rotate.children())
+            attrs.extend(ctrl.translate.children())
+            for attr in attrs:
+                attr.unlock()
+                attr.set(keyable=True)
 
 
 
-
-class ConfigureIKUI(MayaQWidgetDockableMixin, QtWidgets.QDialog):
+class HumanIKMapperUI(MayaQWidgetDockableMixin, QtWidgets.QDialog):
 
     def __init__(self, parent=None):
-        super(ConfigureIKUI, self).__init__(parent)
+        super(HumanIKMapperUI, self).__init__(parent)
 
         # self.func = MirrorController()
 
-        self.setWindowTitle("Configure ikHuman")
+        self.setWindowTitle("HumanIK Mapper")
         self.setWindowFlags(QtCore.Qt.Window)
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose, 1)
         self.setMinimumSize(QtCore.QSize(350, 0))
@@ -167,13 +203,11 @@ class ConfigureIKUI(MayaQWidgetDockableMixin, QtWidgets.QDialog):
 
         
     def create_widgets(self):
-        self.image_lb = QtWidgets.QLabel()
-        self.image_lb.setPixmap(r"D:\gallo\Documents\MGear\humanIk02.png")
 
         self.initialize_btn = QtWidgets.QPushButton("Initialize")
         
         self.head_btn = QtWidgets.QPushButton("Head")
-        self.head_btn.setToolTip("\n".join(ConfigureIK.SPINE_NAMES))
+        self.head_btn.setToolTip("\n".join(HumanIKMapper.SPINE_NAMES))
         self.spine_btn = QtWidgets.QPushButton("Spine")
 
         self.left_arm_btn = QtWidgets.QPushButton("Left Arm")
@@ -203,6 +237,7 @@ class ConfigureIKUI(MayaQWidgetDockableMixin, QtWidgets.QDialog):
                                      "3. Select the elements in the indicated order and click confirm. \n"
                                      "Note: Bones that have a number in their name are not mandatory. ")
         self.instructions_tb.setReadOnly(True)
+        self.instructions_tb.setSizeAdjustPolicy(QtWidgets.QAbstractScrollArea.AdjustToContents)
 
         
     def create_layout(self):
@@ -249,27 +284,29 @@ class ConfigureIKUI(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         main_layout.addWidget(instructions_gb)
         
     def create_connections(self):
-        self.initialize_btn.clicked.connect(ConfigureIK.set_character)
+        self.initialize_btn.clicked.connect(HumanIKMapper.set_character)
 
-        self.head_btn.clicked.connect(self.display_list_mb_cb(ConfigureIK.HEAD_NAMES))
+        self.head_btn.clicked.connect(self.display_list_mb_cb(HumanIKMapper.HEAD_NAMES))
 
-        self.left_arm_btn.clicked.connect(self.display_list_mb_cb(ConfigureIK.LEFT_ARM_NAMES))
-        self.left_upper_arm_rolls_btn.clicked.connect(self.display_list_mb_cb(ConfigureIK.LEFT_UPPER_ARM_ROLLS))
-        self.left_lower_arm_rolls_btn.clicked.connect(self.display_list_mb_cb(ConfigureIK.LEFT_LOWER_ARM_ROLLS))
+        self.left_arm_btn.clicked.connect(self.display_list_mb_cb(HumanIKMapper.LEFT_ARM_NAMES))
+        self.left_upper_arm_rolls_btn.clicked.connect(self.display_list_mb_cb(HumanIKMapper.LEFT_UPPER_ARM_ROLLS))
+        self.left_lower_arm_rolls_btn.clicked.connect(self.display_list_mb_cb(HumanIKMapper.LEFT_LOWER_ARM_ROLLS))
+        self.left_hand_btn.clicked.connect(self.display_list_mb_cb(HumanIKMapper.LEFT_HAND))
 
-        self.right_arm_btn.clicked.connect(self.display_list_mb_cb(ConfigureIK.LEFT_ARM_NAMES))
-        self.right_upper_arm_rolls_btn.clicked.connect(self.display_list_mb_cb(ConfigureIK.LEFT_UPPER_ARM_ROLLS))
-        self.right_lower_arm_rolls_btn.clicked.connect(self.display_list_mb_cb(ConfigureIK.LEFT_LOWER_ARM_ROLLS))
+        self.right_arm_btn.clicked.connect(self.display_list_mb_cb(self._change_bones_2_right(HumanIKMapper.LEFT_ARM_NAMES)))
+        self.right_upper_arm_rolls_btn.clicked.connect(self.display_list_mb_cb(self._change_bones_2_right(HumanIKMapper.LEFT_UPPER_ARM_ROLLS)))
+        self.right_lower_arm_rolls_btn.clicked.connect(self.display_list_mb_cb(self._change_bones_2_right(HumanIKMapper.LEFT_LOWER_ARM_ROLLS)))
+        self.right_hand_btn.clicked.connect(self.display_list_mb_cb(self._change_bones_2_right(HumanIKMapper.LEFT_HAND)))
 
-        self.spine_btn.clicked.connect(self.display_list_mb_cb(ConfigureIK.SPINE_NAMES))
+        self.spine_btn.clicked.connect(self.display_list_mb_cb(HumanIKMapper.SPINE_NAMES))
 
-        self.left_leg_btn.clicked.connect(self.display_list_mb_cb(ConfigureIK.LEFT_LEG_NAMES))
-        self.left_upper_leg_rolls_btn.clicked.connect(self.display_list_mb_cb(ConfigureIK.LEFT_UPPER_LEG_ROLLS))
-        self.left_lower_leg_rolls_btn.clicked.connect(self.display_list_mb_cb(ConfigureIK.LEFT_LOWER_LEG_ROLLS))
+        self.left_leg_btn.clicked.connect(self.display_list_mb_cb(HumanIKMapper.LEFT_LEG_NAMES))
+        self.left_upper_leg_rolls_btn.clicked.connect(self.display_list_mb_cb(HumanIKMapper.LEFT_UPPER_LEG_ROLLS))
+        self.left_lower_leg_rolls_btn.clicked.connect(self.display_list_mb_cb(HumanIKMapper.LEFT_LOWER_LEG_ROLLS))
 
-        self.right_leg_btn.clicked.connect(self.display_list_mb_cb(ConfigureIK.LEFT_LEG_NAMES))
-        self.right_upper_leg_rolls_btn.clicked.connect(self.display_list_mb_cb(ConfigureIK.LEFT_UPPER_LEG_ROLLS))
-        self.right_lower_leg_rolls_btn.clicked.connect(self.display_list_mb_cb(ConfigureIK.LEFT_LOWER_LEG_ROLLS))
+        self.right_leg_btn.clicked.connect(self.display_list_mb_cb(self._change_bones_2_right(HumanIKMapper.LEFT_LEG_NAMES)))
+        self.right_upper_leg_rolls_btn.clicked.connect(self.display_list_mb_cb(self._change_bones_2_right(HumanIKMapper.LEFT_UPPER_LEG_ROLLS)))
+        self.right_lower_leg_rolls_btn.clicked.connect(self.display_list_mb_cb(self._change_bones_2_right(HumanIKMapper.LEFT_LOWER_LEG_ROLLS)))
 
     def _group_in_hlayout(self, *args):
         h_layout = QtWidgets.QHBoxLayout()
@@ -277,6 +314,12 @@ class ConfigureIKUI(MayaQWidgetDockableMixin, QtWidgets.QDialog):
             h_layout.addWidget(i)
             
         return h_layout
+    def _change_bones_2_right(self, bones):
+        new_bones_list = list(bones)
+        for bone in new_bones_list:
+            bone = bone.replace('Left', 'Right')
+
+        return new_bones_list
     
     def display_list_mb_cb(self, bone_list):
         def display():
@@ -323,6 +366,7 @@ class BoneListDialog(QtWidgets.QDialog):
         self.bone_te.setReadOnly(True)
         
         self.selection_lw = QtWidgets.QListWidget()
+        self.selection_changed()
         
         self.confirm_btn = QtWidgets.QPushButton("Confirm")
         self.cancel_btn = QtWidgets.QPushButton("Cancel")
@@ -358,13 +402,82 @@ class BoneListDialog(QtWidgets.QDialog):
             self.selection_lw.addItem(i)
 
     def confirm_cb(self):
-        selection = cmds.ls(sl=1)
-        ConfigureIK.set_list_of_bones_from_selection(self.bone_list, selection, self.do_mirror)
-        self.close()
-    
+        selection = pm.ls(sl=1)
+        locked_ctrls = HumanIKMapper.get_locked_ctrls(selection)
+
+        if not locked_ctrls:
+            HumanIKMapper.set_list_of_bones_from_selection(self.bone_list, selection, self.do_mirror)
+            self.close()
+            return
+
+        unlock_attributes_window = LockedCtrlsDialog(self, locked_ctrls)
+        if unlock_attributes_window.exec_():
+            HumanIKMapper.unlock_ctrls_srt(locked_ctrls)
+            HumanIKMapper.set_list_of_bones_from_selection(self.bone_list, selection, self.do_mirror)
+            self.close()
+        else:
+            self.close()
+            return
+
+
+class LockedCtrlsDialog(QtWidgets.QDialog):
+    def __init__(self, parent=None, ctrls_list=[]):
+        super(LockedCtrlsDialog, self).__init__(parent)
+
+        self.setWindowTitle("Locked attributes detected")
+        self.setWindowFlags(QtCore.Qt.Window)
+        self.setAttribute(QtCore.Qt.WA_DeleteOnClose, 1)
+        self.setMinimumSize(QtCore.QSize(350, 250))
+
+        self.ctrl_list = ctrls_list
+
+        self.create_widgets()
+        self.create_layout()
+        self.create_connections()
+
+    def create_widgets(self):
+        warning_font = QtGui.QFont()
+        warning_font.setBold(True)
+        warning_font.setPointSize(13)
+
+        self.locked_lb = QtWidgets.QLabel("The following objects have locked attributes \n")
+        self.locked_lb.setAlignment(QtCore.Qt.AlignCenter)
+        self.locked_lb.setFont(warning_font)
+        self.unlock_lb = QtWidgets.QLabel("\n Do you wish to unlock them? \n")
+        self.unlock_lb.setAlignment(QtCore.Qt.AlignCenter)
+
+        self.list_wl = QtWidgets.QListWidget()
+        self.list_wl.setSelectionMode(QtWidgets.QListWidget.NoSelection)
+        for ctrl in self.ctrl_list:
+            self.list_wl.addItem(ctrl.name())
+        self.list_wl.setSizeAdjustPolicy(QtWidgets.QAbstractScrollArea.AdjustToContents)
+
+        self.confirm_btn = QtWidgets.QPushButton("Confirm")
+        self.confirm_btn.setDefault(True)
+        self.cancel_btn = QtWidgets.QPushButton("Cancel")
+
+
+    def create_layout(self):
+        main_layout = QtWidgets.QVBoxLayout(self)
+
+        # main_layout.addWidget(self.warning_lb)
+        main_layout.addWidget(self.locked_lb)
+        main_layout.addWidget(self.list_wl)
+        main_layout.addWidget(self.unlock_lb)
+
+        buttons_layout = QtWidgets.QHBoxLayout()
+        buttons_layout.addWidget(self.cancel_btn)
+        buttons_layout.addWidget(self.confirm_btn)
+
+        main_layout.addLayout(buttons_layout)
+
+    def create_connections(self):
+        self.confirm_btn.clicked.connect(self.accept)
+        self.cancel_btn.clicked.connect(self.reject)
+
 
 def show(*args):
-    mgear.core.pyqt.showDialog(ConfigureIKUI)
+    mgear.core.pyqt.showDialog(HumanIKMapperUI)
 
 
 if __name__ == "__main__":
