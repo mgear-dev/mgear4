@@ -416,11 +416,3 @@ class FbxSdkGameToolsWrapper(object):
             skins=skins,
             blendshapes=blendshapes,
         )
-
-    def export_animation_clip(self, root_joint):
-
-        if not pfbx.FBX_SDK:
-            cmds.warning(
-                "Export Animation Clip functionality is only available if Python FBX SDK is available!"
-            )
-            return None
