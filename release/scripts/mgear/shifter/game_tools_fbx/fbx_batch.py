@@ -32,7 +32,17 @@ import maya.api.OpenMaya as om
 from mgear.core import pyFBX as pfbx
 
 
-def perform_fbx_condition(remove_namespace, scene_clean, master_fbx_path, root_joint, root_geos, skinning=True, blendshapes=True, partitions=True, export_data=None):
+def perform_fbx_condition(
+    remove_namespace,
+    scene_clean,
+    master_fbx_path,
+    root_joint,
+    root_geos,
+    skinning=True,
+    blendshapes=True,
+    partitions=True,
+    export_data=None,
+    cull_joints=False):
     """
     Performs the FBX file conditioning and partition exports.
 
@@ -110,7 +120,7 @@ def perform_fbx_condition(remove_namespace, scene_clean, master_fbx_path, root_j
         cmds.file(rename=conditioned_file)
         cmds.file(save=True, force=True, type="mayaAscii")
 
-        _export_skeletal_mesh_partitions([root_joint], export_data, conditioned_file)
+        _export_skeletal_mesh_partitions([root_joint], export_data, conditioned_file, cull_joints)
 
         # Delete temporary conditioned .ma file
         cmds.file( new=True, force=True)
@@ -121,7 +131,7 @@ def perform_fbx_condition(remove_namespace, scene_clean, master_fbx_path, root_j
             print("      Deleted - {}".format(conditioned_file))
 
 
-def _export_skeletal_mesh_partitions(jnt_roots, export_data, scene_path):
+def _export_skeletal_mesh_partitions(jnt_roots, export_data, scene_path, cull_joints):
     """
     Exports the individual partition hierarchies that have been specified.
 
@@ -221,10 +231,11 @@ def _export_skeletal_mesh_partitions(jnt_roots, export_data, scene_path):
                 cmds.delete(mesh)
 
         # Delete joints that are not included in the partition
-        all_joints = _get_all_joint_dag_objects()
-        for jnt in reversed(all_joints):
-            if not jnt in partition_joints:
-                cmds.delete(jnt)
+        if cull_joints:
+            all_joints = _get_all_joint_dag_objects()
+            for jnt in reversed(all_joints):
+                if not jnt in partition_joints:
+                    cmds.delete(jnt)
 
         # Exporting fbx
         partition_file_name = file_name + "_" + partition_name + ".fbx"
