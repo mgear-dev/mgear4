@@ -22,7 +22,8 @@ Tasks / Conditions
 - Exports each partition as an FBX.
 
 """
-import sys, os
+import os
+import traceback
 from collections import OrderedDict
 
 import maya.cmds as cmds
@@ -33,20 +34,20 @@ from mgear.core import pyFBX as pfbx
 
 def perform_fbx_condition(remove_namespace, scene_clean, master_fbx_path, root_joint, root_geos, skinning=True, blendshapes=True, partitions=True, export_data=None):
     """
-    Performs the FBX file conditioning.
+    Performs the FBX file conditioning and partition exports.
 
-    This is usually called by a MayaBatch process.
+    This is called by a MayaBatch process.
 
     [ ] Setup logging to a text file, so the stream can be monitored.
     [ ] Update FBX export settings
 
     """
-    print("-----------------------")
-    print(" perform fbx condition")
+    print("--------------------------")
+    print(" PERFORM FBX CONDITIONING")
     print(f"  remove namespace:{remove_namespace}")
     print(f"  clean scene:{scene_clean}")
     print(f"  fbx path : {master_fbx_path}")
-    print("-----------------------")
+    print("--------------------------")
 
     log_file = "logs.txt"
 
@@ -106,8 +107,8 @@ def perform_fbx_condition(remove_namespace, scene_clean, master_fbx_path, root_j
         # Save out conditioned file, as this will be used by other partition processes
         # Conditioned file, is the file that stores the rig which has already had data
         # update for the export process.
-        cmds.file( rename=conditioned_file)
-        cmds.file( save=True, force=True, type="mayaAscii")
+        cmds.file(rename=conditioned_file)
+        cmds.file(save=True, force=True, type="mayaAscii")
 
         _export_skeletal_mesh_partitions([root_joint], export_data, conditioned_file)
 
@@ -134,17 +135,15 @@ def _export_skeletal_mesh_partitions(jnt_roots, export_data, scene_path):
     file_path = export_data.get("file_path", "")
     file_name = export_data.get("file_name", "")
 
-    # [ ] Check path exists
-    # [ ] Create new Partision name for output file, if not under master
-
     partitions = export_data.get("partitions", dict())
     if not partitions:
         cmds.warning("  Partitions not defined!")
         return False
 
-    # data that will be exported into a temporal file
-    partitions_data = OrderedDict()
+    # Collects all partition data, so it can be more easily accessed in the next stage
+    # where mesh and skeleton data is deleted and exported.
 
+    partitions_data = OrderedDict()
     for partition_name, data in partitions.items():
 
         print("     Partition: {} \t Data: {}".format(partition_name, data))
@@ -209,7 +208,7 @@ def _export_skeletal_mesh_partitions(jnt_roots, export_data, scene_path):
 
         print("     {}".format(partition_name))
         print("     {}".format(partition_data))
-        
+
         partition_meshes = partitions.get(partition_name).get("skeletal_meshes")
         partition_joints = partition_data.get("hierarchy", [])
         # Loads the conditioned scene file, to perform partition actions on.
@@ -233,6 +232,27 @@ def _export_skeletal_mesh_partitions(jnt_roots, export_data, scene_path):
 
         print(export_path)
         try:
+            preset_path = export_data.get("preset_path", None)
+            up_axis = export_data.get("up_axis", None)
+            fbx_version = export_data.get("fbx_version", None)
+            file_type = export_data.get("file_type", "binary").lower()
+            # export settings config
+            pfbx.FBXResetExport()
+            # set configuration
+            if preset_path is not None:
+                # load FBX export preset file
+                pfbx.FBXLoadExportPresetFile(f=preset_path)
+            fbx_version_str = None
+            if up_axis is not None:
+                pfbx.FBXExportUpAxis(up_axis)
+            if fbx_version is not None:
+                fbx_version_str = "{}00".format(
+                    fbx_version.split("/")[0].replace(" ", "")
+                    )
+                pfbx.FBXExportFileVersion(v=fbx_version_str)
+            if file_type == "ascii":
+                pfbx.FBXExportInAscii(v=True)
+
             cmds.select( clear=True )
             cmds.select(partition_joints + partition_meshes)
             pfbx.FBXExport(f=export_path, s=True)

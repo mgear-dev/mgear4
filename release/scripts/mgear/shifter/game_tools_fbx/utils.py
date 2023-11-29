@@ -143,11 +143,6 @@ def export_skeletal_mesh(export_data):
     # Instead of altering the Maya scene file, we will alter the "master" fbx data.
     # The master fbx file is the file that has just been exported.
 
-    # TODO: Create Executable per batch file
-        # - Goes to temporary location.
-        # - can be investigated once complete.
-        # - when UI closes all temporary files get deleted.
-
     path_is_valid = os.path.exists(export_path)
 
     if not path_is_valid:
@@ -219,9 +214,10 @@ python "fbx_batch.perform_fbx_condition({ns}, {sc}, master_path, root_joint, roo
         else:
             print("Mayabatch process failed.")
             print("Error:", stderr)
+            return False
 
     # If all goes well return the export path location, else None
-    return None
+    return True
 
 
 def export_animation_clip(config_data, clip_data):
