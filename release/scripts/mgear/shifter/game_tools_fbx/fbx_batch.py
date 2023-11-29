@@ -16,12 +16,14 @@ Process
 
 Tasks / Conditions
 ------------------
-- Removing namespaces
-- Clean up any lingering DAG nodes that are not needed
-- Partition Skeleton + Geometry
+- Removing namespaces.
+- Clean up any lingering DAG nodes that are not needed.
+- Partition Skeleton + Geometry.
+- Exports each partition as an FBX.
 
 """
 import sys, os
+from collections import OrderedDict
 
 import maya.cmds as cmds
 import maya.api.OpenMaya as om
@@ -29,16 +31,14 @@ import maya.api.OpenMaya as om
 from mgear.core import pyFBX as pfbx
 
 
-def perform_fbx_condition(remove_namespace, scene_clean, master_fbx_path, root_joint, root_geos, skinning=True, blendshapes=True, partitions=True):
+def perform_fbx_condition(remove_namespace, scene_clean, master_fbx_path, root_joint, root_geos, skinning=True, blendshapes=True, partitions=True, export_data=None):
     """
-     [X] Import FBX Master
-     [X] Remove Namespace
-     [X] Scene Clean
-     [X] Skinning
-     [X] Blendshapes
-     [X] Save out master maya scene, to perform Partitions
-     [ ] Perform Partition exportation.
-        [ ] get partition data
+    Performs the FBX file conditioning.
+
+    This is usually called by a MayaBatch process.
+
+    [ ] Setup logging to a text file, so the stream can be monitored.
+    [ ] Update FBX export settings
 
     """
     print("-----------------------")
@@ -73,7 +73,7 @@ def perform_fbx_condition(remove_namespace, scene_clean, master_fbx_path, root_j
             root_geos[i] = root_geos[i].split(":")[-1]
 
     if scene_clean:
-        print("Clean Scene..")
+        print("Cleaning Scene..")
         # Move the root_joint and root_geos to the scene root
         _parent_to_root(root_joint)
         for r_geo in root_geos:
@@ -92,71 +92,81 @@ def perform_fbx_condition(remove_namespace, scene_clean, master_fbx_path, root_j
         print("Removing Blendshapes..")
         _delete_blendshapes()
 
-    if partitions:
-        print("Getting Scene ready for Partition creation..")
+    # Exports the conditioned FBX, over the existing master fbx.
+    # The master FBX is now in the correct data state.
+    print("Exporting FBX...")
+    print("    Path: {}".format(master_fbx_path))
+    cmds.select( clear=True )
+    cmds.select([root_joint] + root_geos)
+    pfbx.FBXExport(f=master_fbx_path, s=True)
+
+    if partitions and export_data is not None:
+        print("[Partitions]")
+        print("   Preparing scene for Partition creation..")
         # Save out conditioned file, as this will be used by other partition processes
+        # Conditioned file, is the file that stores the rig which has already had data
+        # update for the export process.
         cmds.file( rename=conditioned_file)
         cmds.file( save=True, force=True, type="mayaAscii")
 
-        # Trigger partitions
-        # TODO: Check partitions
-        #   [ ] If only master partition, perform fbx export
-        #   [ ] If Multiple partitions...
+        _export_skeletal_mesh_partitions([root_joint], export_data, conditioned_file)
 
         # Delete temporary conditioned .ma file
         cmds.file( new=True, force=True)
         if os.path.exists(conditioned_file):
             os.remove(conditioned_file)
         else:
-            print("  Cleaned up conditional file")
-    else:
-        # Partitions deactivated, updates master fbx file.
-        print("Partitions deactivated - Save out master fbx.. ")
-        print(  "Path: {}".format(master_fbx_path))
-        cmds.select( clear=True )
-        cmds.select([root_joint] + root_geos)
-        pfbx.FBXExport(f=master_fbx_path, s=True)
+            print("   Cleaned up conditioned file...")
+            print("      Deleted - {}".format(conditioned_file))
 
 
-def _export_skeletal_mesh_partitions(jnt_roots, export_data):
-    if not pfbx.FBX_SDK:
-        cmds.warning(
-            "Python FBX SDK is not available. Skeletal Mesh partitions export functionality is not available!"
-        )
-        return False
+def _export_skeletal_mesh_partitions(jnt_roots, export_data, scene_path):
+    """
+    Exports the individual partition hierarchies that have been specified.
+
+    For each Partition, the conditioned .ma file will be loaded and have 
+    alterations performed to it.
+
+    """
+
+    print("   Correlating Mesh to joints...")
 
     file_path = export_data.get("file_path", "")
     file_name = export_data.get("file_name", "")
-    deformations = export_data.get("deformations", True)
-    skinning = export_data.get("skinning", True)
-    blendshapes = export_data.get("blendshapes", True)
 
-    if not file_name.endswith(".fbx"):
-        file_name = "{}.fbx".format(file_name)
-    path = string.normalize_path(os.path.join(file_path, file_name))
-    print("\t>>> Export Path: {}".format(path))
+    # [ ] Check path exists
+    # [ ] Create new Partision name for output file, if not under master
 
     partitions = export_data.get("partitions", dict())
     if not partitions:
-        cmds.warning("Partitions not defined!")
+        cmds.warning("  Partitions not defined!")
         return False
 
     # data that will be exported into a temporal file
     partitions_data = OrderedDict()
 
     for partition_name, data in partitions.items():
+
+        print("     Partition: {} \t Data: {}".format(partition_name, data))
+
+        # Skip partition if disabled
+        enabled = data.get("enabled", False)
+        if not enabled:
+            continue
+
         meshes = data.get("skeletal_meshes", None)
 
         joint_hierarchy = OrderedDict()
         for mesh in meshes:
             # we retrieve all end joints from the influenced joints
-            influences = pm.skinCluster(mesh, query=True, influence=True)
+            influences = cmds.skinCluster(mesh, query=True, influence=True)
 
-            # make sure the hierarchy from the root joint to the influence joints is retrieved.
+            # Gets hierarchy from the root joint to the influence joints.
             for jnt_root in jnt_roots:
                 joint_hierarchy.setdefault(jnt_root, list())
+
                 for inf_jnt in influences:
-                    jnt_hierarchy = get_joint_list(jnt_root, inf_jnt)
+                    jnt_hierarchy = _get_joint_list(jnt_root, inf_jnt)
                     for hierarchy_jnt in jnt_hierarchy:
                         if hierarchy_jnt not in joint_hierarchy[jnt_root]:
                             joint_hierarchy[jnt_root].append(hierarchy_jnt)
@@ -180,41 +190,59 @@ def _export_skeletal_mesh_partitions(jnt_roots, export_data):
 
         # we make sure we update the hierarchy to include all joints between the skeleton root joint and
         # the first joint of the found joint hierarchy
-        root_jnt = get_root_joint(short_hierarchy[0])
+        root_jnt = _get_root_joint(short_hierarchy[0])
         if root_jnt not in short_hierarchy:
-            parent_hierarchy = get_joint_list(root_jnt, short_hierarchy[0])
+            parent_hierarchy = _get_joint_list(root_jnt, short_hierarchy[0])
             short_hierarchy = parent_hierarchy + short_hierarchy
+        partitions_data[partition_name]["hierarchy"] = short_hierarchy
 
-        partitions_data[partition_name]["hierarchy"] = [
-            jnt.name() for jnt in short_hierarchy
-        ]
+    print("   Modifying Hierarchy...")
+    # - Loop over each Partition
+    # - Load the master .ma file
+    # - Perform removal of geometry, that is not relevent to the partition
+    # - Perform removal of skeleton, that is not relevent to the partition
+    # - Export an fbx
+    for partition_name, partition_data in partitions_data.items():
+        if not partition_data:
+            print("   Partition {} contains no data.".format(partition_name))
+            continue
 
-    try:
-        for partition_name, partition_data in partitions_data.items():
-            if not partition_data:
-                continue
-            fbx_file = sdk_utils.FbxSdkGameToolsWrapper(path)
-            partition_meshes = partitions.get(partition_name).get(
-                "skeletal_meshes"
+        print("     {}".format(partition_name))
+        print("     {}".format(partition_data))
+        
+        partition_meshes = partitions.get(partition_name).get("skeletal_meshes")
+        partition_joints = partition_data.get("hierarchy", [])
+        # Loads the conditioned scene file, to perform partition actions on.
+        cmds.file( scene_path, open=True, force=True, save=False)
+
+        # Deletes meshes that are not included in the partition.
+        all_meshes = _get_all_mesh_dag_objects()
+        for mesh in all_meshes:
+            if not mesh in partition_meshes:
+                cmds.delete(mesh)
+
+        # Delete joints that are not included in the partition
+        all_joints = _get_all_joint_dag_objects()
+        for jnt in reversed(all_joints):
+            if not jnt in partition_joints:
+                cmds.delete(jnt)
+
+        # Exporting fbx
+        partition_file_name = file_name + "_" + partition_name + ".fbx"
+        export_path = os.path.join(file_path, partition_file_name)
+
+        print(export_path)
+        try:
+            cmds.select( clear=True )
+            cmds.select(partition_joints + partition_meshes)
+            pfbx.FBXExport(f=export_path, s=True)
+        except Exception:
+            cmds.error(
+                "Something wrong happened while export Partition {}: {}".format(
+                    partition_name,
+                    traceback.format_exc()
+                )
             )
-            fbx_file.export_skeletal_mesh(
-                file_name=partition_name,
-                mesh_names=partition_meshes,
-                hierarchy_joints=partition_data.get("hierarchy", []),
-                deformations=deformations,
-                skins=skinning,
-                blendshapes=blendshapes,
-            )
-            fbx_file.close()
-
-    except Exception:
-        cmds.error(
-            "Something wrong happened while export skeleton mesh: {}".format(
-                traceback.format_exc()
-            )
-        )
-        return False
-
     return True
 
 
@@ -222,7 +250,7 @@ def _delete_blendshapes():
     """
     Deletes all blendshape objects in the scene.
     """
-    blendshape_mobjs = find_dg_nodes_by_type(om.MFn.kBlendShape)
+    blendshape_mobjs = _find_dg_nodes_by_type(om.MFn.kBlendShape)
     
     dg_mod = om.MDGModifier()
     for mobj in blendshape_mobjs:
@@ -232,7 +260,7 @@ def _delete_blendshapes():
     dg_mod.doIt()
 
 
-def find_geometry_dag_objects(parent_object_name):
+def _find_geometry_dag_objects(parent_object_name):
     selection_list = om.MSelectionList()
 
     try:
@@ -257,7 +285,7 @@ def find_geometry_dag_objects(parent_object_name):
                 geometry_objects.append(child_dag_path.fullPathName())
 
             # Recursive call to find geometry objects under the child
-            geometry_objects.extend(find_geometry_dag_objects(child_dag_path.fullPathName()))
+            geometry_objects.extend(_find_geometry_dag_objects(child_dag_path.fullPathName()))
 
         return geometry_objects
 
@@ -270,8 +298,8 @@ def _delete_bind_poses():
     """
     Removes all skin clusters and bind poses nodes from the scene.
     """
-    bind_poses_mobjs = find_dg_nodes_by_type(om.MFn.kDagPose)
-    skin_cluster = find_dg_nodes_by_type(om.MFn.kSkinClusterFilter)
+    bind_poses_mobjs = _find_dg_nodes_by_type(om.MFn.kDagPose)
+    skin_cluster = _find_dg_nodes_by_type(om.MFn.kSkinClusterFilter)
 
     dg_mod = om.MDGModifier()
     for mobj in bind_poses_mobjs + skin_cluster:
@@ -281,7 +309,7 @@ def _delete_bind_poses():
     dg_mod.doIt()
 
 
-def find_dg_nodes_by_type(node_type):
+def _find_dg_nodes_by_type(node_type):
     """
     returns a list of MObjects, that match the node type
     """
@@ -435,3 +463,132 @@ def _import_fbx(file_path):
     except Exception as e:
         print("Error importing FBX file:", e)
         return
+
+
+def _get_joint_list(start_joint, end_joint):
+    """Returns a list of joints between and including given start and end joint
+
+    Args:
+            start_joint str: start joint of joint list
+            end_joint str end joint of joint list
+
+    Returns:
+            list[str]: joint list
+    """
+
+    sel_list = om.MSelectionList()
+
+    # Tries to convert the start_joint into the full path
+    try:
+        sel_list.add(start_joint)
+        dag_path = sel_list.getDagPath(0)
+        full_path = dag_path.fullPathName()
+        if start_joint != full_path:
+            start_joint = full_path
+        sel_list.clear()
+    except:
+        print("[Error] Start joint {}, could not be found".format(start_joint))
+        return []
+
+    # Tries to convert the end_joint into the full path
+    try:
+        sel_list.add(end_joint)
+        dag_path = sel_list.getDagPath(0)
+        full_end_joint = dag_path.fullPathName()
+        if end_joint != full_end_joint:
+            end_joint = full_end_joint
+    except:
+        print("[Error] End joint {}, could not be found".format(end_joint))
+        return []
+
+    if start_joint == end_joint:
+        return [start_joint]
+
+    # check hierarchy
+    descendant_list = cmds.ls(
+        cmds.listRelatives(start_joint, ad=True, fullPath=True),
+        long=True,
+        type="joint",
+    )
+
+    # if the end joint does not exist in the hierarch as the start joint, return
+    if not descendant_list.count(end_joint):
+        return list()
+
+    joint_list = [end_joint]
+
+    while joint_list[-1] != start_joint:
+        parent_jnt = cmds.listRelatives(joint_list[-1], p=True, pa=True, fullPath=True)
+        if not parent_jnt:
+            raise Exception(
+                'Found root joint while searching for start joint "{}"'.format(
+                    start_joint
+                )
+            )
+        joint_list.append(parent_jnt[0])
+
+    joint_list.reverse()
+
+    return joint_list
+
+
+def _get_root_joint(start_joint):
+    """
+    Recursively traverses up the hierarchy until finding the first object that does not have a parent.
+
+    :param str node_name: node name to get root of.
+    :param str node_type: node type for the root node.
+    :return: found root node.
+    :rtype: str
+    """
+
+    parent = cmds.listRelatives(start_joint, parent=True, type="joint")
+    parent = parent[0] if parent else None
+
+    return _get_root_joint(parent) if parent else start_joint
+
+
+def _get_all_mesh_dag_objects():
+    """
+    Gets all mesh dag objects in scene.
+
+    Only returns DAG object and not the shape node.
+    """
+    mesh_objects = []
+
+    dag_iter = om.MItDag(om.MItDag.kBreadthFirst)
+
+    while not dag_iter.isDone():
+        current_dag_path = dag_iter.getPath()
+
+        # Check if the current object has a mesh function set
+        if current_dag_path.hasFn(om.MFn.kMesh):
+            if current_dag_path.hasFn(om.MFn.kTransform):
+                mesh_objects.append(current_dag_path.fullPathName())
+
+        dag_iter.next()
+
+    return mesh_objects
+
+
+def _get_all_joint_dag_objects():
+    """
+    Gets all mesh dag objects in scene.
+
+    Only returns DAG object and not the shape node.
+    """
+    mesh_objects = []
+
+    dag_iter = om.MItDag(om.MItDag.kBreadthFirst)
+
+    while not dag_iter.isDone():
+        current_dag_path = dag_iter.getPath()
+
+        # Check if the current object has a mesh function set
+        if current_dag_path.hasFn(om.MFn.kJoint):
+            if current_dag_path.hasFn(om.MFn.kTransform):
+                mesh_objects.append(current_dag_path.fullPathName())
+
+        dag_iter.next()
+
+    return mesh_objects
