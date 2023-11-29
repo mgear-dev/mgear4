@@ -15,6 +15,7 @@ def setup_pyblish():
 
 
 def run_validators(output_name):
+    print("Validating rig '{}'...\n".format(output_name))
     context = pyblish.util.collect()
     pyblish.util.validate(context)
     context, report = generate_instance_report(context, output_name)
@@ -59,13 +60,10 @@ def execute_build_logic(json_data, validate=True):
     if not data_rows:
         return
     for row in data_rows:
-        file_path = row.get("file_path")
-
         # Continue with the logic only if file_path is provided
+        file_path = row.get("file_path")
         if not file_path:
             return
-
-        io.build_from_file(file_path)
 
         output_folder = data.get("output_folder")
         if not output_folder:
@@ -75,6 +73,9 @@ def execute_build_logic(json_data, validate=True):
         maya_file_name = "{}.ma".format(output_name)
         maya_file_path = os.path.join(output_folder, maya_file_name)
 
+        print("Building rig '{}'...".format(output_name))
+        io.build_from_file(file_path)
+
         save_build = True
         if validate:
             passed_validation, report = run_validators(output_name)
@@ -82,6 +83,7 @@ def execute_build_logic(json_data, validate=True):
             if not passed_validation:
                 save_build = False
                 print("Found errors, please fix and rebuild the rig.")
+            report_string += "{}\n".format(" -" * 35)
 
         cmds.file(rename=maya_file_path)
         cmds.file(save=save_build, type="mayaAscii")
