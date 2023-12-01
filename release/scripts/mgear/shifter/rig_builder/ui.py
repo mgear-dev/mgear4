@@ -3,8 +3,8 @@ import json
 
 from maya.app.general.mayaMixin import MayaQWidgetDockableMixin
 
-from mgear.vendor.Qt import QtWidgets
-from mgear.core import pyqt
+from mgear.vendor.Qt import QtCore, QtWidgets
+from mgear.core import pyqt, widgets
 from mgear.shifter.rig_builder import builder
 
 
@@ -26,18 +26,33 @@ class RigBuilderUI(MayaQWidgetDockableMixin, QtWidgets.QDialog, pyqt.SettingsMix
         self.layout = QtWidgets.QVBoxLayout()
 
         # Output Folder UI
+        output_folder_layout = QtWidgets.QHBoxLayout()
+        self.layout.addLayout(output_folder_layout)
+
         self.output_folder_line_edit = QtWidgets.QLineEdit()
-        self.output_folder_button = QtWidgets.QPushButton("Set Output Folder")
+        self.output_folder_button = widgets.create_button(icon="mgear_folder", width=25)
         self.output_folder_button.clicked.connect(self.set_output_folder)
 
-        self.layout.addWidget(QtWidgets.QLabel("Output Folder:"))
-        self.layout.addWidget(self.output_folder_line_edit)
-        self.layout.addWidget(self.output_folder_button)
+        output_folder_layout.addWidget(QtWidgets.QLabel("Output Folder"))
+        output_folder_layout.addWidget(self.output_folder_line_edit)
+        output_folder_layout.addWidget(self.output_folder_button)
+
+        # Run Validators Checkbox
+        run_validators_layout = QtWidgets.QHBoxLayout()
+        self.layout.addLayout(run_validators_layout)
+
+        label = QtWidgets.QLabel("Run Validators")
+        self.run_validators_checkbox = QtWidgets.QCheckBox()
+        self.run_validators_checkbox.setChecked(True)
+        run_validators_layout.addWidget(label)
+        run_validators_layout.addWidget(self.run_validators_checkbox)
+        run_validators_layout.addStretch()
 
         # File Table UI
         self.table_widget = QtWidgets.QTableWidget()
         self.table_widget.setColumnCount(2)
         self.table_widget.setHorizontalHeaderLabels([".sgt File", "Output Name"])
+
         self.table_widget.setEditTriggers(QtWidgets.QAbstractItemView.AllEditTriggers)
         # Resize the first column to fit its content
         self.table_widget.horizontalHeader().setSectionResizeMode(
@@ -146,7 +161,8 @@ class RigBuilderUI(MayaQWidgetDockableMixin, QtWidgets.QDialog, pyqt.SettingsMix
 
     def build_rig(self):
         data = self.collect_data()
-        builder.execute_build_logic(data)
+        validate = self.run_validators_checkbox.isChecked()
+        builder.execute_build_logic(data, validate=validate)
 
 
 def openRigBuilderUI(*args):

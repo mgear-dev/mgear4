@@ -243,3 +243,13 @@ def extract_match_guide_from_rig(*args):
     if rig_root:
         root_jnt = get_root_joint(rig_root)
         match_guide_to_joint_pos_ori(get_ordered_child(root_jnt))
+
+
+def snap_guide_to_root_joint(root_jnt=None):
+    if not root_jnt:
+        root_jnt = pm.selected()
+    if root_jnt:
+        root_jnt = root_jnt[0]
+        match_guide_to_joint_pos_ori(get_ordered_child(root_jnt))
+    else:
+        pm.displayWarning("Nothing selected")

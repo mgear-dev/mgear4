@@ -22,6 +22,9 @@ SPRING_ATTRS = [
     "springRotationalDamping",
     "springRotationalStiffness",
     "springSetupMembers",
+    "springConfig",
+    "springTranslation",
+    "springRotation",
 ]
 
 SPRING_PRESET_EXTENSION = ".spg"
@@ -40,6 +43,16 @@ def create_settings_attr(node, config):
     # Check if attr already exists at node
     if pm.attributeQuery("springTotalIntensity", node=node, exists=True):
         return False
+    channelBox = True
+    keyable = False
+    # separator Attr
+    attr_name = "springConfig"
+    attribute.addEnumAttribute(
+        node, attr_name, 0, ["Spring Config"], niceName="__________"
+    )
+    node.setAttr(attr_name, channelBox=channelBox, keyable=keyable)
+
+    # Keyable attr
 
     attribute.addAttribute(
         node,
@@ -57,6 +70,14 @@ def create_settings_attr(node, config):
         minValue=0,
         maxValue=100,
     )
+    # separator Attr
+    attr_name = "springTranslation"
+    attribute.addEnumAttribute(
+        node, attr_name, 0, ["Spring Translation"], niceName="__________"
+    )
+    node.setAttr(attr_name, channelBox=channelBox, keyable=keyable)
+
+    # Keyable attr
     attribute.addAttribute(
         node,
         "springTranslationalIntensity",
@@ -81,6 +102,14 @@ def create_settings_attr(node, config):
         minValue=0,
         maxValue=1,
     )
+    # separator Attr
+    attr_name = "springRotation"
+    attribute.addEnumAttribute(
+        node, attr_name, 0, ["Spring Rotation"], niceName="__________"
+    )
+    node.setAttr(attr_name, channelBox=channelBox, keyable=keyable)
+
+    # Keyable attr
     attribute.addAttribute(
         node,
         "springRotationalIntensity",
@@ -154,7 +183,7 @@ def get_settings_attr_val(node):
     attr_vals = {}
 
     # Loop through each attribute and attempt to get its value
-    for attr in SPRING_ATTRS[:-1]:
+    for attr in SPRING_ATTRS[:-4]:
         if pm.attributeQuery(attr, node=node, exists=True):
             attr_vals[attr] = node.attr(attr).get()
         else:
@@ -180,7 +209,7 @@ def set_settings_attr_val(node, attr_vals):
         node = pm.PyNode(node)
 
     # Loop through each attribute and attempt to set its value
-    for attr in SPRING_ATTRS[:-1]:
+    for attr in SPRING_ATTRS[:-4]:
         if pm.attributeQuery(attr, node=node, exists=True):
             node.attr(attr).set(attr_vals[attr])
         else:
@@ -330,7 +359,8 @@ def create_spring(node=None, config=None):
     move_animation_curves(node, root)
 
     # connect driver to node
-    applyop.parentCns(driver, node)
+    cns = applyop.parentCns(driver, node, maintain_offset=False)
+    cns.isHistoricallyInteresting.set(False)
 
     return driver, node
 
@@ -538,10 +568,41 @@ def apply_preset(preset_file_path, namespace_cb):
     return affected_nodes
 
 
-def get_preset_targets(preset_file_path):
+def get_preset_targets(preset_file_path, namespace_cb=None):
     with open(preset_file_path, "r") as fp:
         preset_dic = json.load(fp)
-        return [node for node in preset_dic["nodes"] if pm.objExists(node)]
+        replace_namespace = False
+        if namespace_cb:
+            # if there's only one namespace, check if user wants to apply to all nodes with the same name
+            selection = pm.ls(sl=1)
+            check_for_remap = len(preset_dic["namespaces"]) == 1 and len(selection) > 0
+            preset_namespace = preset_dic["namespaces"][0]
+            selection_namespace = ""
+
+            # check if selection namespace matches with preset namespace
+            if check_for_remap:
+                selection_namespace = selection[-1].namespace(root=True)
+                if selection_namespace != preset_namespace:
+                    if namespace_cb(preset_namespace, selection_namespace):
+                        replace_namespace = True
+                        print(
+                            "Processing configs with new namespace {}".format(
+                                selection_namespace
+                            )
+                        )
+        if replace_namespace:
+            nodes = []
+            for node in preset_dic["nodes"]:
+                if ":" not in node:
+                    node = selection_namespace + node
+                else:
+                    node = node.replace(preset_namespace, selection_namespace)
+                if pm.objExists(node):
+                    nodes.append(node)
+
+            return nodes
+        else:
+            return [node for node in preset_dic["nodes"] if pm.objExists(node)]
 
 
 @one_undo
@@ -664,15 +725,29 @@ def delete_spring_setup(nodes=None, transfer_animation=True):
         remove_settings_attr(node)
 
 
-@one_undo
-def delete_all_springs():
+def get_spring_targets():
+    """Get all the spring target controls
+
+    Returns:
+        set: spring target controls in the scene
+    """
     spring_nodes = pm.ls(type="mgear_springNode")
     nodes = set()
     for spring_node in spring_nodes:
         source = pm.listConnections(spring_node.damping, source=True)[0]
         nodes.add(source)
 
-    delete_spring_setup(nodes)
+    return nodes
+
+
+@one_undo
+def delete_all_springs():
+    delete_spring_setup(get_spring_targets())
+
+
+@one_undo
+def select_all_springs_targets():
+    pm.select(get_spring_targets())
 
 
 def move_animation_curves(source_node, target_node):
@@ -688,7 +763,7 @@ def move_animation_curves(source_node, target_node):
         None
     """
 
-    attributes_to_check = ["translate", "rotate", "scale"]
+    attributes_to_check = ["translate", "rotate"]
 
     for attr in attributes_to_check:
         for axis in ["X", "Y", "Z"]:

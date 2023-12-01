@@ -1,42 +1,126 @@
-# MGEAR is under the terms of the MIT License
+# -*- coding: utf-8 -*-
 
-# Copyright (c) 2016 Jeremie Passerin, Miquel Campos
+# Form implementation generated from reading ui file 'C:/datawork/repo/mgear4/release/scripts/mgear/shifter_classic_components/squash_01/settingsUI.ui',
+# licensing of 'C:/datawork/repo/mgear4/release/scripts/mgear/shifter_classic_components/squash_01/settingsUI.ui' applies.
+#
+# Created: Thu Nov 16 13:22:19 2023
+#      by: pyside2-uic  running on PySide2 5.12.5
+#
+# WARNING! All changes made in this file will be lost!
 
-# Permission is hereby granted, free of charge, to any person obtaining a copy
-# of this software and associated documentation files (the "Software"), to deal
-# in the Software without restriction, including without limitation the rights
-# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-# copies of the Software, and to permit persons to whom the Software is
-# furnished to do so, subject to the following conditions:
-
-# The above copyright notice and this permission notice shall be included in all
-# copies or substantial portions of the Software.
-
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-# SOFTWARE.
-
-# Author:     Jeremie Passerin
-# Author:     Miquel Campos           www.mcsgear.com
-# Date:       2016 / 10 / 10
-
-import mgear.core.pyqt as gqt
-QtGui, QtCore, QtWidgets, wrapInstance = gqt.qt_import()
+from PySide2 import QtCore, QtGui, QtWidgets
 
 class Ui_Form(object):
     def setupUi(self, Form):
         Form.setObjectName("Form")
-        Form.resize(290, 188)
-        self.gridLayout = QtWidgets.QGridLayout(Form)
-        self.gridLayout.setObjectName("gridLayout")
+        Form.resize(494, 748)
+        self.verticalLayout_2 = QtWidgets.QVBoxLayout(Form)
+        self.verticalLayout_2.setObjectName("verticalLayout_2")
+        self.groupBox = QtWidgets.QGroupBox(Form)
+        self.groupBox.setObjectName("groupBox")
+        self.verticalLayout = QtWidgets.QVBoxLayout(self.groupBox)
+        self.verticalLayout.setObjectName("verticalLayout")
+        self.horizontalLayout = QtWidgets.QHBoxLayout()
+        self.horizontalLayout.setObjectName("horizontalLayout")
+        self.squashX_label = QtWidgets.QLabel(self.groupBox)
+        self.squashX_label.setObjectName("squashX_label")
+        self.horizontalLayout.addWidget(self.squashX_label)
+        self.squashX_slider = QtWidgets.QSlider(self.groupBox)
+        self.squashX_slider.setMinimumSize(QtCore.QSize(0, 15))
+        self.squashX_slider.setMaximum(100)
+        self.squashX_slider.setOrientation(QtCore.Qt.Horizontal)
+        self.squashX_slider.setObjectName("squashX_slider")
+        self.horizontalLayout.addWidget(self.squashX_slider)
+        self.squashX_spinBox = QtWidgets.QSpinBox(self.groupBox)
+        self.squashX_spinBox.setMaximum(100)
+        self.squashX_spinBox.setObjectName("squashX_spinBox")
+        self.horizontalLayout.addWidget(self.squashX_spinBox)
+        self.verticalLayout.addLayout(self.horizontalLayout)
+        self.horizontalLayout_2 = QtWidgets.QHBoxLayout()
+        self.horizontalLayout_2.setObjectName("horizontalLayout_2")
+        self.squashY_label = QtWidgets.QLabel(self.groupBox)
+        self.squashY_label.setObjectName("squashY_label")
+        self.horizontalLayout_2.addWidget(self.squashY_label)
+        self.squashY_slider = QtWidgets.QSlider(self.groupBox)
+        self.squashY_slider.setMinimumSize(QtCore.QSize(0, 15))
+        self.squashY_slider.setMaximum(100)
+        self.squashY_slider.setOrientation(QtCore.Qt.Horizontal)
+        self.squashY_slider.setObjectName("squashY_slider")
+        self.horizontalLayout_2.addWidget(self.squashY_slider)
+        self.squashY_spinBox = QtWidgets.QSpinBox(self.groupBox)
+        self.squashY_spinBox.setMaximum(100)
+        self.squashY_spinBox.setObjectName("squashY_spinBox")
+        self.horizontalLayout_2.addWidget(self.squashY_spinBox)
+        self.verticalLayout.addLayout(self.horizontalLayout_2)
+        self.horizontalLayout_3 = QtWidgets.QHBoxLayout()
+        self.horizontalLayout_3.setObjectName("horizontalLayout_3")
+        self.squashZ_label = QtWidgets.QLabel(self.groupBox)
+        self.squashZ_label.setObjectName("squashZ_label")
+        self.horizontalLayout_3.addWidget(self.squashZ_label)
+        self.squashZ_slider = QtWidgets.QSlider(self.groupBox)
+        self.squashZ_slider.setMinimumSize(QtCore.QSize(0, 15))
+        self.squashZ_slider.setMaximum(100)
+        self.squashZ_slider.setOrientation(QtCore.Qt.Horizontal)
+        self.squashZ_slider.setObjectName("squashZ_slider")
+        self.horizontalLayout_3.addWidget(self.squashZ_slider)
+        self.squashZ_spinBox = QtWidgets.QSpinBox(self.groupBox)
+        self.squashZ_spinBox.setMaximum(100)
+        self.squashZ_spinBox.setObjectName("squashZ_spinBox")
+        self.horizontalLayout_3.addWidget(self.squashZ_spinBox)
+        self.verticalLayout.addLayout(self.horizontalLayout_3)
+        self.horizontalLayout_4 = QtWidgets.QHBoxLayout()
+        self.horizontalLayout_4.setObjectName("horizontalLayout_4")
+        self.stretchX_label = QtWidgets.QLabel(self.groupBox)
+        self.stretchX_label.setObjectName("stretchX_label")
+        self.horizontalLayout_4.addWidget(self.stretchX_label)
+        self.stretchX_slider = QtWidgets.QSlider(self.groupBox)
+        self.stretchX_slider.setMinimumSize(QtCore.QSize(0, 15))
+        self.stretchX_slider.setMaximum(100)
+        self.stretchX_slider.setOrientation(QtCore.Qt.Horizontal)
+        self.stretchX_slider.setObjectName("stretchX_slider")
+        self.horizontalLayout_4.addWidget(self.stretchX_slider)
+        self.stretchX_spinBox = QtWidgets.QSpinBox(self.groupBox)
+        self.stretchX_spinBox.setMaximum(100)
+        self.stretchX_spinBox.setObjectName("stretchX_spinBox")
+        self.horizontalLayout_4.addWidget(self.stretchX_spinBox)
+        self.verticalLayout.addLayout(self.horizontalLayout_4)
+        self.horizontalLayout_5 = QtWidgets.QHBoxLayout()
+        self.horizontalLayout_5.setObjectName("horizontalLayout_5")
+        self.stretchY_label = QtWidgets.QLabel(self.groupBox)
+        self.stretchY_label.setObjectName("stretchY_label")
+        self.horizontalLayout_5.addWidget(self.stretchY_label)
+        self.stretchY_slider = QtWidgets.QSlider(self.groupBox)
+        self.stretchY_slider.setMinimumSize(QtCore.QSize(0, 15))
+        self.stretchY_slider.setMaximum(100)
+        self.stretchY_slider.setOrientation(QtCore.Qt.Horizontal)
+        self.stretchY_slider.setObjectName("stretchY_slider")
+        self.horizontalLayout_5.addWidget(self.stretchY_slider)
+        self.stretchY_spinBox = QtWidgets.QSpinBox(self.groupBox)
+        self.stretchY_spinBox.setMaximum(100)
+        self.stretchY_spinBox.setObjectName("stretchY_spinBox")
+        self.horizontalLayout_5.addWidget(self.stretchY_spinBox)
+        self.verticalLayout.addLayout(self.horizontalLayout_5)
+        self.horizontalLayout_6 = QtWidgets.QHBoxLayout()
+        self.horizontalLayout_6.setObjectName("horizontalLayout_6")
+        self.stretchZ_label = QtWidgets.QLabel(self.groupBox)
+        self.stretchZ_label.setObjectName("stretchZ_label")
+        self.horizontalLayout_6.addWidget(self.stretchZ_label)
+        self.stretchZ_slider = QtWidgets.QSlider(self.groupBox)
+        self.stretchZ_slider.setMinimumSize(QtCore.QSize(0, 15))
+        self.stretchZ_slider.setMaximum(100)
+        self.stretchZ_slider.setOrientation(QtCore.Qt.Horizontal)
+        self.stretchZ_slider.setObjectName("stretchZ_slider")
+        self.horizontalLayout_6.addWidget(self.stretchZ_slider)
+        self.stretchZ_spinBox = QtWidgets.QSpinBox(self.groupBox)
+        self.stretchZ_spinBox.setMaximum(100)
+        self.stretchZ_spinBox.setObjectName("stretchZ_spinBox")
+        self.horizontalLayout_6.addWidget(self.stretchZ_spinBox)
+        self.verticalLayout.addLayout(self.horizontalLayout_6)
+        self.verticalLayout_2.addWidget(self.groupBox)
         self.upvRefArray_groupBox = QtWidgets.QGroupBox(Form)
         self.upvRefArray_groupBox.setObjectName("upvRefArray_groupBox")
-        self.verticalLayout = QtWidgets.QVBoxLayout(self.upvRefArray_groupBox)
-        self.verticalLayout.setObjectName("verticalLayout")
+        self.verticalLayout_3 = QtWidgets.QVBoxLayout(self.upvRefArray_groupBox)
+        self.verticalLayout_3.setObjectName("verticalLayout_3")
         self.upvRefArray_horizontalLayout = QtWidgets.QHBoxLayout()
         self.upvRefArray_horizontalLayout.setObjectName("upvRefArray_horizontalLayout")
         self.upvRefArray_verticalLayout_1 = QtWidgets.QVBoxLayout()
@@ -62,15 +146,42 @@ class Ui_Form(object):
         spacerItem = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
         self.upvRefArray_verticalLayout_2.addItem(spacerItem)
         self.upvRefArray_horizontalLayout.addLayout(self.upvRefArray_verticalLayout_2)
-        self.verticalLayout.addLayout(self.upvRefArray_horizontalLayout)
-        self.gridLayout.addWidget(self.upvRefArray_groupBox, 0, 0, 1, 1)
+        self.verticalLayout_3.addLayout(self.upvRefArray_horizontalLayout)
+        self.verticalLayout_2.addWidget(self.upvRefArray_groupBox)
+        spacerItem1 = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
+        self.verticalLayout_2.addItem(spacerItem1)
 
         self.retranslateUi(Form)
+        QtCore.QObject.connect(self.squashX_slider, QtCore.SIGNAL("valueChanged(int)"), self.squashX_spinBox.setValue)
+        QtCore.QObject.connect(self.squashX_spinBox, QtCore.SIGNAL("valueChanged(int)"), self.squashX_slider.setValue)
+        QtCore.QObject.connect(self.squashY_slider, QtCore.SIGNAL("valueChanged(int)"), self.squashY_spinBox.setValue)
+        QtCore.QObject.connect(self.squashY_spinBox, QtCore.SIGNAL("valueChanged(int)"), self.squashY_slider.setValue)
+        QtCore.QObject.connect(self.squashZ_slider, QtCore.SIGNAL("valueChanged(int)"), self.squashZ_spinBox.setValue)
+        QtCore.QObject.connect(self.squashZ_spinBox, QtCore.SIGNAL("valueChanged(int)"), self.squashZ_slider.setValue)
+        QtCore.QObject.connect(self.stretchX_slider, QtCore.SIGNAL("valueChanged(int)"), self.stretchX_spinBox.setValue)
+        QtCore.QObject.connect(self.stretchX_spinBox, QtCore.SIGNAL("valueChanged(int)"), self.stretchX_slider.setValue)
+        QtCore.QObject.connect(self.stretchY_slider, QtCore.SIGNAL("valueChanged(int)"), self.stretchY_spinBox.setValue)
+        QtCore.QObject.connect(self.stretchY_spinBox, QtCore.SIGNAL("valueChanged(int)"), self.stretchY_slider.setValue)
+        QtCore.QObject.connect(self.stretchZ_slider, QtCore.SIGNAL("valueChanged(int)"), self.stretchZ_spinBox.setValue)
+        QtCore.QObject.connect(self.stretchZ_spinBox, QtCore.SIGNAL("valueChanged(int)"), self.stretchZ_slider.setValue)
+        QtCore.QObject.connect(self.squashX_slider, QtCore.SIGNAL("sliderMoved(int)"), self.squashX_spinBox.setValue)
+        QtCore.QObject.connect(self.squashY_slider, QtCore.SIGNAL("sliderMoved(int)"), self.squashY_spinBox.setValue)
+        QtCore.QObject.connect(self.squashZ_slider, QtCore.SIGNAL("sliderMoved(int)"), self.squashZ_spinBox.setValue)
+        QtCore.QObject.connect(self.stretchX_slider, QtCore.SIGNAL("sliderMoved(int)"), self.stretchX_spinBox.setValue)
+        QtCore.QObject.connect(self.stretchY_slider, QtCore.SIGNAL("sliderMoved(int)"), self.stretchY_spinBox.setValue)
+        QtCore.QObject.connect(self.stretchZ_slider, QtCore.SIGNAL("sliderMoved(int)"), self.stretchZ_spinBox.setValue)
         QtCore.QMetaObject.connectSlotsByName(Form)
 
     def retranslateUi(self, Form):
-        Form.setWindowTitle(gqt.fakeTranslate("Form", "Form", None, -1))
-        self.upvRefArray_groupBox.setTitle(gqt.fakeTranslate("Form", "Tip Reference Array", None, -1))
-        self.refArrayAdd_pushButton.setText(gqt.fakeTranslate("Form", "<<", None, -1))
-        self.refArrayRemove_pushButton.setText(gqt.fakeTranslate("Form", ">>", None, -1))
+        Form.setWindowTitle(QtWidgets.QApplication.translate("Form", "Form", None, -1))
+        self.groupBox.setTitle(QtWidgets.QApplication.translate("Form", "Squash/Stretch Multipliers", None, -1))
+        self.squashX_label.setText(QtWidgets.QApplication.translate("Form", "Squash X", None, -1))
+        self.squashY_label.setText(QtWidgets.QApplication.translate("Form", "Squash Y", None, -1))
+        self.squashZ_label.setText(QtWidgets.QApplication.translate("Form", "Squash Z", None, -1))
+        self.stretchX_label.setText(QtWidgets.QApplication.translate("Form", "Stretch X", None, -1))
+        self.stretchY_label.setText(QtWidgets.QApplication.translate("Form", "Stretch Y", None, -1))
+        self.stretchZ_label.setText(QtWidgets.QApplication.translate("Form", "Stretch Z", None, -1))
+        self.upvRefArray_groupBox.setTitle(QtWidgets.QApplication.translate("Form", "Tip Reference Array", None, -1))
+        self.refArrayAdd_pushButton.setText(QtWidgets.QApplication.translate("Form", "<<", None, -1))
+        self.refArrayRemove_pushButton.setText(QtWidgets.QApplication.translate("Form", ">>", None, -1))
 

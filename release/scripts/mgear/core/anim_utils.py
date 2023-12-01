@@ -1031,7 +1031,11 @@ def ikFkMatch_with_namespace(
 
         thre = 1e-4
         # handle the case where three points lie on a line.
-        if abs(arrow_vector.x) < thre and abs(arrow_vector.y) < thre and abs(arrow_vector.z) < thre:
+        if (
+            abs(arrow_vector.x) < thre
+            and abs(arrow_vector.y) < thre
+            and abs(arrow_vector.z) < thre
+        ):
             # can make roll and move up ctrl
             upv_ctrl_target = _get_mth(upv)
             transform.matchWorldTransform(upv_ctrl_target, upv_ctrl)
@@ -1069,7 +1073,7 @@ def ikFkMatch_with_namespace(
                 roll_attr.set(0)
                 bank_attr.set(0)
 
-         # we match the foot FK after switch blend attr
+        # we match the foot FK after switch blend attr
         if foot_cnx:
             for i, c in enumerate(foot_fk):
                 c.setMatrix(foot_FK_matrix[i], worldSpace=True)
@@ -1354,6 +1358,7 @@ def calculateMirrorData(srcNode, targetNode, flip=False):
             }
         )
     return results
+
 
 def calculateMirrorDataRBF(srcNode, targetNode):
     """Calculate the mirror data

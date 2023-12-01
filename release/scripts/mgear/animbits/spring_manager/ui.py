@@ -65,6 +65,8 @@ class SpringManager(MayaQWidgetDockableMixin, QtWidgets.QDialog, pyqt.SettingsMi
         self.store_preset_action = QtWidgets.QAction("Store Preset", self)
         self.refresh_presets_action = QtWidgets.QAction("Refresh Presets", self)
         self.delete_preset_action = QtWidgets.QAction("Delete Preset", self)
+        # Select actions
+        self.select_all_targets_action = QtWidgets.QAction("Select All Spring Targets", self)
 
     def create_widgets(self):
         # menu bar
@@ -83,6 +85,9 @@ class SpringManager(MayaQWidgetDockableMixin, QtWidgets.QDialog, pyqt.SettingsMi
         self.presets_menu.addAction(self.store_preset_action)
         self.presets_menu.addAction(self.refresh_presets_action)
         self.presets_menu.addAction(self.delete_preset_action)
+
+        self.select_menu = self.menu_bar.addMenu("Select")
+        self.select_menu.addAction(self.select_all_targets_action)
 
         # directions
         self.directions_group_box = QtWidgets.QGroupBox("Directions")
@@ -193,6 +198,7 @@ class SpringManager(MayaQWidgetDockableMixin, QtWidgets.QDialog, pyqt.SettingsMi
 
         self.delete_selected_action.triggered.connect(partial(setup.delete_spring_setup, None, True))
         self.delete_all_action.triggered.connect(setup.delete_all_springs)
+        self.select_all_targets_action.triggered.connect(setup.select_all_springs_targets)
 
         self.set_lib_action.triggered.connect(partial(self.set_library, None))
         self.store_preset_action.triggered.connect(self.store_preset)
@@ -285,6 +291,16 @@ class SpringManager(MayaQWidgetDockableMixin, QtWidgets.QDialog, pyqt.SettingsMi
         """
         if not directory:
             directory = pm.fileDialog2(fileMode=3)[0]
+
+        try:
+            if not os.path.isdir(directory):
+                print("Directory does not exist. Creating...")
+                os.makedirs(directory, exist_ok=True)
+
+        except:
+            pm.error("Could not create directory")
+            return
+
         if not os.path.isdir(directory):
             pm.error("Invalid directory")
             return
@@ -399,7 +415,7 @@ class SpringManager(MayaQWidgetDockableMixin, QtWidgets.QDialog, pyqt.SettingsMi
             item = self.item_model.itemFromIndex(self.__proxy_model.mapToSource(qindex))
             name = item.text()
             file_path = "{}/{}{}".format(self.presets_library_directory, name, setup.SPRING_PRESET_EXTENSION)
-            affected_nodes.extend(setup.get_preset_targets(preset_file_path=file_path))
+            affected_nodes.extend(setup.get_preset_targets(preset_file_path=file_path, namespace_cb=self._namespace_confirmation_dialogue))
         pm.select(affected_nodes)
 
     def filter_changed(self, filter):
