@@ -269,6 +269,7 @@ def create_spring(node=None, config=None):
 
     # create root
     root = primitive.addTransform(parent, get_name("sprg_root"), t)
+    root.rotateOrder.set(node.rotateOrder.get())
 
     # translate spring
     trans_sprg = primitive.addTransform(root, get_name("sprg_trans"), t)
