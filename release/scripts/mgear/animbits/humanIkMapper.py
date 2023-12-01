@@ -218,7 +218,7 @@ class HumanIKMapper():
     @classmethod
     def export_char_configuration(cls):
         cls.refresh_char_configuration()
-        file_path = pm.fileDialog2(fileMode=0, fileFilter="*.hmik")[0]
+        file_path = pm.fileDialog2(fileMode=0, fileFilter="*.hikm")[0]
         data_string = json.dumps(cls.char_config, indent=4)
         with open(file_path, "w") as fp:
             fp.write(data_string)
@@ -226,7 +226,7 @@ class HumanIKMapper():
 
     @classmethod
     def import_char_configuration(cls):
-        file_path = pm.fileDialog2(fileMode=1, fileFilter="*.hmik")[0]
+        file_path = pm.fileDialog2(fileMode=1, fileFilter="*.hikm")[0]
         with open(file_path, "r") as fp:
             cls.char_config = json.load(fp)
 
