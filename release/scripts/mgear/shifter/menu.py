@@ -45,6 +45,11 @@ def install():
         ),
         ("-----", None),
         (None, guide_template_samples_submenu),
+        (
+            "Match Guide to Selected Joint Hierarchy",
+            str_matchGuide,
+            "mgear_crosshair.svg",
+        ),
         ("-----", None),
         ("Auto Fit Guide (BETA)", str_auto_fit_guide),
         ("-----", None),
@@ -357,4 +362,9 @@ guide_manager.extract_match_guide_from_rig()
 str_openRigBuilder = """
 from mgear.shifter.rig_builder import ui
 ui.openRigBuilderUI()
+"""
+
+str_matchGuide = """
+from mgear.shifter import guide_manager
+guide_manager.snap_guide_to_root_joint()
 """

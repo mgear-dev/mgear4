@@ -31,7 +31,7 @@ class FbxSdkGameToolsWrapper(object):
     def save(
         self,
         path=None,
-        mode="binary",
+        mode="ascii",
         close=False,
         embed_media=False,
         file_version=None,

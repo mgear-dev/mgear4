@@ -986,6 +986,14 @@ class Main(object):
             value=self.options["side_center_name"],
         )
 
+        attribute.addEnumAttribute(
+            ctl,
+            "rotate_order",
+            0,
+            ("xyz", "yzx", "zxy", "xzy", "yxz", "zyx"),
+            keyable=False
+        )
+
         # create the attributes to handlde mirror and symetrical pose
         attribute.add_mirror_config_channels(ctl, mirrorConf)
         if add_2_grp:

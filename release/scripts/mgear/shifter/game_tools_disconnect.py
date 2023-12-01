@@ -162,8 +162,6 @@ def disconnect(cnxDict):
                     # pm.disconnectAttr(plug)
                 else:
                     plug = oJnt.attr(chn)
-                print(oJnt)
-                print(plug)
                 if cnxDict["attrs"][i][e]:
                     try:
                         pm.disconnectAttr(cnxDict["attrs"][i][e], plug)

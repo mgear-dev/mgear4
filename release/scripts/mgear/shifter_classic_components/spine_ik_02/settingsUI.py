@@ -159,6 +159,8 @@ class Ui_Form(object):
         self.verticalLayout.addLayout(self.formLayout)
         self.squashStretchProfile_pushButton = QtWidgets.QPushButton(self.groupBox)
         self.squashStretchProfile_pushButton.setObjectName("squashStretchProfile_pushButton")
+        spacerItem = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
+        self.verticalLayout.addItem(spacerItem)
         self.verticalLayout.addWidget(self.squashStretchProfile_pushButton)
         self.gridLayout_2.addLayout(self.verticalLayout, 0, 0, 1, 1)
         self.gridLayout.addWidget(self.groupBox, 0, 0, 1, 1)

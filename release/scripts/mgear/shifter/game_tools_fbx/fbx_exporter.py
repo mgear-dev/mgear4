@@ -452,6 +452,9 @@ class FBXExporter(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.file_set_btn.clicked.connect(self.set_folder_path)
         self.file_name_lineedit.textChanged.connect(self.normalize_name)
 
+        self.file_path_lineedit.textChanged.connect(self.set_fbx_directory)
+        self.file_name_lineedit.textChanged.connect(self.set_fbx_file)
+
         # ue file path connection
         self.ue_file_set_btn.clicked.connect(self.set_ue_folder_path)
 
@@ -724,11 +727,19 @@ class FBXExporter(MayaQWidgetDockableMixin, QtWidgets.QDialog):
             partitions.update(master_partition)
             partitions.update(export_node.get_partitions())
             print("\t>>> Partitions:")
-            for partition_name, partition_data in partitions.items():
+            
+            # Loops over partitions, and removes any disabled partitions, from being exported.
+            keys = list(partitions.keys())
+            for partition_name in reversed(keys):
+                partition_data = partitions[partition_name]
                 enabled = partition_data.get("enabled", True)
                 skeletal_meshes = partition_data.get("skeletal_meshes", [])
+
                 if not (enabled and skeletal_meshes):
+                    partitions.pop(partition_name)
+                    print("\t\t[!Partition Disabled!] - {}: {}".format(partition_name, skeletal_meshes))
                     continue
+
                 print("\t\t{}: {}".format(partition_name, skeletal_meshes))
             export_config["partitions"] = partitions
 

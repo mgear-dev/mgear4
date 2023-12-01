@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>294</width>
-    <height>211</height>
+    <width>525</width>
+    <height>438</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -47,6 +47,13 @@
          <widget class="QCheckBox" name="extraTweak_checkBox">
           <property name="text">
            <string notr="true">Extra Tweaks</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QCheckBox" name="leafJoints_checkBox">
+          <property name="text">
+           <string>Leaf Joints</string>
           </property>
          </widget>
         </item>
