@@ -773,11 +773,12 @@ def move_animation_curves(source_node, target_node):
 
             # Check if the attribute exists and is animated
             if pm.attributeQuery(compound_attr, node=source_node, exists=True):
-                anim_curves = pm.listConnections(source_plug, type="animCurve")
+                anim_curves = pm.listConnections(source_plug)
+                anim_curves = pm.listConnections(source_plug, p=True, d=False)
                 for curve in anim_curves:
                     # Disconnect curve from source node and connect to target node
-                    pm.disconnectAttr(curve + ".output", source_plug)
-                    pm.connectAttr(curve + ".output", target_plug)
+                    pm.disconnectAttr(curve, source_plug)
+                    pm.connectAttr(curve, target_plug)
 
         compound_attr = (
             attr  # for compound plugs like 'translate', 'rotate', 'scale'
@@ -787,8 +788,8 @@ def move_animation_curves(source_node, target_node):
 
         # Check if the attribute exists and is animated
         if pm.attributeQuery(compound_attr, node=source_node, exists=True):
-            anim_curves = pm.listConnections(source_plug, type="animCurve")
+            anim_curves = pm.listConnections(source_plug, p=True, d=False)
             for curve in anim_curves:
                 # Disconnect curve from source node and connect to target node
-                pm.disconnectAttr(curve + ".output", source_plug)
-                pm.connectAttr(curve + ".output", target_plug)
+                pm.disconnectAttr(curve, source_plug)
+                pm.connectAttr(curve, target_plug)
