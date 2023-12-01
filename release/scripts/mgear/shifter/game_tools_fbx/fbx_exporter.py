@@ -721,28 +721,7 @@ class FBXExporter(MayaQWidgetDockableMixin, QtWidgets.QDialog):
 
         use_partitions = self.partitions_checkbox.isChecked()
         if use_partitions:
-            # Master partition data is retrieved from UI
-            # TODO: Should we store master data within FbxExporterNode too?
-            partitions = {}
-            master_partition = self.partitions_outliner.get_master_partition()
-            partitions.update(master_partition)
-            partitions.update(export_node.get_partitions())
-            print("\t>>> Partitions:")
-            
-            # Loops over partitions, and removes any disabled partitions, from being exported.
-            keys = list(partitions.keys())
-            for partition_name in reversed(keys):
-                partition_data = partitions[partition_name]
-                enabled = partition_data.get("enabled", True)
-                skeletal_meshes = partition_data.get("skeletal_meshes", [])
-
-                if not (enabled and skeletal_meshes):
-                    partitions.pop(partition_name)
-                    print("\t\t[!Partition Disabled!] - {}: {}".format(partition_name, skeletal_meshes))
-                    continue
-
-                print("\t\t{}: {}".format(partition_name, skeletal_meshes))
-            export_config["partitions"] = partitions
+            export_config["partitions"] = self._prefilter_partitions()
 
         preset_file_path = self._get_preset_file_path()
         print("\t>>> Preset File Path: {}".format(preset_file_path))
@@ -751,41 +730,101 @@ class FBXExporter(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.partition_thread = partition_thread.PartitionThread(export_config)
         self.partition_thread.init_data()
         self.partition_thread.start()
-        
-        # == COMMENTED OUT WHILE REFACTORING ==
-
-        # # Unreal Import, if enabled.
-        # if self.ue_import_cbx.isChecked():
-        #     # If skeleton is option is enabled, then import an SKM and
-        #     # share the base skeleton in Unreal.
-        #     skeleton_path = None
-        #     if len(self.ue_skeleton_listwgt.selectedItems()) > 0:
-        #         skeleton_path = self.ue_skeleton_listwgt.selectedItems()[
-        #             0
-        #         ].text()
-        #     unreal_folder = self.ue_file_path_lineedit.text()
-
-        #     if use_partitions:
-        #         for p in partitions.keys():
-        #             result_partition = result.replace(
-        #                 ".fbx", "_{}.fbx".format(p)
-        #             )
-        #             partition_file_name = file_name + "_{}".format(p)
-        #             uegear.export_skeletal_mesh_to_unreal(
-        #                 fbx_path=result_partition,
-        #                 unreal_package_path=unreal_folder,
-        #                 name=partition_file_name,
-        #                 skeleton_path=skeleton_path,
-        #             )
-        #     else:
-        #         uegear.export_skeletal_mesh_to_unreal(
-        #             fbx_path=result,
-        #             unreal_package_path=unreal_folder,
-        #             name=file_name,
-        #             skeleton_path=skeleton_path,
-        #        )
+        self.partition_thread.completed.connect(self._import_into_unreal)
 
         return True
+
+    def _import_into_unreal(self, export_config, success):
+        """
+        Event triggered when the Thread has completed successfully.
+
+        Impports the asset into unreal, and checks if it should import using 
+        an existing skeleton.
+
+        Recieves the export configuration from the Thread that was completed
+        """
+        if not success:
+            print("ERROR: Export Failed")
+            return
+
+        use_partitions = export_config.get("use_partitions", True)
+        partitions = export_config.get("partitions", dict())
+        file_name = export_config.get("file_name", "")
+        file_path = export_config.get("file_path", "")
+
+        master_fbx_path = os.path.join(file_path, file_name) + ".fbx"
+
+        print("_import into unreal")
+        print(export_config)
+        print(success)
+        print(master_fbx_path)
+
+        # Unreal Import, if enabled.
+        if self.ue_import_cbx.isChecked():
+            # If skeleton is option is enabled, then import an SKM and
+            # share the base skeleton in Unreal.
+            skeleton_path = None
+            if len(self.ue_skeleton_listwgt.selectedItems()) > 0:
+                skeleton_path = self.ue_skeleton_listwgt.selectedItems()[0].text()
+            unreal_folder = self.ue_file_path_lineedit.text()
+
+            if use_partitions:
+                for p in partitions.keys():
+                    result_partition = master_fbx_path.replace(
+                        ".fbx", "_{}.fbx".format(p)
+                    )
+                    partition_file_name = file_name + "_{}".format(p)
+                    uegear.export_skeletal_mesh_to_unreal(
+                        fbx_path=result_partition,
+                        unreal_package_path=unreal_folder,
+                        name=partition_file_name,
+                        skeleton_path=skeleton_path,
+                    )
+            else:
+                uegear.export_skeletal_mesh_to_unreal(
+                    fbx_path=master_fbx_path,
+                    unreal_package_path=unreal_folder,
+                    name=file_name,
+                    skeleton_path=skeleton_path,
+               )
+
+    def _prefilter_partitions(self):
+        """
+        Helper function that retrieves all partitions, and filters out the ones
+        that are deactivated.
+        """
+        export_node = self._get_or_create_export_node()
+        # Master partition data is retrieved from UI
+        partitions = {}
+        master_partition = self.partitions_outliner.get_master_partition()
+        partitions.update(master_partition)
+        partitions.update(export_node.get_partitions())
+        print("\t>>> Partitions:")
+        
+        # Loops over partitions, and removes any disabled partitions, from being exported.
+        keys = list(partitions.keys())
+        for partition_name in reversed(keys):
+            partition_data = partitions[partition_name]
+            enabled = partition_data.get("enabled", True)
+            skeletal_meshes = partition_data.get("skeletal_meshes", [])
+
+            if not (enabled and skeletal_meshes):
+                partitions.pop(partition_name)
+                print("\t\t[!Partition Disabled!] - {}: {}".format(partition_name, skeletal_meshes))
+                continue
+
+            print("\t\t{}: {}".format(partition_name, skeletal_meshes))
+        return partitions
+
+    def set_fbx_directory(self):
+        path = self.file_path_lineedit.text()
+        export_node = self._get_or_create_export_node()
+        export_node.save_root_data("file_path", path)
+
+    def set_fbx_file(self):
+        path = self.file_name_lineedit.text()
+        export_node = self._get_or_create_export_node()
+        export_node.save_root_data("file_name", path)
 
     def export_animation_clips(self):
 

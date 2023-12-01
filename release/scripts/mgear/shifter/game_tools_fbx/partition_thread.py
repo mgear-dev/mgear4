@@ -17,14 +17,11 @@ import maya.cmds as cmds
 
 
 class PartitionThread(QThread):
+    """ Thread that handles the creation of fbx partitions"""
 
-    completed = Signal(object, str)
+    completed = Signal(object, bool)
 
-    def __init__(
-            self,
-            export_config
-            # log_message_function: Callable[[str], None],
-            ):
+    def __init__(self, export_config):
         """
         Initializes the thread.
         """
@@ -41,21 +38,20 @@ class PartitionThread(QThread):
         """
         Main function that gets called when the thread starts.
         """
+        success = self.export_skeletal_mesh()
+        self.onComplete(success)
 
-        success = self.export_skeletal_mesh(self.export_config)
-        self.onComplete()
-
-    def onComplete(self):
+    def onComplete(self, success):
         """
         Cleans up the thread when the thread is finished.
         """
-        #self.completed.emit()
-        pass
+        self.completed.emit(self.export_config, success)
 
-    def export_skeletal_mesh(self, export_data):
+    def export_skeletal_mesh(self):
         """
         Triggers the batch process
         """
+        export_data = self.export_config
 
         geo_roots = export_data.get("geo_roots", "")
         joint_roots = [export_data.get("joint_root", "")]

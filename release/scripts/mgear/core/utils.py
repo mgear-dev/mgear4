@@ -383,21 +383,6 @@ def get_maya_path():
     :return: Absolute path to the binary folder that contains maya executable
     :rtype: str
     """
-
     maya_path = os.environ['MAYA_LOCATION']
-
-    current_os = get_os()
-
-    if current_os == "mac":
-        # Mac
-        maya_path = os.path.join(maya_path,"bin")
-    elif current_os == "win64" or current_os == "nt":
-        # Windows
-        # TODO: Need to test on Windows machine and check path is the folder that contains the executable files/Bins
-        raise NotImplementedError
-    else:
-        # Linux
-        # TODO: Need to test on Windows machine and check path is the folder that contains the executable files/Bins
-        raise NotImplementedError
-
+    maya_path = os.path.join(maya_path,"bin")
     return maya_path
