@@ -786,6 +786,16 @@ class FBXExporter(MayaQWidgetDockableMixin, QtWidgets.QDialog):
 
         return True
 
+    def set_fbx_directory(self):
+        path = self.file_path_lineedit.text()
+        export_node = self._get_or_create_export_node()
+        export_node.save_root_data("file_path", path)
+
+    def set_fbx_file(self):
+        path = self.file_name_lineedit.text()
+        export_node = self._get_or_create_export_node()
+        export_node.save_root_data("file_name", path)
+
     def export_animation_clips(self):
 
         # Check if UE import is enabled, and if a skeleton is selected.
