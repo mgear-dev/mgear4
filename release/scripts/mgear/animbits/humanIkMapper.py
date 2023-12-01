@@ -4,12 +4,15 @@ import maya.cmds as cmds
 from maya import OpenMayaUI as omui
 from shiboken2 import wrapInstance
 
-from mgear.core import callbackManager
 import mgear
-
+from mgear.core import callbackManager
+from mgear.core import widgets as mwgt
+from mgear.core.utils import one_undo
 from mgear.vendor.Qt import QtCore, QtWidgets, QtGui
 
 from mgear.rigbits.mirror_controls import MirrorController
+
+import json
 
 ########################################
 #   Load Plugins
@@ -116,6 +119,7 @@ class HumanIKMapper():
     ]
 
     CHAR_NAME = 'MGearIKHuman'
+    char_config = {}
 
     @classmethod
     def set_character(cls):
@@ -142,8 +146,8 @@ class HumanIKMapper():
     def is_initialized(cls):
         return pm.mel.hikGetCurrentCharacter()
         
-
     @classmethod
+    @one_undo
     def set_list_of_bones_from_selection(cls, bones_list, ctrls, do_mirror=False):
         if do_mirror:
             if 'Left' in bones_list[0]:
@@ -165,6 +169,7 @@ class HumanIKMapper():
         for bone, ctrl in zip(bones_list, ctrls):
             pm.mel.setCharacterObject(ctrl, hikChar, pm.mel.hikGetNodeIdFromName(bone), 0)
 
+
         pm.mel.hikUpdateDefinitionUI()
         return
 
@@ -184,6 +189,7 @@ class HumanIKMapper():
         return locked_ctrls
 
     @classmethod
+    @one_undo
     def unlock_ctrls_srt(cls, ctrl_list):
         for ctrl in ctrl_list:
             attrs = []
@@ -194,6 +200,49 @@ class HumanIKMapper():
                 attr.unlock()
                 attr.set(keyable=True)
 
+    @classmethod
+    def refresh_char_configuration(cls):
+        #TODO: Check if character exists on scene
+        cls.char_config = {}
+
+        hik_count = pm.mel.hikGetNodeCount()
+        hikChar = pm.mel.hikGetCurrentCharacter()
+        for i in range(hik_count):
+            bone_name = pm.mel.GetHIKNodeName(i)
+            bone_target = pm.mel.hikGetSkNode(hikChar, i)
+            if bone_target:
+                cls.char_config[bone_name] = bone_target
+
+        return cls.char_config
+
+    @classmethod
+    def export_char_configuration(cls):
+        cls.refresh_char_configuration()
+        file_path = pm.fileDialog2(fileMode=0, fileFilter="*.hmik")[0]
+        data_string = json.dumps(cls.char_config, indent=4)
+        with open(file_path, "w") as fp:
+            fp.write(data_string)
+        print(file_path)
+
+    @classmethod
+    def import_char_configuration(cls):
+        file_path = pm.fileDialog2(fileMode=1, fileFilter="*.hmik")[0]
+        with open(file_path, "r") as fp:
+            cls.char_config = json.load(fp)
+
+        hikChar = pm.mel.hikGetCurrentCharacter()
+        if not hikChar:
+            pm.mel.HIKCharacterControlsTool()
+
+            tmp = set(pm.ls(type='HIKCharacterNode'))
+            pm.mel.hikCreateDefinition()
+            hikChar = list(set(pm.ls(type='HIKCharacterNode')) - tmp)[0]
+            hikChar.rename(cls.CHAR_NAME)
+            pm.mel.hikSetCurrentCharacter(hikChar)
+
+        for item in cls.char_config.items():
+            bone_id = pm.mel.hikGetNodeIdFromName(item[0])
+            pm.mel.setCharacterObject(item[1], hikChar, bone_id, 0)
 
 
 class HumanIKMapperUI(MayaQWidgetDockableMixin, QtWidgets.QDialog):
@@ -207,13 +256,23 @@ class HumanIKMapperUI(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.setWindowFlags(QtCore.Qt.Window)
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose, 1)
         self.setMinimumSize(QtCore.QSize(350, 0))
-        
+
+        self.create_actions()
         self.create_widgets()
         self.create_layout()
         self.create_connections()
 
+    def create_actions(self):
+        self.import_action = QtWidgets.QAction("Import")
+        self.export_action = QtWidgets.QAction("Export")
+
         
     def create_widgets(self):
+
+        self.menu_bar = QtWidgets.QMenuBar()
+        self.file_menu = self.menu_bar.addMenu("File")
+        self.file_menu.addAction(self.import_action)
+        self.file_menu.addAction(self.export_action)
 
         self.initialize_btn = QtWidgets.QPushButton("Initialize")
         
@@ -249,9 +308,18 @@ class HumanIKMapperUI(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.instructions_tb.setReadOnly(True)
         self.instructions_tb.setSizeAdjustPolicy(QtWidgets.QAbstractScrollArea.AdjustToContents)
 
+        self.refresh_mapping_btn = QtWidgets.QPushButton("Refresh")
+        self.mapping_table = QtWidgets.QTableWidget(1, 3)
+        self.mapping_table.setHorizontalHeaderLabels(["Bone", "Target", "Sub IK"])
+        self.mapping_table.horizontalHeader().setSectionResizeMode(QtWidgets.QHeaderView.Stretch)
+
+
         
     def create_layout(self):
         main_layout = QtWidgets.QVBoxLayout(self)
+        main_layout.setContentsMargins(2, 2, 2, 2)
+        # main_layout.setSpacing(0)
+        main_layout.setMenuBar(self.menu_bar)
 
         main_layout.addWidget(self.initialize_btn)
         
@@ -283,17 +351,34 @@ class HumanIKMapperUI(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         mirror_layout.addWidget(self.mirror_checkbox)
         configure_layout.addLayout(mirror_layout)
         
-        main_layout.addStretch()
-        
+        # main_layout.addStretch()
+
         instructions_gb = QtWidgets.QGroupBox("Instructions")
+        main_layout.addWidget(instructions_gb)
         instructions_layout = QtWidgets.QVBoxLayout()
         instructions_gb.setLayout(instructions_layout)
-        
+
         instructions_layout.addWidget(self.instructions_tb)
-        
-        main_layout.addWidget(instructions_gb)
-        
+
+        # mapping_gb = QtWidgets.QGroupBox("Mapping")
+        # main_layout.addWidget(mapping_gb)
+        mapping_collapsible = mwgt.CollapsibleWidget("Mapping", expanded=False)
+        main_layout.addWidget(mapping_collapsible)
+        mapping_collapsible.addWidget(self.refresh_mapping_btn)
+        mapping_collapsible.addWidget(self.mapping_table)
+        # mapping_layout = QtWidgets.QVBoxLayout()
+        # mapping_gb.setLayout(mapping_layout)
+        # mapping_collapsible.addLayout(mapping_layout)
+        #
+        # mapping_layout.addWidget(self.refresh_mapping_btn)
+        # mapping_layout.addWidget(self.mapping_table)
+
+
     def create_connections(self):
+
+        self.export_action.triggered.connect(HumanIKMapper.export_char_configuration)
+        self.import_action.triggered.connect(HumanIKMapper.import_char_configuration)
+
         self.initialize_btn.clicked.connect(HumanIKMapper.set_character)
 
         self.head_btn.clicked.connect(self.display_list_mb_cb(HumanIKMapper.HEAD_NAMES))
@@ -318,6 +403,10 @@ class HumanIKMapperUI(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.right_upper_leg_rolls_btn.clicked.connect(self.display_list_mb_cb(self._change_bones_2_right(HumanIKMapper.LEFT_UPPER_LEG_ROLLS)))
         self.right_lower_leg_rolls_btn.clicked.connect(self.display_list_mb_cb(self._change_bones_2_right(HumanIKMapper.LEFT_LOWER_LEG_ROLLS)))
 
+        self.refresh_mapping_btn.clicked.connect(self.update_mapping)
+        self.mapping_table.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
+        self.mapping_table.customContextMenuRequested.connect(self._mapping_menu)
+
     def _group_in_hlayout(self, *args):
         h_layout = QtWidgets.QHBoxLayout()
         for i in args:
@@ -341,8 +430,31 @@ class HumanIKMapperUI(MayaQWidgetDockableMixin, QtWidgets.QDialog):
             dialog.show()
             
         return display
+
+    def update_mapping(self, bone_dict={}):
+        bone_dict = HumanIKMapper.refresh_char_configuration()
+        self.mapping_table.setRowCount(len(bone_dict))
+        for i, bone in enumerate(bone_dict):
+            bone_item = QtWidgets.QTableWidgetItem(bone)
+            target_item = QtWidgets.QTableWidgetItem(bone_dict[bone])
+            self.mapping_table.setItem(i, 0, bone_item)
+            self.mapping_table.setItem(i, 1, target_item)
+
+    def _mapping_menu(self, QPos):
+        comp_widget = self.mapping_table
+        print("Hello frens")
+
+        self.item_menu = QtWidgets.QMenu()
+        parent_position = comp_widget.mapToGlobal(QtCore.QPoint(0, 0))
+        set_selection_as_sub_ik = self.item_menu.addAction("Set selection as Sub Ik")
         
-        
+        set_selection_as_sub_ik.triggered.connect(self.test_cb)
+
+        self.item_menu.move(parent_position + QPos)
+        self.item_menu.show()
+    def test_cb(self):
+        print("Test callback")
+
 class BoneListDialog(QtWidgets.QDialog):
     def __init__(self, parent=None, bone_list=[], do_mirror=False):
         super(BoneListDialog, self).__init__(parent)
@@ -419,6 +531,8 @@ class BoneListDialog(QtWidgets.QDialog):
         selection = pm.ls(sl=1)
         HumanIKMapper.set_list_of_bones_from_selection(self.bone_list, selection, self.do_mirror)
         self.close()
+
+
 
 class LockedCtrlsDialog(QtWidgets.QDialog):
     def __init__(self, parent=maya_main_window(), ctrls_list=[]):
