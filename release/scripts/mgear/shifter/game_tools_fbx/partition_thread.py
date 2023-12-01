@@ -106,7 +106,10 @@ class PartitionThread(QThread):
 
         # Depending on the os we would need to change from maya, to maya batch
         # windows uses mayabatch
-        option = "maya"
+        if str(coreUtils.get_os()) == "win64" or str(coreUtils.get_os()) == "nt":
+            option = "mayabatch"
+        else:
+            option = "maya"
 
         if option == "maya":
             mayabatch_command = 'maya'
