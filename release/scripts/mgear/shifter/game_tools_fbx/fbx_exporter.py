@@ -21,6 +21,7 @@ from mgear.shifter.game_tools_fbx import (
     fbx_export_node,
     partitions_outliner,
     utils,
+    partition_thread
 )
 from mgear.uegear import commands as uegear
 
@@ -746,43 +747,43 @@ class FBXExporter(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         preset_file_path = self._get_preset_file_path()
         print("\t>>> Preset File Path: {}".format(preset_file_path))
 
-        result = utils.export_skeletal_mesh(export_config)
-        if not result:
-            cmds.warning(
-                "Something went wrong while exporting Skeletal Mesh/es"
-            )
-            return False
+        # Creates a Thread to perform the maya batch in.
+        self.partition_thread = partition_thread.PartitionThread(export_config)
+        self.partition_thread.init_data()
+        self.partition_thread.start()
+        
+        # == COMMENTED OUT WHILE REFACTORING ==
 
-        # Unreal Import, if enabled.
-        if self.ue_import_cbx.isChecked():
-            # If skeleton is option is enabled, then import an SKM and
-            # share the base skeleton in Unreal.
-            skeleton_path = None
-            if len(self.ue_skeleton_listwgt.selectedItems()) > 0:
-                skeleton_path = self.ue_skeleton_listwgt.selectedItems()[
-                    0
-                ].text()
-            unreal_folder = self.ue_file_path_lineedit.text()
+        # # Unreal Import, if enabled.
+        # if self.ue_import_cbx.isChecked():
+        #     # If skeleton is option is enabled, then import an SKM and
+        #     # share the base skeleton in Unreal.
+        #     skeleton_path = None
+        #     if len(self.ue_skeleton_listwgt.selectedItems()) > 0:
+        #         skeleton_path = self.ue_skeleton_listwgt.selectedItems()[
+        #             0
+        #         ].text()
+        #     unreal_folder = self.ue_file_path_lineedit.text()
 
-            if use_partitions:
-                for p in partitions.keys():
-                    result_partition = result.replace(
-                        ".fbx", "_{}.fbx".format(p)
-                    )
-                    partition_file_name = file_name + "_{}".format(p)
-                    uegear.export_skeletal_mesh_to_unreal(
-                        fbx_path=result_partition,
-                        unreal_package_path=unreal_folder,
-                        name=partition_file_name,
-                        skeleton_path=skeleton_path,
-                    )
-            else:
-                uegear.export_skeletal_mesh_to_unreal(
-                    fbx_path=result,
-                    unreal_package_path=unreal_folder,
-                    name=file_name,
-                    skeleton_path=skeleton_path,
-                )
+        #     if use_partitions:
+        #         for p in partitions.keys():
+        #             result_partition = result.replace(
+        #                 ".fbx", "_{}.fbx".format(p)
+        #             )
+        #             partition_file_name = file_name + "_{}".format(p)
+        #             uegear.export_skeletal_mesh_to_unreal(
+        #                 fbx_path=result_partition,
+        #                 unreal_package_path=unreal_folder,
+        #                 name=partition_file_name,
+        #                 skeleton_path=skeleton_path,
+        #             )
+        #     else:
+        #         uegear.export_skeletal_mesh_to_unreal(
+        #             fbx_path=result,
+        #             unreal_package_path=unreal_folder,
+        #             name=file_name,
+        #             skeleton_path=skeleton_path,
+        #        )
 
         return True
 

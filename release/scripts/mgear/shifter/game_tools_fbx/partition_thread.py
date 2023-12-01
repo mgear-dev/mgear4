@@ -1,0 +1,200 @@
+import os
+import subprocess
+from typing import Callable
+import tempfile
+
+from mgear.vendor.Qt.QtCore import QThread, Signal
+from mgear.shifter.game_tools_fbx import sdk_utils
+from mgear.core import (
+    pyFBX as pfbx,
+    pyqt,
+    string,
+    utils as coreUtils,
+    animLayers,
+)
+
+import maya.cmds as cmds
+
+
+class PartitionThread(QThread):
+
+    completed = Signal(object, str)
+
+    def __init__(
+            self,
+            export_config
+            # log_message_function: Callable[[str], None],
+            ):
+        """
+        Initializes the thread.
+        """
+        super().__init__()
+
+        # self.log_message = log_message_function
+
+        self.export_config = export_config
+
+        # Makes sure the Thread removes itself
+        self.finished.connect(self.deleteLater)
+
+    def run(self):
+        """
+        Main function that gets called when the thread starts.
+        """
+
+        success = self.export_skeletal_mesh(self.export_config)
+        self.onComplete()
+
+    def onComplete(self):
+        """
+        Cleans up the thread when the thread is finished.
+        """
+        #self.completed.emit()
+        pass
+
+    def export_skeletal_mesh(self, export_data):
+        """
+        Triggers the batch process
+        """
+
+        geo_roots = export_data.get("geo_roots", "")
+        joint_roots = [export_data.get("joint_root", "")]
+        file_path = export_data.get("file_path", "")
+        file_name = export_data.get("file_name", "")
+        remove_namespaces = export_data.get("remove_namespace", True)
+        scene_clean = export_data.get("scene_clean", True)
+        skinning = export_data.get("skinning", True)
+        blendshapes = export_data.get("blendshapes", True)
+        use_partitions = export_data.get("use_partitions", True)
+
+        if not file_name.endswith(".fbx"):
+            file_name = "{}.fbx".format(file_name)
+        export_path = string.normalize_path(os.path.join(file_path, file_name))
+        print("\t>>> Export Path: {}".format(export_path))
+
+        path_is_valid = os.path.exists(export_path)
+
+        if not path_is_valid:
+            # "master" fbx file does not exist, exit early.
+            return False
+
+        # Create a temporary job python file
+        script_content = """
+    python "from mgear.shifter.game_tools_fbx import fbx_batch";
+    python "master_path='{master_path}'";
+    python "root_joint='{joint_root}'";
+    python "root_geos={geo_roots}";
+    python "export_data={e_data}";
+    python "fbx_batch.perform_fbx_condition({ns}, {sc}, master_path, root_joint, root_geos, {sk}, {bs}, {ps}, export_data)";
+    """.format(
+            ns=remove_namespaces,
+            sc=scene_clean,
+            master_path=export_path,
+            geo_roots=geo_roots,
+            joint_root= joint_roots[0],
+            sk=skinning,
+            bs=blendshapes,
+            ps=use_partitions,
+            e_data=export_data)
+
+        script_file = tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.mel')
+        script_file.write(script_content)
+        script_file_path = script_file.name
+        script_file.close()
+
+        mayabatch_dir = coreUtils.get_maya_path()
+
+        # Depending on the os we would need to change from maya, to maya batch
+        # windows uses mayabatch
+        option = "maya"
+
+        if option == "maya":
+            mayabatch_command = 'maya'
+        else:
+            mayabatch_command = "mayabatch"
+
+        mayabatch_path = os.path.join(mayabatch_dir, mayabatch_command)
+        mayabatch_args = [mayabatch_path]
+
+        if option == "maya":
+            mayabatch_args.append("-batch")
+
+        mayabatch_args.append("-script")
+        mayabatch_args.append(script_file_path)
+
+        print("[Launching] MayaBatch")
+        print("   {}".format(mayabatch_args))
+        print("   {}".format(" ".join(mayabatch_args)))
+
+    # Use Popen for more control
+        with subprocess.Popen(mayabatch_args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, shell=False) as process:
+            # Capture the output and errors
+            stdout, stderr = process.communicate()
+
+            # Check the return code
+            returncode = process.returncode
+
+            # Check the result
+            if returncode == 0:
+                print("Mayabatch process completed successfully.")
+                print("-------------------------------------------")
+                print("Output:", stdout)
+                print("-------------------------------------------")
+            else:
+                print("Mayabatch process failed.")
+                print("Error:", stderr)
+                return False
+
+        # If all goes well return the export path location, else None
+        return True
+
+    def init_data(self):
+        """
+        Initialises the Master FBX files that will be needed by the Thread and Maya batcher.
+
+        This process exports the geometry roots and skeleton as an FBX, which will
+        then be passed to the Thread for Maya batching.
+
+        Note: This process cannot be run in the thread as Maya commands are not thread safe,
+        This causes Maya to become partially unresponsive.
+        """
+        # Export initial FBX Master, from current Maya scene
+        geo_roots = self.export_config.get("geo_roots", "")
+        joint_roots = [self.export_config.get("joint_root", "")]
+        file_path = self.export_config.get("file_path", "")
+        file_name = self.export_config.get("file_name", "")
+        preset_path = self.export_config.get("preset_path", None)
+        up_axis = self.export_config.get("up_axis", None)
+        file_type = self.export_config.get("file_type", "binary").lower()
+        fbx_version = self.export_config.get("fbx_version", None)
+        skinning = self.export_config.get("skinning", True)
+        blendshapes = self.export_config.get("blendshapes", True)
+
+        if not file_name.endswith(".fbx"):
+            file_name = "{}.fbx".format(file_name)
+        export_path = string.normalize_path(os.path.join(file_path, file_name))
+        print("\t>>> Export Path: {}".format(export_path))
+        # export settings config
+        pfbx.FBXResetExport()
+        # set configuration
+        if preset_path is not None:
+            # load FBX export preset file
+            pfbx.FBXLoadExportPresetFile(f=preset_path)
+        pfbx.FBXExportSkins(v=skinning)
+        pfbx.FBXExportShapes(v=blendshapes)
+        fbx_version_str = None
+        if up_axis is not None:
+            pfbx.FBXExportUpAxis(up_axis)
+        if fbx_version is not None:
+            fbx_version_str = "{}00".format(
+                fbx_version.split("/")[0].replace(" ", "")
+            )
+            pfbx.FBXExportFileVersion(v=fbx_version_str)
+        if file_type == "ascii":
+            pfbx.FBXExportInAscii(v=True)
+
+        # select elements and export all the data
+        cmds.select(geo_roots + joint_roots)
+
+        # Exports the data from the scene that has teh tool open into a "master_fbx" file.
+        pfbx.FBXExport(f=export_path, s=True)
