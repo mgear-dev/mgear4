@@ -21,6 +21,7 @@ class PartitionThread(QThread):
     """ Thread that handles the creation of fbx partitions"""
 
     completed = Signal(object, bool)
+    progress_signal = Signal(float)
 
     def __init__(self, export_config):
         """
@@ -39,6 +40,9 @@ class PartitionThread(QThread):
         """
         Main function that gets called when the thread starts.
         """
+        # Show the Thread is starting
+        self.progress_signal.emit(20)
+
         success = self.export_skeletal_mesh()
         self.onComplete(success)
 
@@ -47,6 +51,8 @@ class PartitionThread(QThread):
         Cleans up the thread when the thread is finished.
         """
         self.completed.emit(self.export_config, success)
+
+        self.progress_signal.emit(100)
 
     def export_skeletal_mesh(self):
         """
@@ -126,6 +132,8 @@ class PartitionThread(QThread):
         print("   {}".format(mayabatch_args))
         print("   {}".format(" ".join(mayabatch_args)))
 
+        self.progress_signal.emit(50)
+
     # Use Popen for more control
         with subprocess.Popen(mayabatch_args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, shell=False) as process:
             # Capture the output and errors
@@ -198,3 +206,6 @@ class PartitionThread(QThread):
 
         # Exports the data from the scene that has teh tool open into a "master_fbx" file.
         pfbx.FBXExport(f=export_path, s=True)
+
+        # Set progress to 20% - at this point the master FBX has been exported
+        self.progress_signal.emit(15)

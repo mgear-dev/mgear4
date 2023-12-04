@@ -344,6 +344,19 @@ class FBXExporter(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.export_tab.addTab(skeletal_mesh_tab, "Skeletal Mesh")
         skeletal_mesh_layout = QtWidgets.QVBoxLayout(skeletal_mesh_tab)
 
+        # progress bar
+        self.progress_bar = QtWidgets.QProgressBar(self)
+        self.progress_bar.setAlignment(QtCore.Qt.AlignCenter)
+        self.progress_bar.setStyleSheet("""
+            QProgressBar {
+                text-align: center;
+            }
+            QProgressBar::chunk {
+                background-color: #4CAF50;
+            }
+        """)
+        self.progress_bar.setHidden(True)
+
         # deformers options
         deformers_label = QtWidgets.QLabel("Deformers")
         skeletal_mesh_layout.addWidget(deformers_label)
@@ -393,6 +406,10 @@ class FBXExporter(MayaQWidgetDockableMixin, QtWidgets.QDialog):
             "QPushButton {background:rgb(70, 100, 150);}"
         )
         skeletal_mesh_layout.addWidget(self.skmesh_export_btn)
+        skeletal_mesh_layout.addWidget(self.progress_bar)
+
+    def update_progress_bar(self, value):
+        self.progress_bar.setValue(int(value))
 
     def create_animation_tab(self):
         # export animation
@@ -726,13 +743,42 @@ class FBXExporter(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         preset_file_path = self._get_preset_file_path()
         print("\t>>> Preset File Path: {}".format(preset_file_path))
 
+        self.progress_bar.setHidden(False)
+
         # Creates a Thread to perform the maya batch in.
         self.partition_thread = partition_thread.PartitionThread(export_config)
+        # Show the process is starting
+        self.update_progress_bar(5)
         self.partition_thread.init_data()
         self.partition_thread.start()
         self.partition_thread.completed.connect(self._import_into_unreal)
+        self.partition_thread.progress_signal.connect(self.update_progress_bar)
 
         return True
+
+    def update_progress_bar(self, value: int):
+        """
+        Updates the progress bar in the GUI.
+        """
+        value = int(value)
+        self.progress_bar.setValue(value)
+
+        # if value == 100:
+        #     self.progress_bar.setHidden(True)
+
+    def error_progress_bar(self):
+        """
+        Sets the progress bar to be red, errored
+        """
+        self.progress_bar.setStyleSheet("""
+            QProgressBar {
+                text-align: center;
+            }
+            QProgressBar::chunk {
+                background-color: #9c1e1e;
+            }
+        """)
+        self.progress_bar.update()
 
     def _import_into_unreal(self, export_config, success):
         """
@@ -745,6 +791,7 @@ class FBXExporter(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         """
         if not success:
             print("ERROR: Export Failed")
+            self.error_progress_bar()
             return
 
         use_partitions = export_config.get("use_partitions", True)
