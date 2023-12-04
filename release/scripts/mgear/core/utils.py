@@ -384,5 +384,5 @@ def get_maya_path():
     :rtype: str
     """
     maya_path = os.environ['MAYA_LOCATION']
-    maya_path = os.path.join(maya_path,"bin")
+    maya_path = os.path.normpath(os.path.join(maya_path,"bin"))
     return maya_path
