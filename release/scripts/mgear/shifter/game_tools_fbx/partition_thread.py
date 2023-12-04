@@ -2,6 +2,7 @@ import os
 import subprocess
 from typing import Callable
 import tempfile
+import shlex
 
 from mgear.vendor.Qt.QtCore import QThread, Signal
 from mgear.shifter.game_tools_fbx import sdk_utils
@@ -113,13 +114,13 @@ class PartitionThread(QThread):
             mayabatch_command = "mayabatch"
 
         mayabatch_path = os.path.join(mayabatch_dir, mayabatch_command)
-        mayabatch_args = [mayabatch_path]
+        mayabatch_args = [shlex.quote(mayabatch_path)]
 
         if option == "maya":
             mayabatch_args.append("-batch")
 
         mayabatch_args.append("-script")
-        mayabatch_args.append(script_file_path)
+        mayabatch_args.append(shlex.quote(script_file_path))
 
         print("[Launching] MayaBatch")
         print("   {}".format(mayabatch_args))
