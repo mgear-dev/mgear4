@@ -5,13 +5,10 @@ import tempfile
 import shlex
 
 from mgear.vendor.Qt.QtCore import QThread, Signal
-from mgear.shifter.game_tools_fbx import sdk_utils
 from mgear.core import (
     pyFBX as pfbx,
-    pyqt,
     string,
     utils as coreUtils,
-    animLayers,
 )
 
 import maya.cmds as cmds
@@ -134,8 +131,25 @@ class PartitionThread(QThread):
 
         self.progress_signal.emit(50)
 
-    # Use Popen for more control
-        with subprocess.Popen(mayabatch_args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, shell=False) as process:
+        with subprocess.Popen(mayabatch_args,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True, shell=False
+            ) as process:
+
+            # Process each line (sentence) from the subprocess output
+            # Looks for specific sentences in the logs and uses those as progress milestones.
+            for line in process.stdout:
+                line = line.strip()
+                if line.find("Conditioned file:") > 0:
+                    self.progress_signal.emit(60)
+                if line.find("Removing Namespace..") > 0:
+                    self.progress_signal.emit(65)
+                if line.find("Cleaning Scene..") > 0:
+                    self.progress_signal.emit(75)
+                if line.find("[Partitions]") > 0:
+                    self.progress_signal.emit(80)
+
             # Capture the output and errors
             stdout, stderr = process.communicate()
 
@@ -145,12 +159,13 @@ class PartitionThread(QThread):
             # Check the result
             if returncode == 0:
                 print("Mayabatch process completed successfully.")
-                #print("-------------------------------------------")
-                #print("Output:", stdout)
+                print("-------------------------------------------")
+                # print("Output:", stdout)
                 #print("-------------------------------------------")
             else:
                 print("Mayabatch process failed.")
                 print("Error:", stderr)
+                print("-------------------------------------------")
                 return False
 
         # If all goes well return the export path location, else None

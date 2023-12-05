@@ -21,6 +21,9 @@ Tasks / Conditions
 - Partition Skeleton + Geometry.
 - Exports each partition as an FBX.
 
+Note
+----
+- Print logs are being used by the partition subprocess thread to detect progress.
 """
 import os
 import traceback
@@ -47,10 +50,6 @@ def perform_fbx_condition(
     Performs the FBX file conditioning and partition exports.
 
     This is called by a MayaBatch process.
-
-    [ ] Setup logging to a text file, so the stream can be monitored.
-    [ ] Update FBX export settings
-
     """
     print("--------------------------")
     print(" PERFORM FBX CONDITIONING")
