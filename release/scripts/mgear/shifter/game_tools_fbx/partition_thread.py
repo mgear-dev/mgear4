@@ -52,8 +52,6 @@ class PartitionThread(QThread):
         """
         self.completed.emit(self.export_config, success)
 
-        self.progress_signal.emit(100)
-
     def export_skeletal_mesh(self):
         """
         Triggers the batch process
@@ -128,9 +126,11 @@ class PartitionThread(QThread):
         mayabatch_args.append("-script")
         mayabatch_args.append(shlex.quote(script_file_path))
 
+        print("-------------------------------------------")
         print("[Launching] MayaBatch")
         print("   {}".format(mayabatch_args))
         print("   {}".format(" ".join(mayabatch_args)))
+        print("-------------------------------------------")
 
         self.progress_signal.emit(50)
 
@@ -145,9 +145,9 @@ class PartitionThread(QThread):
             # Check the result
             if returncode == 0:
                 print("Mayabatch process completed successfully.")
-                print("-------------------------------------------")
-                print("Output:", stdout)
-                print("-------------------------------------------")
+                #print("-------------------------------------------")
+                #print("Output:", stdout)
+                #print("-------------------------------------------")
             else:
                 print("Mayabatch process failed.")
                 print("Error:", stderr)

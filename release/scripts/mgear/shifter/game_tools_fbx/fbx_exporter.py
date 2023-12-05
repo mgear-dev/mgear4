@@ -432,7 +432,6 @@ class FBXExporter(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         # menu connections
         self.file_export_preset_action.triggered.connect(self.export_fbx_presets)
         self.file_import_preset_action.triggered.connect(self.import_fbx_presets)
-#        self.set_fbx_sdk_path_action.triggered.connect(self.set_fbx_sdk_path)
 
         # source element connections
         self.geo_set_btn.clicked.connect(
@@ -747,12 +746,13 @@ class FBXExporter(MayaQWidgetDockableMixin, QtWidgets.QDialog):
 
         # Creates a Thread to perform the maya batch in.
         self.partition_thread = partition_thread.PartitionThread(export_config)
+        # Settup Thread Signals
+        self.partition_thread.completed.connect(self._import_into_unreal)
+        self.partition_thread.progress_signal.connect(self.update_progress_bar)
         # Show the process is starting
         self.update_progress_bar(5)
         self.partition_thread.init_data()
         self.partition_thread.start()
-        self.partition_thread.completed.connect(self._import_into_unreal)
-        self.partition_thread.progress_signal.connect(self.update_progress_bar)
 
         return True
 
@@ -801,11 +801,6 @@ class FBXExporter(MayaQWidgetDockableMixin, QtWidgets.QDialog):
 
         master_fbx_path = os.path.join(file_path, file_name) + ".fbx"
 
-        print("_import into unreal")
-        print(export_config)
-        print(success)
-        print(master_fbx_path)
-
         # Unreal Import, if enabled.
         if self.ue_import_cbx.isChecked():
             # If skeleton is option is enabled, then import an SKM and
@@ -834,6 +829,9 @@ class FBXExporter(MayaQWidgetDockableMixin, QtWidgets.QDialog):
                     name=file_name,
                     skeleton_path=skeleton_path,
                )
+
+        # Complete
+        self.update_progress_bar(100)
 
     def _prefilter_partitions(self):
         """
