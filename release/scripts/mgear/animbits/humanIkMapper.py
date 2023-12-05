@@ -160,7 +160,6 @@ class HumanIKMapper():
 
         hikChar = pm.mel.hikGetCurrentCharacter()
         locked_ctrls = cls.get_locked_ctrls(ctrls)
-        print(f"ctrls = {ctrls} \n locked={locked_ctrls}")
         if locked_ctrls:
             if LockedCtrlsDialog(ctrls_list=locked_ctrls).exec_():
                 cls.unlock_ctrls_srt(locked_ctrls)
@@ -287,11 +286,15 @@ class HumanIKMapperUI(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose, 1)
         self.setMinimumSize(QtCore.QSize(350, 0))
 
-
         self.create_actions()
         self.create_widgets()
         self.create_layout()
         self.create_connections()
+
+    @QtCore.Slot()
+    def adjustSize(self, *args, **kwargs):
+        # Needed to mark the adjustSize method as slot
+        super(HumanIKMapperUI, self).adjustSize()
 
     def create_actions(self):
         self.import_action = QtWidgets.QAction("Import")
@@ -306,7 +309,7 @@ class HumanIKMapperUI(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.file_menu.addAction(self.export_action)
 
         self.initialize_btn = QtWidgets.QPushButton("Initialize")
-        
+
         self.head_btn = QtWidgets.QPushButton("Head")
         self.spine_btn = QtWidgets.QPushButton("Spine")
 
@@ -338,6 +341,7 @@ class HumanIKMapperUI(MayaQWidgetDockableMixin, QtWidgets.QDialog):
                                      "Note: Bones that have a number in their name are not mandatory. ")
         self.instructions_tb.setReadOnly(True)
         self.instructions_tb.setSizeAdjustPolicy(QtWidgets.QAbstractScrollArea.AdjustToContents)
+        self.instructions_tb.setFixedHeight(78)
 
         self.refresh_mapping_btn = QtWidgets.QPushButton("Refresh")
         self.mapping_table = QtWidgets.QTableWidget(1, 3)
@@ -346,7 +350,9 @@ class HumanIKMapperUI(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.mapping_table.horizontalHeader().setSectionResizeMode(QtWidgets.QHeaderView.Stretch)
 
 
-        
+
+
+
     def create_layout(self):
         main_layout = QtWidgets.QVBoxLayout(self)
         main_layout.setContentsMargins(2, 2, 2, 2)
@@ -354,12 +360,12 @@ class HumanIKMapperUI(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         main_layout.setMenuBar(self.menu_bar)
 
         main_layout.addWidget(self.initialize_btn)
-        
+
         configure_gb = QtWidgets.QGroupBox("Configure")
         main_layout.addWidget(configure_gb)
         configure_layout = QtWidgets.QVBoxLayout()
         configure_gb.setLayout(configure_layout)
-        
+
         configure_layout.addWidget(self.head_btn)
         configure_layout.addLayout(self._group_in_hlayout(self.right_arm_btn, self.left_arm_btn))
         configure_layout.addLayout(self._group_in_hlayout(
@@ -377,33 +383,25 @@ class HumanIKMapperUI(MayaQWidgetDockableMixin, QtWidgets.QDialog):
                                         self.left_upper_leg_rolls_btn,
                                         self.left_lower_leg_rolls_btn
                                     ))
-        
+
         mirror_layout = QtWidgets.QHBoxLayout()
         mirror_layout.addStretch()
         mirror_layout.addWidget(self.mirror_checkbox)
         configure_layout.addLayout(mirror_layout)
-        
+
         # main_layout.addStretch()
 
-        instructions_gb = QtWidgets.QGroupBox("Instructions")
-        main_layout.addWidget(instructions_gb)
-        instructions_layout = QtWidgets.QVBoxLayout()
-        instructions_gb.setLayout(instructions_layout)
+        self.instructions_collapsible = mwgt.CollapsibleWidget("Instructions", expanded=False)
+        main_layout.addWidget(self.instructions_collapsible)
+        self.instructions_collapsible.header_wgt.setFixedHeight(18)
+        self.instructions_collapsible.addWidget(self.instructions_tb)
 
-        instructions_layout.addWidget(self.instructions_tb)
 
-        # mapping_gb = QtWidgets.QGroupBox("Mapping")
-        # main_layout.addWidget(mapping_gb)
-        mapping_collapsible = mwgt.CollapsibleWidget("Mapping", expanded=False)
-        main_layout.addWidget(mapping_collapsible)
-        mapping_collapsible.addWidget(self.refresh_mapping_btn)
-        mapping_collapsible.addWidget(self.mapping_table)
-        # mapping_layout = QtWidgets.QVBoxLayout()
-        # mapping_gb.setLayout(mapping_layout)
-        # mapping_collapsible.addLayout(mapping_layout)
-        #
-        # mapping_layout.addWidget(self.refresh_mapping_btn)
-        # mapping_layout.addWidget(self.mapping_table)
+        self.mapping_collapsible = mwgt.CollapsibleWidget("Mapping", expanded=False)
+        main_layout.addWidget(self.mapping_collapsible)
+        self.mapping_collapsible.header_wgt.setFixedHeight(18)
+        self.mapping_collapsible.addWidget(self.refresh_mapping_btn)
+        self.mapping_collapsible.addWidget(self.mapping_table)
 
 
     def create_connections(self):
@@ -435,10 +433,17 @@ class HumanIKMapperUI(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.right_upper_leg_rolls_btn.clicked.connect(self.display_list_mb_cb(self._change_bones_2_right(HumanIKMapper.LEFT_UPPER_LEG_ROLLS)))
         self.right_lower_leg_rolls_btn.clicked.connect(self.display_list_mb_cb(self._change_bones_2_right(HumanIKMapper.LEFT_LOWER_LEG_ROLLS)))
 
+        self.instructions_collapsible.header_wgt.clicked.connect(self.deferred_resize)
+        # self.instructions_collapsible.header_wgt.clicked.connect(self.adjustSize) # This is needed for some reason
+
+        self.mapping_collapsible.header_wgt.clicked.connect(self.deferred_resize)
+
         self.refresh_mapping_btn.clicked.connect(self.update_mapping)
         self.mapping_table.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
         self.mapping_table.customContextMenuRequested.connect(self._mapping_menu)
 
+    def deferred_resize(self):
+        QtCore.QMetaObject.invokeMethod(self, "adjustSize", QtCore.Qt.QueuedConnection)
 
     def _group_in_hlayout(self, *args):
         h_layout = QtWidgets.QHBoxLayout()
@@ -477,15 +482,11 @@ class HumanIKMapperUI(MayaQWidgetDockableMixin, QtWidgets.QDialog):
 
     def _mapping_menu(self, QPos):
         comp_widget = self.mapping_table
-        print("Hello frens")
 
         self.item_menu = QtWidgets.QMenu()
         parent_position = comp_widget.mapToGlobal(QtCore.QPoint(0, 0))
         item = self.mapping_table.itemAt(QPos)
         corresponding_bone = self.mapping_table.item(item.row(), 1).text()
-        print(item.text(), item.row(), item.column())
-        print(corresponding_bone)
-        # QtWidgets.QTableWidgetItem.text
         set_selection_as_sub_ik = self.item_menu.addAction("Set selection as Sub Ik")
 
         set_selection_as_sub_ik.triggered.connect(partial(self.set_selection_as_sub_ik, corresponding_bone))
