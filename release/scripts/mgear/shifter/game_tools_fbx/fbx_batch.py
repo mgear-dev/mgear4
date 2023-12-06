@@ -36,16 +36,16 @@ from mgear.core import pyFBX as pfbx
 
 
 def perform_fbx_condition(
-    remove_namespace,
-    scene_clean,
-    master_fbx_path,
-    root_joint,
-    root_geos,
-    skinning=True,
-    blendshapes=True,
-    partitions=True,
-    export_data=None,
-    cull_joints=False):
+        remove_namespace,
+        scene_clean,
+        master_fbx_path,
+        root_joint,
+        root_geos,
+        skinning=True,
+        blendshapes=True,
+        partitions=True,
+        export_data=None,
+        cull_joints=False):
     """
     Performs the FBX file conditioning and partition exports.
 
@@ -67,7 +67,7 @@ def perform_fbx_condition(
     output_dir = os.path.dirname(master_fbx_path)
     fbx_file = os.path.basename(master_fbx_path)
     conditioned_file = fbx_file.split(".")[0] + "_conditioned.ma"
-    
+
     print(f"  Output location: {output_dir}")
     print(f"  FBX file: {fbx_file}")
     print(f"  Conditioned file: {conditioned_file}")
@@ -75,7 +75,7 @@ def perform_fbx_condition(
     # Removes all namespaces from any DG or DAG object.
     if remove_namespace:
         print("Removing Namespace..")
-        _clean_namespaces()
+        export_data = _clean_namespaces(export_data)
 
         # updates root joint name if namespace is found
         root_joint = root_joint.split(":")[-1]
@@ -91,7 +91,7 @@ def perform_fbx_condition(
 
         # Remove all redundant DAG Nodes.
         _cleanup_stale_dag_hierarchies([root_joint] + root_geos)
-    
+
     if not skinning:
         print("Removing Skinning..")
         # Remove skinning from geometry
@@ -106,7 +106,7 @@ def perform_fbx_condition(
     # The master FBX is now in the correct data state.
     print("Exporting FBX...")
     print("    Path: {}".format(master_fbx_path))
-    cmds.select( clear=True )
+    cmds.select(clear=True)
     cmds.select([root_joint] + root_geos)
     pfbx.FBXExport(f=master_fbx_path, s=True)
 
@@ -119,15 +119,23 @@ def perform_fbx_condition(
         cmds.file(rename=conditioned_file)
         cmds.file(save=True, force=True, type="mayaAscii")
 
-        _export_skeletal_mesh_partitions([root_joint], export_data, conditioned_file, cull_joints)
+        status = _export_skeletal_mesh_partitions([root_joint], export_data, conditioned_file, cull_joints)
+
+        print("STATUS::{}".format(status))
 
         # Delete temporary conditioned .ma file
-        cmds.file( new=True, force=True)
+        print("[Clearing Scene]")
+        cmds.file(new=True, force=True)
         if os.path.exists(conditioned_file):
+            print("[Removing File] {}".format(conditioned_file))
             os.remove(conditioned_file)
         else:
             print("   Cleaned up conditioned file...")
             print("      Deleted - {}".format(conditioned_file))
+
+        return status
+
+    return False
 
 
 def _export_skeletal_mesh_partitions(jnt_roots, export_data, scene_path, cull_joints):
@@ -240,7 +248,7 @@ def _export_skeletal_mesh_partitions(jnt_roots, export_data, scene_path, cull_jo
         partition_file_name = file_name + "_" + partition_name + ".fbx"
         export_path = os.path.join(file_path, partition_file_name)
 
-        print(export_path)
+        print("Exporting FBX: {}".format(export_path))
         try:
             preset_path = export_data.get("preset_path", None)
             up_axis = export_data.get("up_axis", None)
@@ -273,6 +281,7 @@ def _export_skeletal_mesh_partitions(jnt_roots, export_data, scene_path, cull_jo
                     traceback.format_exc()
                 )
             )
+            return False
     return True
 
 
@@ -281,7 +290,7 @@ def _delete_blendshapes():
     Deletes all blendshape objects in the scene.
     """
     blendshape_mobjs = _find_dg_nodes_by_type(om.MFn.kBlendShape)
-    
+
     dg_mod = om.MDGModifier()
     for mobj in blendshape_mobjs:
         print("   - {}".format(om.MFnDependencyNode(mobj).name()))
@@ -311,7 +320,8 @@ def _find_geometry_dag_objects(parent_object_name):
             child_dag_path = child_dag_node.getPath()
 
             # Check if the child is a geometry node
-            if (child_dag_path.hasFn(om.MFn.kMesh) or child_dag_path.hasFn(om.MFn.kNurbsSurface)) and child_dag_path.hasFn(om.MFn.kTransform):
+            if (child_dag_path.hasFn(om.MFn.kMesh) or child_dag_path.hasFn(
+                    om.MFn.kNurbsSurface)) and child_dag_path.hasFn(om.MFn.kTransform):
                 geometry_objects.append(child_dag_path.fullPathName())
 
             # Recursive call to find geometry objects under the child
@@ -359,18 +369,19 @@ def _find_dg_nodes_by_type(node_type):
 
     return dagpose_nodes
 
+
 def _cleanup_stale_dag_hierarchies(ignore_objects):
     """
     Deletes any dag objects that are not geo or skeleton roots, under the scene root.
     """
     IGNORED_OBJECTS = ['|persp', '|top', '|front', '|side']
     obj_names = _get_dag_objects_under_scene_root()
-    
+
     for i_o in IGNORED_OBJECTS:
         obj_names.remove(i_o)
-    
+
     for i_o in ignore_objects:
-        pipped_io = "|"+i_o
+        pipped_io = "|" + i_o
         try:
             obj_names.remove(pipped_io)
         except:
@@ -384,7 +395,7 @@ def _cleanup_stale_dag_hierarchies(ignore_objects):
         temp_sel.add(name)
 
         if temp_sel.length() != 1:
-                continue
+            continue
 
         dag_path = temp_sel.getDagPath(0)
         dag_node = om.MFnDagNode(dag_path)
@@ -402,7 +413,7 @@ def _parent_to_root(name):
     temp_sel.add(name)
 
     if temp_sel.length() != 1:
-            return
+        return
 
     dag_path = temp_sel.getDagPath(0)
     dag_node = om.MFnDagNode(dag_path)
@@ -412,7 +423,7 @@ def _parent_to_root(name):
     if parent_name == "world":
         return
 
-    cmds.parent( name, world=True )
+    cmds.parent(name, world=True)
 
     temp_sel.clear()
     print("  Moved {} to scene root.".format(name))
@@ -440,13 +451,17 @@ def _get_dag_objects_under_scene_root():
     return dag_objects
 
 
-def _clean_namespaces():
+def _clean_namespaces(export_data):
     """
     Gets all available namespaces in scene.
     Checks each for objects that have it assigned.
     Removes the namespace from the object.
     """
     namespaces = _get_scene_namespaces()
+
+    # Sort namespaces by longest nested first
+    namespaces = sorted(namespaces, key=_count_namespaces, reverse=True)
+
     for namespace in namespaces:
         print("  - {}".format(namespace))
         child_namespaces = om.MNamespace.getNamespaces(namespace, True)
@@ -460,6 +475,40 @@ def _clean_namespaces():
         for m_obj in m_objs:
             _remove_namespace(m_obj)
 
+    filtered_export_data = _clean_export_namespaces(export_data)
+    return filtered_export_data
+
+def _clean_export_namespaces(export_data):
+    """
+    Looks at all the joints and mesh data in the export data and removes
+    any namespaces that exists.
+    """
+    
+    for key in export_data.keys():
+        value = export_data[key]
+
+        if isinstance(value, list):
+            for i in range(len(value)):
+                value[i] = _trim_namespace_from_name(value[i])
+        elif isinstance(value, dict):
+            value = _clean_export_namespaces(value)
+        elif isinstance(value, str):
+            value = _trim_namespace_from_name(value)
+
+        export_data[key] = value
+
+    print(export_data)
+
+    return export_data
+
+def _count_namespaces(name):
+    # Custom function to count the number of ":" in a name
+    return name.count(':')
+
+def _trim_namespace_from_name(name):
+    if name.find(":") >= 0:
+        return name.split(":")[-1]
+    return name
 
 def _remove_namespace(mobj):
     """
@@ -475,17 +524,19 @@ def _get_scene_namespaces():
     Gets all namespaces in the scene.
     """
     IGNORED_NAMESPACES = [":UI", ":shared", ":root"]
-    spaces = om.MNamespace.getNamespaces()
+    spaces = om.MNamespace.getNamespaces(recurse=True)
     for ignored in IGNORED_NAMESPACES:
         if ignored in spaces:
             spaces.remove(ignored)
-    return spaces 
+
+    return spaces
 
 
 def _import_fbx(file_path):
     try:
         # Import FBX file
-        name = cmds.file(file_path, i=True, type="FBX", ignoreVersion=True, ra=True, mergeNamespacesOnClash=False, namespace=":")
+        name = cmds.file(file_path, i=True, type="FBX", ignoreVersion=True, ra=True, mergeNamespacesOnClash=False,
+                         namespace=":")
 
         print("FBX file imported successfully.")
         return name
