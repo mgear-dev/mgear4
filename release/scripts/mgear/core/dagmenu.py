@@ -634,7 +634,12 @@ def mgear_dagmenu_callback(*args, **kwargs):  # @UnusedVariable
     # the override
     if type(args[1]) != bool:
         sel = cmds.ls(selection=True, long=True, type="transform")
-        if sel and cmds.objExists("{}.isCtl".format(sel[0])):
+
+        isCtl = cmds.objExists("{}.isCtl".format(sel[0]))
+        isGuide = cmds.objExists("{}.rig_name".format(sel[0]))
+        isGearGuide = cmds.objExists("{}.isGearGuide".format(sel[0]))
+
+        if sel and isCtl:
             # cleans menu
             _parent_menu = parent_menu.replace('"', "")
             cmds.menu(_parent_menu, edit=True, deleteAllItems=True)
@@ -642,7 +647,7 @@ def mgear_dagmenu_callback(*args, **kwargs):  # @UnusedVariable
             # fills menu
             mgear_dagmenu_fill(_parent_menu, sel[0])
 
-        elif sel and cmds.objExists("{}.isGearGuide".format(sel[0])):
+        elif sel and isGuide or sel and isGearGuide:
             # cleans menu
             _parent_menu = parent_menu.replace('"', "")
             cmds.menu(_parent_menu, edit=True, deleteAllItems=True)
