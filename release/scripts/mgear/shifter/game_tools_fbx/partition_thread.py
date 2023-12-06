@@ -3,6 +3,7 @@ import subprocess
 from typing import Callable
 import tempfile
 import shlex
+import datetime
 
 from mgear.vendor.Qt.QtCore import QThread, Signal
 from mgear.core import (
@@ -68,6 +69,7 @@ class PartitionThread(QThread):
         if not file_name.endswith(".fbx"):
             file_name = "{}.fbx".format(file_name)
         export_path = string.normalize_path(os.path.join(file_path, file_name))
+        log_path = string.normalize_path(os.path.join(file_path, "logs_{}.txt".format(datetime.datetime.now().strftime("%m%d%Y%H%M"))))
         print("\t>>> Export Path: {}".format(export_path))
 
         path_is_valid = os.path.exists(export_path)
@@ -101,6 +103,9 @@ class PartitionThread(QThread):
         script_file.close()
 
         mayabatch_dir = coreUtils.get_maya_path()
+        mayabatch_path = None
+        mayabatch_args = None
+        mayabatch_shell = False
 
         # Depending on the os we would need to change from maya, to maya batch
         # windows uses mayabatch
@@ -111,62 +116,86 @@ class PartitionThread(QThread):
 
         if option == "maya":
             mayabatch_command = 'maya'
-        else:
-            mayabatch_command = "mayabatch"
-
-        mayabatch_path = os.path.join(mayabatch_dir, mayabatch_command)
-        mayabatch_args = [shlex.quote(mayabatch_path)]
-
-        if option == "maya":
+            mayabatch_path = os.path.join(mayabatch_dir, mayabatch_command)
+            mayabatch_args = [shlex.quote(mayabatch_path)]
             mayabatch_args.append("-batch")
+            mayabatch_shell = False
+            mayabatch_args.append("-script")
+            mayabatch_args.append(shlex.quote(script_file_path))
+            mayabatch_args.append("-log")
+            mayabatch_args.append(shlex.quote(log_path))
 
-        mayabatch_args.append("-script")
-        mayabatch_args.append(shlex.quote(script_file_path))
+            print("-------------------------------------------")
+            print("[Launching] MayaBatch")
+            print("   {}".format(mayabatch_args))
+            print("   {}".format(" ".join(mayabatch_args)))
+            print("-------------------------------------------")
 
-        print("-------------------------------------------")
-        print("[Launching] MayaBatch")
-        print("   {}".format(mayabatch_args))
-        print("   {}".format(" ".join(mayabatch_args)))
-        print("-------------------------------------------")
+        else:
+            mayabatch_command = "mayabatch.exe"
+            mayabatch_path = os.path.join(mayabatch_dir, mayabatch_command)
+            mayabatch_args = [mayabatch_path]
+            mayabatch_shell = True
+            mayabatch_args.append("-script")
+            mayabatch_args.append(script_file_path)
+            mayabatch_args.append("-log")
+            mayabatch_args.append(log_path)
+
+            mayabatch_args = "{}".format(" ".join(mayabatch_args))
+
+            print("-------------------------------------------")
+            print("[Launching] MayaBatch")
+            print("   {}".format(mayabatch_args))
+            print("-------------------------------------------")
 
         self.progress_signal.emit(50)
 
-        with subprocess.Popen(mayabatch_args,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True, shell=False
-            ) as process:
+        try:
+            with subprocess.Popen(mayabatch_args,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                shell=mayabatch_shell,
+                universal_newlines=True,
+                bufsize=1
+                ) as process:
 
-            # Process each line (sentence) from the subprocess output
-            # Looks for specific sentences in the logs and uses those as progress milestones.
-            for line in process.stdout:
-                line = line.strip()
-                if line.find("Conditioned file:") > 0:
-                    self.progress_signal.emit(60)
-                if line.find("Removing Namespace..") > 0:
-                    self.progress_signal.emit(65)
-                if line.find("Cleaning Scene..") > 0:
-                    self.progress_signal.emit(75)
-                if line.find("[Partitions]") > 0:
-                    self.progress_signal.emit(80)
+                # Process each line (sentence) from the subprocess output
+                # Looks for specific sentences in the logs and uses those as progress milestones.
+                for line in process.stdout:
+                    line = line.strip()
+                    print(line)
+                    if line.find("Conditioned file:") >= 0:
+                        self.progress_signal.emit(60)
+                    if line.find("Removing Namespace..") >= 0:
+                        self.progress_signal.emit(65)
+                    if line.find("Cleaning Scene..") >= 0:
+                        self.progress_signal.emit(75)
+                    if line.find("[Partitions]") >= 0:
+                        self.progress_signal.emit(80)
 
-            # Capture the output and errors
-            stdout, stderr = process.communicate()
+                # Capture the output and errors
+                stdout, stderr = process.communicate()
 
-            # Check the return code
-            returncode = process.returncode
+                # Check the return code
+                #returncode = process.returncode
+                returncode = process.wait()
+                print("Return Code: {}".format(returncode))
 
-            # Check the result
-            if returncode == 0:
-                print("Mayabatch process completed successfully.")
-                print("-------------------------------------------")
-                # print("Output:", stdout)
-                #print("-------------------------------------------")
-            else:
-                print("Mayabatch process failed.")
-                print("Error:", stderr)
-                print("-------------------------------------------")
-                return False
+                # Check the result
+                if returncode == 0:
+                    print("Mayabatch process completed successfully.")
+                    print("-------------------------------------------")
+                    # print("Output:", stdout)
+                    #print("-------------------------------------------")
+                else:
+                    print("Mayabatch process failed.")
+                    print("Error:", stderr)
+                    print("-------------------------------------------")
+                    return False
+        except FileNotFoundError as error:
+            print("Error:", error)
+            return False
 
         # If all goes well return the export path location, else None
         return True
