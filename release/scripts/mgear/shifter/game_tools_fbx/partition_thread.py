@@ -68,8 +68,8 @@ class PartitionThread(QThread):
 
         if not file_name.endswith(".fbx"):
             file_name = "{}.fbx".format(file_name)
-        export_path = string.normalize_path(os.path.join(file_path, file_name))
-        log_path = string.normalize_path(os.path.join(file_path, "logs_{}.txt".format(datetime.datetime.now().strftime("%m%d%Y%H%M"))))
+        export_path = os.path.normpath(os.path.join(file_path, file_name))
+        log_path = os.path.normpath(os.path.join(file_path, "logs_{}.txt".format(datetime.datetime.now().strftime("%m%d%Y%H%M"))))
         print("\t>>> Export Path: {}".format(export_path))
 
         path_is_valid = os.path.exists(export_path)
@@ -134,12 +134,12 @@ class PartitionThread(QThread):
         else:
             mayabatch_command = "mayabatch.exe"
             mayabatch_path = os.path.join(mayabatch_dir, mayabatch_command)
-            mayabatch_args = [mayabatch_path]
+            mayabatch_args = ['"'+mayabatch_path+'"']
             mayabatch_shell = True
             mayabatch_args.append("-script")
-            mayabatch_args.append(script_file_path)
+            mayabatch_args.append('"'+script_file_path+'"')
             mayabatch_args.append("-log")
-            mayabatch_args.append(log_path)
+            mayabatch_args.append('"'+log_path+'"')
 
             mayabatch_args = "{}".format(" ".join(mayabatch_args))
 
