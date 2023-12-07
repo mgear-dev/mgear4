@@ -146,7 +146,6 @@ def _export_skeletal_mesh_partitions(jnt_roots, export_data, scene_path, cull_jo
     alterations performed to it.
 
     """
-
     print("   Correlating Mesh to joints...")
 
     file_path = export_data.get("file_path", "")
@@ -160,10 +159,6 @@ def _export_skeletal_mesh_partitions(jnt_roots, export_data, scene_path, cull_jo
     # Collects all partition data, so it can be more easily accessed in the next stage
     # where mesh and skeleton data is deleted and exported.
 
-    print("*****")
-    print(partitions.items())
-    print("*****")
-
     partitions_data = OrderedDict()
     for partition_name, data in partitions.items():
 
@@ -175,8 +170,6 @@ def _export_skeletal_mesh_partitions(jnt_roots, export_data, scene_path, cull_jo
             continue
 
         meshes = data.get("skeletal_meshes", None)
-
-        print("======== A")
 
         joint_hierarchy = OrderedDict()
         for mesh in meshes:
@@ -192,8 +185,6 @@ def _export_skeletal_mesh_partitions(jnt_roots, export_data, scene_path, cull_jo
                     for hierarchy_jnt in jnt_hierarchy:
                         if hierarchy_jnt not in joint_hierarchy[jnt_root]:
                             joint_hierarchy[jnt_root].append(hierarchy_jnt)
-
-        print("======== B")
 
         partitions_data.setdefault(partition_name, dict())
 
@@ -212,26 +203,16 @@ def _export_skeletal_mesh_partitions(jnt_roots, export_data, scene_path, cull_jo
         if short_hierarchy is None:
             continue
 
-        print("======== C")
-
         # we make sure we update the hierarchy to include all joints between the skeleton root joint and
         # the first joint of the found joint hierarchy
         root_jnt = _get_root_joint(short_hierarchy[0])
-        print("======== C - 1")
         if root_jnt not in short_hierarchy:
-            print("======== C - 2")
             parent_hierarchy = _get_joint_list(root_jnt, short_hierarchy[0])
-            print("======== C - 3")
             short_hierarchy = parent_hierarchy + short_hierarchy
-            print("======== C - 4")
-        partitions_data[partition_name]["hierarchy"] = short_hierarchy
-        print("======== C - 5")
 
-    print("====== D")
+        partitions_data[partition_name]["hierarchy"] = short_hierarchy
 
     print("   Modifying Hierarchy...")
-
-    print(partitions_data.items())
 
     # - Loop over each Partition
     # - Load the master .ma file
@@ -240,34 +221,21 @@ def _export_skeletal_mesh_partitions(jnt_roots, export_data, scene_path, cull_jo
     # - Export an fbx
     for partition_name, partition_data in partitions_data.items():
         if not partition_data:
-            print("====== F")
             print("   Partition {} contains no data.".format(partition_name))
             continue
-
-        # print("     {}".format(partition_name))
-        # print("     {}".format(partition_data))
-
-        print("====== E")
 
         partition_meshes = partitions.get(partition_name).get("skeletal_meshes")
         partition_joints = partition_data.get("hierarchy", [])
 
-        print("====== EE")
-        print("Cull joints : {}".format(cull_joints))
-
         print("Open Conditioned Scene: {}".format(scene_path))
         # Loads the conditioned scene file, to perform partition actions on.
         cmds.file(scene_path, open=True, force=True, save=False)
-
-        print("====== G")
 
         # Deletes meshes that are not included in the partition.
         all_meshes = _get_all_mesh_dag_objects()
         for mesh in all_meshes:
             if not mesh in partition_meshes:
                 cmds.delete(mesh)
-
-        print("====== H")
 
         # Delete joints that are not included in the partition
         if cull_joints:
@@ -518,7 +486,14 @@ def _clean_export_namespaces(export_data):
     """
     
     for key in export_data.keys():
+
+        # ignore filepath, as it contains ':', which will break the path
+        if key == "file_path" or key == "color":
+            continue
+
         value = export_data[key]
+
+        print(key, value)
 
         if isinstance(value, list):
             for i in range(len(value)):

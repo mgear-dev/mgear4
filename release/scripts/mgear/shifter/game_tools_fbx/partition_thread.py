@@ -68,7 +68,7 @@ class PartitionThread(QThread):
 
         if not file_name.endswith(".fbx"):
             file_name = "{}.fbx".format(file_name)
-        export_path = os.path.normpath(os.path.join(file_path, file_name))
+        export_path = string.normalize_path(os.path.join(file_path, file_name))
         log_path = os.path.normpath(os.path.join(file_path, "logs_{}.txt".format(datetime.datetime.now().strftime("%m%d%Y%H%M"))))
         print("\t>>> Export Path: {}".format(export_path))
 
@@ -80,13 +80,13 @@ class PartitionThread(QThread):
 
         # Create a temporary job python file
         script_content = """
-    python "from mgear.shifter.game_tools_fbx import fbx_batch";
-    python "master_path='{master_path}'";
-    python "root_joint='{joint_root}'";
-    python "root_geos={geo_roots}";
-    python "export_data={e_data}";
-    python "fbx_batch.perform_fbx_condition({ns}, {sc}, master_path, root_joint, root_geos, {sk}, {bs}, {ps}, export_data)";
-    """.format(
+python "from mgear.shifter.game_tools_fbx import fbx_batch";
+python "master_path='{master_path}'";
+python "root_joint='{joint_root}'";
+python "root_geos={geo_roots}";
+python "export_data={e_data}";
+python "fbx_batch.perform_fbx_condition({ns}, {sc}, master_path, root_joint, root_geos, {sk}, {bs}, {ps}, export_data)";
+""".format(
             ns=remove_namespaces,
             sc=scene_clean,
             master_path=export_path,
@@ -132,9 +132,10 @@ class PartitionThread(QThread):
             print("-------------------------------------------")
 
         else:
-            mayabatch_command = "mayabatch.exe"
+            mayabatch_command = "maya"
             mayabatch_path = os.path.join(mayabatch_dir, mayabatch_command)
             mayabatch_args = ['"'+mayabatch_path+'"']
+            mayabatch_args.append("-batch")
             mayabatch_shell = True
             mayabatch_args.append("-script")
             mayabatch_args.append('"'+script_file_path+'"')
