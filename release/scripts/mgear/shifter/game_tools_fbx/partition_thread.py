@@ -67,18 +67,22 @@ class PartitionThread(QThread):
         use_partitions = export_data.get("use_partitions", True)
 
         if not file_name.endswith(".fbx"):
-            file_name = "{}.fbx".format(file_name)
+            file_name = "{}.ma".format(file_name)
+        else:
+            file_name = "{}.ma".format(os.path.splitext(file_name)[0])
+
         export_path = string.normalize_path(os.path.join(file_path, file_name))
+
         log_path = os.path.normpath(os.path.join(file_path, "logs_{}.txt".format(datetime.datetime.now().strftime("%m%d%Y%H%M"))))
         print("\t>>> Export Path: {}".format(export_path))
 
         path_is_valid = os.path.exists(export_path)
 
+        # "master" .ma file does not exist, exit early.
         if not path_is_valid:
-            # "master" fbx file does not exist, exit early.
             return False
 
-        # Create a temporary job python file
+        # Creates a MEL temporary job file..
         script_content = """
 python "from mgear.shifter.game_tools_fbx import fbx_batch";
 python "master_path='{master_path}'";
@@ -203,9 +207,9 @@ python "fbx_batch.perform_fbx_condition({ns}, {sc}, master_path, root_joint, roo
 
     def init_data(self):
         """
-        Initialises the Master FBX files that will be needed by the Thread and Maya batcher.
+        Initialises the Master .ma files that will be needed by the Thread and Maya batcher.
 
-        This process exports the geometry roots and skeleton as an FBX, which will
+        This process exports the geometry roots and skeleton as an .ma, which will
         then be passed to the Thread for Maya batching.
 
         Note: This process cannot be run in the thread as Maya commands are not thread safe,
@@ -222,6 +226,31 @@ python "fbx_batch.perform_fbx_condition({ns}, {sc}, master_path, root_joint, roo
         fbx_version = self.export_config.get("fbx_version", None)
         skinning = self.export_config.get("skinning", True)
         blendshapes = self.export_config.get("blendshapes", True)
+
+        if not file_name.endswith(".fbx"):
+            file_name = "{}.ma".format(file_name)
+        else:
+            file_name = "{}.ma".format(os.path.splitext(file_name)[0])
+
+        # The location where the temoprary maya file will be saved to
+        master_path = string.normalize_path(os.path.join(file_path, file_name))
+
+        # Get the current scene path
+        current_scene_path = cmds.file(query=True, sceneName=True)
+
+        # Save the current scene to the new location
+        cmds.file(rename=master_path)
+        cmds.file(save=True, type="mayaAscii")
+
+        # Revert the scene name to the original path
+        cmds.file(rename=current_scene_path)
+
+        # Set progress to 15% - at this point the master FBX has been exported
+        self.progress_signal.emit(15)
+
+        print("Temporary Master file: {}".format(master_path))
+
+        return
 
         if not file_name.endswith(".fbx"):
             file_name = "{}.fbx".format(file_name)
@@ -252,5 +281,5 @@ python "fbx_batch.perform_fbx_condition({ns}, {sc}, master_path, root_joint, roo
         # Exports the data from the scene that has teh tool open into a "master_fbx" file.
         pfbx.FBXExport(f=export_path, s=True)
 
-        # Set progress to 20% - at this point the master FBX has been exported
+        # Set progress to 15% - at this point the master FBX has been exported
         self.progress_signal.emit(15)

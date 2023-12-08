@@ -31,14 +31,15 @@ from collections import OrderedDict
 
 import maya.cmds as cmds
 import maya.api.OpenMaya as om
+import pymel.core as pm
 
 from mgear.core import pyFBX as pfbx
-
+import mgear.shifter.game_tools_disconnect as gtDisc
 
 def perform_fbx_condition(
         remove_namespace,
         scene_clean,
-        master_fbx_path,
+        master_ma_path,
         root_joint,
         root_geos,
         skinning=True,
@@ -55,22 +56,20 @@ def perform_fbx_condition(
     print(" PERFORM FBX CONDITIONING")
     print(f"  remove namespace:{remove_namespace}")
     print(f"  clean scene:{scene_clean}")
-    print(f"  fbx path : {master_fbx_path}")
+    print(f"  .ma path : {master_ma_path}")
     print("--------------------------")
 
-    log_file = "logs.txt"
-
-    # Import fbx into scene
-    _import_fbx(master_fbx_path)
+    # Load the master .ma file and force the scene to load it
+    cmds.file(master_ma_path, open=True, force=True)
 
     # formats the output location from the master fbx path.
-    output_dir = os.path.dirname(master_fbx_path)
-    fbx_file = os.path.basename(master_fbx_path)
-    conditioned_file = fbx_file.split(".")[0] + "_conditioned.ma"
+    output_dir = os.path.dirname(master_ma_path)
+    fbx_file = export_data.get("file_name", "")
+    if not fbx_file.endswith(".fbx"):
+            fbx_file = "{}.fbx".format(fbx_file)
 
     print(f"  Output location: {output_dir}")
     print(f"  FBX file: {fbx_file}")
-    print(f"  Conditioned file: {conditioned_file}")
 
     # Removes all namespaces from any DG or DAG object.
     if remove_namespace:
@@ -84,13 +83,17 @@ def perform_fbx_condition(
 
     if scene_clean:
         print("Cleaning Scene..")
-        # Move the root_joint and root_geos to the scene root
-        _parent_to_root(root_joint)
-        for r_geo in root_geos:
-            _parent_to_root(r_geo)
-
-        # Remove all redundant DAG Nodes.
-        _cleanup_stale_dag_hierarchies([root_joint] + root_geos)
+        # Performs the same code that "Delete Rig + Keep Joints" does
+        gtDisc.disconnect_joints()
+        for rig_root in gtDisc.get_rig_root_from_set():
+            rig_name = rig_root.name()
+            jnt_org = rig_root.jnt_vis.listConnections(type="transform")[0]
+            joints = jnt_org.getChildren()
+            if joints:
+                pm.parent(joints, world=True)
+            pm.delete(rig_root.rigGroups.listConnections(type="objectSet"))
+            pm.delete(pm.ls(type="mgear_matrixConstraint"))
+            pm.delete(rig_root)
 
     if not skinning:
         print("Removing Skinning..")
@@ -102,40 +105,41 @@ def perform_fbx_condition(
         print("Removing Blendshapes..")
         _delete_blendshapes()
 
-    # Exports the conditioned FBX, over the existing master fbx.
-    # The master FBX is now in the correct data state.
-    print("Exporting FBX...")
-    print("    Path: {}".format(master_fbx_path))
-    cmds.select(clear=True)
-    cmds.select([root_joint] + root_geos)
-    pfbx.FBXExport(f=master_fbx_path, s=True)
+    # Save out conditioned file, as this will be used by other partition processes
+    # Conditioned file, is the file that stores the rig which has already had data
+    # update for the export process.
+    print("Save Conditioned Scene...")
+    print("    Path: {}".format(master_ma_path))
+    cmds.file(save=True, force=True, type="mayaAscii")
+
+    status = False
+
+    if not partitions:
+        # Exports the conditioned FBX
+        master_fbx_path = os.path.join(output_dir, fbx_file)
+        print("Exporting FBX...")
+        print("    Path: {}".format(master_fbx_path))
+        cmds.select(clear=True)
+        cmds.select([root_joint] + root_geos)
+        pfbx.FBXExport(f=master_fbx_path, s=True)
+        status = True
 
     if partitions and export_data is not None:
         print("[Partitions]")
         print("   Preparing scene for Partition creation..")
-        # Save out conditioned file, as this will be used by other partition processes
-        # Conditioned file, is the file that stores the rig which has already had data
-        # update for the export process.
-        cmds.file(rename=conditioned_file)
-        cmds.file(save=True, force=True, type="mayaAscii")
+        status = _export_skeletal_mesh_partitions([root_joint], export_data, master_ma_path, cull_joints)
 
-        status = _export_skeletal_mesh_partitions([root_joint], export_data, conditioned_file, cull_joints)
+    # Delete temporary conditioned .ma file
+    print("[Clean up]")
+    cmds.file(new=True, force=True)
+    if os.path.exists(master_ma_path):
+        print("   [Removing File] {}".format(master_ma_path))
+        os.remove(master_ma_path)
+    else:
+        print("   Cleaned up conditioned file...")
+        print("      Deleted - {}".format(master_ma_path))
 
-        print("STATUS::{}".format(status))
-
-        # Delete temporary conditioned .ma file
-        print("[Clearing Scene]")
-        cmds.file(new=True, force=True)
-        if os.path.exists(conditioned_file):
-            print("[Removing File] {}".format(conditioned_file))
-            os.remove(conditioned_file)
-        else:
-            print("   Cleaned up conditioned file...")
-            print("      Deleted - {}".format(conditioned_file))
-
-        return status
-
-    return False
+    return status
 
 
 def _export_skeletal_mesh_partitions(jnt_roots, export_data, scene_path, cull_joints):

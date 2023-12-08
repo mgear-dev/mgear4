@@ -347,14 +347,7 @@ class FBXExporter(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         # progress bar
         self.progress_bar = QtWidgets.QProgressBar(self)
         self.progress_bar.setAlignment(QtCore.Qt.AlignCenter)
-        self.progress_bar.setStyleSheet("""
-            QProgressBar {
-                text-align: center;
-            }
-            QProgressBar::chunk {
-                background-color: #4CAF50;
-            }
-        """)
+        self.default_progress_bar()
         self.progress_bar.setHidden(True)
 
         # deformers options
@@ -742,6 +735,7 @@ class FBXExporter(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         preset_file_path = self._get_preset_file_path()
         print("\t>>> Preset File Path: {}".format(preset_file_path))
 
+        self.default_progress_bar()
         self.progress_bar.setHidden(False)
 
         # Creates a Thread to perform the maya batch in.
@@ -779,6 +773,21 @@ class FBXExporter(MayaQWidgetDockableMixin, QtWidgets.QDialog):
             }
         """)
         self.progress_bar.update()
+
+    def default_progress_bar(self):
+        """
+        Sets the progress bar to its default green colour.
+        """
+        self.progress_bar.setStyleSheet("""
+            QProgressBar {
+                text-align: center;
+            }
+            QProgressBar::chunk {
+                background-color: #4CAF50;
+            }
+        """)
+        self.progress_bar.update()
+
 
     def _import_into_unreal(self, export_config, success):
         """
