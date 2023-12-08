@@ -202,6 +202,11 @@ python "fbx_batch.perform_fbx_condition({ns}, {sc}, master_path, root_joint, roo
             print("Error:", error)
             return False
 
+        # Clean up Mel batch file
+        if os.path.exists(script_file_path):
+            print("[Removing File] {}".format(script_file_path))
+            os.remove(script_file_path)
+
         # If all goes well return the export path location, else None
         return True
 
