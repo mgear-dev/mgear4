@@ -16,6 +16,7 @@ from mgear.core import (
     string,
     widgets,
 )
+import mgear.shifter.game_tools_disconnect as gtDisc
 from mgear.shifter.game_tools_fbx import (
     anim_clip_widgets,
     fbx_export_node,
@@ -938,14 +939,48 @@ class FBXExporter(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         # exporting.
         original_selection = cmds.ls(selection=True)
 
+        # Save a temporary scene, perform all formatting to that scene,
+        # then load the original scene after exporting fbx's
+        file_path = export_config.get("file_path", "")
+        if file_path == "":
+            print("Error no file path specified")
+            return False
+        os.makedirs(file_path, exist_ok=True)
+
+        # TODO: ----
+        # [ ] Save conditioned scene
+        
+        if self.get_remove_namespace():
+            print("Removing all namespaces..")
+            utils.clean_namespaces(export_config)
+            print("  [Namespace] Complete")
+
+        # if self.get_scene_clean():
+        #     print("Cleaning Scene..")
+        #     # Performs the same code that "Delete Rig + Keep Joints" does
+        #     gtDisc.disconnect_joints()
+        #     for rig_root in gtDisc.get_rig_root_from_set():
+        #         jnt_org = rig_root.jnt_vis.listConnections(type="transform")[0]
+        #         joints = jnt_org.getChildren()
+        #         if joints:
+        #             pm.parent(joints, world=True)
+        #         pm.delete(rig_root.rigGroups.listConnections(type="objectSet"))
+        #         pm.delete(pm.ls(type="mgear_matrixConstraint"))
+        #         pm.delete(rig_root)
+        #     print("  [Clean Scene] Complete")
+
+        # Parent skeleton root directly to world
+        root_joint = export_config.get("joint_root", "")
+        cmds.parent(root_joint, world=True)
+
         # Store the fbx locations that were successfully exported.
         export_fbx_paths = []
 
         # Exports each clip
         for clip_data in anim_clip_data:
 
+            # skip disabled clips.
             if not clip_data["enabled"]:
-                # skip disabled clips.
                 continue
 
             result = utils.export_animation_clip(export_config, clip_data)

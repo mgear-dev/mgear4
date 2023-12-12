@@ -20,7 +20,7 @@ from mgear.core import (
     utils as coreUtils,
     animLayers,
 )
-from mgear.shifter.game_tools_fbx import sdk_utils
+# from mgear.shifter.game_tools_fbx import sdk_utils
 
 NO_EXPORT_TAG = "no_export"
 WORLD_CONTROL_NAME = "world_ctl"
@@ -124,8 +124,6 @@ def export_animation_clip(config_data, clip_data):
     )
     file_type = config_data.get("file_type", "binary").lower()
     fbx_version = config_data.get("fbx_version", None)
-    remove_namespaces = config_data.get("remove_namespace")
-    scene_clean = config_data.get("scene_clean", True)
 
     # Validate timeline range
     if start_frame > end_frame:
@@ -158,9 +156,16 @@ def export_animation_clip(config_data, clip_data):
     original_anim_layer_weights = animLayers.get_layer_weights()
 
     try:
+        # default mute status to on
+        animlayer_mute = True
+
         # set anim layer to enable
         if animLayers.animation_layer_exists(anim_layer):
             animLayers.set_layer_weight(anim_layer, toggle_other_off=True)
+            
+            # Store anim layer mute status
+            animlayer_mute = cmds.animLayer(anim_layer, query=True, mute=True)
+            cmds.animLayer(anim_layer, edit=True, mute=False)
 
         # disable viewport
         mel.eval("paneLayout -e -manage false $gMainPane")
@@ -168,12 +173,10 @@ def export_animation_clip(config_data, clip_data):
         pfbx.FBXResetExport()
 
         # set configuration
+        fbx_version_str = None
         if preset_path is not None:
             # load FBX export preset file
             pfbx.FBXLoadExportPresetFile(f=preset_path)
-        pfbx.FBXExportSkins(v=False)
-        pfbx.FBXExportShapes(v=False)
-        fbx_version_str = None
         if up_axis is not None:
             pfbx.FBXExportUpAxis(up_axis)
         if fbx_version is not None:
@@ -226,34 +229,14 @@ def export_animation_clip(config_data, clip_data):
         pfbx.FBXExportSplitAnimationIntoTakes(c=True)
         pfbx.FBXExportGenerateLog(v=False)
         pfbx.FBXExport(f=path, s=True)
-
-        fbx_modified = False
-        fbx_file = sdk_utils.FbxSdkGameToolsWrapper(path)
-        fbx_file.parent_to_world(root_joint, remove_top_parent=True)
-        if remove_namespaces:
-            fbx_file.remove_namespaces()
-            fbx_modified = True
-        if scene_clean:
-            fbx_file.clean_scene(
-                no_export_tag=NO_EXPORT_TAG,
-                world_control_name=WORLD_CONTROL_NAME,
-            )
-            fbx_modified = True
-        if fbx_modified:
-            fbx_file.save(
-                mode=file_type,
-                file_version=fbx_version_str,
-                close=True,
-                preset_path=preset_path,
-                skins=True,
-            )
-
     except Exception as exc:
         raise exc
     finally:
         # setup again original anim layer weights
         if anim_layer and original_anim_layer_weights:
             animLayers.set_layer_weights(original_anim_layer_weights)
+            # Sets the animation layer back to default
+            cmds.animLayer(anim_layer, edit=True, mute=animlayer_mute)
 
         if temp_skin_cluster and cmds.objExists(temp_skin_cluster):
             cmds.delete(temp_skin_cluster)
@@ -452,6 +435,103 @@ def get_end_joint(start_joint):
             next_joint = None
 
     return end_joint
+
+# ------- namespaces ------
+
+
+def _count_namespaces(name):
+    # Custom function to count the number of ":" in a name
+    return name.count(':')
+
+
+def clean_namespaces(export_data):
+    """
+    Gets all available namespaces in scene.
+    Checks each for objects that have it assigned.
+    Removes the namespace from the object.
+    """
+    namespaces = get_scene_namespaces()
+
+    # Sort namespaces by longest nested first
+    namespaces = sorted(namespaces, key=_count_namespaces, reverse=True)
+
+    for namespace in namespaces:
+        print("  - {}".format(namespace))
+        child_namespaces = om.MNamespace.getNamespaces(namespace, True)
+
+        for chld_ns in child_namespaces:
+            m_objs = om.MNamespace.getNamespaceObjects(chld_ns)
+            for m_obj in m_objs:
+                remove_namespace(m_obj)
+
+        m_objs = om.MNamespace.getNamespaceObjects(namespace)
+        for m_obj in m_objs:
+            remove_namespace(m_obj)
+
+    filtered_export_data = clean_export_namespaces(export_data)
+    return filtered_export_data
+
+
+def clean_export_namespaces(export_data):
+    """
+    Looks at all the joints and mesh data in the export data and removes
+    any namespaces that exists.
+    """
+    
+    for key in export_data.keys():
+
+        # ignore filepath, as it contains ':', which will break the path
+        if key == "file_path" or key == "color":
+            continue
+
+        value = export_data[key]
+
+        print(key, value)
+
+        if isinstance(value, list):
+            for i in range(len(value)):
+                value[i] = trim_namespace_from_name(value[i])
+        elif isinstance(value, dict):
+            value = clean_export_namespaces(value)
+        elif isinstance(value, str):
+            value = trim_namespace_from_name(value)
+
+        export_data[key] = value
+
+    return export_data
+
+
+def count_namespaces(name):
+    # Custom function to count the number of ":" in a name
+    return name.count(':')
+
+
+def trim_namespace_from_name(name):
+    if name.find(":") >= 0:
+        return name.split(":")[-1]
+    return name
+
+
+def remove_namespace(mobj):
+    """
+    Removes the namesspace that is currently assigned to the asset
+    """
+    dg = om.MFnDependencyNode(mobj)
+    name = dg.name()
+    dg.setName(name[len(dg.namespace):])
+
+
+def get_scene_namespaces():
+    """
+    Gets all namespaces in the scene.
+    """
+    IGNORED_NAMESPACES = [":UI", ":shared", ":root"]
+    spaces = om.MNamespace.getNamespaces(recurse=True)
+    for ignored in IGNORED_NAMESPACES:
+        if ignored in spaces:
+            spaces.remove(ignored)
+
+    return spaces
 
 
 if __name__ == "__main__":

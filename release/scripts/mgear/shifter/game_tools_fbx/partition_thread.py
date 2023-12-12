@@ -221,16 +221,8 @@ python "fbx_batch.perform_fbx_condition({ns}, {sc}, master_path, root_joint, roo
         This causes Maya to become partially unresponsive.
         """
         # Export initial FBX Master, from current Maya scene
-        geo_roots = self.export_config.get("geo_roots", "")
-        joint_roots = [self.export_config.get("joint_root", "")]
         file_path = self.export_config.get("file_path", "")
         file_name = self.export_config.get("file_name", "")
-        preset_path = self.export_config.get("preset_path", None)
-        up_axis = self.export_config.get("up_axis", None)
-        file_type = self.export_config.get("file_type", "binary").lower()
-        fbx_version = self.export_config.get("fbx_version", None)
-        skinning = self.export_config.get("skinning", True)
-        blendshapes = self.export_config.get("blendshapes", True)
 
         if not file_name.endswith(".fbx"):
             file_name = "{}.ma".format(file_name)
@@ -256,35 +248,3 @@ python "fbx_batch.perform_fbx_condition({ns}, {sc}, master_path, root_joint, roo
         print("Temporary Master file: {}".format(master_path))
 
         return
-
-        if not file_name.endswith(".fbx"):
-            file_name = "{}.fbx".format(file_name)
-        export_path = string.normalize_path(os.path.join(file_path, file_name))
-        print("\t>>> Export Path: {}".format(export_path))
-        # export settings config
-        pfbx.FBXResetExport()
-        # set configuration
-        if preset_path is not None:
-            # load FBX export preset file
-            pfbx.FBXLoadExportPresetFile(f=preset_path)
-        pfbx.FBXExportSkins(v=skinning)
-        pfbx.FBXExportShapes(v=blendshapes)
-        fbx_version_str = None
-        if up_axis is not None:
-            pfbx.FBXExportUpAxis(up_axis)
-        if fbx_version is not None:
-            fbx_version_str = "{}00".format(
-                fbx_version.split("/")[0].replace(" ", "")
-            )
-            pfbx.FBXExportFileVersion(v=fbx_version_str)
-        if file_type == "ascii":
-            pfbx.FBXExportInAscii(v=True)
-
-        # select elements and export all the data
-        cmds.select(geo_roots + joint_roots)
-
-        # Exports the data from the scene that has teh tool open into a "master_fbx" file.
-        pfbx.FBXExport(f=export_path, s=True)
-
-        # Set progress to 15% - at this point the master FBX has been exported
-        self.progress_signal.emit(15)
