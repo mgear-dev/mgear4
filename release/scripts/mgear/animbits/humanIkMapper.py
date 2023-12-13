@@ -391,7 +391,10 @@ class HumanIKMapperUI(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.setWindowTitle("HumanIK Mapper")
         self.setWindowFlags(QtCore.Qt.Window)
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose, 1)
-        self.setMinimumSize(QtCore.QSize(350, 0))
+        self.setMinimumSize(QtCore.QSize(0, 0))
+        default_w = 300
+        default_h = 300
+        self.resize(default_w, default_h)
 
         self.create_actions()
         self.create_widgets()
@@ -471,7 +474,7 @@ class HumanIKMapperUI(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.instructions_tb.setSizeAdjustPolicy(
             QtWidgets.QAbstractScrollArea.AdjustToContents
         )
-        self.instructions_tb.setFixedHeight(78)
+        self.instructions_tb.setFixedHeight(120)
 
         self.refresh_mapping_btn = QtWidgets.QPushButton("Refresh")
         self.sub_ik_active_cb = QtWidgets.QCheckBox("Sub Ik Active")
@@ -491,13 +494,20 @@ class HumanIKMapperUI(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         main_layout.setContentsMargins(2, 2, 2, 2)
         main_layout.setMenuBar(self.menu_bar)
 
-        main_layout.addWidget(self.initialize_btn)
+        self.configure_collapsible = mwgt.CollapsibleWidget(
+            "Configuration", expanded=True
+        )
+        self.configure_collapsible.setSizePolicy(
+            QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Minimum
+        )
 
+        main_layout.addWidget(self.configure_collapsible)
         configure_gb = QtWidgets.QGroupBox("Configure")
-        main_layout.addWidget(configure_gb)
+        self.configure_collapsible.addWidget(configure_gb)
         configure_layout = QtWidgets.QVBoxLayout()
         configure_gb.setLayout(configure_layout)
 
+        configure_layout.addWidget(self.initialize_btn)
         configure_layout.addWidget(self.head_btn)
         configure_layout.addLayout(
             self._group_in_hlayout(self.right_arm_btn, self.left_arm_btn)
@@ -549,7 +559,7 @@ class HumanIKMapperUI(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         main_layout.addWidget(self.mapping_collapsible)
         # self.mapping_collapsible.header_wgt.setFixedHeight(18)
         self.mapping_collapsible.setSizePolicy(
-            QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Maximum
+            QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.MinimumExpanding
         )
         mapping_buttons = QtWidgets.QHBoxLayout()
         mapping_buttons.addWidget(self.refresh_mapping_btn)
