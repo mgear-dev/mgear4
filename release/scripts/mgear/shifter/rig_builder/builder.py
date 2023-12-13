@@ -5,11 +5,16 @@ import maya.cmds as cmds
 import pyblish.api
 import pyblish.util
 
+import pyblish_lite.app
+
+from mgear.vendor.Qt import QtCore
 from mgear.shifter import io
 
 
 def setup_pyblish():
     pyblish.api.register_host("maya")
+    pyblish.api.register_gui("pyblish_lite")
+    print(pyblish.api.registered_guis())
     plugin_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), "plugins")
     pyblish.api.register_plugin_path(plugin_dir)
 
@@ -20,7 +25,7 @@ def run_validators(output_name):
     pyblish.util.validate(context)
     context, report = generate_instance_report(context, output_name)
     passed_validation = context.data.get("valid")
-    return passed_validation, report
+    return context, passed_validation, report
 
 
 def format_report_header():
@@ -78,7 +83,18 @@ def execute_build_logic(json_data, validate=True):
 
         save_build = True
         if validate:
-            passed_validation, report = run_validators(output_name)
+            # window.on_about_to_process(QtCore.Qt.DirectConnection)
+            # window.publish()
+            # window.on_was_published()
+            context, passed_validation, report = run_validators(output_name)
+            window = pyblish_lite.show()
+            ctrl = window.controller
+            ctrl.context = context
+            window.on_was_published()
+            # window.on_was_processed(report)
+            # window.data.models["plugins"].update_with_result(report)
+            # window.data.models["instances"].update_with_result(report)
+            # window.data.models["terminal"].update_with_result(report)
             report_string += "{}\n".format(report)
             if not passed_validation:
                 save_build = False
@@ -87,6 +103,6 @@ def execute_build_logic(json_data, validate=True):
 
         cmds.file(rename=maya_file_path)
         cmds.file(save=save_build, type="mayaAscii")
-        cmds.file(new=True, force=True)
+        # cmds.file(new=True, force=True)
 
     print(report_string)
