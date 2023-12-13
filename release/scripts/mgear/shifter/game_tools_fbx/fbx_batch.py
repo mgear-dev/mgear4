@@ -83,6 +83,9 @@ def perform_fbx_condition(
 
     if scene_clean:
         print("Cleaning Scene..")
+
+        _partitions = export_data.get("partitions", dict())
+
         # Performs the same code that "Delete Rig + Keep Joints" does
         gtDisc.disconnect_joints()
         for rig_root in gtDisc.get_rig_root_from_set():
@@ -91,6 +94,29 @@ def perform_fbx_condition(
             joints = jnt_org.getChildren()
             if joints:
                 pm.parent(joints, world=True)
+
+            # Updates all the geometry root paths, as they may have changed when geo
+            # root was moved to world, depending on the structure of the rig.
+            for geo_index in reversed(range(len(root_geos))):
+                geo_root = root_geos[geo_index]
+                geo_long_names = cmds.ls(geo_root, long=True)
+                if len(geo_long_names) is not 1:
+                    print("Too many {} found".format(geo_root))
+                    return False
+                geo_long_name = geo_long_names[0]
+                output = pm.parent(geo_root, world=True)
+                root_geos[geo_index] = output[0].name()
+
+                # The geo roots are moved to be under the 'World', in doing so we need to
+                # update each geometry object stored in a partition.
+                for partition_name, data in _partitions.items():
+                    geo_list = data.get("skeletal_meshes", None)
+                    filtered_array = [entry.replace(geo_long_name, "|"+geo_root) for entry in geo_list]
+                    data["skeletal_meshes"] = filtered_array
+                    _partitions[partition_name] = data
+
+            export_data["partitions"] = _partitions
+
             pm.delete(rig_root.rigGroups.listConnections(type="objectSet"))
             pm.delete(pm.ls(type="mgear_matrixConstraint"))
             pm.delete(rig_root)
