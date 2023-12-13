@@ -131,9 +131,11 @@ def mocap_submenu(parent_menu_id):
         parent_menu_id (str): Parent menu. i.e: "MayaWindow|mGear|menuItem355"
     """
     commands = (
-        ("Import Mocap Skeleton Biped", str_mocap_importSkeletonBiped),
-        ("Characterize Biped", str_mocap_characterizeBiped),
-        ("Bake Mocap Biped", str_mocap_bakeMocap),
+        ("Human IK Mapper", str_mocap_humanIKMapper, "mgear_mocap.svg"),
+        ("-----", None),
+        ("Import Mocap Skeleton Biped (Legacy)", str_mocap_importSkeletonBiped),
+        ("Characterize Biped (Legacy)", str_mocap_characterizeBiped),
+        ("Bake Mocap Biped (Legacy)", str_mocap_bakeMocap),
     )
 
     mgear.menu.install("Mocap", commands, parent_menu_id)
@@ -329,6 +331,11 @@ mocap_tools.characterizeBiped()
 str_mocap_bakeMocap = """
 from mgear.shifter import mocap_tools
 mocap_tools.bakeMocap()
+"""
+
+str_mocap_humanIKMapper = """
+from mgear.animbits import humanIkMapper
+humanIkMapper.show()
 """
 
 str_toggleLog = """
