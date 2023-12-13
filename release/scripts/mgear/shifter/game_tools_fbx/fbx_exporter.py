@@ -947,9 +947,14 @@ class FBXExporter(MayaQWidgetDockableMixin, QtWidgets.QDialog):
             return False
         os.makedirs(file_path, exist_ok=True)
 
-        # TODO: ----
-        # [ ] Save conditioned scene
-        
+        # Stash temporary file path
+        # Save new temporary scene
+        # Alter data in temporary scene
+        _scene_path = utils.get_scene_path()
+        _temporary_ma_path = os.path.join(file_path, "temporary_anim_export.ma")
+        cmds.file(rename=_temporary_ma_path)
+        cmds.file(save=True, type="mayaAscii", force=True)
+
         if self.get_remove_namespace():
             print("Removing all namespaces..")
             utils.clean_namespaces(export_config)
@@ -992,6 +997,14 @@ class FBXExporter(MayaQWidgetDockableMixin, QtWidgets.QDialog):
                 )
             else:
                 export_fbx_paths.append(result)
+
+        # Load temporary scene after all exportation
+        # Set temporary scene file path to stashed scene file path
+        # Clean up temporary .ma file
+        cmds.file(_temporary_ma_path, open=True, force=True, save=False)
+        cmds.file(rename=_scene_path)
+        cmds.file(modified=False)
+        os.remove(_temporary_ma_path)
 
         if original_selection:
             pm.select(original_selection)

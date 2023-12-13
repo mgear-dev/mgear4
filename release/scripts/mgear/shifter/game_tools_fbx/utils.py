@@ -534,6 +534,16 @@ def get_scene_namespaces():
     return spaces
 
 
+def get_scene_path():
+    """
+    Get the file path of the current scene.
+
+    Returns:
+            str: path of the current open scene file
+    """
+    return cmds.file(query=True, sceneName=True)
+
+
 if __name__ == "__main__":
     if sys.version_info[0] == 2:
         reload(pfbx)
