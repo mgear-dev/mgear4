@@ -4,7 +4,7 @@ import ctypes
 import ctypes.wintypes
 import traceback
 import subprocess
-from collections import OrderedDict
+import tempfile
 
 import pymel.core as pm
 import maya.cmds as cmds
@@ -102,7 +102,7 @@ def export_skeletal_mesh(export_data):
     up_axis = export_data.get("up_axis", None)
     file_type = export_data.get("file_type", "binary").lower()
     fbx_version = export_data.get("fbx_version", None)
-    remove_namespaces = export_data.get("remove_namespace")
+    remove_namespaces = export_data.get("remove_namespace", True)
     scene_clean = export_data.get("scene_clean", True)
     deformations = export_data.get("deformations", True)
     skinning = export_data.get("skinning", True)
@@ -137,168 +137,89 @@ def export_skeletal_mesh(export_data):
     # select elements and export all the data
     pm.select(geo_roots + joint_roots)
 
-    fbx_modified = False
+    # Exports the data from the scene that has teh tool open into a "master_fbx" file.
     pfbx.FBXExport(f=export_path, s=True)
-    fbx_file = sdk_utils.FbxSdkGameToolsWrapper(export_path)
 
-    # Make sure root joints are parented to world
-    for jnt_root in joint_roots:
-        fbx_file.parent_to_world(jnt_root, remove_top_parent=False)
-    if geo_roots:
-        for geo_root in geo_roots:
-            meshes = (
-                cmds.listRelatives(geo_root, children=True, type="transform")
-                or list()
-            )
-            if geo_root == geo_roots[-1]:
-                for mesh in meshes:
-                    # if we are in the last geo root and in the last mesh, we parent the last mesh to the world
-                    # and we remove the parent hierarchy of nodes
-                    # TODO: This is a bit hacky, find a better implementation
-                    # TODO: Ideally we should find the root node before reparenting joints and meshes and just
-                    # TODO: delete that node once the root joints and meshes are parented to the world
-                    if mesh == meshes[-1]:
-                        fbx_file.parent_to_world(mesh, remove_top_parent=True)
-                    else:
-                        fbx_file.parent_to_world(mesh, remove_top_parent=False)
-            else:
-                for mesh in meshes:
-                    fbx_file.parent_to_world(mesh, remove_top_parent=False)
+    # Instead of altering the Maya scene file, we will alter the "master" fbx data.
+    # The master fbx file is the file that has just been exported.
 
-    if remove_namespaces:
-        fbx_file.remove_namespaces()
-        fbx_modified = True
-    if scene_clean:
-        fbx_file.clean_scene(
-            no_export_tag=NO_EXPORT_TAG, world_control_name=WORLD_CONTROL_NAME
-        )
-        fbx_modified = True
-    if fbx_modified:
-        fbx_file.save(
-            mode=file_type,
-            file_version=fbx_version_str,
-            close=True,
-            preset_path=preset_path,
-            skins=skinning,
-            blendshapes=blendshapes,
-        )
+    path_is_valid = os.path.exists(export_path)
 
-    # post process with FBX SDK if available
-    if pfbx.FBX_SDK:
-        if use_partitions:
-            export_skeletal_mesh_partitions(joint_roots, export_data)
-
-            # when using partitions, we remove full FBX file
-            if os.path.isfile(export_path):
-                try:
-                    os.remove(export_path)
-                except OSError:
-                    cmds.warning(
-                        'Was not possible to remove temporal FBX file "{}"'.format(
-                            export_path
-                        )
-                    )
-
-    return export_path
-
-
-def export_skeletal_mesh_partitions(jnt_roots, export_data):
-    if not pfbx.FBX_SDK:
-        cmds.warning(
-            "Python FBX SDK is not available. Skeletal Mesh partitions export functionality is not available!"
-        )
+    if not path_is_valid:
+        # "master" fbx file does not exist, exit early.
         return False
 
-    file_path = export_data.get("file_path", "")
-    file_name = export_data.get("file_name", "")
-    deformations = export_data.get("deformations", True)
-    skinning = export_data.get("skinning", True)
-    blendshapes = export_data.get("blendshapes", True)
+    # Create a temporary job python file
+    script_content = """
+python "from mgear.shifter.game_tools_fbx import fbx_batch";
+python "master_path='{master_path}'";
+python "root_joint='{joint_root}'";
+python "root_geos={geo_roots}";
+python "export_data={e_data}";
+python "fbx_batch.perform_fbx_condition({ns}, {sc}, master_path, root_joint, root_geos, {sk}, {bs}, {ps}, export_data)";
+""".format(
+        ns=remove_namespaces,
+        sc=scene_clean,
+        master_path=export_path,
+        geo_roots=geo_roots,
+        joint_root= joint_roots[0],
+        sk=skinning,
+        bs=blendshapes,
+        ps=use_partitions,
+        e_data=export_data)
 
-    if not file_name.endswith(".fbx"):
-        file_name = "{}.fbx".format(file_name)
-    path = string.normalize_path(os.path.join(file_path, file_name))
-    print("\t>>> Export Path: {}".format(path))
+    script_file = tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.mel')
+    script_file.write(script_content)
+    script_file_path = script_file.name
+    script_file.close()
 
-    partitions = export_data.get("partitions", dict())
-    if not partitions:
-        cmds.warning("Partitions not defined!")
-        return False
+    mayabatch_dir = coreUtils.get_maya_path()
 
-    # data that will be exported into a temporal file
-    partitions_data = OrderedDict()
+    # Depending on the os we would need to change from maya, to maya batch
+    # windows uses mayabatch
+    if str(coreUtils.get_os()) == "win64" or str(coreUtils.get_os()) == "nt":
+        option = "mayabatch"
+    else:
+        option = "maya"
 
-    for partition_name, data in partitions.items():
-        meshes = data.get("skeletal_meshes", None)
+    if option == "maya":
+        mayabatch_command = 'maya'
+    else:
+        mayabatch_command = "mayabatch"
 
-        joint_hierarchy = OrderedDict()
-        for mesh in meshes:
-            # we retrieve all end joints from the influenced joints
-            influences = pm.skinCluster(mesh, query=True, influence=True)
+    mayabatch_path = os.path.join(mayabatch_dir, mayabatch_command)
+    mayabatch_args = [mayabatch_path]
 
-            # make sure the hierarchy from the root joint to the influence joints is retrieved.
-            for jnt_root in jnt_roots:
-                joint_hierarchy.setdefault(jnt_root, list())
-                for inf_jnt in influences:
-                    jnt_hierarchy = get_joint_list(jnt_root, inf_jnt)
-                    for hierarchy_jnt in jnt_hierarchy:
-                        if hierarchy_jnt not in joint_hierarchy[jnt_root]:
-                            joint_hierarchy[jnt_root].append(hierarchy_jnt)
+    if option == "maya":
+        mayabatch_args.append("-batch")
 
-        partitions_data.setdefault(partition_name, dict())
+    mayabatch_args.append("-script")
+    mayabatch_args.append(script_file_path)
 
-        # the joint chain to export will be the shorter one between the root joint and the influences
-        short_hierarchy = None
-        for root_jnt, joint_hierarchy in joint_hierarchy.items():
-            total_joints = len(joint_hierarchy)
-            if total_joints <= 0:
-                continue
-            if short_hierarchy is None:
-                short_hierarchy = joint_hierarchy
-                partitions_data[partition_name]["root"] = root_jnt
-            elif len(short_hierarchy) > len(joint_hierarchy):
-                short_hierarchy = joint_hierarchy
-                partitions_data[partition_name]["root"] = root_jnt
-        if short_hierarchy is None:
-            continue
+    print("[Launching] MayaBatch")
+    print("   {}".format(mayabatch_args))
+    print("   {}".format(" ".join(mayabatch_args)))
 
-        # we make sure we update the hierarchy to include all joints between the skeleton root joint and
-        # the first joint of the found joint hierarchy
-        root_jnt = get_root_joint(short_hierarchy[0])
-        if root_jnt not in short_hierarchy:
-            parent_hierarchy = get_joint_list(root_jnt, short_hierarchy[0])
-            short_hierarchy = parent_hierarchy + short_hierarchy
+# Use Popen for more control
+    with subprocess.Popen(mayabatch_args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, shell=False) as process:
+        # Capture the output and errors
+        stdout, stderr = process.communicate()
 
-        partitions_data[partition_name]["hierarchy"] = [
-            jnt.name() for jnt in short_hierarchy
-        ]
+        # Check the return code
+        returncode = process.returncode
 
-    try:
-        for partition_name, partition_data in partitions_data.items():
-            if not partition_data:
-                continue
-            fbx_file = sdk_utils.FbxSdkGameToolsWrapper(path)
-            partition_meshes = partitions.get(partition_name).get(
-                "skeletal_meshes"
-            )
-            fbx_file.export_skeletal_mesh(
-                file_name=partition_name,
-                mesh_names=partition_meshes,
-                hierarchy_joints=partition_data.get("hierarchy", []),
-                deformations=deformations,
-                skins=skinning,
-                blendshapes=blendshapes,
-            )
-            fbx_file.close()
+        # Check the result
+        if returncode == 0:
+            print("Mayabatch process completed successfully.")
+            print("-------------------------------------------")
+            print("Output:", stdout)
+            print("-------------------------------------------")
+        else:
+            print("Mayabatch process failed.")
+            print("Error:", stderr)
+            return False
 
-    except Exception:
-        cmds.error(
-            "Something wrong happened while export skeleton mesh: {}".format(
-                traceback.format_exc()
-            )
-        )
-        return False
-
+    # If all goes well return the export path location, else None
     return True
 
 
@@ -644,64 +565,6 @@ def select_item(items, title):
         item = select_dialog.item
 
     return item
-
-
-def get_root_joint(start_joint):
-    """
-    Recursively traverses up the hierarchy until finding the first object that does not have a parent.
-
-    :param str node_name: node name to get root of.
-    :param str node_type: node type for the root node.
-    :return: found root node.
-    :rtype: str
-    """
-
-    parent = pm.listRelatives(start_joint, parent=True, type="joint")
-    parent = parent[0] if parent else None
-
-    return get_root_joint(parent) if parent else start_joint
-
-
-def get_joint_list(start_joint, end_joint):
-    """Returns a list of joints between and including given start and end joint
-
-    Args:
-            start_joint str: start joint of joint list
-            end_joint str end joint of joint list
-
-    Returns:
-            list[str]: joint list
-    """
-
-    if start_joint == end_joint:
-        return [start_joint]
-
-    # check hierarchy
-    descendant_list = pm.ls(
-        pm.listRelatives(start_joint, ad=True, fullPath=True),
-        long=True,
-        type="joint",
-    )
-    if not descendant_list.count(end_joint):
-        # raise Exception('End joint "{}" is not a descendant of start joint "{}"'.format(end_joint, start_joint))
-        return list()
-
-    joint_list = [end_joint]
-    while joint_list[-1] != start_joint:
-        parent_jnt = pm.listRelatives(
-            joint_list[-1], p=True, pa=True, fullPath=True
-        )
-        if not parent_jnt:
-            raise Exception(
-                'Found root joint while searching for start joint "{}"'.format(
-                    start_joint
-                )
-            )
-        joint_list.append(parent_jnt[0])
-
-    joint_list.reverse()
-
-    return joint_list
 
 
 def get_end_joint(start_joint):

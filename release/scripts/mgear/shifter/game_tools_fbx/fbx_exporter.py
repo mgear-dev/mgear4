@@ -39,8 +39,6 @@ class FBXExporter(MayaQWidgetDockableMixin, QtWidgets.QDialog):
 
         self.create_layout()
         self.create_connections()
-        self.refresh_fbx_sdk_ui()
-        self.refresh_ue_connection()
         self._load_node_data_to_widget()
 
     def closeEvent(self, event):
@@ -103,28 +101,6 @@ class FBXExporter(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.file_import_preset_action.setIcon(pyqt.get_icon("mgear_log-in"))
         self.file_menu.addAction(self.file_export_preset_action)
         self.file_menu.addAction(self.file_import_preset_action)
-
-        # fbx sdk actions
-        self.fbx_sdk_menu = self.menu_bar.addMenu("FBX SDK")
-        self.set_fbx_sdk_path_action = QtWidgets.QAction(
-            "Set Python FBX SDK", self
-        )
-        self.fbx_sdk_path_action = QtWidgets.QAction(
-            "Python FBX SDK Path: Not set", self
-        )
-        self.fbx_sdk_path_action.setEnabled(False)
-        self.fbx_sdk_menu.addAction(self.set_fbx_sdk_path_action)
-        self.fbx_sdk_menu.addAction(self.fbx_sdk_path_action)
-
-        # ueGear actions
-        # self.uegear_menu = self.menu_bar.addMenu("ueGear")
-        # self.refresh_uegear_connection_action = QtWidgets.QAction(
-        #     "Refresh Unreal Engine Connection", self
-        # )
-        # self.refresh_uegear_connection_action.setIcon(
-        #     pyqt.get_icon("mgear_refresh-cw")
-        # )
-        # self.uegear_menu.addAction(self.refresh_uegear_connection_action)
 
     def create_source_elements_widget(self):
         def create_button(
@@ -227,15 +203,13 @@ class FBXExporter(MayaQWidgetDockableMixin, QtWidgets.QDialog):
 
         fbx_preset_label = QtWidgets.QLabel("FBX Preset")
         self.fbx_export_presets_combobox = QtWidgets.QComboBox()
-        self.populate_fbx_presets_combobox(
-            self.fbx_export_presets_combobox, pfbx.get_fbx_export_presets()
-        )
+        self.populate_fbx_presets_combobox()
         settings_layout.addWidget(fbx_preset_label, 1, 2)
         settings_layout.addWidget(self.fbx_export_presets_combobox, 1, 3)
 
-        # fbx sdk settings tab
+        # fbx conditioning, settings tab
         fbx_sdk_tab = QtWidgets.QWidget()
-        settings_tab.addTab(fbx_sdk_tab, "FBX SDK")
+        settings_tab.addTab(fbx_sdk_tab, "FBX Conditioning")
         fbx_sdk_layout = QtWidgets.QVBoxLayout(fbx_sdk_tab)
 
         self.remove_namespace_checkbox = QtWidgets.QCheckBox(
@@ -438,16 +412,9 @@ class FBXExporter(MayaQWidgetDockableMixin, QtWidgets.QDialog):
 
     def create_connections(self):
         # menu connections
-        self.file_export_preset_action.triggered.connect(
-            self.export_fbx_presets
-        )
-        self.file_import_preset_action.triggered.connect(
-            self.import_fbx_presets
-        )
-        self.set_fbx_sdk_path_action.triggered.connect(self.set_fbx_sdk_path)
-        # self.refresh_uegear_connection_action.triggered.connect(
-        #     self.refresh_ue_connection
-        # )
+        self.file_export_preset_action.triggered.connect(self.export_fbx_presets)
+        self.file_import_preset_action.triggered.connect(self.import_fbx_presets)
+#        self.set_fbx_sdk_path_action.triggered.connect(self.set_fbx_sdk_path)
 
         # source element connections
         self.geo_set_btn.clicked.connect(
@@ -596,7 +563,10 @@ class FBXExporter(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self._set_tool_data(import_data)
         return import_data
 
-    def populate_fbx_presets_combobox(self, combobox, filepaths):
+    def populate_fbx_presets_combobox(self):
+        combobox = self.fbx_export_presets_combobox
+        filepaths = pfbx.get_fbx_export_presets()
+
         for path in filepaths:
             fbx_filename = os.path.basename(path)
             fbx_base_filename, _ = os.path.splitext(fbx_filename)
@@ -643,53 +613,6 @@ class FBXExporter(MayaQWidgetDockableMixin, QtWidgets.QDialog):
             # update attribute on fbx maya node
             export_node = self._get_or_create_export_node()
             export_node.save_root_data("ue_file_path", path)
-
-    def set_fbx_directory(self):
-        path = self.file_path_lineedit.text()
-        export_node = self._get_or_create_export_node()
-        export_node.save_root_data("file_path", path)
-
-    def set_fbx_file(self):
-        path = self.file_name_lineedit.text()
-        export_node = self._get_or_create_export_node()
-        export_node.save_root_data("file_name", path)
-
-    def set_fbx_sdk_path(self):
-        current_fbx_sdk_path = pfbx.get_fbx_sdk_path()
-        fbx_sdk_path = pm.fileDialog2(
-            fileMode=3, startingDirectory=current_fbx_sdk_path
-        )
-        if fbx_sdk_path:
-            pfbx.set_fbx_skd_path(fbx_sdk_path[0], user=True)
-
-        self.refresh_fbx_sdk_ui()
-
-    def refresh_fbx_sdk_ui(self):
-        self.remove_namespace_checkbox.setEnabled(pfbx.FBX_SDK)
-        self.clean_scene_checkbox.setEnabled(pfbx.FBX_SDK)
-        self.partitions_checkbox.setEnabled(pfbx.FBX_SDK)
-        self.set_use_partitions(self.partitions_checkbox.isChecked())
-
-        fbx_sdk_path = pfbx.get_fbx_sdk_path()
-        if not fbx_sdk_path or not os.path.isdir(fbx_sdk_path):
-            self.fbx_sdk_path_action.setText("Python FBX SDK: Not set")
-        else:
-            self.fbx_sdk_path_action.setText(
-                "Python FBX SDK: {}".format(fbx_sdk_path)
-            )
-
-    def refresh_ue_connection(self):
-        # TODO: Uncomment
-        # is_available = bool(uegear.content_project_directory())
-        is_available = False
-        return
-        # self.ue_import_collap_wgt.setEnabled(is_available)
-        # if not is_available:
-        #     cmds.warning(
-        #         "Unreal Engine Import functionality not available. \
-        #             Run Unreal Engine and load ueGear plugin."
-        #     )
-        #     self.ue_import_cbx.setChecked(False)
 
     def set_use_partitions(self, flag):
         self.partitions_outliner.setEnabled(flag)
@@ -861,26 +784,17 @@ class FBXExporter(MayaQWidgetDockableMixin, QtWidgets.QDialog):
                     skeleton_path=skeleton_path,
                 )
 
-        # # automatically import FBX into Unreal if necessary
-        # if self.ue_import_cbx.isChecked() and os.path.isfile(path):
-        #     uegear_bridge = bridge.UeGearBridge()
-        #     import_path = self.ue_file_path_lineedit.text()
-        #     if not import_path or not os.path.isdir(import_path):
-        #         cmds.warning('Unreal Engine Import Path does not exist: "{}"'.format(import_path))
-        #         return
-        #     asset_name = os.path.splitext(os.path.basename(path))[0]
-        #     import_options = {'destination_name': asset_name, 'replace_existing': True, 'save': False}
-        #     result = uegear_bridge.execute(
-        #         'import_skeletal_mesh', parameters={
-        #             'fbx_file': path,
-        #             'import_path': import_path,
-        #             'import_options': str(import_options)
-        #         }).get('ReturnValue', False)
-        #     if not result:
-        #         cmds.warning('Was not possible to export asset: {}. Please check Unreal Engine Output Log'.format(
-        #             asset_name))
-
         return True
+
+    def set_fbx_directory(self):
+        path = self.file_path_lineedit.text()
+        export_node = self._get_or_create_export_node()
+        export_node.save_root_data("file_path", path)
+
+    def set_fbx_file(self):
+        path = self.file_name_lineedit.text()
+        export_node = self._get_or_create_export_node()
+        export_node.save_root_data("file_name", path)
 
     def export_animation_clips(self):
 
@@ -968,6 +882,9 @@ class FBXExporter(MayaQWidgetDockableMixin, QtWidgets.QDialog):
 
     # helper methods
     def _get_or_create_export_node(self):
+        """
+        Gets the Maya fbx export node, that contains all the ui data.
+        """
         return (
             fbx_export_node.FbxExportNode.get()
             or fbx_export_node.FbxExportNode.create()

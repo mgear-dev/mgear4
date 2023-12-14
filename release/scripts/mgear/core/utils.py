@@ -290,7 +290,6 @@ def filter_nurbs_curve_selection(func):
     return wrap
 
 
-
 def get_frame_rate():
     '''
     Returns the current scene's fps.
@@ -340,6 +339,7 @@ def set_frame_rate(fps):
         new_fps = str(fps)+'fps'
     cmds.currentUnit(time=new_fps)
 
+
 def get_dag_path(name):
     """
     Gets the dag path for the specified object name.
@@ -362,4 +362,27 @@ def get_dag_path(name):
         raise NameError("Multiple dag paths found from the same name")
 
     return selection_list.getDagPath(0)
-    
+
+
+def get_os():
+    """
+    Gets the OS that Maya is running in.
+
+    :return: Current OS
+    :rtype: str
+    """
+    return cmds.about(os=True)
+
+
+def get_maya_path():
+    """
+    Gets the path to the folder where Maya binary lives
+
+    Note: Only works from inside Maya, as Maya adds the path on startup.
+
+    :return: Absolute path to the binary folder that contains maya executable
+    :rtype: str
+    """
+    maya_path = os.environ['MAYA_LOCATION']
+    maya_path = os.path.join(maya_path,"bin")
+    return maya_path
