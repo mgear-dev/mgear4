@@ -84,6 +84,7 @@ class FBXExporter(MayaQWidgetDockableMixin, QtWidgets.QDialog):
             "ue_enabled": self.ue_import_cbx,
             "ue_file_path": self.ue_file_path_lineedit,
             "ue_active_skeleton": self.ue_skeleton_listwgt,
+            "cull_joints": self.culljoints_checkbox,
         }
 
     def create_menu_bar(self):
@@ -364,9 +365,12 @@ class FBXExporter(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.blendshapes_checkbox.setChecked(True)
         self.partitions_checkbox = QtWidgets.QCheckBox("Partitions")
         self.partitions_checkbox.setChecked(True)
+        self.culljoints_checkbox = QtWidgets.QCheckBox("Cull Joints")
+        self.culljoints_checkbox.setChecked(False)
         deformers_layout.addWidget(self.skinning_checkbox)
         deformers_layout.addWidget(self.blendshapes_checkbox)
         deformers_layout.addWidget(self.partitions_checkbox)
+        deformers_layout.addWidget(self.culljoints_checkbox)
 
         # partitions layout
         self.partitions_label = QtWidgets.QLabel("Partitions")
@@ -524,6 +528,7 @@ class FBXExporter(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.blendshapes_checkbox.toggled.connect(
             self.partition_blendshape_toggled
         )
+        self.culljoints_checkbox.toggled.connect(self.cull_joints_toggled)
 
     def get_root_joint(self):
         root_joint = self.joint_root_lineedit.text().split(",")
@@ -630,6 +635,11 @@ class FBXExporter(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.partitions_label.setEnabled(flag)
         self.skmesh_add_btn.setEnabled(flag)
         self.skmesh_rem_btn.setEnabled(flag)
+
+    def cull_joints_toggled(self, flag):
+        cull_joint_active = self.culljoints_checkbox.isChecked()
+        export_node = self._get_or_create_export_node()
+        export_node.save_root_data("cull_joints", cull_joint_active)
 
     def partition_skinning_toggled(self):
         """Updates the Maya FBX Node, when checkbox it changed"""
@@ -1075,6 +1085,7 @@ class FBXExporter(MayaQWidgetDockableMixin, QtWidgets.QDialog):
             "ue_enabled": self.ue_import_cbx.isChecked(),
             "ue_file_path": self.ue_file_path_lineedit.text(),
             "ue_active_skeleton": "",
+            "cull_joints": self.culljoints_checkbox.isChecked(),
         }
 
         # converting qt list widget data to text

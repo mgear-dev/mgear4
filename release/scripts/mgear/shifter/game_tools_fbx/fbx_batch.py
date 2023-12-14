@@ -45,8 +45,7 @@ def perform_fbx_condition(
         skinning=True,
         blendshapes=True,
         partitions=True,
-        export_data=None,
-        cull_joints=False):
+        export_data=None):
     """
     Performs the FBX file conditioning and partition exports.
 
@@ -54,9 +53,9 @@ def perform_fbx_condition(
     """
     print("--------------------------")
     print(" PERFORM FBX CONDITIONING")
-    print(f"  remove namespace:{remove_namespace}")
-    print(f"  clean scene:{scene_clean}")
-    print(f"  .ma path : {master_ma_path}")
+    print("  remove namespace:{}".format(remove_namespace))
+    print("  clean scene:{}".format(scene_clean))
+    print("  .ma path : {}".format(master_ma_path))
     print("--------------------------")
 
     # Load the master .ma file and force the scene to load it
@@ -68,8 +67,8 @@ def perform_fbx_condition(
     if not fbx_file.endswith(".fbx"):
             fbx_file = "{}.fbx".format(fbx_file)
 
-    print(f"  Output location: {output_dir}")
-    print(f"  FBX file: {fbx_file}")
+    print("  Output location: {}".format(output_dir))
+    print("  FBX file: {}".format(fbx_file))
 
     # Removes all namespaces from any DG or DAG object.
     if remove_namespace:
@@ -153,7 +152,7 @@ def perform_fbx_condition(
     if partitions and export_data is not None:
         print("[Partitions]")
         print("   Preparing scene for Partition creation..")
-        status = _export_skeletal_mesh_partitions([root_joint], export_data, master_ma_path, cull_joints)
+        status = _export_skeletal_mesh_partitions([root_joint], export_data, master_ma_path)
 
     # Delete temporary conditioned .ma file
     print("[Clean up]")
@@ -168,7 +167,7 @@ def perform_fbx_condition(
     return status
 
 
-def _export_skeletal_mesh_partitions(jnt_roots, export_data, scene_path, cull_joints):
+def _export_skeletal_mesh_partitions(jnt_roots, export_data, scene_path):
     """
     Exports the individual partition hierarchies that have been specified.
 
@@ -185,6 +184,8 @@ def _export_skeletal_mesh_partitions(jnt_roots, export_data, scene_path, cull_jo
     if not partitions:
         cmds.warning("  Partitions not defined!")
         return False
+
+    cull_joints = export_data.get("cull_joints", False)
 
     # Collects all partition data, so it can be more easily accessed in the next stage
     # where mesh and skeleton data is deleted and exported.
@@ -361,7 +362,7 @@ def _find_geometry_dag_objects(parent_object_name):
         return geometry_objects
 
     except Exception as e:
-        print(f"Error: {e}")
+        print("Error: {}".format(e))
         return []
 
 
@@ -522,9 +523,6 @@ def _clean_export_namespaces(export_data):
             continue
 
         value = export_data[key]
-
-        print(key, value)
-
         if isinstance(value, list):
             for i in range(len(value)):
                 value[i] = _trim_namespace_from_name(value[i])

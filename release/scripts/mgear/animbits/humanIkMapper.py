@@ -160,7 +160,7 @@ class HumanIKMapper():
 
         hikChar = pm.mel.hikGetCurrentCharacter()
         locked_ctrls = cls.get_locked_ctrls(ctrls)
-        print(f"ctrls = {ctrls} \n locked={locked_ctrls}")
+        print("ctrls = {} \n locked={}".format(ctrls, locked_ctrls))
         if locked_ctrls:
             if LockedCtrlsDialog(ctrls_list=locked_ctrls).exec_():
                 cls.unlock_ctrls_srt(locked_ctrls)
