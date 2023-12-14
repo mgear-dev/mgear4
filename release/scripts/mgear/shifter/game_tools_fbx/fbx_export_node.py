@@ -32,6 +32,7 @@ class FbxExportNode(object):
         "ue_enabled": False,
         "ue_file_path": "",
         "ue_active_skeleton":"",
+        "cull_joints":False
     }
     ANIM_CLIP_DATA = {
         "title": "Untitled",
