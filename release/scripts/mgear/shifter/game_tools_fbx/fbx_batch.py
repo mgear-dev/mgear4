@@ -293,7 +293,7 @@ def _export_skeletal_mesh_partitions(jnt_roots, export_data, scene_path, cull_jo
                 pfbx.FBXLoadExportPresetFile(f=preset_path)
             fbx_version_str = None
             if up_axis is not None:
-                pfbx.FBXExportUpAxis(up_axis)
+                pfbx.FBXExportUpAxis(up_axis.lower())
             if fbx_version is not None:
                 fbx_version_str = "{}00".format(
                     fbx_version.split("/")[0].replace(" ", "")

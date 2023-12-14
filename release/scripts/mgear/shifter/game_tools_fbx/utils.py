@@ -178,7 +178,7 @@ def export_animation_clip(config_data, clip_data):
             # load FBX export preset file
             pfbx.FBXLoadExportPresetFile(f=preset_path)
         if up_axis is not None:
-            pfbx.FBXExportUpAxis(up_axis)
+            pfbx.FBXExportUpAxis(up_axis.lower())
         if fbx_version is not None:
             fbx_version_str = "{}00".format(
                 fbx_version.split("/")[0].replace(" ", "")
