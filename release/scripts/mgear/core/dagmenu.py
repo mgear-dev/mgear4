@@ -451,7 +451,6 @@ def __space_transfer_callback(*args):
     print(search_token)
     target_control = None
 
-
     # control_01 attr don't standard name ane need to be check
     attr_split_name = switch_attr.split("_")
     if len(attr_split_name) <= 2:
@@ -538,7 +537,7 @@ def __space_transfer_callback(*args):
         switch_control,
         stripNamespace(switch_control),
         switch_attr,
-        target_control_list[0]
+        target_control_list[0],
     )
 
     if autokey:
@@ -548,6 +547,7 @@ def __space_transfer_callback(*args):
                 "{}.{}".format(switch_control, switch_attr),
                 time=(cmds.currentTime(query=True)),
             )
+
 
 def __switch_xray_ctl_callback(*args):
     rig_root = None
@@ -632,12 +632,13 @@ def mgear_dagmenu_callback(*args, **kwargs):  # @UnusedVariable
 
     # if second argument if not a bool then means that we are running
     # the override
-    if type(args[1]) != bool:
+    if not isinstance(args[1], bool):
         sel = cmds.ls(selection=True, long=True, type="transform")
 
-        isCtl = cmds.objExists("{}.isCtl".format(sel[0]))
-        isGuide = cmds.objExists("{}.rig_name".format(sel[0]))
-        isGearGuide = cmds.objExists("{}.isGearGuide".format(sel[0]))
+        if sel:
+            isCtl = cmds.objExists("{}.isCtl".format(sel[0]))
+            isGuide = cmds.objExists("{}.rig_name".format(sel[0]))
+            isGearGuide = cmds.objExists("{}.isGearGuide".format(sel[0]))
 
         if sel and isCtl:
             # cleans menu
@@ -843,11 +844,11 @@ def mgear_dagmenu_fill(parent_menu, current_control):
     )
 
     resetOption = cmds.menuItem(
-            parent=parent_menu,
-            subMenu=True,
-            tearOff=False,
-            label="Reset Option",
-        )
+        parent=parent_menu,
+        subMenu=True,
+        tearOff=False,
+        label="Reset Option",
+    )
 
     # reset all
     selection_set = cmds.ls(
@@ -1000,7 +1001,9 @@ def mgear_dagmenu_fill(parent_menu, current_control):
             cmds.menuItem(
                 parent=_p_switch_menu,
                 label="++ Space Transfer ++",
-                command=partial(__space_transfer_callback, ui_host, attr, combo_box)
+                command=partial(
+                    __space_transfer_callback, ui_host, attr, combo_box
+                ),
             )
 
     # select all rig controls
