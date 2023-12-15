@@ -1116,6 +1116,7 @@ class FBXExporter(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.blendshapes_checkbox.setChecked(data.get("blendshapes", False))
         self.partitions_checkbox.setChecked(data.get("use_partitions", False))
         self.export_tab.setCurrentIndex(data.get("export_tab", 0))
+        self.culljoints_checkbox.setChecked(data.get("cull_joints", False))
 
         self.ue_import_cbx.setChecked(data.get("ue_enabled", False))
         self.ue_file_path_lineedit.setText(data.get("ue_file_path", ""))
