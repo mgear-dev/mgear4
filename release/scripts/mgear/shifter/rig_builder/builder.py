@@ -11,7 +11,6 @@ from mgear.shifter import io
 def setup_pyblish():
     pyblish.api.register_host("maya")
     pyblish.api.register_gui("pyblish_lite")
-    print(pyblish.api.registered_guis())
     plugin_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), "plugins")
     pyblish.api.register_plugin_path(plugin_dir)
 
@@ -30,7 +29,6 @@ class RigBuilder(object):
         results = context.data.get("results")
 
         for result in results:
-            print(result)
             check_name = result.get("plugin").__name__
             instance = result.get("instance")
             success = result.get("success")
