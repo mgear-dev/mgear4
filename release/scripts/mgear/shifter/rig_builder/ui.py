@@ -176,8 +176,7 @@ class RigBuilderUI(MayaQWidgetDockableMixin, QtWidgets.QDialog, pyqt.SettingsMix
 
     def create_results_popup(self, results_dict):
         popup = ResultsPopupDialog(results_dict)
-        return_value = popup.exec()
-        print(return_value)
+        popup.exec()
 
     def dragEnterEvent(self, e):
         if e.mimeData().hasUrls():
