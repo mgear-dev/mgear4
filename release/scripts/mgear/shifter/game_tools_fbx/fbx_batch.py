@@ -21,6 +21,9 @@ Tasks / Conditions
 - Partition Skeleton + Geometry.
 - Exports each partition as an FBX.
 
+Note
+----
+- Print logs are being used by the partition subprocess thread to detect progress.
 """
 import os
 import traceback
@@ -28,55 +31,49 @@ from collections import OrderedDict
 
 import maya.cmds as cmds
 import maya.api.OpenMaya as om
+import pymel.core as pm
 
 from mgear.core import pyFBX as pfbx
-
+import mgear.shifter.game_tools_disconnect as gtDisc
 
 def perform_fbx_condition(
-    remove_namespace,
-    scene_clean,
-    master_fbx_path,
-    root_joint,
-    root_geos,
-    skinning=True,
-    blendshapes=True,
-    partitions=True,
-    export_data=None,
-    cull_joints=False):
+        remove_namespace,
+        scene_clean,
+        master_ma_path,
+        root_joint,
+        root_geos,
+        skinning=True,
+        blendshapes=True,
+        partitions=True,
+        export_data=None):
     """
     Performs the FBX file conditioning and partition exports.
 
     This is called by a MayaBatch process.
-
-    [ ] Setup logging to a text file, so the stream can be monitored.
-    [ ] Update FBX export settings
-
     """
     print("--------------------------")
     print(" PERFORM FBX CONDITIONING")
-    print(f"  remove namespace:{remove_namespace}")
-    print(f"  clean scene:{scene_clean}")
-    print(f"  fbx path : {master_fbx_path}")
+    print("  remove namespace:{}".format(remove_namespace))
+    print("  clean scene:{}".format(scene_clean))
+    print("  .ma path : {}".format(master_ma_path))
     print("--------------------------")
 
-    log_file = "logs.txt"
-
-    # Import fbx into scene
-    _import_fbx(master_fbx_path)
+    # Load the master .ma file and force the scene to load it
+    cmds.file(master_ma_path, open=True, force=True)
 
     # formats the output location from the master fbx path.
-    output_dir = os.path.dirname(master_fbx_path)
-    fbx_file = os.path.basename(master_fbx_path)
-    conditioned_file = fbx_file.split(".")[0] + "_conditioned.ma"
-    
-    print(f"  Output location: {output_dir}")
-    print(f"  FBX file: {fbx_file}")
-    print(f"  Conditioned file: {conditioned_file}")
+    output_dir = os.path.dirname(master_ma_path)
+    fbx_file = export_data.get("file_name", "")
+    if not fbx_file.endswith(".fbx"):
+            fbx_file = "{}.fbx".format(fbx_file)
+
+    print("  Output location: {}".format(output_dir))
+    print("  FBX file: {}".format(fbx_file))
 
     # Removes all namespaces from any DG or DAG object.
     if remove_namespace:
         print("Removing Namespace..")
-        _clean_namespaces()
+        export_data = _clean_namespaces(export_data)
 
         # updates root joint name if namespace is found
         root_joint = root_joint.split(":")[-1]
@@ -85,14 +82,44 @@ def perform_fbx_condition(
 
     if scene_clean:
         print("Cleaning Scene..")
-        # Move the root_joint and root_geos to the scene root
-        _parent_to_root(root_joint)
-        for r_geo in root_geos:
-            _parent_to_root(r_geo)
 
-        # Remove all redundant DAG Nodes.
-        _cleanup_stale_dag_hierarchies([root_joint] + root_geos)
-    
+        _partitions = export_data.get("partitions", dict())
+
+        # Performs the same code that "Delete Rig + Keep Joints" does
+        gtDisc.disconnect_joints()
+        for rig_root in gtDisc.get_rig_root_from_set():
+            rig_name = rig_root.name()
+            jnt_org = rig_root.jnt_vis.listConnections(type="transform")[0]
+            joints = jnt_org.getChildren()
+            if joints:
+                pm.parent(joints, world=True)
+
+            # Updates all the geometry root paths, as they may have changed when geo
+            # root was moved to world, depending on the structure of the rig.
+            for geo_index in reversed(range(len(root_geos))):
+                geo_root = root_geos[geo_index]
+                geo_long_names = cmds.ls(geo_root, long=True)
+                if len(geo_long_names) is not 1:
+                    print("Too many {} found".format(geo_root))
+                    return False
+                geo_long_name = geo_long_names[0]
+                output = pm.parent(geo_root, world=True)
+                root_geos[geo_index] = output[0].name()
+
+                # The geo roots are moved to be under the 'World', in doing so we need to
+                # update each geometry object stored in a partition.
+                for partition_name, data in _partitions.items():
+                    geo_list = data.get("skeletal_meshes", None)
+                    filtered_array = [entry.replace(geo_long_name, "|"+geo_root) for entry in geo_list]
+                    data["skeletal_meshes"] = filtered_array
+                    _partitions[partition_name] = data
+
+            export_data["partitions"] = _partitions
+
+            pm.delete(rig_root.rigGroups.listConnections(type="objectSet"))
+            pm.delete(pm.ls(type="mgear_matrixConstraint"))
+            pm.delete(rig_root)
+
     if not skinning:
         print("Removing Skinning..")
         # Remove skinning from geometry
@@ -103,35 +130,44 @@ def perform_fbx_condition(
         print("Removing Blendshapes..")
         _delete_blendshapes()
 
-    # Exports the conditioned FBX, over the existing master fbx.
-    # The master FBX is now in the correct data state.
-    print("Exporting FBX...")
-    print("    Path: {}".format(master_fbx_path))
-    cmds.select( clear=True )
-    cmds.select([root_joint] + root_geos)
-    pfbx.FBXExport(f=master_fbx_path, s=True)
+    # Save out conditioned file, as this will be used by other partition processes
+    # Conditioned file, is the file that stores the rig which has already had data
+    # update for the export process.
+    print("Save Conditioned Scene...")
+    print("    Path: {}".format(master_ma_path))
+    cmds.file(save=True, force=True, type="mayaAscii")
+
+    status = False
+
+    if not partitions:
+        # Exports the conditioned FBX
+        master_fbx_path = os.path.join(output_dir, fbx_file)
+        print("Exporting FBX...")
+        print("    Path: {}".format(master_fbx_path))
+        cmds.select(clear=True)
+        cmds.select([root_joint] + root_geos)
+        pfbx.FBXExport(f=master_fbx_path, s=True)
+        status = True
 
     if partitions and export_data is not None:
         print("[Partitions]")
         print("   Preparing scene for Partition creation..")
-        # Save out conditioned file, as this will be used by other partition processes
-        # Conditioned file, is the file that stores the rig which has already had data
-        # update for the export process.
-        cmds.file(rename=conditioned_file)
-        cmds.file(save=True, force=True, type="mayaAscii")
+        status = _export_skeletal_mesh_partitions([root_joint], export_data, master_ma_path)
 
-        _export_skeletal_mesh_partitions([root_joint], export_data, conditioned_file, cull_joints)
+    # Delete temporary conditioned .ma file
+    print("[Clean up]")
+    cmds.file(new=True, force=True)
+    if os.path.exists(master_ma_path):
+        print("   [Removing File] {}".format(master_ma_path))
+        os.remove(master_ma_path)
+    else:
+        print("   Cleaned up conditioned file...")
+        print("      Deleted - {}".format(master_ma_path))
 
-        # Delete temporary conditioned .ma file
-        cmds.file( new=True, force=True)
-        if os.path.exists(conditioned_file):
-            os.remove(conditioned_file)
-        else:
-            print("   Cleaned up conditioned file...")
-            print("      Deleted - {}".format(conditioned_file))
+    return status
 
 
-def _export_skeletal_mesh_partitions(jnt_roots, export_data, scene_path, cull_joints):
+def _export_skeletal_mesh_partitions(jnt_roots, export_data, scene_path):
     """
     Exports the individual partition hierarchies that have been specified.
 
@@ -139,7 +175,6 @@ def _export_skeletal_mesh_partitions(jnt_roots, export_data, scene_path, cull_jo
     alterations performed to it.
 
     """
-
     print("   Correlating Mesh to joints...")
 
     file_path = export_data.get("file_path", "")
@@ -149,6 +184,8 @@ def _export_skeletal_mesh_partitions(jnt_roots, export_data, scene_path, cull_jo
     if not partitions:
         cmds.warning("  Partitions not defined!")
         return False
+
+    cull_joints = export_data.get("cull_joints", False)
 
     # Collects all partition data, so it can be more easily accessed in the next stage
     # where mesh and skeleton data is deleted and exported.
@@ -203,9 +240,11 @@ def _export_skeletal_mesh_partitions(jnt_roots, export_data, scene_path, cull_jo
         if root_jnt not in short_hierarchy:
             parent_hierarchy = _get_joint_list(root_jnt, short_hierarchy[0])
             short_hierarchy = parent_hierarchy + short_hierarchy
+
         partitions_data[partition_name]["hierarchy"] = short_hierarchy
 
     print("   Modifying Hierarchy...")
+
     # - Loop over each Partition
     # - Load the master .ma file
     # - Perform removal of geometry, that is not relevent to the partition
@@ -216,13 +255,12 @@ def _export_skeletal_mesh_partitions(jnt_roots, export_data, scene_path, cull_jo
             print("   Partition {} contains no data.".format(partition_name))
             continue
 
-        print("     {}".format(partition_name))
-        print("     {}".format(partition_data))
-
         partition_meshes = partitions.get(partition_name).get("skeletal_meshes")
         partition_joints = partition_data.get("hierarchy", [])
+
+        print("Open Conditioned Scene: {}".format(scene_path))
         # Loads the conditioned scene file, to perform partition actions on.
-        cmds.file( scene_path, open=True, force=True, save=False)
+        cmds.file(scene_path, open=True, force=True, save=False)
 
         # Deletes meshes that are not included in the partition.
         all_meshes = _get_all_mesh_dag_objects()
@@ -232,6 +270,7 @@ def _export_skeletal_mesh_partitions(jnt_roots, export_data, scene_path, cull_jo
 
         # Delete joints that are not included in the partition
         if cull_joints:
+            print("    Culling Joints...")
             all_joints = _get_all_joint_dag_objects()
             for jnt in reversed(all_joints):
                 if not jnt in partition_joints:
@@ -241,7 +280,7 @@ def _export_skeletal_mesh_partitions(jnt_roots, export_data, scene_path, cull_jo
         partition_file_name = file_name + "_" + partition_name + ".fbx"
         export_path = os.path.join(file_path, partition_file_name)
 
-        print(export_path)
+        print("Exporting FBX: {}".format(export_path))
         try:
             preset_path = export_data.get("preset_path", None)
             up_axis = export_data.get("up_axis", None)
@@ -255,16 +294,16 @@ def _export_skeletal_mesh_partitions(jnt_roots, export_data, scene_path, cull_jo
                 pfbx.FBXLoadExportPresetFile(f=preset_path)
             fbx_version_str = None
             if up_axis is not None:
-                pfbx.FBXExportUpAxis(up_axis)
+                pfbx.FBXExportUpAxis(up_axis.lower())
             if fbx_version is not None:
                 fbx_version_str = "{}00".format(
                     fbx_version.split("/")[0].replace(" ", "")
-                    )
+                )
                 pfbx.FBXExportFileVersion(v=fbx_version_str)
             if file_type == "ascii":
                 pfbx.FBXExportInAscii(v=True)
 
-            cmds.select( clear=True )
+            cmds.select(clear=True)
             cmds.select(partition_joints + partition_meshes)
             pfbx.FBXExport(f=export_path, s=True)
         except Exception:
@@ -274,6 +313,7 @@ def _export_skeletal_mesh_partitions(jnt_roots, export_data, scene_path, cull_jo
                     traceback.format_exc()
                 )
             )
+            return False
     return True
 
 
@@ -282,7 +322,7 @@ def _delete_blendshapes():
     Deletes all blendshape objects in the scene.
     """
     blendshape_mobjs = _find_dg_nodes_by_type(om.MFn.kBlendShape)
-    
+
     dg_mod = om.MDGModifier()
     for mobj in blendshape_mobjs:
         print("   - {}".format(om.MFnDependencyNode(mobj).name()))
@@ -312,7 +352,8 @@ def _find_geometry_dag_objects(parent_object_name):
             child_dag_path = child_dag_node.getPath()
 
             # Check if the child is a geometry node
-            if (child_dag_path.hasFn(om.MFn.kMesh) or child_dag_path.hasFn(om.MFn.kNurbsSurface)) and child_dag_path.hasFn(om.MFn.kTransform):
+            if (child_dag_path.hasFn(om.MFn.kMesh) or child_dag_path.hasFn(
+                    om.MFn.kNurbsSurface)) and child_dag_path.hasFn(om.MFn.kTransform):
                 geometry_objects.append(child_dag_path.fullPathName())
 
             # Recursive call to find geometry objects under the child
@@ -321,7 +362,7 @@ def _find_geometry_dag_objects(parent_object_name):
         return geometry_objects
 
     except Exception as e:
-        print(f"Error: {e}")
+        print("Error: {}".format(e))
         return []
 
 
@@ -360,18 +401,19 @@ def _find_dg_nodes_by_type(node_type):
 
     return dagpose_nodes
 
+
 def _cleanup_stale_dag_hierarchies(ignore_objects):
     """
     Deletes any dag objects that are not geo or skeleton roots, under the scene root.
     """
     IGNORED_OBJECTS = ['|persp', '|top', '|front', '|side']
     obj_names = _get_dag_objects_under_scene_root()
-    
+
     for i_o in IGNORED_OBJECTS:
         obj_names.remove(i_o)
-    
+
     for i_o in ignore_objects:
-        pipped_io = "|"+i_o
+        pipped_io = "|" + i_o
         try:
             obj_names.remove(pipped_io)
         except:
@@ -385,7 +427,7 @@ def _cleanup_stale_dag_hierarchies(ignore_objects):
         temp_sel.add(name)
 
         if temp_sel.length() != 1:
-                continue
+            continue
 
         dag_path = temp_sel.getDagPath(0)
         dag_node = om.MFnDagNode(dag_path)
@@ -403,7 +445,7 @@ def _parent_to_root(name):
     temp_sel.add(name)
 
     if temp_sel.length() != 1:
-            return
+        return
 
     dag_path = temp_sel.getDagPath(0)
     dag_node = om.MFnDagNode(dag_path)
@@ -413,7 +455,7 @@ def _parent_to_root(name):
     if parent_name == "world":
         return
 
-    cmds.parent( name, world=True )
+    cmds.parent(name, world=True)
 
     temp_sel.clear()
     print("  Moved {} to scene root.".format(name))
@@ -441,13 +483,17 @@ def _get_dag_objects_under_scene_root():
     return dag_objects
 
 
-def _clean_namespaces():
+def _clean_namespaces(export_data):
     """
     Gets all available namespaces in scene.
     Checks each for objects that have it assigned.
     Removes the namespace from the object.
     """
     namespaces = _get_scene_namespaces()
+
+    # Sort namespaces by longest nested first
+    namespaces = sorted(namespaces, key=_count_namespaces, reverse=True)
+
     for namespace in namespaces:
         print("  - {}".format(namespace))
         child_namespaces = om.MNamespace.getNamespaces(namespace, True)
@@ -461,6 +507,42 @@ def _clean_namespaces():
         for m_obj in m_objs:
             _remove_namespace(m_obj)
 
+    filtered_export_data = _clean_export_namespaces(export_data)
+    return filtered_export_data
+
+def _clean_export_namespaces(export_data):
+    """
+    Looks at all the joints and mesh data in the export data and removes
+    any namespaces that exists.
+    """
+    
+    for key in export_data.keys():
+
+        # ignore filepath, as it contains ':', which will break the path
+        if key == "file_path" or key == "color":
+            continue
+
+        value = export_data[key]
+        if isinstance(value, list):
+            for i in range(len(value)):
+                value[i] = _trim_namespace_from_name(value[i])
+        elif isinstance(value, dict):
+            value = _clean_export_namespaces(value)
+        elif isinstance(value, str):
+            value = _trim_namespace_from_name(value)
+
+        export_data[key] = value
+
+    return export_data
+
+def _count_namespaces(name):
+    # Custom function to count the number of ":" in a name
+    return name.count(':')
+
+def _trim_namespace_from_name(name):
+    if name.find(":") >= 0:
+        return name.split(":")[-1]
+    return name
 
 def _remove_namespace(mobj):
     """
@@ -476,17 +558,19 @@ def _get_scene_namespaces():
     Gets all namespaces in the scene.
     """
     IGNORED_NAMESPACES = [":UI", ":shared", ":root"]
-    spaces = om.MNamespace.getNamespaces()
+    spaces = om.MNamespace.getNamespaces(recurse=True)
     for ignored in IGNORED_NAMESPACES:
         if ignored in spaces:
             spaces.remove(ignored)
-    return spaces 
+
+    return spaces
 
 
 def _import_fbx(file_path):
     try:
         # Import FBX file
-        name = cmds.file(file_path, i=True, type="FBX", ignoreVersion=True, ra=True, mergeNamespacesOnClash=False, namespace=":")
+        name = cmds.file(file_path, i=True, type="FBX", ignoreVersion=True, ra=True, mergeNamespacesOnClash=False,
+                         namespace=":")
 
         print("FBX file imported successfully.")
         return name

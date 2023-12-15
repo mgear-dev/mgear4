@@ -9,6 +9,7 @@ def install():
         ("Soft Tweaks", str_openSoftTweakManager),
         ("Cache Manager", str_run_cache_mamanger),
         ("-----", None),
+        ("Human IK Mapper", str_mocap_humanIKMapper, "mgear_mocap.svg"),
         ("Space Recorder", str_space_recorder, "mgear_key.svg"),
         ("-----", None),
         ("Smart Reset Attribute/SRT", str_smart_reset),
@@ -59,4 +60,9 @@ clearSprings()
 str_openSpringManager = """
 from mgear.animbits.spring_manager import ui
 ui.openSpringManagerManager()
+"""
+
+str_mocap_humanIKMapper = """
+from mgear.animbits import humanIkMapper
+humanIkMapper.show()
 """

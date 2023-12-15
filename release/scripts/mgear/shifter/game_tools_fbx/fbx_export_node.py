@@ -3,6 +3,7 @@ import json
 import maya.cmds as cmds
 import pymel.core as pm
 
+from mgear.core import utils as coreUtils
 
 EXPORT_NODE_NAME = "mgearFbxExportNode"
 
@@ -32,6 +33,7 @@ class FbxExportNode(object):
         "ue_enabled": False,
         "ue_file_path": "",
         "ue_active_skeleton":"",
+        "cull_joints":False
     }
     ANIM_CLIP_DATA = {
         "title": "Untitled",
@@ -227,6 +229,12 @@ class FbxExportNode(object):
         total_sequences = len(sequences)
         clip_data = FbxExportNode.ANIM_CLIP_DATA.copy()
         clip_data["title"] = "Clip_{}".format(total_sequences + 1)
+
+        # Sets the clip data with the current timeline information.
+        clip_data["frame_rate"] = coreUtils.get_frame_rate()
+        clip_data["start_frame"] = str(int(cmds.playbackOptions(query=True, min=True)))
+        clip_data["end_frame"] = str(int(cmds.playbackOptions(query=True, max=True)))
+
         clip_data.update(anim_clip_data if anim_clip_data is not None else {})
 
         data = self.parse_export_data()
