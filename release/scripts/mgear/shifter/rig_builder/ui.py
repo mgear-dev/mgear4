@@ -197,7 +197,7 @@ class ResultsPopupDialog(QtWidgets.QDialog):
         super(ResultsPopupDialog, self).__init__()
         self.setWindowTitle("Validator Results")
         self.setSizeGripEnabled(True)
-        self.resize(450, 300)
+        self.resize(800, 400)
 
         self.results_dict = results
         self.layout = QtWidgets.QVBoxLayout()
@@ -208,26 +208,33 @@ class ResultsPopupDialog(QtWidgets.QDialog):
     def create_results_view(self):
         self.results_tree = QtWidgets.QTreeView()
         self.results_tree.setAlternatingRowColors(True)
-        self.results_tree.setFirstColumnSpanned(0, self.results_tree.rootIndex(), True)
         self.layout.addWidget(self.results_tree)
 
-        self.create_results_header()
-
-    def create_results_header(self):
         model = QtGui.QStandardItemModel()
         model.setHorizontalHeaderLabels(["Rig Name", "Check Name", "Result"])
         self.results_tree.setModel(model)
 
         for rig_name, checks_dict in self.results_dict.items():
-            item = self.add_result_entry(rig_name, checks_dict)
-            model.appendRow(item)
+            self.add_result_entry(model, rig_name, checks_dict)
 
-    def add_result_entry(self, rig_name, checks_dict):
-        parent_item = QtGui.QStandardItem(rig_name)
-        for check_name, check_value in checks_dict.items():
+        for row in range(model.rowCount()):
+            idx = model.index(row, 0)
+            self.results_tree.setExpanded(idx, True)
+
+    def add_result_entry(self, model, rig_name, checks_dict):
+        group_root = QtGui.QStandardItem(rig_name)
+        model.appendRow(group_root)
+
+        for i, (check_name, check_data) in enumerate(checks_dict.items()):
+            result_string = "Passed" if check_data.get("success") else "Failed"
+            error = check_data.get("error")
+            if error is not None:
+                result_string += " - {}".format(error)
+
             check_item = QtGui.QStandardItem(check_name)
-            parent_item.appendRow([check_item])
-        return parent_item
+            result_item = QtGui.QStandardItem(result_string)
+            group_root.setChild(i, 1, check_item)
+            group_root.setChild(i, 2, result_item)
 
 
 def openRigBuilderUI(*args):
