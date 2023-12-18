@@ -1,6 +1,30 @@
 Release Log
 ===========
 
+4.2.0
+------
+**New Features**
+	* ueGear: 0.5 Beta
+	* Shifter Game Tools: FBX exporter #117
+	* Shifter: FBX exporter Intergration with Unreal #309
+	* RBF Manager 2.0: Miscellaneous Improvements #324
+	* Shifter: Rig Builder #115
+	* Mocap Tool: HumanIK mapper tool #348
+
+**Enhancements**
+	* Animbits: Spring Manager misc bugs and updates #317 #349
+	* Shifter: Add load from selection option in the template explorer #313
+	* Core: Curve module update #319
+	* chain_FK_spline_02 and control_01: add support for leaf joints #332
+	* Shifter: Squash_01 add scale multipliers #33
+	* Shifter: Add Match guide to joint hierarchy command #350
+
+**Bug Fix**
+	* Shifter: Not context menu with ghost controls #251
+	* Shifter Component bug fix: chain_IK_spline_variable_FK_stack_01 #326 # 325
+	* Made a metadata for rotateOrder #343 #328
+	* Shifter: Replace self.__class__ in all components to avoid recursion error #362
+
 
 4.1.2
 ------
