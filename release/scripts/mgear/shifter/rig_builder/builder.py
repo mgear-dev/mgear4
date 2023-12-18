@@ -10,83 +10,111 @@ from mgear.shifter import io
 
 def setup_pyblish():
     pyblish.api.register_host("maya")
+    pyblish.api.register_gui("pyblish_lite")
     plugin_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), "plugins")
     pyblish.api.register_plugin_path(plugin_dir)
 
 
-def run_validators(output_name):
-    print("Validating rig '{}'...\n".format(output_name))
-    context = pyblish.util.collect()
-    pyblish.util.validate(context)
-    context, report = generate_instance_report(context, output_name)
-    passed_validation = context.data.get("valid")
-    return passed_validation, report
+class RigBuilder(object):
+    def __init__(self):
+        self.results_dict = {}
 
+    def run_validators(self):
+        context = pyblish.util.collect()
+        pyblish.util.validate(context)
+        return context
 
-def format_report_header():
-    header_string = "{:<10}{:<40}{:<80}".format("Success", "Plug-in", "Instance")
-    header = "{}\n{}\n".format(header_string, "-" * 70)
-    return header
+    def build_results_dict(self, output_name, context):
+        self.results_dict[output_name] = {}
+        results = context.data.get("results")
 
+        for result in results:
+            check_name = result.get("plugin").__name__
+            instance = result.get("instance")
+            success = result.get("success")
+            error = result.get("error")
+            self.results_dict[output_name][check_name] = {
+                "instance": instance,
+                "success": success,
+                "error": error,
+            }
 
-def generate_instance_report(context, output_name):
-    result_string = "{success:<10}{plugin.__name__:<40}{instance} - {name}"
-    error_string = "{:<10} > error: {:<80}"
-    context.data["valid"] = True
+    def get_results_dict(self):
+        return self.results_dict
 
-    results = []
-    for result in context.data.get("results"):
-        result["name"] = output_name
-        results.append(result_string.format(**result))
-        r_error = result.get("error")
-        if r_error is not None:
-            context.data["valid"] = False
-            results.append(error_string.format("", str(r_error)))
-    results = "\n".join(results)
+    def format_report_header(self):
+        header_string = "{:<10}{:<40}{:<80}".format("Success", "Plug-in", "Instance")
+        header = "{}\n{}\n".format(header_string, "-" * 70)
+        return header
 
-    return context, results
+    def generate_instance_report(self, output_name):
+        result_string = "{success:<10}{check_name:<40}{instance} - {output_name}"
+        error_string = "{:<10} > error: {:<80}"
+        valid = True
 
+        results = []
+        checks_dict = self.results_dict.get(output_name)
+        for check_name, check_data in checks_dict.items():
+            results.append(
+                result_string.format(
+                    **check_data, check_name=check_name, output_name=output_name
+                )
+            )
+            r_error = check_data.get("error")
+            if r_error is not None:
+                valid = False
+                results.append(error_string.format("", str(r_error)))
 
-def execute_build_logic(json_data, validate=True):
-    """Execute the rig building logic based on the provided JSON data.
+        report_string = "\n".join(results)
+        return valid, report_string
 
-    Args:
-        json_data (str): A JSON string containing the necessary data.
-    """
-    data = json.loads(json_data)
-    report_string = format_report_header()
+    def execute_build_logic(self, json_data, validate=True):
+        """Execute the rig building logic based on the provided JSON data.
 
-    data_rows = data.get("rows")
-    if not data_rows:
-        return
-    for row in data_rows:
-        # Continue with the logic only if file_path is provided
-        file_path = row.get("file_path")
-        if not file_path:
+        Args:
+            json_data (str): A JSON string containing the necessary data.
+        """
+        data = json.loads(json_data)
+        report_string = self.format_report_header()
+
+        data_rows = data.get("rows")
+        if not data_rows:
             return
+        for row in data_rows:
+            # Continue with the logic only if file_path is provided
+            file_path = row.get("file_path")
+            if not file_path:
+                return
 
-        output_folder = data.get("output_folder")
-        if not output_folder:
-            output_folder = os.path.dirname(file_path)
+            output_folder = data.get("output_folder")
+            if not output_folder:
+                output_folder = os.path.dirname(file_path)
 
-        output_name = row.get("output_name")
-        maya_file_name = "{}.ma".format(output_name)
-        maya_file_path = os.path.join(output_folder, maya_file_name)
+            output_name = row.get("output_name")
+            maya_file_name = "{}.ma".format(output_name)
+            maya_file_path = os.path.join(output_folder, maya_file_name)
 
-        print("Building rig '{}'...".format(output_name))
-        io.build_from_file(file_path)
+            print("Building rig '{}'...".format(output_name))
+            io.build_from_file(file_path)
 
-        save_build = True
-        if validate:
-            passed_validation, report = run_validators(output_name)
-            report_string += "{}\n".format(report)
-            if not passed_validation:
-                save_build = False
-                print("Found errors, please fix and rebuild the rig.")
-            report_string += "{}\n".format(" -" * 35)
+            save_build = True
+            context = None
+            if validate:
+                print("Validating rig '{}'...\n".format(output_name))
+                context = self.run_validators()
+                self.build_results_dict(output_name, context)
+                valid, report = self.generate_instance_report(output_name)
 
-        cmds.file(rename=maya_file_path)
-        cmds.file(save=save_build, type="mayaAscii")
-        cmds.file(new=True, force=True)
+                report_string += "{}\n".format(report)
+                if not valid:
+                    save_build = False
+                    print("Found errors, please fix and rebuild the rig.")
 
-    print(report_string)
+                report_string += "{}\n".format(" -" * 35)
+
+            cmds.file(rename=maya_file_path)
+            cmds.file(save=save_build, type="mayaAscii")
+            cmds.file(new=True, force=True)
+
+        print(report_string)
+        return self.results_dict

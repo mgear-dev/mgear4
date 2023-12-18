@@ -1497,6 +1497,7 @@ class Component(component.Main):
         div_offset = int(self.extra_div / 2)
         for i, div_cns in enumerate(self.div_cns):
             if i == 0 and not self.settings["div0"]:
+                transform.matchWorldTransform(self.fk_ctl[0], div_cns)
                 mulmat_node = applyop.gear_mulmatrix_op(
                     self.armRollRef[0] + ".worldMatrix",
                     div_cns + ".parentInverseMatrix",
@@ -1555,6 +1556,21 @@ class Component(component.Main):
         # recover hand offset transform
         if self.settings["use_blade"]:
             self.eff_jnt_off.setMatrix(self.off_t, worldSpace=True)
+
+        # force translation for elbow joint to mid ctl
+        lastArmDiv = None
+        if not self.settings["div0"]:
+            lastArmDiv = self.div_cns[1]
+        elif not self.settings["div1"]:
+            lastArmDiv = self.div_cns[-1]
+
+        if lastArmDiv:
+            applyop.gear_mulmatrix_op(
+                self.elbowBendy_ctl.worldMatrix,
+                lastArmDiv.parentInverseMatrix,
+                lastArmDiv,
+                "t",
+            )
 
     # =====================================================
     # CONNECTOR

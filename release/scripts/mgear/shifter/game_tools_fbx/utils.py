@@ -4,7 +4,7 @@ import ctypes
 import ctypes.wintypes
 import traceback
 import subprocess
-from collections import OrderedDict
+import tempfile
 
 import pymel.core as pm
 import maya.cmds as cmds
@@ -20,7 +20,7 @@ from mgear.core import (
     utils as coreUtils,
     animLayers,
 )
-from mgear.shifter.game_tools_fbx import sdk_utils
+# from mgear.shifter.game_tools_fbx import sdk_utils
 
 NO_EXPORT_TAG = "no_export"
 WORLD_CONTROL_NAME = "world_ctl"
@@ -93,215 +93,6 @@ class SelectorDialog(QtWidgets.QDialog):
         self.item = item.text()
 
 
-def export_skeletal_mesh(export_data):
-    geo_roots = export_data.get("geo_roots", "")
-    joint_roots = [export_data.get("joint_root", "")]
-    file_path = export_data.get("file_path", "")
-    file_name = export_data.get("file_name", "")
-    preset_path = export_data.get("preset_path", None)
-    up_axis = export_data.get("up_axis", None)
-    file_type = export_data.get("file_type", "binary").lower()
-    fbx_version = export_data.get("fbx_version", None)
-    remove_namespaces = export_data.get("remove_namespace")
-    scene_clean = export_data.get("scene_clean", True)
-    deformations = export_data.get("deformations", True)
-    skinning = export_data.get("skinning", True)
-    blendshapes = export_data.get("blendshapes", True)
-    use_partitions = export_data.get("use_partitions", True)
-
-    if not file_name.endswith(".fbx"):
-        file_name = "{}.fbx".format(file_name)
-    export_path = string.normalize_path(os.path.join(file_path, file_name))
-    print("\t>>> Export Path: {}".format(export_path))
-
-    # export settings config
-    pfbx.FBXResetExport()
-
-    # set configuration
-    if preset_path is not None:
-        # load FBX export preset file
-        pfbx.FBXLoadExportPresetFile(f=preset_path)
-    pfbx.FBXExportSkins(v=skinning)
-    pfbx.FBXExportShapes(v=blendshapes)
-    fbx_version_str = None
-    if up_axis is not None:
-        pfbx.FBXExportUpAxis(up_axis)
-    if fbx_version is not None:
-        fbx_version_str = "{}00".format(
-            fbx_version.split("/")[0].replace(" ", "")
-        )
-        pfbx.FBXExportFileVersion(v=fbx_version_str)
-    if file_type == "ascii":
-        pfbx.FBXExportInAscii(v=True)
-
-    # select elements and export all the data
-    pm.select(geo_roots + joint_roots)
-
-    fbx_modified = False
-    pfbx.FBXExport(f=export_path, s=True)
-    fbx_file = sdk_utils.FbxSdkGameToolsWrapper(export_path)
-
-    # Make sure root joints are parented to world
-    for jnt_root in joint_roots:
-        fbx_file.parent_to_world(jnt_root, remove_top_parent=False)
-    if geo_roots:
-        for geo_root in geo_roots:
-            meshes = (
-                cmds.listRelatives(geo_root, children=True, type="transform")
-                or list()
-            )
-            if geo_root == geo_roots[-1]:
-                for mesh in meshes:
-                    # if we are in the last geo root and in the last mesh, we parent the last mesh to the world
-                    # and we remove the parent hierarchy of nodes
-                    # TODO: This is a bit hacky, find a better implementation
-                    # TODO: Ideally we should find the root node before reparenting joints and meshes and just
-                    # TODO: delete that node once the root joints and meshes are parented to the world
-                    if mesh == meshes[-1]:
-                        fbx_file.parent_to_world(mesh, remove_top_parent=True)
-                    else:
-                        fbx_file.parent_to_world(mesh, remove_top_parent=False)
-            else:
-                for mesh in meshes:
-                    fbx_file.parent_to_world(mesh, remove_top_parent=False)
-
-    if remove_namespaces:
-        fbx_file.remove_namespaces()
-        fbx_modified = True
-    if scene_clean:
-        fbx_file.clean_scene(
-            no_export_tag=NO_EXPORT_TAG, world_control_name=WORLD_CONTROL_NAME
-        )
-        fbx_modified = True
-    if fbx_modified:
-        fbx_file.save(
-            mode=file_type,
-            file_version=fbx_version_str,
-            close=True,
-            preset_path=preset_path,
-            skins=skinning,
-            blendshapes=blendshapes,
-        )
-
-    # post process with FBX SDK if available
-    if pfbx.FBX_SDK:
-        if use_partitions:
-            export_skeletal_mesh_partitions(joint_roots, export_data)
-
-            # when using partitions, we remove full FBX file
-            if os.path.isfile(export_path):
-                try:
-                    os.remove(export_path)
-                except OSError:
-                    cmds.warning(
-                        'Was not possible to remove temporal FBX file "{}"'.format(
-                            export_path
-                        )
-                    )
-
-    return export_path
-
-
-def export_skeletal_mesh_partitions(jnt_roots, export_data):
-    if not pfbx.FBX_SDK:
-        cmds.warning(
-            "Python FBX SDK is not available. Skeletal Mesh partitions export functionality is not available!"
-        )
-        return False
-
-    file_path = export_data.get("file_path", "")
-    file_name = export_data.get("file_name", "")
-    deformations = export_data.get("deformations", True)
-    skinning = export_data.get("skinning", True)
-    blendshapes = export_data.get("blendshapes", True)
-
-    if not file_name.endswith(".fbx"):
-        file_name = "{}.fbx".format(file_name)
-    path = string.normalize_path(os.path.join(file_path, file_name))
-    print("\t>>> Export Path: {}".format(path))
-
-    partitions = export_data.get("partitions", dict())
-    if not partitions:
-        cmds.warning("Partitions not defined!")
-        return False
-
-    # data that will be exported into a temporal file
-    partitions_data = OrderedDict()
-
-    for partition_name, data in partitions.items():
-        meshes = data.get("skeletal_meshes", None)
-
-        joint_hierarchy = OrderedDict()
-        for mesh in meshes:
-            # we retrieve all end joints from the influenced joints
-            influences = pm.skinCluster(mesh, query=True, influence=True)
-
-            # make sure the hierarchy from the root joint to the influence joints is retrieved.
-            for jnt_root in jnt_roots:
-                joint_hierarchy.setdefault(jnt_root, list())
-                for inf_jnt in influences:
-                    jnt_hierarchy = get_joint_list(jnt_root, inf_jnt)
-                    for hierarchy_jnt in jnt_hierarchy:
-                        if hierarchy_jnt not in joint_hierarchy[jnt_root]:
-                            joint_hierarchy[jnt_root].append(hierarchy_jnt)
-
-        partitions_data.setdefault(partition_name, dict())
-
-        # the joint chain to export will be the shorter one between the root joint and the influences
-        short_hierarchy = None
-        for root_jnt, joint_hierarchy in joint_hierarchy.items():
-            total_joints = len(joint_hierarchy)
-            if total_joints <= 0:
-                continue
-            if short_hierarchy is None:
-                short_hierarchy = joint_hierarchy
-                partitions_data[partition_name]["root"] = root_jnt
-            elif len(short_hierarchy) > len(joint_hierarchy):
-                short_hierarchy = joint_hierarchy
-                partitions_data[partition_name]["root"] = root_jnt
-        if short_hierarchy is None:
-            continue
-
-        # we make sure we update the hierarchy to include all joints between the skeleton root joint and
-        # the first joint of the found joint hierarchy
-        root_jnt = get_root_joint(short_hierarchy[0])
-        if root_jnt not in short_hierarchy:
-            parent_hierarchy = get_joint_list(root_jnt, short_hierarchy[0])
-            short_hierarchy = parent_hierarchy + short_hierarchy
-
-        partitions_data[partition_name]["hierarchy"] = [
-            jnt.name() for jnt in short_hierarchy
-        ]
-
-    try:
-        for partition_name, partition_data in partitions_data.items():
-            if not partition_data:
-                continue
-            fbx_file = sdk_utils.FbxSdkGameToolsWrapper(path)
-            partition_meshes = partitions.get(partition_name).get(
-                "skeletal_meshes"
-            )
-            fbx_file.export_skeletal_mesh(
-                file_name=partition_name,
-                mesh_names=partition_meshes,
-                hierarchy_joints=partition_data.get("hierarchy", []),
-                deformations=deformations,
-                skins=skinning,
-                blendshapes=blendshapes,
-            )
-            fbx_file.close()
-
-    except Exception:
-        cmds.error(
-            "Something wrong happened while export skeleton mesh: {}".format(
-                traceback.format_exc()
-            )
-        )
-        return False
-
-    return True
-
-
 def export_animation_clip(config_data, clip_data):
     """
     Exports a singular animation clip.
@@ -333,8 +124,6 @@ def export_animation_clip(config_data, clip_data):
     )
     file_type = config_data.get("file_type", "binary").lower()
     fbx_version = config_data.get("fbx_version", None)
-    remove_namespaces = config_data.get("remove_namespace")
-    scene_clean = config_data.get("scene_clean", True)
 
     # Validate timeline range
     if start_frame > end_frame:
@@ -367,9 +156,16 @@ def export_animation_clip(config_data, clip_data):
     original_anim_layer_weights = animLayers.get_layer_weights()
 
     try:
+        # default mute status to on
+        animlayer_mute = True
+
         # set anim layer to enable
         if animLayers.animation_layer_exists(anim_layer):
             animLayers.set_layer_weight(anim_layer, toggle_other_off=True)
+            
+            # Store anim layer mute status
+            animlayer_mute = cmds.animLayer(anim_layer, query=True, mute=True)
+            cmds.animLayer(anim_layer, edit=True, mute=False)
 
         # disable viewport
         mel.eval("paneLayout -e -manage false $gMainPane")
@@ -377,14 +173,12 @@ def export_animation_clip(config_data, clip_data):
         pfbx.FBXResetExport()
 
         # set configuration
+        fbx_version_str = None
         if preset_path is not None:
             # load FBX export preset file
             pfbx.FBXLoadExportPresetFile(f=preset_path)
-        pfbx.FBXExportSkins(v=False)
-        pfbx.FBXExportShapes(v=False)
-        fbx_version_str = None
         if up_axis is not None:
-            pfbx.FBXExportUpAxis(up_axis)
+            pfbx.FBXExportUpAxis(up_axis.lower())
         if fbx_version is not None:
             fbx_version_str = "{}00".format(
                 fbx_version.split("/")[0].replace(" ", "")
@@ -435,34 +229,14 @@ def export_animation_clip(config_data, clip_data):
         pfbx.FBXExportSplitAnimationIntoTakes(c=True)
         pfbx.FBXExportGenerateLog(v=False)
         pfbx.FBXExport(f=path, s=True)
-
-        fbx_modified = False
-        fbx_file = sdk_utils.FbxSdkGameToolsWrapper(path)
-        fbx_file.parent_to_world(root_joint, remove_top_parent=True)
-        if remove_namespaces:
-            fbx_file.remove_namespaces()
-            fbx_modified = True
-        if scene_clean:
-            fbx_file.clean_scene(
-                no_export_tag=NO_EXPORT_TAG,
-                world_control_name=WORLD_CONTROL_NAME,
-            )
-            fbx_modified = True
-        if fbx_modified:
-            fbx_file.save(
-                mode=file_type,
-                file_version=fbx_version_str,
-                close=True,
-                preset_path=preset_path,
-                skins=True,
-            )
-
     except Exception as exc:
         raise exc
     finally:
         # setup again original anim layer weights
         if anim_layer and original_anim_layer_weights:
             animLayers.set_layer_weights(original_anim_layer_weights)
+            # Sets the animation layer back to default
+            cmds.animLayer(anim_layer, edit=True, mute=animlayer_mute)
 
         if temp_skin_cluster and cmds.objExists(temp_skin_cluster):
             cmds.delete(temp_skin_cluster)
@@ -646,64 +420,6 @@ def select_item(items, title):
     return item
 
 
-def get_root_joint(start_joint):
-    """
-    Recursively traverses up the hierarchy until finding the first object that does not have a parent.
-
-    :param str node_name: node name to get root of.
-    :param str node_type: node type for the root node.
-    :return: found root node.
-    :rtype: str
-    """
-
-    parent = pm.listRelatives(start_joint, parent=True, type="joint")
-    parent = parent[0] if parent else None
-
-    return get_root_joint(parent) if parent else start_joint
-
-
-def get_joint_list(start_joint, end_joint):
-    """Returns a list of joints between and including given start and end joint
-
-    Args:
-            start_joint str: start joint of joint list
-            end_joint str end joint of joint list
-
-    Returns:
-            list[str]: joint list
-    """
-
-    if start_joint == end_joint:
-        return [start_joint]
-
-    # check hierarchy
-    descendant_list = pm.ls(
-        pm.listRelatives(start_joint, ad=True, fullPath=True),
-        long=True,
-        type="joint",
-    )
-    if not descendant_list.count(end_joint):
-        # raise Exception('End joint "{}" is not a descendant of start joint "{}"'.format(end_joint, start_joint))
-        return list()
-
-    joint_list = [end_joint]
-    while joint_list[-1] != start_joint:
-        parent_jnt = pm.listRelatives(
-            joint_list[-1], p=True, pa=True, fullPath=True
-        )
-        if not parent_jnt:
-            raise Exception(
-                'Found root joint while searching for start joint "{}"'.format(
-                    start_joint
-                )
-            )
-        joint_list.append(parent_jnt[0])
-
-    joint_list.reverse()
-
-    return joint_list
-
-
 def get_end_joint(start_joint):
     end_joint = None
     next_joint = start_joint
@@ -719,6 +435,113 @@ def get_end_joint(start_joint):
             next_joint = None
 
     return end_joint
+
+# ------- namespaces ------
+
+
+def _count_namespaces(name):
+    # Custom function to count the number of ":" in a name
+    return name.count(':')
+
+
+def clean_namespaces(export_data):
+    """
+    Gets all available namespaces in scene.
+    Checks each for objects that have it assigned.
+    Removes the namespace from the object.
+    """
+    namespaces = get_scene_namespaces()
+
+    # Sort namespaces by longest nested first
+    namespaces = sorted(namespaces, key=_count_namespaces, reverse=True)
+
+    for namespace in namespaces:
+        print("  - {}".format(namespace))
+        child_namespaces = om.MNamespace.getNamespaces(namespace, True)
+
+        for chld_ns in child_namespaces:
+            m_objs = om.MNamespace.getNamespaceObjects(chld_ns)
+            for m_obj in m_objs:
+                remove_namespace(m_obj)
+
+        m_objs = om.MNamespace.getNamespaceObjects(namespace)
+        for m_obj in m_objs:
+            remove_namespace(m_obj)
+
+    filtered_export_data = clean_export_namespaces(export_data)
+    return filtered_export_data
+
+
+def clean_export_namespaces(export_data):
+    """
+    Looks at all the joints and mesh data in the export data and removes
+    any namespaces that exists.
+    """
+    
+    for key in export_data.keys():
+
+        # ignore filepath, as it contains ':', which will break the path
+        if key == "file_path" or key == "color":
+            continue
+
+        value = export_data[key]
+
+        print(key, value)
+
+        if isinstance(value, list):
+            for i in range(len(value)):
+                value[i] = trim_namespace_from_name(value[i])
+        elif isinstance(value, dict):
+            value = clean_export_namespaces(value)
+        elif isinstance(value, str):
+            value = trim_namespace_from_name(value)
+
+        export_data[key] = value
+
+    return export_data
+
+
+def count_namespaces(name):
+    # Custom function to count the number of ":" in a name
+    return name.count(':')
+
+
+def trim_namespace_from_name(name):
+    if name.find(":") >= 0:
+        return name.split(":")[-1]
+    return name
+
+
+def remove_namespace(mobj):
+    """
+    Removes the namesspace that is currently assigned to the asset
+    """
+    dg = om.MFnDependencyNode(mobj)
+    name = dg.name()
+    dg.setName(name[len(dg.namespace):])
+
+
+def get_scene_namespaces():
+    """
+    Gets all namespaces in the scene.
+    """
+    IGNORED_NAMESPACES = [":UI", ":shared", ":root"]
+    spaces = om.MNamespace.getNamespaces(recurse=True)
+    for ignored in IGNORED_NAMESPACES:
+        if ignored in spaces:
+            spaces.remove(ignored)
+
+    return spaces
+
+
+def get_scene_path():
+    """
+    Get the file path of the current scene.
+
+    Returns:
+            str: path of the current open scene file
+    """
+    return cmds.file(query=True, sceneName=True)
 
 
 if __name__ == "__main__":
