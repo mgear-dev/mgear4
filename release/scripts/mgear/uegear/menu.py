@@ -25,11 +25,11 @@ def install():
         ),
         ("-----", None),
         (
-            "Import Selected Camers from Sequencer",
+            "Import Selected Cameras from Sequencer",
             str_import_selected_cameras_from_unreal,
         ),
         (
-            "Update Sequencer Camers from Maya Selection",
+            "Update Sequencer Cameras from Maya Selection",
             str_update_sequencer_camera_from_maya,
         ),
         ("-----", None),
