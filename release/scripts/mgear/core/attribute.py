@@ -1119,11 +1119,11 @@ def set_default_value(node, attribute):
                     pm.setAttr("{}.rotateOrder".format(node), intNum)
             else:
                 pm.displayWarning(
-                    "No custom rotate order metadata found in {}. Resetting to XYZ rotate order".format(
+                    "No custom rotate order metadata found in {}. XYZ rotate order NOT reset".format(
                         node
                     )
                 )
-                node.attr(attribute).set(defVal)
+                # node.attr(attribute).set(defVal)
         else:
             node.attr(attribute).set(defVal)
     except RuntimeError:
