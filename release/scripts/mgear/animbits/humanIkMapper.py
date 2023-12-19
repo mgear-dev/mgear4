@@ -268,6 +268,12 @@ class HumanIKMapper:
             pm.PyNode(cls.char_config[bone]["target"])
             for bone in cls.char_config
         ]
+
+        for bone in cls.char_config:
+            if cls.char_config[bone]["sub_ik"]:
+                bone_sub_iks = cls.char_config[bone]["sub_ik"]
+                ctls.extend([pm.PyNode(sub_ik) for sub_ik in bone_sub_iks])
+
         locked_ctrls = cls.get_locked_ctrls(ctls)
         if locked_ctrls:
             if LockedCtrlsDialog(ctrls_list=locked_ctrls).exec_():
@@ -289,22 +295,45 @@ class HumanIKMapper:
                 )
 
     @classmethod
-    def set_sub_ik(cls, bone_target, sub_ik_ctls):
+    def set_sub_ik(cls, bone_target, sub_ik_ctls, do_mirror=False):
+
+        def sub_ik_setup(bone_target, sub_ik_ctls):
+
+            if not pm.attributeQuery("sub_ik", node=bone_target, exists=True):
+                pm.addAttr(bone_target, longName="sub_ik", attributeType="message")
+
+            for sub_ik_ctl in sub_ik_ctls:
+
+                if not pm.attributeQuery("sub_ik", node=sub_ik_ctl, exists=True):
+                    pm.addAttr(
+                        sub_ik_ctl, longName="sub_ik", attributeType="message"
+                    )
+
+                bone_target.sub_ik >> sub_ik_ctl.sub_ik
+
+        # get ctrls
+
         bone_target = pm.PyNode(bone_target)
         sub_ik_ctls = [pm.PyNode(ctl) for ctl in sub_ik_ctls]
-        if not pm.attributeQuery("sub_ik", node=bone_target, exists=True):
-            pm.addAttr(bone_target, longName="sub_ik", attributeType="message")
+        all_sub_ik_ctls = list(sub_ik_ctls)
 
-        for sub_ik_ctl in sub_ik_ctls:
+        if do_mirror:
+            opposite_bone_target = MirrorController.get_opposite_control(bone_target)
+            opposite_sub_ik_ctls = [MirrorController.get_opposite_control(ctl) for ctl in sub_ik_ctls]
+            all_sub_ik_ctls.extend(opposite_sub_ik_ctls)
 
-            if not pm.attributeQuery("sub_ik", node=sub_ik_ctl, exists=True):
-                pm.addAttr(
-                    sub_ik_ctl, longName="sub_ik", attributeType="message"
-                )
+        locked_ctrls = cls.get_locked_ctrls(all_sub_ik_ctls)
+        if locked_ctrls:
+            if LockedCtrlsDialog(ctrls_list=locked_ctrls).exec_():
+                cls.unlock_ctrls_srt(locked_ctrls)
+            else:
+                return
 
-            bone_target.sub_ik >> sub_ik_ctl.sub_ik
+        sub_ik_setup(bone_target, sub_ik_ctls)
+        if do_mirror:
+            sub_ik_setup(opposite_bone_target, opposite_sub_ik_ctls)
 
-        # pm.parentConstraint(bone_target, sub_ik_ctls, maintainOffset=True)
+
 
     @classmethod
     def clear_sub_ik(cls, bone_target):
@@ -343,20 +372,25 @@ class HumanIKMapper:
     def bake(cls):
         current_ik_char = pm.mel.hikGetCurrentCharacter()
         attrs_string = " ".join(cls.get_sub_ik_bake_attrs())
+        sub_ik_ctls = [cls.char_config[bone]["sub_ik"] for bone in cls.char_config if cls.char_config[bone]["sub_ik"]]
+        sub_ik_constraints = [cmds.parentConstraint(ctl, query=True) for ctl in sub_ik_ctls]
+        sub_ik_constraints_string = " ".join(sub_ik_constraints)
 
         mel_cmd = """
-
+            string $currCharacter = hikGetCurrentCharacter();
+            
             if( $currCharacter != "" )
             {{
-                string $preBakeCmd =  "hikBakeCharacterPre( \\"{0}\\" );";
+                string $preBakeCmd =  "hikBakeCharacterPre( \\"{0}\\" ); ";
                 $preBakeCmd += "select -add {1};";
-                string $postBakeCmd = "hikBakeCharacterPost( \\"{0}\\" )";
+                string $postBakeCmd = "hikBakeCharacterPost( \\"{0}\\" ); ";
+                $postBakeCmd += "delete {2};";
 
                 performBakeSimulationArgList 2 {{ "1", "animationList", $preBakeCmd, $postBakeCmd }};
             }}
 
         """.format(
-            current_ik_char, attrs_string
+            current_ik_char, attrs_string, sub_ik_constraints_string
         )
 
         pm.mel.eval(mel_cmd)
@@ -400,6 +434,8 @@ class HumanIKMapperUI(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.create_widgets()
         self.create_layout()
         self.create_connections()
+
+        self.update_mapping()
 
     @QtCore.Slot()
     def adjustSize(self, *args, **kwargs):
@@ -697,7 +733,8 @@ class HumanIKMapperUI(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.update_mapping()
 
     def set_selection_as_sub_ik(self, bone_target):
-        HumanIKMapper.set_sub_ik(bone_target, pm.ls(sl=1))
+        do_mirror = self.mirror_checkbox.isChecked()
+        HumanIKMapper.set_sub_ik(bone_target, pm.ls(sl=1), do_mirror)
         self.update_mapping()
 
     def clear_sub_ik(self, bone_target):
