@@ -27,11 +27,21 @@ class RigBuilder(object):
         self.results_dict = {}
 
     def run_validators(self):
+        """Runs the Pyblish validators."""
         context = pyblish.util.collect()
         pyblish.util.validate(context)
         return context
 
     def build_results_dict(self, output_name, context):
+        """Builds a nested dictionary containing Pyblish validator results for each rig.
+
+        Args:
+            output_name (str): name of the rig and its output file
+            context: Pyblish context containing results data
+
+        The dictionary is stored in self.results_dict with this structure:
+            { rig_name: { check_name: { results } } }
+        """
         self.results_dict[output_name] = {}
         results = context.data.get("results")
 
@@ -46,15 +56,18 @@ class RigBuilder(object):
                 "error": error,
             }
 
-    def get_results_dict(self):
-        return self.results_dict
-
     def format_report_header(self):
+        """Creates the header for the validator report string."""
         header_string = "{:<10}{:<40}{:<80}".format("Success", "Plug-in", "Instance")
         header = "{}\n{}\n".format(header_string, "-" * 70)
         return header
 
     def generate_instance_report(self, output_name):
+        """Appends the validator results of the specified rig to the report string.
+
+        Args:
+            output_name (str): name of the rig and its output file
+        """
         result_string = "{success:<10}{check_name:<40}{instance} - {output_name}"
         error_string = "{:<10} > error: {:<80}"
         valid = True
@@ -76,7 +89,9 @@ class RigBuilder(object):
         return valid, report_string
 
     def execute_build_logic(self, json_data, validate=True, passed_only=False):
-        """Execute the rig building logic based on the provided JSON data.
+        """
+        Executes the rig building logic based on the provided JSON data.
+        Optionally runs Pyblish validators on the builds.
 
         Args:
             json_data (str): A JSON string containing the necessary data
@@ -84,7 +99,6 @@ class RigBuilder(object):
             passed_only (bool): Option to publish only rigs that pass validation
         """
         data = json.loads(json_data)
-        report_string = self.format_report_header()
 
         data_rows = data.get("rows")
         if not data_rows:
@@ -106,8 +120,10 @@ class RigBuilder(object):
             print("Building rig '{}'...".format(output_name))
             io.build_from_file(file_path)
 
-            save_build = True
             context = None
+            save_build = True
+            report_string = self.format_report_header()
+
             if PYBLISH_READY and validate:
                 print("Validating rig '{}'...\n".format(output_name))
                 context = self.run_validators()
