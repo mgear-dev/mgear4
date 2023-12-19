@@ -68,11 +68,13 @@ class RigBuilder(object):
         report_string = "\n".join(results)
         return valid, report_string
 
-    def execute_build_logic(self, json_data, validate=True):
+    def execute_build_logic(self, json_data, validate=True, passed_only=False):
         """Execute the rig building logic based on the provided JSON data.
 
         Args:
-            json_data (str): A JSON string containing the necessary data.
+            json_data (str): A JSON string containing the necessary data
+            validate (bool): Option to run Pyblish validators
+            passed_only (bool): Option to publish only rigs that pass validation
         """
         data = json.loads(json_data)
         report_string = self.format_report_header()
@@ -106,7 +108,7 @@ class RigBuilder(object):
                 valid, report = self.generate_instance_report(output_name)
 
                 report_string += "{}\n".format(report)
-                if not valid:
+                if passed_only and not valid:
                     save_build = False
                     print("Found errors, please fix and rebuild the rig.")
 

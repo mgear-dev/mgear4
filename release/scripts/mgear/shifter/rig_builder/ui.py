@@ -45,7 +45,7 @@ class RigBuilderUI(MayaQWidgetDockableMixin, QtWidgets.QDialog, pyqt.SettingsMix
         run_validators_layout = QtWidgets.QHBoxLayout()
         self.layout.addLayout(run_validators_layout)
 
-        run_label = QtWidgets.QLabel("Run Validators")
+        run_label = QtWidgets.QLabel("Run Pyblish Validators")
         self.run_validators_checkbox = QtWidgets.QCheckBox()
         self.run_validators_checkbox.setChecked(True)
         run_validators_layout.addWidget(run_label)
@@ -57,6 +57,13 @@ class RigBuilderUI(MayaQWidgetDockableMixin, QtWidgets.QDialog, pyqt.SettingsMix
         self.results_popup_checkbox.setChecked(True)
         run_validators_layout.addWidget(self.results_label)
         run_validators_layout.addWidget(self.results_popup_checkbox)
+        run_validators_layout.addStretch()
+
+        self.publish_label = QtWidgets.QLabel("Publish Passed Rigs Only")
+        self.publish_passed_checkbox = QtWidgets.QCheckBox()
+        self.publish_passed_checkbox.setChecked(True)
+        run_validators_layout.addWidget(self.publish_label)
+        run_validators_layout.addWidget(self.publish_passed_checkbox)
         run_validators_layout.addStretch()
 
         # File Table UI
@@ -105,6 +112,8 @@ class RigBuilderUI(MayaQWidgetDockableMixin, QtWidgets.QDialog, pyqt.SettingsMix
         runState = self.run_validators_checkbox.isChecked()
         self.results_label.setEnabled(runState)
         self.results_popup_checkbox.setEnabled(runState)
+        self.publish_label.setEnabled(runState)
+        self.publish_passed_checkbox.setEnabled(runState)
 
     def on_add_button_clicked(self):
         file_paths, _ = QtWidgets.QFileDialog.getOpenFileNames(
@@ -132,7 +141,10 @@ class RigBuilderUI(MayaQWidgetDockableMixin, QtWidgets.QDialog, pyqt.SettingsMix
     def on_build_button_clicked(self):
         data = self.collect_table_data()
         validate = self.run_validators_checkbox.isChecked()
-        results_dict = self.builder.execute_build_logic(data, validate=validate)
+        passed_rigs_only = self.publish_passed_checkbox.isChecked()
+        results_dict = self.builder.execute_build_logic(
+            data, validate=validate, passed_only=passed_rigs_only
+        )
         if (
             self.run_validators_checkbox.isChecked()
             and self.results_popup_checkbox.isChecked()
