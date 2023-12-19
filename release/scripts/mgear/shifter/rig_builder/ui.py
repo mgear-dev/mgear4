@@ -7,7 +7,7 @@ from mgear.vendor.Qt import QtGui, QtWidgets
 from mgear.core import pyqt, widgets
 from mgear.shifter.rig_builder import builder
 
-builder.setup_pyblish()
+PYBLISH_READY = builder.setup_pyblish()
 
 
 class RigBuilderUI(MayaQWidgetDockableMixin, QtWidgets.QDialog, pyqt.SettingsMixin):
@@ -61,10 +61,15 @@ class RigBuilderUI(MayaQWidgetDockableMixin, QtWidgets.QDialog, pyqt.SettingsMix
 
         self.publish_label = QtWidgets.QLabel("Publish Passed Rigs Only")
         self.publish_passed_checkbox = QtWidgets.QCheckBox()
-        self.publish_passed_checkbox.setChecked(True)
         run_validators_layout.addWidget(self.publish_label)
         run_validators_layout.addWidget(self.publish_passed_checkbox)
         run_validators_layout.addStretch()
+
+        if not PYBLISH_READY:
+            run_label.setEnabled(False)
+            self.run_validators_checkbox.setEnabled(False)
+            self.run_validators_checkbox.setChecked(False)
+            self.on_run_validators_checkbox_changed()
 
         # File Table UI
         self.table_widget = QtWidgets.QTableWidget()
@@ -94,7 +99,7 @@ class RigBuilderUI(MayaQWidgetDockableMixin, QtWidgets.QDialog, pyqt.SettingsMix
 
     def create_connections(self):
         self.output_folder_button.clicked.connect(self.on_output_folder_clicked)
-        self.run_validators_checkbox.stateChanged.connect(
+        self.run_validators_checkbox.toggled.connect(
             self.on_run_validators_checkbox_changed
         )
         self.add_button.clicked.connect(self.on_add_button_clicked)
@@ -219,6 +224,7 @@ class ResultsPopupDialog(QtWidgets.QDialog):
     def create_results_view(self):
         self.results_tree = QtWidgets.QTreeView()
         self.results_tree.setAlternatingRowColors(True)
+        self.results_tree.setWordWrap(True)
         self.layout.addWidget(self.results_tree)
 
         model = QtGui.QStandardItemModel()
@@ -235,17 +241,21 @@ class ResultsPopupDialog(QtWidgets.QDialog):
     def add_result_entry(self, model, rig_name, checks_dict):
         group_root = QtGui.QStandardItem(rig_name)
         model.appendRow(group_root)
+        summary_string = "All checks passed!"
 
         for i, (check_name, check_data) in enumerate(checks_dict.items()):
             result_string = "Passed" if check_data.get("success") else "Failed"
             error = check_data.get("error")
             if error is not None:
                 result_string += " - {}".format(error)
-
+                summary_string = "Some checks failed, please review errors."
             check_item = QtGui.QStandardItem(check_name)
             result_item = QtGui.QStandardItem(result_string)
             group_root.setChild(i, 1, check_item)
             group_root.setChild(i, 2, result_item)
+
+        summary_item = QtGui.QStandardItem(summary_string)
+        model.setItem(group_root.row(), 2, summary_item)
 
 
 def openRigBuilderUI(*args):

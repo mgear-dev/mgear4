@@ -9,10 +9,22 @@ from mgear.shifter import io
 
 
 def setup_pyblish():
-    pyblish.api.register_host("maya")
-    pyblish.api.register_gui("pyblish_lite")
-    plugin_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), "plugins")
-    pyblish.api.register_plugin_path(plugin_dir)
+    try:
+        import pyblish.api
+        import pyblish.util
+
+        pyblish.api.register_host("maya")
+        pyblish.api.register_gui("pyblish_lite")
+        plugin_dir = os.path.join(
+            os.path.dirname(os.path.realpath(__file__)), "plugins"
+        )
+        pyblish.api.register_plugin_path(plugin_dir)
+        return True
+    except:
+        import maya.api.OpenMaya as om
+
+        om.MGlobal.displayInfo("Could not setup Pyblish, exiting.")
+        return False
 
 
 class RigBuilder(object):
@@ -118,5 +130,7 @@ class RigBuilder(object):
             cmds.file(save=save_build, type="mayaAscii")
             cmds.file(new=True, force=True)
 
-        print(report_string)
+        if validate:
+            print(report_string)
+
         return self.results_dict
