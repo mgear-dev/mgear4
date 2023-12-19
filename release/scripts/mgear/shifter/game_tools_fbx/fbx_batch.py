@@ -540,8 +540,15 @@ def _count_namespaces(name):
     return name.count(':')
 
 def _trim_namespace_from_name(name):
-    if name.find(":") >= 0:
-        return name.split(":")[-1]
+
+    split_long_name = name.split("|")
+    for i in range(len(split_long_name)):
+        meta_name = split_long_name[i]
+        if meta_name == "":
+            continue
+        if meta_name.find(":") >= 0:
+            split_long_name[i] = meta_name.split(":")[-1]
+    name = "|".join(split_long_name)
     return name
 
 def _remove_namespace(mobj):
@@ -668,6 +675,8 @@ def _get_all_mesh_dag_objects():
     Gets all mesh dag objects in scene.
 
     Only returns DAG object and not the shape node.
+
+    returns list of full path names
     """
     mesh_objects = []
 
