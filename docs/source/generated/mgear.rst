@@ -1,7 +1,11 @@
-mgear
+﻿mgear
 =====
 
 .. automodule:: mgear
+
+   
+   
+   
 
    
    
@@ -17,6 +21,7 @@ mgear
       reloadModule
       setDebug
       toggleDebug
+      toggleLog
    
    
 
@@ -33,3 +38,6 @@ mgear
       FakeException
    
    
+
+
+

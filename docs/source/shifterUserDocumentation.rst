@@ -114,7 +114,6 @@ UI
 .. image:: images/shifter/fbx_exporter/fbx_shifter.png
 
 * **File** - Allows for users to serialise there settings, incase they want to reload them, or use them in a scripted pipeline.
-* **FBX SDK(Optional)** - Allows the specify where the FBX SDK can be found. This allows the UI to perform some extra :ref:`features <shifter-fbx-sdk-features>`
 
 
 Source Elements
@@ -136,7 +135,7 @@ Settings
 
 You can specify the FBX export settings here.
 
-If *FBX SDK* enabled, then you can also perform additional commands post export.
+It also allows for some extra conditioning of the data upon export.
 
 - Remove Namespace
 - Clean up scene.
@@ -155,6 +154,9 @@ It also **refreshes** the **Unreal Skeleton** list, by querying the current open
 
 .. image:: images/shifter/fbx_exporter/fbx_shifter_ue_no_path.png
     :align: center
+
+.. note::
+    If you have selected a skeleton and no longer what to import using the selected skeleton, or wish to generate a new skeleton on import, ctr click on the selected element to deselect it.
 
 - **Directory**: The import location in Unreal for the SKM and Animations.
 
@@ -181,33 +183,31 @@ Allows for the exporting of Skeletons and Geometry.
 
 - **Skinning**: Export Skinning data
 - **Blendshapes**: Export Blendshapes that exist on the geometry.
+- **Partitions**: Export Partitioned FBXs.
+- **Cull Joints**: With Cull Joints enabled, generated fbx partition files will have all unneccesary leaf nodes removed.
+*Unnessary leaf nodes*, would be any joint that is no longer driving geometry and no longer required to drive any other joints that has skinning, to influence geometry that is part of the partition.
+
+.. note::
+    Exporting the Skeletal Mesh, will trigger a mayabatch session, that performs all the file conditioning, and then performs the fbx exporting.
 
 **Partitions**
 
-*(If available)* Performs partitioning of skeleton hierarchy data.
+Performs partitioning of geometric data.
+Partitions are designed to allow you to export once, and generate an FBX per a partition. Each generated FBX partition, will only contain the geometry that has been added to the partition.
 
 - When you add the **geometry roots**, all geometry child objects will get added to the **Master** partition.
-
-Partitions are designed to allow you to export once, and generate new skeletons hierarchies that share the same root structure, but have all unneccesary leaf nodes removed.
-*Unnessary leaf nodes*, would be any joint that is no longer driving geometry and no longer required to drive any other joints that have skinning. 
 
 .. image:: images/shifter/fbx_exporter/fbx_shifter_export_geo_partitions.png
         :align: center
 
 - Press the **"+"** button to create a custom partition. Once it has been created you can drag any other geometry objects from the master partition, to the custom partition.
 - Right click on a Partition to change its colour, duplicate or delete it.
+- Toggling the button on the partition, will disable it from being exported.
 
 **Export Skeletal/SkinnedMesh**: Performs the FBX export, and if **"Enable Unreal Engine Import"** is active, the fbx's will be imported into the active Unreal Engine project.
 
 .. note::
     If you want to use a pre-existing skeleton in Unreal, make sure to have selected the *skeleton* in the *Unreal Engine Imports* section. If you have not, a new Skeleton will be generated on import into Unreal. 
-
-.. _shifter-fbx-sdk-features:
-
-**FBX SDK Features**
-
-If you have FBX SDK enabled, it will allow you to export the fbx SKM, and create a Skeleton per a partition group.
-The skeleton that is created per a group, has trimmed all bones that no longer drive any geometry objects in the partition.
 
 Animation
 ++++++++++++++++++
@@ -220,6 +220,7 @@ Exports the Maya animation as an FBX. **Clips** allow for sections of the maya t
 **Clip**
 
 Clips allow you to create named animation exportd, that represent a section of time on the maya timeline.
+New Clips will automatically read the duration of the Maya timeline, and use that as the start and end frame.
 
 - **Trash can**: Removes the clip.
 - **Name of the clip** will be appended to the file. eg. *BoyA_ROM*, *BoyA_Clip_2*

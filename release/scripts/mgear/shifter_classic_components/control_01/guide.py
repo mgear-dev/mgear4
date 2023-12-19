@@ -137,7 +137,7 @@ class componentSettings(MayaQWidgetDockableMixin, guide.componentMainSettings):
                           'sphere',
                           'square']
 
-        super(self.__class__, self).__init__(parent=parent)
+        super(componentSettings, self).__init__(parent=parent)
         self.settingsTab = settingsTab()
 
         self.setup_componentSettingWindow()
