@@ -7,8 +7,6 @@ from mgear.vendor.Qt import QtGui, QtWidgets
 from mgear.core import pyqt, widgets
 from mgear.shifter.rig_builder import builder
 
-PYBLISH_READY = builder.setup_pyblish()
-
 
 class RigBuilderUI(MayaQWidgetDockableMixin, QtWidgets.QDialog, pyqt.SettingsMixin):
     """
@@ -65,7 +63,7 @@ class RigBuilderUI(MayaQWidgetDockableMixin, QtWidgets.QDialog, pyqt.SettingsMix
         run_validators_layout.addWidget(self.publish_passed_checkbox)
         run_validators_layout.addStretch()
 
-        if not PYBLISH_READY:
+        if not builder.PYBLISH_READY:
             run_label.setEnabled(False)
             self.run_validators_checkbox.setEnabled(False)
             self.run_validators_checkbox.setChecked(False)

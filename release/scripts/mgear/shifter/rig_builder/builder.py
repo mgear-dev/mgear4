@@ -1,30 +1,25 @@
 import json
 import os
 
+import maya.api.OpenMaya as om
 import maya.cmds as cmds
-import pyblish.api
-import pyblish.util
 
 from mgear.shifter import io
 
+try:
+    import pyblish.api
+    import pyblish.util
 
-def setup_pyblish():
-    try:
-        import pyblish.api
-        import pyblish.util
+    pyblish.api.register_host("maya")
+    pyblish.api.register_gui("pyblish_lite")
+    plugin_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), "plugins")
+    pyblish.api.register_plugin_path(plugin_dir)
 
-        pyblish.api.register_host("maya")
-        pyblish.api.register_gui("pyblish_lite")
-        plugin_dir = os.path.join(
-            os.path.dirname(os.path.realpath(__file__)), "plugins"
-        )
-        pyblish.api.register_plugin_path(plugin_dir)
-        return True
-    except:
-        import maya.api.OpenMaya as om
-
-        om.MGlobal.displayInfo("Could not setup Pyblish, exiting.")
-        return False
+    PYBLISH_READY = True
+    om.MGlobal.displayInfo("Successfully imported Pyblish.")
+except:
+    PYBLISH_READY = False
+    om.MGlobal.displayWarning("Could not setup Pyblish, disabling validator option.")
 
 
 class RigBuilder(object):
@@ -113,7 +108,7 @@ class RigBuilder(object):
 
             save_build = True
             context = None
-            if validate:
+            if PYBLISH_READY and validate:
                 print("Validating rig '{}'...\n".format(output_name))
                 context = self.run_validators()
                 self.build_results_dict(output_name, context)
