@@ -126,8 +126,8 @@ python "fbx_batch.perform_fbx_condition({ns}, {sc}, master_path, root_joint, roo
             mayabatch_shell = False
             mayabatch_args.append("-script")
             mayabatch_args.append(shlex.quote(script_file_path))
-            mayabatch_args.append("-log")
-            mayabatch_args.append(shlex.quote(log_path))
+            # mayabatch_args.append("-log")
+            # mayabatch_args.append(shlex.quote(log_path))
 
             print("-------------------------------------------")
             print("[Launching] MayaBatch")
@@ -143,8 +143,8 @@ python "fbx_batch.perform_fbx_condition({ns}, {sc}, master_path, root_joint, roo
             mayabatch_shell = True
             mayabatch_args.append("-script")
             mayabatch_args.append('"'+script_file_path+'"')
-            mayabatch_args.append("-log")
-            mayabatch_args.append('"'+log_path+'"')
+            # mayabatch_args.append("-log")
+            # mayabatch_args.append('"'+log_path+'"')
 
             mayabatch_args = "{}".format(" ".join(mayabatch_args))
 
