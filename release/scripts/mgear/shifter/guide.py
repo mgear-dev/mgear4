@@ -719,6 +719,15 @@ class Rig(Main):
             attribute.addAttribute(
                 self.model, "guide_x_ray", "bool", False, keyable=True)
 
+        attribute.addAttribute(
+            self.model,
+            "joint_radius",
+            "double",
+            value=0.1,
+            minValue=0,
+            keyable=True
+        )
+
         # Options
         self.options = self.addPropertyParamenters(self.model)
 
