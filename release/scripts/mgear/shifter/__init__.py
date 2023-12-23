@@ -379,7 +379,9 @@ class Rig(object):
         # --------------------------------------------------
         # Model
         self.model = primitive.addTransformFromPos(None, self.options["rig_name"])
-        attribute.lockAttribute(self.model)
+
+        lockAttrs = ["tx", "ty", "tz", "rx", "ry", "rz", "sx", "sy", "sz"]
+        attribute.lockAttribute(self.model, attributes=lockAttrs)
 
         # --------------------------------------------------
         # INFOS
