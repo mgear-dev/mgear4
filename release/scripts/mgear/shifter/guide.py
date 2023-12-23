@@ -479,6 +479,10 @@ class Rig(Main):
             root = root.getParent()
             mgear.log(root)
 
+        if self.model.hasAttr("guide_vis"):
+            if not self.model.guide_vis.get():
+                self.model.hide()
+
         # ---------------------------------------------------
         # First check and set the options
         mgear.log("Get options")
@@ -715,9 +719,13 @@ class Rig(Main):
     def initialHierarchy(self):
         """Create the initial rig guide hierarchy (model, options...)"""
         self.model = pm.group(n="guide", em=True, w=True)
+
         if versions.current() >= 20220000:
             attribute.addAttribute(
                 self.model, "guide_x_ray", "bool", False, keyable=True)
+
+        attribute.addAttribute(
+            self.model, "guide_vis", "bool", False, keyable=True)
 
         attribute.addAttribute(
             self.model,
