@@ -479,10 +479,6 @@ class Rig(Main):
             root = root.getParent()
             mgear.log(root)
 
-        if self.model.hasAttr("guide_vis"):
-            if not self.model.guide_vis.get():
-                self.model.hide()
-
         # ---------------------------------------------------
         # First check and set the options
         mgear.log("Get options")
@@ -1033,7 +1029,6 @@ class Rig(Main):
             return
         self.setFromHierarchy(root, False)
         name = "_".join(root.name().split("|")[-1].split("_")[:-1])
-        print(name)
         comp_guide = self.components[name]
         comp_guide.rename(root, newName, newSide, newIndex)
 

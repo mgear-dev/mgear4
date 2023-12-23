@@ -590,10 +590,16 @@ class Rig(object):
 
         # hide all DG nodes inputs in channel box -----------------------
         # only hides if components_finalize or All steps are done
+
         if self.component_finalize:
             for c in self.model.listHistory(ac=True, f=True):
                 if c.type() != "transform":
                     c.isHistoricallyInteresting.set(False)
+
+            # hide a guide if the guide_vis pram is turned off
+            if self.guide.model.hasAttr("guide_vis"):
+                if not self.guide.model.guide_vis.get():
+                    self.guide.model.hide()
 
         # Bind skin re-apply
         if self.options["importSkin"]:
