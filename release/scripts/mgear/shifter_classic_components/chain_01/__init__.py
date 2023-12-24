@@ -3,6 +3,7 @@
 import pymel.core as pm
 from pymel.core import datatypes
 
+from mgear import rigbits
 from mgear.shifter import component
 
 from mgear.core import node, applyop, vector
@@ -246,14 +247,37 @@ class Component(component.Main):
         for i, loc in enumerate(self.loc):
 
             if self.settings["mode"] == 0:  # fk only
-                pm.parentConstraint(self.fk_ctl[i], loc, maintainOffset=False)
-                pm.connectAttr(self.fk_ctl[i] + ".scale", loc + ".scale")
+                if self.settings["chainAiming"] == 1:
+                    # Loop until the last one and connect aim constraints from index+1
+                    if i < len(self.loc) - 1:
+                        node = applyop.gear_matrix_cns(self.fk_ctl[i], loc, connect_srt="st")
+                        node.rename("{}_matrixConst".format(loc))
+
+                        # create an aimMatrix node
+                        aim_matrix_node = pm.createNode("aimMatrix")
+                        aim_matrix_node.rename("{}_aimMatrix".format(loc))
+                        dec_matrix_node = pm.createNode("decomposeMatrix")
+                        dec_matrix_node.rename("{}_decomposeMatrix".format(loc))
+
+                        # setup with an aimMatrix
+                        pm.connectAttr("{}.worldMatrix[0]".format(self.fk_ctl[i]),
+                                       "{}.inputMatrix".format(aim_matrix_node))
+                        pm.connectAttr("{}.worldMatrix[0]".format(self.fk_ctl[i+1]),
+                                       "{}.primary.primaryTargetMatrix".format(aim_matrix_node))
+                        pm.connectAttr("{}.outputMatrix".format(aim_matrix_node),
+                                       "{}.inputMatrix".format(dec_matrix_node))
+                        pm.connectAttr("{}.outputRotate".format(dec_matrix_node),
+                                       "{}.rotate".format(loc))
+                    else:
+                        # Then connect the last in the chain as a parent constraint
+                        self.constraint_chain(self.fk_ctl[-1], self.loc[-1])
+                else:
+                    self.constraint_chain(self.fk_ctl[i], loc)
 
             elif self.settings["mode"] == 1:  # ik only
-                pm.parentConstraint(self.chain[i], loc, maintainOffset=False)
+                self.constraint_chain(self.chain[i], loc)
 
             elif self.settings["mode"] == 2:  # fk/ik
-
                 rev_node = node.createReverseNode(self.blend_att)
 
                 # orientation
@@ -267,10 +291,8 @@ class Component(component.Main):
 
                 # scaling
                 blend_node = pm.createNode("blendColors")
-                pm.connectAttr(self.chain[i].attr("scale"),
-                               blend_node + ".color1")
-                pm.connectAttr(self.fk_ctl[i].attr("scale"),
-                               blend_node + ".color2")
+                pm.connectAttr(self.chain[i].attr("scale"), blend_node + ".color1")
+                pm.connectAttr(self.fk_ctl[i].attr("scale"), blend_node + ".color2")
                 pm.connectAttr(self.blend_att, blend_node + ".blender")
                 pm.connectAttr(blend_node + ".output", loc + ".scale")
 
@@ -321,3 +343,14 @@ class Component(component.Main):
 
     def connect_parent(self):
         self.connect_standardWithSimpleIkRef()
+
+    def constraint_chain(self, src, dst):
+        mat_node = applyop.gear_matrix_cns(src, dst, connect_srt="st")
+        mat_node.rename("{}_matrixConst".format(dst))
+        dec_matrix_node = pm.createNode("decomposeMatrix")
+        dec_matrix_node.rename("{}_decomposeMatrix".format(dst))
+
+        pm.connectAttr("{}.worldMatrix[0]".format(src),
+                       "{}.inputMatrix".format(dec_matrix_node))
+        pm.connectAttr("{}.outputRotate".format(dec_matrix_node),
+                       "{}.rotate".format(dst))

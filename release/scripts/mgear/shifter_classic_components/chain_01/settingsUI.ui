@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>255</width>
-    <height>290</height>
+    <width>326</width>
+    <height>594</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -96,6 +96,13 @@
          <widget class="QCheckBox" name="neutralPose_checkBox">
           <property name="text">
            <string>Nuetral pose</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QCheckBox" name="aiming_checkBox">
+          <property name="text">
+           <string>Parent chain is aimed when translating</string>
           </property>
          </widget>
         </item>
