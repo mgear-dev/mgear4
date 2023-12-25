@@ -1193,7 +1193,7 @@ class Main(object):
                 name = self.name
             else:
                 name = self.guide.compName
-            attr = self.addAnimEnumParam(name, "__________", 0, [name])
+            attr = self.addAnimEnumParam(name, "__________", 0, [self.getName()])
 
         return attr
 
