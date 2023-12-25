@@ -203,6 +203,8 @@ class ComponentGuide(guide.Main):
         self.pOverrideComponentColor = self.addParam("Override_Color", "bool", False)
         self.pOverrideUseRGBColor = self.addParam("Use_RGB_Color", "bool", False)
 
+        self.pAddFullNameParam = self.addParam("add_full_name_param", "bool", True)
+
         self.pOverrideColorIndexfk = self.addParam("color_fk", "long", 6, 0, 31)
         self.pOverrideColorIndexik = self.addParam("color_ik", "long", 18, 0, 31)
 
@@ -1268,6 +1270,10 @@ class componentMainSettings(QtWidgets.QDialog, guide.helperSlots):
             QtCore.Qt.Checked if self.root.Use_RGB_Color.get() else QtCore.Qt.Unchecked
         )
 
+        self.mainSettingsTab.addFullNameParam_checkBox.setCheckState(
+            QtCore.Qt.Checked if self.root.add_full_name_param.get() else QtCore.Qt.Unchecked
+        )
+
         tab = self.mainSettingsTab
 
         index_widgets = (
@@ -1440,11 +1446,22 @@ class componentMainSettings(QtWidgets.QDialog, guide.helperSlots):
             partial(self.updateCheck, tab.overrideColors_checkBox, "Override_Color")
         )
 
+        tab.addFullNameParam_checkBox.stateChanged.connect(
+            partial(self.updateCheck, tab.addFullNameParam_checkBox, "add_full_name_param")
+        )
+
+        tab.addFullNameParam_checkBox.stateChanged.connect(self.changeHostStatus)
+
     def joint_names_dialog(self):
         dialog = JointNames(self.root, self)
         dialog.setWindowTitle(self.windowTitle())
         dialog.attributeChanged.connect(self.refresh_controls)
         dialog.show()
+
+    def changeHostStatus(self):
+        status = self.mainSettingsTab.addFullNameParam_checkBox.isChecked()
+        self.mainSettingsTab.host_lineEdit.setEnabled(status)
+        self.mainSettingsTab.host_pushButton.setEnabled(status)
 
 
 class JointNames(QtWidgets.QDialog, jnui.Ui_Form):

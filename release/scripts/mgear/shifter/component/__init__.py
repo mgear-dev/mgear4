@@ -1182,8 +1182,9 @@ class Main(object):
         Note that animatable and keyable are True per default.
 
         """
+        if not self.settings["add_full_name_param"]:
+            return
 
-        # attr = self.addAnimEnumParam("", "", 0, ["---------------"] )
         if self.options["classicChannelNames"]:
             attr = self.addAnimEnumParam(
                 self.getName(), "__________", 0, [self.getName()]

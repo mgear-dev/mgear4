@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>286</width>
-    <height>518</height>
+    <width>436</width>
+    <height>511</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -39,7 +39,7 @@
       <string>Channels Host Settings</string>
      </property>
      <layout class="QGridLayout" name="gridLayout_2">
-      <item row="0" column="0">
+      <item row="1" column="0">
        <layout class="QHBoxLayout" name="horizontalLayout_2">
         <item>
          <widget class="QLabel" name="host_label">
@@ -59,6 +59,13 @@
          </widget>
         </item>
        </layout>
+      </item>
+      <item row="0" column="0">
+       <widget class="QCheckBox" name="addFullNameParam_checkBox">
+        <property name="text">
+         <string>Add Full Name Param</string>
+        </property>
+       </widget>
       </item>
      </layout>
     </widget>
