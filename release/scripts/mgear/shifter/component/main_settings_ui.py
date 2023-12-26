@@ -298,7 +298,7 @@ class Ui_Form(object):
         self.componentIndex_label.setText(QtWidgets.QApplication.translate("Form", "Component Index:", None, -1))
         self.conector_label.setText(QtWidgets.QApplication.translate("Form", "Connector:", None, -1))
         self.connector_comboBox.setItemText(0, QtWidgets.QApplication.translate("Form", "standard", None, -1))
-        self.groupBox_2.setTitle(QtWidgets.QApplication.translate("Form", "Custom Controllers Group", None, -1))
+        self.groupBox_2.setTitle(QtWidgets.QApplication.translate("Form", "Custom Group", None, -1))
         self.subGroup_lineEdit.setToolTip(QtWidgets.QApplication.translate("Form", "<html><head/><body><p>Name for a custom controllers Group (Maya set) for the component controllers.</p><p align=\"center\"><span style=\" font-weight:600;\">i.e</span>: Setting the name &quot;arm&quot; will create a sub group (sub set in Mayas terminology) with the name &quot;rig_arm_grp&quot;. This group will be under the &quot;rig_controllers_grp&quot;</p><p>Leave this option empty for the default behaviour.</p></body></html>", None, -1))
         self.jointSettings_groupBox.setTitle(QtWidgets.QApplication.translate("Form", "Joint Settings", None, -1))
         self.useJointIndex_checkBox.setText(QtWidgets.QApplication.translate("Form", "Parent Joint Index", None, -1))

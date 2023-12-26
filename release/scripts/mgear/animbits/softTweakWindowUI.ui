@@ -116,7 +116,7 @@
               <widget class="QLineEdit" name="name_lineEdit"/>
              </item>
              <item row="1" column="0">
-              <widget class="QLabel" name="ctlGrp_label">
+              <widget class="QLabel" name="customGrp_label">
                <property name="text">
                 <string>Ctl grp</string>
                </property>
@@ -125,7 +125,7 @@
              <item row="1" column="1">
               <layout class="QHBoxLayout" name="horizontalLayout_2">
                <item>
-                <widget class="QLineEdit" name="ctlGrp_lineEdit"/>
+                <widget class="QLineEdit" name="customGrp_lineEdit"/>
                </item>
                <item>
                 <widget class="QPushButton" name="setCtrlGrp_pushButton">

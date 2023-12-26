@@ -554,6 +554,12 @@ class Rig(object):
         pm.connectAttr(masterSet.message, self.model.rigGroups[groupIdx])
         groupIdx += 1
 
+        # Create deformer set
+        deformSet = pm.sets(n=self.model.name() + "_deformers_grp", em=True)
+        pm.connectAttr(deformSet.message, self.model.rigGroups[groupIdx])
+        masterSet.add(deformSet)
+        groupIdx += 1
+
         # Creating all groups
         pm.select(cl=True)
         for name, objects in self.groups.items():
@@ -571,7 +577,6 @@ class Rig(object):
                 pg.add(sub)
 
         # create geo group
-
         geoSet = pm.sets(n=self.model.name() + "_geo_grp", em=True)
         pm.connectAttr(geoSet.message, self.model.rigGroups[groupIdx])
         masterSet.add(geoSet)

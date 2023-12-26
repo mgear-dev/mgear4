@@ -587,7 +587,12 @@ class Main(object):
             pm.connectAttr(self.rig.jntVis_att, jnt.attr("visibility"))
             attribute.lockAttribute(jnt)
 
-        self.addToGroup(jnt, "deformers")
+        if self.settings["ctlGrp"]:
+            jntGrp = "deformers_{}_{}".format(self.settings["ctlGrp"], self.side)
+            self.addToGroup(jnt, jntGrp, "deformers")
+        else:
+            jntGrp = "deformers_{}".format(self.getName())
+            self.addToGroup(jnt, jntGrp, "deformers")
 
         if guide_relative:
             if not jnt.hasAttr("guide_relative"):
@@ -757,7 +762,12 @@ class Main(object):
             pm.connectAttr(self.rig.jntVis_att, jnt.attr("visibility"))
             attribute.lockAttribute(jnt)
 
-        self.addToGroup(jnt, "deformers")
+        if self.settings["ctlGrp"]:
+            jntGrp = "deformers_{}_{}".format(self.settings["ctlGrp"], self.side)
+            self.addToGroup(jnt, jntGrp, "deformers")
+        else:
+            jntGrp = "deformers_{}".format(self.getName())
+            self.addToGroup(jnt, jntGrp, "deformers")
 
         # This is a workaround due the evaluation problem with compound attr
         # TODO: This workaround, should be removed onces the evaluation issue
@@ -998,11 +1008,11 @@ class Main(object):
         attribute.add_mirror_config_channels(ctl, mirrorConf)
         if add_2_grp:
             if self.settings["ctlGrp"]:
-                ctlGrp = self.settings["ctlGrp"]
+                ctlGrp = "{}_{}".format(self.settings["ctlGrp"], self.side)
                 self.addToGroup(ctl, ctlGrp, "controllers")
             else:
-                ctlGrp = "controllers"
-                self.addToGroup(ctl, ctlGrp)
+                ctlGrp = self.getName()
+                self.addToGroup(ctl, ctlGrp, "controllers")
 
             # lock the control parent attributes if is not a control
             if parent not in self.groups[ctlGrp] and lp:
