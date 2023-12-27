@@ -30,6 +30,9 @@ def maya_main_window():
 
 
 class HumanIKMapper:
+
+    # Hard coded values for bone names in Human Ik
+
     HEAD_NAMES = [
         "Head",
         "Neck",
@@ -110,11 +113,15 @@ class HumanIKMapper:
         "LeafLeftLegRoll5",
     ]
 
+
     CHAR_NAME = "MGearIKHuman"
+
+    # Dictionary containing all relevant info; [bone] = {target:'', sub_ik:''}
+
     char_config = {}
 
     @classmethod
-    def set_character(cls):
+    def initialize_character(cls):
         selection = cmds.ls(sl=1)
         if not selection:
             cmds.error("Must have reference bone selected")
@@ -122,6 +129,8 @@ class HumanIKMapper:
         reference_bone = selection[-1]
 
         pm.mel.HIKCharacterControlsTool()
+
+        # creates a set with current HIKCharNodes, creates a new node and subtracts sets members to get new node
 
         tmp = set(pm.ls(type="HIKCharacterNode"))
         pm.mel.hikCreateDefinition()
@@ -148,6 +157,7 @@ class HumanIKMapper:
     def set_list_of_bones_from_selection(
         cls, bones_list, ctrls, do_mirror=False
     ):
+        # mirror logic
         if do_mirror:
             if "Left" in bones_list[0]:
                 bones_list.extend(
@@ -183,11 +193,14 @@ class HumanIKMapper:
                 ctrl, hikChar, pm.mel.hikGetNodeIdFromName(bone), 0
             )
 
-        pm.mel.hikUpdateDefinitionUI()
+        pm.evalDeferred("pm.mel.hikUpdateDefinitionUI()")
         return
 
     @classmethod
     def get_locked_ctrls(cls, ctrl_list):
+        """
+            Receives a list of controllers and returns the controllers that have a locked attribute
+        """
         locked_ctrls = []
         for ctrl in ctrl_list:
             attrs = []
@@ -216,16 +229,20 @@ class HumanIKMapper:
     @classmethod
     def refresh_char_configuration(cls):
         # TODO: Check if character exists on scene
+        # clears current char config
         cls.char_config = {}
 
         hik_count = pm.mel.hikGetNodeCount()
         hikChar = pm.mel.hikGetCurrentCharacter()
+
         for i in range(hik_count):
             bone_name = pm.mel.GetHIKNodeName(i)
             bone_target = pm.mel.hikGetSkNode(hikChar, i)
+
             if bone_target:
                 cls.char_config[bone_name] = {"target": bone_target}
                 cls.char_config[bone_name]["sub_ik"] = []
+
                 if pm.attributeQuery("sub_ik", node=bone_target, exists=True):
                     connections = cmds.listConnections(
                         "{}.sub_ik".format(bone_target),
@@ -445,8 +462,8 @@ class HumanIKMapperUI(MayaQWidgetDockableMixin, QtWidgets.QDialog):
     def create_actions(self):
         self.import_action = QtWidgets.QAction("Import")
         self.export_action = QtWidgets.QAction("Export")
-
         self.bake_action = QtWidgets.QAction("Bake")
+        self.adjust_size_action = QtWidgets.QAction("adjust size")
 
     def create_widgets(self):
 
@@ -456,6 +473,7 @@ class HumanIKMapperUI(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.file_menu.addAction(self.export_action)
         self.bake_menu = self.menu_bar.addMenu("Bake")
         self.bake_menu.addAction(self.bake_action)
+        self.bake_menu.addAction(self.adjust_size_action)
 
         self.initialize_btn = QtWidgets.QPushButton("Initialize")
 
@@ -530,14 +548,24 @@ class HumanIKMapperUI(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         main_layout.setContentsMargins(2, 2, 2, 2)
         main_layout.setMenuBar(self.menu_bar)
 
+        self.tabs = QtWidgets.QTabWidget()
+        self.tabs.sethe
+        self.setup_tab = QtWidgets.QWidget()
+        self.setup_layout = QtWidgets.QVBoxLayout(self.setup_tab)
+        self.tabs.addTab(self.setup_tab, "Setup")
+
+        main_layout.addWidget(self.tabs)
+
         self.configure_collapsible = mwgt.CollapsibleWidget(
             "Configuration", expanded=True
         )
+        # self.configure_collapsible.header_wgt.setFixedHeight(18)
         self.configure_collapsible.setSizePolicy(
             QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Minimum
         )
 
-        main_layout.addWidget(self.configure_collapsible)
+        self.setup_layout.addWidget(self.configure_collapsible)
+
         configure_gb = QtWidgets.QGroupBox("Configure")
         self.configure_collapsible.addWidget(configure_gb)
         configure_layout = QtWidgets.QVBoxLayout()
@@ -577,13 +605,12 @@ class HumanIKMapperUI(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         mirror_layout.addWidget(self.mirror_checkbox)
         configure_layout.addLayout(mirror_layout)
 
-        # main_layout.addStretch()
 
         self.instructions_collapsible = mwgt.CollapsibleWidget(
             "Instructions", expanded=False
         )
-        main_layout.addWidget(self.instructions_collapsible)
-        # self.instructions_collapsible.header_wgt.setFixedHeight(18)
+        self.setup_layout.addWidget(self.instructions_collapsible)
+        self.instructions_collapsible.header_wgt.setFixedHeight(18)
         self.instructions_collapsible.setSizePolicy(
             QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Maximum
         )
@@ -592,8 +619,8 @@ class HumanIKMapperUI(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.mapping_collapsible = mwgt.CollapsibleWidget(
             "Mapping", expanded=False
         )
-        main_layout.addWidget(self.mapping_collapsible)
-        # self.mapping_collapsible.header_wgt.setFixedHeight(18)
+        self.setup_layout.addWidget(self.mapping_collapsible)
+        self.mapping_collapsible.header_wgt.setFixedHeight(18)
         self.mapping_collapsible.setSizePolicy(
             QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.MinimumExpanding
         )
@@ -611,8 +638,9 @@ class HumanIKMapperUI(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         )
         self.import_action.triggered.connect(self.import_config)
         self.bake_action.triggered.connect(HumanIKMapper.bake)
+        self.adjust_size_action.triggered.connect(self.adjustSize)
 
-        self.initialize_btn.clicked.connect(HumanIKMapper.set_character)
+        self.initialize_btn.clicked.connect(HumanIKMapper.initialize_character)
 
         self.head_btn.clicked.connect(
             self.display_list_mb_cb(HumanIKMapper.HEAD_NAMES)
@@ -700,6 +728,7 @@ class HumanIKMapperUI(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         )
 
     def deferred_resize(self):
+        print("calling deferred resize")
         QtCore.QMetaObject.invokeMethod(
             self, "adjustSize", QtCore.Qt.QueuedConnection
         )
@@ -918,7 +947,8 @@ class LockedCtrlsDialog(QtWidgets.QDialog):
 
 
 def show(*args):
-    mgear.core.pyqt.showDialog(HumanIKMapperUI, dockable=True)
+    return mgear.core.pyqt.showDialog(HumanIKMapperUI, dockable=True)
+
 
 
 if __name__ == "__main__":
