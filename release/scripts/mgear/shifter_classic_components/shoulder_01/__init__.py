@@ -26,6 +26,9 @@ class Component(component.Main):
         self.length0 = vector.getDistance(self.guide.apos[0],
                                           self.guide.apos[1])
 
+        if self.settings["mirrorBehaviour"] and self.negate:
+            self.length0 = self.length0 * -1
+
         t = transform.getTransformLookingAt(self.guide.apos[0],
                                             self.guide.apos[1],
                                             self.normal,
@@ -47,6 +50,10 @@ class Component(component.Main):
             po=datatypes.Vector(.5 * self.length0 * self.n_factor, 0, 0),
             tp=self.parentCtlTag)
 
+        if self.settings["mirrorBehaviour"] and self.negate:
+            self.ctl_npo.ry.set(180)
+            self.ctl_npo.sz.set(-1)
+
         t = transform.getTransformFromPos(self.guide.apos[1])
         self.orbit_ref1 = primitive.addTransform(
             self.ctl, self.getName("orbit_ref1"), t)
@@ -65,6 +72,10 @@ class Component(component.Main):
                                      "sphere",
                                      w=self.length0 / 4,
                                      tp=self.ctl)
+
+        if self.settings["mirrorBehaviour"] and self.negate:
+            self.orbit_cns.rotateBy((0, 180, 0), space="object")
+            self.orbit_cns.sy.set(-1)
 
         self.jnt_pos.append([self.ctl, "shoulder"])
 
