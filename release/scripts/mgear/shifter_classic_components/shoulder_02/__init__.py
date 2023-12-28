@@ -51,8 +51,14 @@ class Component(component.Main):
             tp=self.parentCtlTag)
 
         if self.settings["mirrorBehaviour"] and self.negate:
-            self.ctl_npo.ry.set(180)
-            self.ctl_npo.sz.set(-1)
+            t = transform.getTransformLookingAt(self.guide.apos[0],
+                                                self.guide.apos[1],
+                                                self.normal,
+                                                axis="-xy",
+                                                negate=self.negate)
+            t = transform.setMatrixPosition(t, [0, 0, 0])
+            t = transform.setMatrixScale(t, [1, -1, 1])
+            self.ctl_npo.setMatrix(t)
 
         t = transform.getTransformFromPos(self.guide.apos[2])
         self.orbit_ref1 = primitive.addTransform(
@@ -74,8 +80,7 @@ class Component(component.Main):
                                      tp=self.ctl)
 
         if self.settings["mirrorBehaviour"] and self.negate:
-            self.orbit_cns.rotateBy((0, 180, 0), space="object")
-            self.orbit_cns.sy.set(-1)
+            self.orbit_cns.sx.set(-1)
 
         self.jnt_pos.append([self.ctl, "shoulder"])
 
