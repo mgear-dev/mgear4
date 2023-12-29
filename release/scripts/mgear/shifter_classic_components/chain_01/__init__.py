@@ -22,7 +22,6 @@ class Component(component.Main):
     # =====================================================
     def addObjects(self):
         """Add all the objects needed to create the component."""
-
         self.normal = self.guide.blades["blade"].z * -1
         self.binormal = self.guide.blades["blade"].x
 
@@ -38,43 +37,52 @@ class Component(component.Main):
             self.fk_ctl = []
             self.fk_ref = []
             self.fk_off = []
-            t = self.guide.tra["root"]
-            self.ik_cns = primitive.addTransform(
-                self.root, self.getName("ik_cns"), t)
-            parent = self.ik_cns
-            tOld = False
-            fk_ctl = None
             self.previusTag = self.parentCtlTag
-            for i, t in enumerate(transform.getChainTransform(self.guide.apos,
-                                                              self.normal,
-                                                              self.negate)):
-                dist = vector.getDistance(self.guide.apos[i],
-                                          self.guide.apos[i + 1])
-                if self.settings["neutralpose"] or not tOld:
+
+            previous_transform = False
+            fk_ctl = None
+
+            self.ik_cns = primitive.addTransform(
+                self.root, self.getName("ik_cns"), self.guide.tra["root"])
+
+            chain_pos = transform.getChainTransform(
+                self.guide.apos, self.normal, self.negate)
+
+            for i, t in enumerate(chain_pos):
+                dist = vector.getDistance(self.guide.apos[i], self.guide.apos[i + 1])
+                if self.settings["mirrorBehaviour"] and self.negate:
+                    dist = dist * -1
+
+                if self.settings["neutralpose"] or not previous_transform:
                     tnpo = t
                 else:
                     tnpo = transform.setMatrixPosition(
-                        tOld,
-                        transform.getPositionFromMatrix(t))
+                        previous_transform, transform.getPositionFromMatrix(t))
+
                 if i:
                     tref = transform.setMatrixPosition(
-                        tOld,
-                        transform.getPositionFromMatrix(t))
+                        previous_transform, transform.getPositionFromMatrix(t))
                     fk_ref = primitive.addTransform(
                         fk_ctl,
                         self.getName("fk%s_ref" % i),
                         tref)
                     self.fk_ref.append(fk_ref)
                 else:
-                    tref = t
+                    if self.settings["mirrorBehaviour"] and self.negate:
+                        tref = transform.setMatrixScale(t, [-1, -1, -1])
+                    else:
+                        tref = t
+
                 fk_off = primitive.addTransform(
-                    parent, self.getName("fk%s_off" % i), tref)
+                    self.ik_cns, self.getName("fk%s_off" % i), tref)
+
                 fk_npo = primitive.addTransform(
-                    fk_off, self.getName("fk%s_npo" % i), tnpo)
+                    fk_off, self.getName("fk%s_npo" % i), tref)
+
                 fk_ctl = self.addCtl(
                     fk_npo,
                     "fk%s_ctl" % i,
-                    t,
+                    tref,
                     self.color_fk,
                     "cube",
                     w=dist,
@@ -86,7 +94,7 @@ class Component(component.Main):
                 self.fk_off.append(fk_off)
                 self.fk_npo.append(fk_npo)
                 self.fk_ctl.append(fk_ctl)
-                tOld = t
+                previous_transform = tref
                 self.previusTag = fk_ctl
 
         # IK controllers ------------------------------------

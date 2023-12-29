@@ -63,6 +63,7 @@ class Guide(guide.ComponentGuide):
         self.pBlend = self.addParam("blend", "double", 1, 0, 1)
         self.pNeutralPose = self.addParam("neutralpose", "bool", True)
         self.pChainAiming = self.addParam("chainAiming", "bool", False)
+        self.pMirrorBehaviour = self.addParam("mirrorBehaviour", "bool", False)
         self.pIkRefArray = self.addParam("ikrefarray", "string", "")
         self.pUseIndex = self.addParam("useIndex", "bool", False)
         self.pParentJointIndex = self.addParam(
@@ -144,6 +145,9 @@ class componentSettings(MayaQWidgetDockableMixin, guide.componentMainSettings):
             self.settingsTab.aiming_checkBox.setCheckState(
                 QtCore.Qt.Unchecked)
 
+        self.populateCheck(self.settingsTab.mirrorBehaviour_checkBox,
+                           "mirrorBehaviour")
+
         ikRefArrayItems = self.root.attr("ikrefarray").get().split(",")
         for item in ikRefArrayItems:
             self.settingsTab.ikRefArray_listWidget.addItem(item)
@@ -179,6 +183,11 @@ class componentSettings(MayaQWidgetDockableMixin, guide.componentMainSettings):
             partial(self.updateCheck,
                     self.settingsTab.aiming_checkBox,
                     "chainAiming"))
+
+        self.settingsTab.mirrorBehaviour_checkBox.stateChanged.connect(
+            partial(self.updateCheck,
+                    self.settingsTab.mirrorBehaviour_checkBox,
+                    "mirrorBehaviour"))
 
         self.settingsTab.ikRefArrayAdd_pushButton.clicked.connect(
             partial(self.addItem2listWidget,
