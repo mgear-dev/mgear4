@@ -851,10 +851,13 @@ def mgear_dagmenu_fill(parent_menu, current_control):
     )
 
     # reset all
-    selection_set = cmds.ls(
-        cmds.listConnections(current_control), type="objectSet"
-    )
-    all_rig_controls = cmds.sets(selection_set, query=True)
+    controls_set = cmds.ls("*_controllers_grp", type="objectSet")
+    all_rig_controls = set()
+    if controls_set:
+        members = cmds.sets(controls_set[0], query=True)
+        for member in members:
+            all_rig_controls.update(cmds.sets(member, q=True) or [])
+
     cmds.menuItem(
         parent=resetOption,
         label="Reset all",
