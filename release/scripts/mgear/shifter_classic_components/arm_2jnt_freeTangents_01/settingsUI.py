@@ -235,7 +235,7 @@ class Ui_Form(object):
         self.mirrorMid_checkBox.setToolTip(gqt.fakeTranslate("Form", "This option set the axis of the mid CTL (elbow) and the up vector control to move in a mirror behaviour ", None, -1))
         self.mirrorMid_checkBox.setStatusTip(gqt.fakeTranslate("Form", "This option set the axis of the mid CTL (elbow) and the up vector control to move in a mirror behaviour ", None, -1))
         self.mirrorMid_checkBox.setWhatsThis(gqt.fakeTranslate("Form", "This option set the axis of the mid CTL (elbow) and the up vector control to move in a mirror behaviour ", None, -1))
-        self.mirrorMid_checkBox.setText(gqt.fakeTranslate("Form", "Mirror Mid Ctl and UPV  axis behaviour", None, -1))
+        self.mirrorMid_checkBox.setText(gqt.fakeTranslate("Form", "Mirror Mid, UPV and Tangent Ctl axis behaviour", None, -1))
         self.guideOrientWrist_checkBox.setText(gqt.fakeTranslate("Form", "Align wrist to world orientation", None, -1))
         self.guideOrientWrist_checkBox.setToolTip(gqt.fakeTranslate("Form", "This option aligns the wrist with the guide. NOTE: This option override Mirror IK ctl behaviour", None, -1))
         self.guideOrientWrist_checkBox.setStatusTip(gqt.fakeTranslate("Form", "This option aligns the wrist with the guide.", None, -1))

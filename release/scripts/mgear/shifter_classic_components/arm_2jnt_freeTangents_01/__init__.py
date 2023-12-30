@@ -513,9 +513,8 @@ class Component(component.Main):
                                            w=self.size * .2,
                                            ro=datatypes.Vector(0, 0, 1.570796),
                                            tp=self.mid_ctl)
-        if self.negate:
-            self.armTangentA_npo.rz.set(180)
-            self.armTangentA_npo.sz.set(-1)
+        if self.settings["mirrorMid"] and self.negate:
+            self.armTangentA_npo.sx.set(-1)
         attribute.setKeyableAttributes(self.armTangentA_ctl, self.t_params)
 
         t = transform.getInterpolateTransformMatrix(self.fk_ctl[0],
@@ -533,9 +532,9 @@ class Component(component.Main):
                                            w=self.size * .1,
                                            ro=datatypes.Vector(0, 0, 1.570796),
                                            tp=self.mid_ctl)
-        if self.negate:
-            self.armTangentB_npo.rz.set(180)
-            self.armTangentB_npo.sz.set(-1)
+        if self.settings["mirrorMid"] and self.negate:
+            self.armTangentB_npo.rx.set(180)
+            self.armTangentB_npo.sx.set(-1)
         attribute.setKeyableAttributes(self.armTangentB_ctl, self.t_params)
 
         tC = self.tws1B_npo.getMatrix(worldSpace=True)
@@ -556,9 +555,9 @@ class Component(component.Main):
             ro=datatypes.Vector(0, 0, 1.570796),
             tp=self.mid_ctl)
 
-        if self.negate:
-            self.forearmTangentA_npo.rz.set(180)
-            self.forearmTangentA_npo.sz.set(-1)
+        if self.settings["mirrorMid"] and self.negate:
+            self.forearmTangentA_npo.rx.set(180)
+            self.forearmTangentA_npo.sx.set(-1)
         attribute.setKeyableAttributes(self.forearmTangentA_ctl, self.t_params)
 
         t = transform.getInterpolateTransformMatrix(self.tws1B_npo, tC, .5)
@@ -580,9 +579,8 @@ class Component(component.Main):
             ro=datatypes.Vector(0, 0, 1.570796),
             tp=self.mid_ctl)
 
-        if self.negate:
-            self.forearmTangentB_npo.rz.set(180)
-            self.forearmTangentB_npo.sz.set(-1)
+        if self.settings["mirrorMid"] and self.negate:
+            self.forearmTangentB_npo.sx.set(-1)
         attribute.setKeyableAttributes(self.forearmTangentB_ctl, self.t_params)
 
         t = self.mid_ctl.getMatrix(worldSpace=True)
@@ -601,9 +599,6 @@ class Component(component.Main):
             ro=datatypes.Vector(0, 0, 1.570796),
             tp=self.mid_ctl)
 
-        if self.negate:
-            self.elbowTangent_npo.rz.set(180)
-            self.elbowTangent_npo.sz.set(-1)
         attribute.setKeyableAttributes(self.elbowTangent_ctl, self.t_params)
 
         # add visual reference
