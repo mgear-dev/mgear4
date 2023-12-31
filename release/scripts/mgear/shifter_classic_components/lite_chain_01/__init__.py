@@ -22,7 +22,6 @@ class Component(component.Main):
 
         self.normal = self.guide.blades["blade"].z * -1
         self.binormal = self.guide.blades["blade"].x
-
         self.WIP = self.options["mode"]
 
         if self.negate and self.settings["overrideNegate"]:
@@ -41,30 +40,35 @@ class Component(component.Main):
         # FK controllers ------------------------------------
         self.fk_npo = []
         self.fk_ctl = []
-        t = self.guide.tra["root"]
 
         parent = self.root
-        tOld = False
-        fk_ctl = None
+        previous_transform = None
         self.previusTag = self.parentCtlTag
-        for i, t in enumerate(transform.getChainTransform(self.guide.apos,
-                                                          self.normal,
-                                                          self.negate)):
-            dist = vector.getDistance(self.guide.apos[i],
-                                      self.guide.apos[i + 1])
-            if self.settings["neutralpose"] or not tOld:
+
+        chain_pos = transform.getChainTransform(
+            self.guide.apos, self.normal, self.negate)
+
+        for i, t in enumerate(chain_pos):
+            dist = vector.getDistance(self.guide.apos[i], self.guide.apos[i + 1])
+            if self.settings["mirrorBehaviour"] and self.negate:
+                dist = dist * -1
+
+            if self.settings["neutralpose"] or not previous_transform:
                 tnpo = t
             else:
                 tnpo = transform.setMatrixPosition(
-                    tOld,
+                    previous_transform,
                     transform.getPositionFromMatrix(t))
+
+            if self.settings["mirrorBehaviour"] and self.negate:
+                tnpo = transform.setMatrixScale(t, [-1, -1, -1])
 
             fk_npo = primitive.addTransform(
                 parent, self.getName("fk%s_npo" % i), tnpo)
             fk_ctl = self.addCtl(
                 fk_npo,
                 "fk%s_ctl" % i,
-                t,
+                tnpo,
                 self.color_fk,
                 "cube",
                 w=dist,
@@ -76,8 +80,8 @@ class Component(component.Main):
 
             self.fk_npo.append(fk_npo)
             self.fk_ctl.append(fk_ctl)
-            tOld = t
             self.previusTag = fk_ctl
+            previous_transform = t
             parent = fk_ctl
             if self.settings["addJoints"]:
                 self.jnt_pos.append([fk_ctl, i, None, False])
