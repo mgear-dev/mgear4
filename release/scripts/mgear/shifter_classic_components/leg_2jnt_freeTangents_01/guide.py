@@ -13,10 +13,10 @@ from . import settingsUI as sui
 
 
 # guide info
-AUTHOR = "Jeremie Passerin, Miquel Campos"
+AUTHOR = "Jeremie Passerin, Miquel Campos, Joji Nishimura"
 URL = ", www.mcsgear.com"
 EMAIL = ", "
-VERSION = [1, 2, 0]
+VERSION = [1, 3, 0]
 TYPE = "leg_2jnt_freeTangents_01"
 NAME = "leg"
 DESCRIPTION = (
@@ -69,6 +69,7 @@ class Guide(guide.ComponentGuide):
         self.pUpvRefArray = self.addParam("pinrefarray", "string", "")
         self.pMaxStretch = self.addParam("maxstretch", "double", 1.5, 1, None)
         self.pMirrorMid = self.addParam("mirrorMid", "bool", False)
+        self.pGuideOrientWrist = self.addParam("guideOrientWrist", "bool", False)
 
         # Divisions
         self.pDiv0 = self.addParam("div0", "long", 2, 1, None)
@@ -210,6 +211,11 @@ class componentSettings(MayaQWidgetDockableMixin, guide.componentMainSettings):
         self.settingsTab.squashStretchProfile_pushButton.clicked.connect(
             self.setProfile
         )
+
+        self.settingsTab.guideOrientWrist_checkBox.stateChanged.connect(
+            partial(self.updateCheck,
+                    self.settingsTab.guideOrientWrist_checkBox,
+                    "guideOrientWrist"))
 
         self.settingsTab.mirrorMid_checkBox.stateChanged.connect(
             partial(
