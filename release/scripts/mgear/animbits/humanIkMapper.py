@@ -432,6 +432,43 @@ class HumanIKMapper:
                     attrs.append(sub_ik.rotate.name())
         return attrs
 
+    @classmethod
+    @one_undo
+    def batch_bake(cls, file_list):
+
+        curr_character = pm.mel.hikGetCurrentCharacter()
+        # pm.mel.hikSetCurrentCharacter(hikChar)
+        existing_ik_humans = set(pm.ls(type="HIKCharacterNode"))
+
+        # TODO: determine first and last frame, change anim layer name to fbx name,
+
+        for file in file_list:
+            ref_node = cmds.file(file, r=True, namespace=":", type="FBX")
+            file_ik_human = list(set(pm.ls(type="HIKCharacterNode")) - existing_ik_humans)[0]
+            existing_ik_humans = set(pm.ls(type="HIKCharacterNode"))
+
+            # pm.mel.hikSetCurrentSource(file_ik_human)
+            deferred_cmd = """
+import pymel.core as pm
+# updates src
+pm.optionMenuGrp("hikSourceList", edit=True, value=" {0}")
+pm.mel.hikUpdateCurrentSourceFromUI()
+
+frame_range = "{1}:{2}"
+
+pm.mel.hikBakeCharacterPre("{3}")
+pm.bakeResults(pm.ls(sl=1), bakeOnOverrideLayer=True, simulation=True, t=frame_range, sampleBy=1)
+pm.mel.hikBakeCharacterPost("{3}")
+pm.rename("BakeResults", "{4}")
+
+            """.format(file_ik_human,
+                       pm.playbackOptions(q=True, min=True),
+                       pm.playbackOptions(q=True, max=True),
+                       curr_character,
+                       file_ik_human.name())
+
+            pm.evalDeferred(deferred_cmd)
+
 
 class HumanIKMapperUI(MayaQWidgetDockableMixin, QtWidgets.QDialog):
     def __init__(self, parent=None):
@@ -463,7 +500,9 @@ class HumanIKMapperUI(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.import_action = QtWidgets.QAction("Import")
         self.export_action = QtWidgets.QAction("Export")
         self.bake_action = QtWidgets.QAction("Bake")
-        self.adjust_size_action = QtWidgets.QAction("adjust size")
+        self.export_batch_bake_action = QtWidgets.QAction("Export Batch Bake Config")
+        self.import_batch_bake_action = QtWidgets.QAction("Import Batch Bake Config")
+
 
     def create_widgets(self):
 
@@ -473,7 +512,9 @@ class HumanIKMapperUI(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.file_menu.addAction(self.export_action)
         self.bake_menu = self.menu_bar.addMenu("Bake")
         self.bake_menu.addAction(self.bake_action)
-        self.bake_menu.addAction(self.adjust_size_action)
+        self.bake_menu.addSeparator()
+        self.bake_menu.addAction(self.export_batch_bake_action)
+        self.bake_menu.addAction(self.import_batch_bake_action)
 
         self.initialize_btn = QtWidgets.QPushButton("Initialize")
 
@@ -543,18 +584,30 @@ class HumanIKMapperUI(MayaQWidgetDockableMixin, QtWidgets.QDialog):
             QtWidgets.QHeaderView.Stretch
         )
 
+        # bake tab
+        self.bake_paths_lw = QtWidgets.QListWidget()
+        self.bake_paths_lw.setSelectionMode(QtWidgets.QListWidget.ExtendedSelection)
+        add_remove_font = QtGui.QFont()
+        add_remove_font.setPointSize(25)
+        self.add_bake_path_btn = QtWidgets.QPushButton("+")
+        self.add_bake_path_btn.setSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Minimum)
+        self.add_bake_path_btn.setFont(add_remove_font)
+        self.remove_bake_path_btn = QtWidgets.QPushButton("-")
+        self.remove_bake_path_btn.setSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Minimum)
+        self.remove_bake_path_btn.setFont(add_remove_font)
+        self.batch_bake_btn = QtWidgets.QPushButton("Batch Bake")
+
     def create_layout(self):
         main_layout = QtWidgets.QVBoxLayout(self)
         main_layout.setContentsMargins(2, 2, 2, 2)
         main_layout.setMenuBar(self.menu_bar)
 
         self.tabs = QtWidgets.QTabWidget()
-        self.tabs.sethe
+        main_layout.addWidget(self.tabs)
         self.setup_tab = QtWidgets.QWidget()
         self.setup_layout = QtWidgets.QVBoxLayout(self.setup_tab)
         self.tabs.addTab(self.setup_tab, "Setup")
 
-        main_layout.addWidget(self.tabs)
 
         self.configure_collapsible = mwgt.CollapsibleWidget(
             "Configuration", expanded=True
@@ -631,6 +684,24 @@ class HumanIKMapperUI(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.mapping_collapsible.addLayout(mapping_buttons)
         self.mapping_collapsible.addWidget(self.mapping_table)
 
+        # batch bake
+
+        self.batch_bake_tab = QtWidgets.QWidget()
+        batch_bake_vlayout = QtWidgets.QVBoxLayout(self.batch_bake_tab)
+        paths_hlayout = QtWidgets.QHBoxLayout()
+        path_buttons_vlayout = QtWidgets.QVBoxLayout()
+
+        path_buttons_vlayout.addWidget(self.add_bake_path_btn)
+        path_buttons_vlayout.addWidget(self.remove_bake_path_btn)
+
+        paths_hlayout.addWidget(self.bake_paths_lw)
+        paths_hlayout.addLayout(path_buttons_vlayout)
+
+        batch_bake_vlayout.addLayout(paths_hlayout)
+        batch_bake_vlayout.addWidget(self.batch_bake_btn)
+
+        self.tabs.addTab(self.batch_bake_tab, "Batch Bake")
+
     def create_connections(self):
 
         self.export_action.triggered.connect(
@@ -638,7 +709,7 @@ class HumanIKMapperUI(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         )
         self.import_action.triggered.connect(self.import_config)
         self.bake_action.triggered.connect(HumanIKMapper.bake)
-        self.adjust_size_action.triggered.connect(self.adjustSize)
+
 
         self.initialize_btn.clicked.connect(HumanIKMapper.initialize_character)
 
@@ -727,6 +798,12 @@ class HumanIKMapperUI(MayaQWidgetDockableMixin, QtWidgets.QDialog):
             self._mapping_menu
         )
 
+        # batch bake path
+
+        self.add_bake_path_btn.clicked.connect(self.add_batch_bake_paths)
+        self.remove_bake_path_btn.clicked.connect(self.remove_batch_bake_paths)
+        self.batch_bake_btn.clicked.connect(self.batch_bake)
+
     def deferred_resize(self):
         print("calling deferred resize")
         QtCore.QMetaObject.invokeMethod(
@@ -769,6 +846,25 @@ class HumanIKMapperUI(MayaQWidgetDockableMixin, QtWidgets.QDialog):
     def clear_sub_ik(self, bone_target):
         HumanIKMapper.clear_sub_ik(bone_target)
         self.update_mapping()
+
+    def add_batch_bake_paths(self):
+        fbx_filter = "*.fbx"
+        paths = cmds.fileDialog2(fileFilter=fbx_filter, fileMode=4)
+
+        self.bake_paths_lw.addItems(paths)
+
+    def remove_batch_bake_paths(self):
+        selected_items = self.bake_paths_lw.selectedItems()
+
+        for item in selected_items:
+            self.bake_paths_lw.takeItem(self.bake_paths_lw.row(item))
+
+    def batch_bake(self):
+        files = []
+        for i in range(self.bake_paths_lw.count()):
+            files.append(self.bake_paths_lw.item(i).text())
+        print(files)
+        HumanIKMapper.batch_bake(files)
 
     def _group_in_hlayout(self, *args):
         h_layout = QtWidgets.QHBoxLayout()
