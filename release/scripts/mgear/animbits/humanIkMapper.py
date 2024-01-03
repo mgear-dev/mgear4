@@ -7,7 +7,7 @@ from shiboken2 import wrapInstance
 import mgear
 from mgear.core import callbackManager
 from mgear.core import widgets as mwgt
-from mgear.core.utils import one_undo
+from mgear.core.utils import one_undo, viewport_off
 from mgear.vendor.Qt import QtCore, QtWidgets, QtGui
 
 from mgear.rigbits.mirror_controls import MirrorController
@@ -386,6 +386,7 @@ class HumanIKMapper:
                         pm.delete(constraint)
 
     @classmethod
+    @viewport_off
     def bake(cls):
         current_ik_char = pm.mel.hikGetCurrentCharacter()
         attrs_string = " ".join(cls.get_sub_ik_bake_attrs())
@@ -434,6 +435,7 @@ class HumanIKMapper:
 
     @classmethod
     @one_undo
+    @viewport_off
     def batch_bake(cls, file_list):
 
         curr_character = pm.mel.hikGetCurrentCharacter()
@@ -709,6 +711,8 @@ class HumanIKMapperUI(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         )
         self.import_action.triggered.connect(self.import_config)
         self.bake_action.triggered.connect(HumanIKMapper.bake)
+        self.export_batch_bake_action.triggered.connect(self.export_batch_bake_config)
+        self.import_batch_bake_action.triggered.connect(self.import_batch_bake_config)
 
 
         self.initialize_btn.clicked.connect(HumanIKMapper.initialize_character)
@@ -865,6 +869,30 @@ class HumanIKMapperUI(MayaQWidgetDockableMixin, QtWidgets.QDialog):
             files.append(self.bake_paths_lw.item(i).text())
         print(files)
         HumanIKMapper.batch_bake(files)
+
+    def export_batch_bake_config(self):
+        files = []
+        for i in range(self.bake_paths_lw.count()):
+            files.append(self.bake_paths_lw.item(i).text())
+
+        file_path = pm.fileDialog2(fileMode=0, fileFilter="*.bkcn")
+        if not file_path:
+            return
+        file_path = file_path[0]
+        data_string = json.dumps(files, indent=4)
+        with open(file_path, "w") as fp:
+            fp.write(data_string)
+        print(file_path)
+
+    def import_batch_bake_config(self):
+        file_path = pm.fileDialog2(fileMode=1, fileFilter="*.bkcn")
+        if not file_path:
+            return
+        file_path = file_path[0]
+        with open(file_path, "r") as fp:
+            data_string = json.load(fp)
+            self.bake_paths_lw.clear()
+            self.bake_paths_lw.addItems(data_string)
 
     def _group_in_hlayout(self, *args):
         h_layout = QtWidgets.QHBoxLayout()
