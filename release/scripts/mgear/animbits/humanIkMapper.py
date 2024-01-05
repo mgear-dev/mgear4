@@ -7,7 +7,7 @@ from shiboken2 import wrapInstance
 import mgear
 from mgear.core import callbackManager
 from mgear.core import widgets as mwgt
-from mgear.core.utils import one_undo
+from mgear.core.utils import one_undo, viewport_off
 from mgear.vendor.Qt import QtCore, QtWidgets, QtGui
 
 from mgear.rigbits.mirror_controls import MirrorController
@@ -30,6 +30,9 @@ def maya_main_window():
 
 
 class HumanIKMapper:
+
+    # Hard coded values for bone names in Human Ik
+
     HEAD_NAMES = [
         "Head",
         "Neck",
@@ -110,11 +113,15 @@ class HumanIKMapper:
         "LeafLeftLegRoll5",
     ]
 
+
     CHAR_NAME = "MGearIKHuman"
+
+    # Dictionary containing all relevant info; [bone] = {target:'', sub_ik:''}
+
     char_config = {}
 
     @classmethod
-    def set_character(cls):
+    def initialize_character(cls):
         selection = cmds.ls(sl=1)
         if not selection:
             cmds.error("Must have reference bone selected")
@@ -122,6 +129,8 @@ class HumanIKMapper:
         reference_bone = selection[-1]
 
         pm.mel.HIKCharacterControlsTool()
+
+        # creates a set with current HIKCharNodes, creates a new node and subtracts sets members to get new node
 
         tmp = set(pm.ls(type="HIKCharacterNode"))
         pm.mel.hikCreateDefinition()
@@ -148,6 +157,7 @@ class HumanIKMapper:
     def set_list_of_bones_from_selection(
         cls, bones_list, ctrls, do_mirror=False
     ):
+        # mirror logic
         if do_mirror:
             if "Left" in bones_list[0]:
                 bones_list.extend(
@@ -183,11 +193,14 @@ class HumanIKMapper:
                 ctrl, hikChar, pm.mel.hikGetNodeIdFromName(bone), 0
             )
 
-        pm.mel.hikUpdateDefinitionUI()
+        pm.evalDeferred("pm.mel.hikUpdateDefinitionUI()")
         return
 
     @classmethod
     def get_locked_ctrls(cls, ctrl_list):
+        """
+            Receives a list of controllers and returns the controllers that have a locked attribute
+        """
         locked_ctrls = []
         for ctrl in ctrl_list:
             attrs = []
@@ -216,16 +229,20 @@ class HumanIKMapper:
     @classmethod
     def refresh_char_configuration(cls):
         # TODO: Check if character exists on scene
+        # clears current char config
         cls.char_config = {}
 
         hik_count = pm.mel.hikGetNodeCount()
         hikChar = pm.mel.hikGetCurrentCharacter()
+
         for i in range(hik_count):
             bone_name = pm.mel.GetHIKNodeName(i)
             bone_target = pm.mel.hikGetSkNode(hikChar, i)
+
             if bone_target:
                 cls.char_config[bone_name] = {"target": bone_target}
                 cls.char_config[bone_name]["sub_ik"] = []
+
                 if pm.attributeQuery("sub_ik", node=bone_target, exists=True):
                     connections = cmds.listConnections(
                         "{}.sub_ik".format(bone_target),
@@ -369,6 +386,7 @@ class HumanIKMapper:
                         pm.delete(constraint)
 
     @classmethod
+    @viewport_off
     def bake(cls):
         current_ik_char = pm.mel.hikGetCurrentCharacter()
         attrs_string = " ".join(cls.get_sub_ik_bake_attrs())
@@ -416,6 +434,53 @@ class HumanIKMapper:
         return attrs
 
 
+    @classmethod
+    @one_undo
+    def batch_bake(cls, file_list):
+
+        curr_character = pm.mel.hikGetCurrentCharacter()
+        # pm.mel.hikSetCurrentCharacter(hikChar)
+        existing_ik_humans = set(pm.ls(type="HIKCharacterNode"))
+
+        HumanIKMapper.refresh_char_configuration()
+
+        # TODO: determine first and last frame, change anim layer name to fbx name,
+        sub_ik_ctls = [cls.char_config[bone]["sub_ik"] for bone in cls.char_config if
+                       cls.char_config[bone]["sub_ik"]]
+        sub_ik_constraints = [cmds.parentConstraint(ctl, query=True) for ctl in sub_ik_ctls]
+        print(sub_ik_constraints)
+
+        for file in file_list:
+            ref_node = cmds.file(file, r=True, namespace=":", type="FBX")
+            file_ik_human = list(set(pm.ls(type="HIKCharacterNode")) - existing_ik_humans)[0]
+            existing_ik_humans = set(pm.ls(type="HIKCharacterNode"))
+
+            frame_range = "{0}:{1}".format(pm.playbackOptions(q=True, min=True), pm.playbackOptions(q=True, max=True))
+            # pm.evalDeferred(deferred_cmd)
+            pm.evalDeferred("from mgear.animbits.humanIkMapper import HumanIKMapper \n"
+                            "HumanIKMapper.deferred_bake(\"{0}\", \"{1}\")".format(file_ik_human, frame_range))
+
+    @classmethod
+    def deferred_bake(cls, ikhuman, frame_range):
+        # updates src
+        HumanIKMapper.sub_iks_binding(True)
+
+        pm.optionMenuGrp("hikSourceList", edit=True, value=" {0}".format(ikhuman))
+        pm.mel.hikUpdateCurrentSourceFromUI()
+
+        sub_ik_ctls = [cls.char_config[bone]["sub_ik"] for bone in HumanIKMapper.char_config if HumanIKMapper.char_config[bone]["sub_ik"]]
+        sub_ik_constraints = [cmds.parentConstraint(ctl, query=True) for ctl in sub_ik_ctls]
+        # print("sub ik ctls = {1}, \n subik constraints = {1}".format(sub_ik_ctls, sub_ik_constraints))
+
+        pm.mel.hikBakeCharacterPre("{0}".format(pm.mel.hikGetCurrentCharacter()))
+        pm.select(HumanIKMapper.get_sub_ik_bake_attrs(), add=1)
+        pm.bakeResults(pm.ls(sl=1), bakeOnOverrideLayer=True, simulation=True, t=frame_range, sampleBy=1)
+        pm.mel.hikBakeCharacterPost("{0}".format(pm.mel.hikGetCurrentCharacter()))
+        if sub_ik_constraints:
+            pm.delete(sub_ik_constraints)
+        pm.rename("BakeResults", ikhuman)
+
+
 class HumanIKMapperUI(MayaQWidgetDockableMixin, QtWidgets.QDialog):
     def __init__(self, parent=None):
         super(HumanIKMapperUI, self).__init__(parent)
@@ -440,13 +505,18 @@ class HumanIKMapperUI(MayaQWidgetDockableMixin, QtWidgets.QDialog):
     @QtCore.Slot()
     def adjustSize(self, *args, **kwargs):
         # Needed to mark the adjustSize method as slot
+        self.setup_tab.resize(self.setup_tab.minimumSizeHint())
+        self.setup_tab.adjustSize()
+        self.resize(self.minimumSizeHint())
         super(HumanIKMapperUI, self).adjustSize()
 
     def create_actions(self):
         self.import_action = QtWidgets.QAction("Import")
         self.export_action = QtWidgets.QAction("Export")
-
         self.bake_action = QtWidgets.QAction("Bake")
+        self.export_batch_bake_action = QtWidgets.QAction("Export Batch Bake Config")
+        self.import_batch_bake_action = QtWidgets.QAction("Import Batch Bake Config")
+
 
     def create_widgets(self):
 
@@ -456,6 +526,9 @@ class HumanIKMapperUI(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.file_menu.addAction(self.export_action)
         self.bake_menu = self.menu_bar.addMenu("Bake")
         self.bake_menu.addAction(self.bake_action)
+        self.bake_menu.addSeparator()
+        self.bake_menu.addAction(self.export_batch_bake_action)
+        self.bake_menu.addAction(self.import_batch_bake_action)
 
         self.initialize_btn = QtWidgets.QPushButton("Initialize")
 
@@ -525,19 +598,45 @@ class HumanIKMapperUI(MayaQWidgetDockableMixin, QtWidgets.QDialog):
             QtWidgets.QHeaderView.Stretch
         )
 
+        # bake tab
+        self.bake_paths_lw = QtWidgets.QListWidget()
+        self.bake_paths_lw.setSelectionMode(QtWidgets.QListWidget.ExtendedSelection)
+        add_remove_font = QtGui.QFont()
+        add_remove_font.setPointSize(25)
+        self.add_bake_path_btn = QtWidgets.QPushButton("+")
+        self.add_bake_path_btn.setSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Minimum)
+        self.add_bake_path_btn.setFont(add_remove_font)
+        self.remove_bake_path_btn = QtWidgets.QPushButton("-")
+        self.remove_bake_path_btn.setSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Minimum)
+        self.remove_bake_path_btn.setFont(add_remove_font)
+        self.batch_bake_btn = QtWidgets.QPushButton("Batch Bake")
+
     def create_layout(self):
         main_layout = QtWidgets.QVBoxLayout(self)
         main_layout.setContentsMargins(2, 2, 2, 2)
         main_layout.setMenuBar(self.menu_bar)
 
+        self.tabs = QtWidgets.QTabWidget()
+        self.tabs.minimumSizeHint(
+
+        )
+        main_layout.addWidget(self.tabs)
+        self.setup_tab = QtWidgets.QWidget()
+        self.setup_tab.setSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred)
+        self.setup_layout = QtWidgets.QVBoxLayout(self.setup_tab)
+        self.tabs.addTab(self.setup_tab, "Setup")
+
+
         self.configure_collapsible = mwgt.CollapsibleWidget(
             "Configuration", expanded=True
         )
+        # self.configure_collapsible.header_wgt.setFixedHeight(18)
         self.configure_collapsible.setSizePolicy(
             QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Minimum
         )
 
-        main_layout.addWidget(self.configure_collapsible)
+        self.setup_layout.addWidget(self.configure_collapsible)
+
         configure_gb = QtWidgets.QGroupBox("Configure")
         self.configure_collapsible.addWidget(configure_gb)
         configure_layout = QtWidgets.QVBoxLayout()
@@ -577,13 +676,12 @@ class HumanIKMapperUI(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         mirror_layout.addWidget(self.mirror_checkbox)
         configure_layout.addLayout(mirror_layout)
 
-        # main_layout.addStretch()
 
         self.instructions_collapsible = mwgt.CollapsibleWidget(
             "Instructions", expanded=False
         )
-        main_layout.addWidget(self.instructions_collapsible)
-        # self.instructions_collapsible.header_wgt.setFixedHeight(18)
+        self.setup_layout.addWidget(self.instructions_collapsible)
+        self.instructions_collapsible.header_wgt.setFixedHeight(18)
         self.instructions_collapsible.setSizePolicy(
             QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Maximum
         )
@@ -592,8 +690,8 @@ class HumanIKMapperUI(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.mapping_collapsible = mwgt.CollapsibleWidget(
             "Mapping", expanded=False
         )
-        main_layout.addWidget(self.mapping_collapsible)
-        # self.mapping_collapsible.header_wgt.setFixedHeight(18)
+        self.setup_layout.addWidget(self.mapping_collapsible)
+        self.mapping_collapsible.header_wgt.setFixedHeight(18)
         self.mapping_collapsible.setSizePolicy(
             QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.MinimumExpanding
         )
@@ -604,6 +702,25 @@ class HumanIKMapperUI(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.mapping_collapsible.addLayout(mapping_buttons)
         self.mapping_collapsible.addWidget(self.mapping_table)
 
+        # batch bake
+
+        self.batch_bake_tab = QtWidgets.QWidget()
+        self.batch_bake_tab.setSizePolicy(QtWidgets.QSizePolicy.Ignored, QtWidgets.QSizePolicy.Ignored)
+        batch_bake_vlayout = QtWidgets.QVBoxLayout(self.batch_bake_tab)
+        paths_hlayout = QtWidgets.QHBoxLayout()
+        path_buttons_vlayout = QtWidgets.QVBoxLayout()
+
+        path_buttons_vlayout.addWidget(self.add_bake_path_btn)
+        path_buttons_vlayout.addWidget(self.remove_bake_path_btn)
+
+        paths_hlayout.addWidget(self.bake_paths_lw)
+        paths_hlayout.addLayout(path_buttons_vlayout)
+
+        batch_bake_vlayout.addLayout(paths_hlayout)
+        batch_bake_vlayout.addWidget(self.batch_bake_btn)
+
+        self.tabs.addTab(self.batch_bake_tab, "Batch Bake")
+
     def create_connections(self):
 
         self.export_action.triggered.connect(
@@ -611,8 +728,11 @@ class HumanIKMapperUI(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         )
         self.import_action.triggered.connect(self.import_config)
         self.bake_action.triggered.connect(HumanIKMapper.bake)
+        self.export_batch_bake_action.triggered.connect(self.export_batch_bake_config)
+        self.import_batch_bake_action.triggered.connect(self.import_batch_bake_config)
 
-        self.initialize_btn.clicked.connect(HumanIKMapper.set_character)
+
+        self.initialize_btn.clicked.connect(HumanIKMapper.initialize_character)
 
         self.head_btn.clicked.connect(
             self.display_list_mb_cb(HumanIKMapper.HEAD_NAMES)
@@ -699,7 +819,14 @@ class HumanIKMapperUI(MayaQWidgetDockableMixin, QtWidgets.QDialog):
             self._mapping_menu
         )
 
+        # batch bake path
+
+        self.add_bake_path_btn.clicked.connect(self.add_batch_bake_paths)
+        self.remove_bake_path_btn.clicked.connect(self.remove_batch_bake_paths)
+        self.batch_bake_btn.clicked.connect(self.batch_bake)
+
     def deferred_resize(self):
+        # print("calling deferred resize")
         QtCore.QMetaObject.invokeMethod(
             self, "adjustSize", QtCore.Qt.QueuedConnection
         )
@@ -740,6 +867,49 @@ class HumanIKMapperUI(MayaQWidgetDockableMixin, QtWidgets.QDialog):
     def clear_sub_ik(self, bone_target):
         HumanIKMapper.clear_sub_ik(bone_target)
         self.update_mapping()
+
+    def add_batch_bake_paths(self):
+        fbx_filter = "*.fbx"
+        paths = cmds.fileDialog2(fileFilter=fbx_filter, fileMode=4)
+
+        self.bake_paths_lw.addItems(paths)
+
+    def remove_batch_bake_paths(self):
+        selected_items = self.bake_paths_lw.selectedItems()
+
+        for item in selected_items:
+            self.bake_paths_lw.takeItem(self.bake_paths_lw.row(item))
+
+    def batch_bake(self):
+        files = []
+        for i in range(self.bake_paths_lw.count()):
+            files.append(self.bake_paths_lw.item(i).text())
+        print(files)
+        HumanIKMapper.batch_bake(files)
+
+    def export_batch_bake_config(self):
+        files = []
+        for i in range(self.bake_paths_lw.count()):
+            files.append(self.bake_paths_lw.item(i).text())
+
+        file_path = pm.fileDialog2(fileMode=0, fileFilter="*.bkcn")
+        if not file_path:
+            return
+        file_path = file_path[0]
+        data_string = json.dumps(files, indent=4)
+        with open(file_path, "w") as fp:
+            fp.write(data_string)
+        print(file_path)
+
+    def import_batch_bake_config(self):
+        file_path = pm.fileDialog2(fileMode=1, fileFilter="*.bkcn")
+        if not file_path:
+            return
+        file_path = file_path[0]
+        with open(file_path, "r") as fp:
+            data_string = json.load(fp)
+            self.bake_paths_lw.clear()
+            self.bake_paths_lw.addItems(data_string)
 
     def _group_in_hlayout(self, *args):
         h_layout = QtWidgets.QHBoxLayout()
@@ -918,7 +1088,8 @@ class LockedCtrlsDialog(QtWidgets.QDialog):
 
 
 def show(*args):
-    mgear.core.pyqt.showDialog(HumanIKMapperUI, dockable=True)
+    return mgear.core.pyqt.showDialog(HumanIKMapperUI, dockable=True)
+
 
 
 if __name__ == "__main__":
