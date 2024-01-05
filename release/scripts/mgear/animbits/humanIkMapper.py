@@ -433,43 +433,52 @@ class HumanIKMapper:
                     attrs.append(sub_ik.rotate.name())
         return attrs
 
+
     @classmethod
     @one_undo
-    @viewport_off
     def batch_bake(cls, file_list):
 
         curr_character = pm.mel.hikGetCurrentCharacter()
         # pm.mel.hikSetCurrentCharacter(hikChar)
         existing_ik_humans = set(pm.ls(type="HIKCharacterNode"))
 
+        HumanIKMapper.refresh_char_configuration()
+
         # TODO: determine first and last frame, change anim layer name to fbx name,
+        sub_ik_ctls = [cls.char_config[bone]["sub_ik"] for bone in cls.char_config if
+                       cls.char_config[bone]["sub_ik"]]
+        sub_ik_constraints = [cmds.parentConstraint(ctl, query=True) for ctl in sub_ik_ctls]
+        print(sub_ik_constraints)
 
         for file in file_list:
             ref_node = cmds.file(file, r=True, namespace=":", type="FBX")
             file_ik_human = list(set(pm.ls(type="HIKCharacterNode")) - existing_ik_humans)[0]
             existing_ik_humans = set(pm.ls(type="HIKCharacterNode"))
 
-            # pm.mel.hikSetCurrentSource(file_ik_human)
-            deferred_cmd = """
-import pymel.core as pm
-# updates src
-pm.optionMenuGrp("hikSourceList", edit=True, value=" {0}")
-pm.mel.hikUpdateCurrentSourceFromUI()
+            frame_range = "{0}:{1}".format(pm.playbackOptions(q=True, min=True), pm.playbackOptions(q=True, max=True))
+            # pm.evalDeferred(deferred_cmd)
+            pm.evalDeferred("from mgear.animbits.humanIkMapper import HumanIKMapper \n"
+                            "HumanIKMapper.deferred_bake(\"{0}\", \"{1}\")".format(file_ik_human, frame_range))
 
-frame_range = "{1}:{2}"
+    @classmethod
+    def deferred_bake(cls, ikhuman, frame_range):
+        # updates src
+        HumanIKMapper.sub_iks_binding(True)
 
-pm.mel.hikBakeCharacterPre("{3}")
-pm.bakeResults(pm.ls(sl=1), bakeOnOverrideLayer=True, simulation=True, t=frame_range, sampleBy=1)
-pm.mel.hikBakeCharacterPost("{3}")
-pm.rename("BakeResults", "{4}")
+        pm.optionMenuGrp("hikSourceList", edit=True, value=" {0}".format(ikhuman))
+        pm.mel.hikUpdateCurrentSourceFromUI()
 
-            """.format(file_ik_human,
-                       pm.playbackOptions(q=True, min=True),
-                       pm.playbackOptions(q=True, max=True),
-                       curr_character,
-                       file_ik_human.name())
+        sub_ik_ctls = [cls.char_config[bone]["sub_ik"] for bone in HumanIKMapper.char_config if HumanIKMapper.char_config[bone]["sub_ik"]]
+        sub_ik_constraints = [cmds.parentConstraint(ctl, query=True) for ctl in sub_ik_ctls]
+        # print("sub ik ctls = {1}, \n subik constraints = {1}".format(sub_ik_ctls, sub_ik_constraints))
 
-            pm.evalDeferred(deferred_cmd)
+        pm.mel.hikBakeCharacterPre("{0}".format(pm.mel.hikGetCurrentCharacter()))
+        pm.select(HumanIKMapper.get_sub_ik_bake_attrs(), add=1)
+        pm.bakeResults(pm.ls(sl=1), bakeOnOverrideLayer=True, simulation=True, t=frame_range, sampleBy=1)
+        pm.mel.hikBakeCharacterPost("{0}".format(pm.mel.hikGetCurrentCharacter()))
+        if sub_ik_constraints:
+            pm.delete(sub_ik_constraints)
+        pm.rename("BakeResults", ikhuman)
 
 
 class HumanIKMapperUI(MayaQWidgetDockableMixin, QtWidgets.QDialog):
@@ -496,6 +505,9 @@ class HumanIKMapperUI(MayaQWidgetDockableMixin, QtWidgets.QDialog):
     @QtCore.Slot()
     def adjustSize(self, *args, **kwargs):
         # Needed to mark the adjustSize method as slot
+        self.setup_tab.resize(self.setup_tab.minimumSizeHint())
+        self.setup_tab.adjustSize()
+        self.resize(self.minimumSizeHint())
         super(HumanIKMapperUI, self).adjustSize()
 
     def create_actions(self):
@@ -605,8 +617,12 @@ class HumanIKMapperUI(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         main_layout.setMenuBar(self.menu_bar)
 
         self.tabs = QtWidgets.QTabWidget()
+        self.tabs.minimumSizeHint(
+
+        )
         main_layout.addWidget(self.tabs)
         self.setup_tab = QtWidgets.QWidget()
+        self.setup_tab.setSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred)
         self.setup_layout = QtWidgets.QVBoxLayout(self.setup_tab)
         self.tabs.addTab(self.setup_tab, "Setup")
 
@@ -689,6 +705,7 @@ class HumanIKMapperUI(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         # batch bake
 
         self.batch_bake_tab = QtWidgets.QWidget()
+        self.batch_bake_tab.setSizePolicy(QtWidgets.QSizePolicy.Ignored, QtWidgets.QSizePolicy.Ignored)
         batch_bake_vlayout = QtWidgets.QVBoxLayout(self.batch_bake_tab)
         paths_hlayout = QtWidgets.QHBoxLayout()
         path_buttons_vlayout = QtWidgets.QVBoxLayout()
@@ -809,7 +826,7 @@ class HumanIKMapperUI(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.batch_bake_btn.clicked.connect(self.batch_bake)
 
     def deferred_resize(self):
-        print("calling deferred resize")
+        # print("calling deferred resize")
         QtCore.QMetaObject.invokeMethod(
             self, "adjustSize", QtCore.Qt.QueuedConnection
         )
