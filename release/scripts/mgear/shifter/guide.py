@@ -715,9 +715,22 @@ class Rig(Main):
     def initialHierarchy(self):
         """Create the initial rig guide hierarchy (model, options...)"""
         self.model = pm.group(n="guide", em=True, w=True)
+
         if versions.current() >= 20220000:
             attribute.addAttribute(
                 self.model, "guide_x_ray", "bool", False, keyable=True)
+
+        attribute.addAttribute(
+            self.model, "guide_vis", "bool", False, keyable=True)
+
+        attribute.addAttribute(
+            self.model,
+            "joint_radius",
+            "double",
+            value=0.1,
+            minValue=0,
+            keyable=True
+        )
 
         # Options
         self.options = self.addPropertyParamenters(self.model)
@@ -1016,7 +1029,6 @@ class Rig(Main):
             return
         self.setFromHierarchy(root, False)
         name = "_".join(root.name().split("|")[-1].split("_")[:-1])
-        print(name)
         comp_guide = self.components[name]
         comp_guide.rename(root, newName, newSide, newIndex)
 
