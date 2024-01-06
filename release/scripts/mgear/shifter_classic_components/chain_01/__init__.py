@@ -3,7 +3,6 @@
 import pymel.core as pm
 from pymel.core import datatypes
 
-from mgear import rigbits
 from mgear.shifter import component
 
 from mgear.core import node, applyop, vector
@@ -22,6 +21,7 @@ class Component(component.Main):
     # =====================================================
     def addObjects(self):
         """Add all the objects needed to create the component."""
+
         self.normal = self.guide.blades["blade"].z * -1
         self.binormal = self.guide.blades["blade"].x
 
@@ -37,52 +37,43 @@ class Component(component.Main):
             self.fk_ctl = []
             self.fk_ref = []
             self.fk_off = []
-            self.previusTag = self.parentCtlTag
-
-            previous_transform = False
-            fk_ctl = None
-
+            t = self.guide.tra["root"]
             self.ik_cns = primitive.addTransform(
-                self.root, self.getName("ik_cns"), self.guide.tra["root"])
-
-            chain_pos = transform.getChainTransform(
-                self.guide.apos, self.normal, self.negate)
-
-            for i, t in enumerate(chain_pos):
-                dist = vector.getDistance(self.guide.apos[i], self.guide.apos[i + 1])
-                if self.settings["mirrorBehaviour"] and self.negate:
-                    dist = dist * -1
-
-                if self.settings["neutralpose"] or not previous_transform:
+                self.root, self.getName("ik_cns"), t)
+            parent = self.ik_cns
+            tOld = False
+            fk_ctl = None
+            self.previusTag = self.parentCtlTag
+            for i, t in enumerate(transform.getChainTransform(self.guide.apos,
+                                                              self.normal,
+                                                              self.negate)):
+                dist = vector.getDistance(self.guide.apos[i],
+                                          self.guide.apos[i + 1])
+                if self.settings["neutralpose"] or not tOld:
                     tnpo = t
                 else:
                     tnpo = transform.setMatrixPosition(
-                        previous_transform, transform.getPositionFromMatrix(t))
-
+                        tOld,
+                        transform.getPositionFromMatrix(t))
                 if i:
                     tref = transform.setMatrixPosition(
-                        previous_transform, transform.getPositionFromMatrix(t))
+                        tOld,
+                        transform.getPositionFromMatrix(t))
                     fk_ref = primitive.addTransform(
                         fk_ctl,
                         self.getName("fk%s_ref" % i),
                         tref)
                     self.fk_ref.append(fk_ref)
                 else:
-                    if self.settings["mirrorBehaviour"] and self.negate:
-                        tref = transform.setMatrixScale(t, [-1, -1, -1])
-                    else:
-                        tref = t
-
+                    tref = t
                 fk_off = primitive.addTransform(
-                    self.ik_cns, self.getName("fk%s_off" % i), tref)
-
+                    parent, self.getName("fk%s_off" % i), tref)
                 fk_npo = primitive.addTransform(
-                    fk_off, self.getName("fk%s_npo" % i), tref)
-
+                    fk_off, self.getName("fk%s_npo" % i), tnpo)
                 fk_ctl = self.addCtl(
                     fk_npo,
                     "fk%s_ctl" % i,
-                    tref,
+                    t,
                     self.color_fk,
                     "cube",
                     w=dist,
@@ -94,7 +85,7 @@ class Component(component.Main):
                 self.fk_off.append(fk_off)
                 self.fk_npo.append(fk_npo)
                 self.fk_ctl.append(fk_ctl)
-                previous_transform = tref
+                tOld = t
                 self.previusTag = fk_ctl
 
         # IK controllers ------------------------------------
@@ -255,37 +246,14 @@ class Component(component.Main):
         for i, loc in enumerate(self.loc):
 
             if self.settings["mode"] == 0:  # fk only
-                if self.settings["chainAiming"] == 1:
-                    # Loop until the last one and connect aim constraints from index+1
-                    if i < len(self.loc) - 1:
-                        node = applyop.gear_matrix_cns(self.fk_ctl[i], loc, connect_srt="st")
-                        node.rename("{}_matrixConst".format(loc))
-
-                        # create an aimMatrix node
-                        aim_matrix_node = pm.createNode("aimMatrix")
-                        aim_matrix_node.rename("{}_aimMatrix".format(loc))
-                        dec_matrix_node = pm.createNode("decomposeMatrix")
-                        dec_matrix_node.rename("{}_decomposeMatrix".format(loc))
-
-                        # setup with an aimMatrix
-                        pm.connectAttr("{}.worldMatrix[0]".format(self.fk_ctl[i]),
-                                       "{}.inputMatrix".format(aim_matrix_node))
-                        pm.connectAttr("{}.worldMatrix[0]".format(self.fk_ctl[i+1]),
-                                       "{}.primary.primaryTargetMatrix".format(aim_matrix_node))
-                        pm.connectAttr("{}.outputMatrix".format(aim_matrix_node),
-                                       "{}.inputMatrix".format(dec_matrix_node))
-                        pm.connectAttr("{}.outputRotate".format(dec_matrix_node),
-                                       "{}.rotate".format(loc))
-                    else:
-                        # Then connect the last in the chain as a parent constraint
-                        self.constraint_chain(self.fk_ctl[-1], self.loc[-1])
-                else:
-                    self.constraint_chain(self.fk_ctl[i], loc)
+                pm.parentConstraint(self.fk_ctl[i], loc, maintainOffset=False)
+                pm.connectAttr(self.fk_ctl[i] + ".scale", loc + ".scale")
 
             elif self.settings["mode"] == 1:  # ik only
-                self.constraint_chain(self.chain[i], loc)
+                pm.parentConstraint(self.chain[i], loc, maintainOffset=False)
 
             elif self.settings["mode"] == 2:  # fk/ik
+
                 rev_node = node.createReverseNode(self.blend_att)
 
                 # orientation
@@ -299,8 +267,10 @@ class Component(component.Main):
 
                 # scaling
                 blend_node = pm.createNode("blendColors")
-                pm.connectAttr(self.chain[i].attr("scale"), blend_node + ".color1")
-                pm.connectAttr(self.fk_ctl[i].attr("scale"), blend_node + ".color2")
+                pm.connectAttr(self.chain[i].attr("scale"),
+                               blend_node + ".color1")
+                pm.connectAttr(self.fk_ctl[i].attr("scale"),
+                               blend_node + ".color2")
                 pm.connectAttr(self.blend_att, blend_node + ".blender")
                 pm.connectAttr(blend_node + ".output", loc + ".scale")
 
@@ -351,14 +321,3 @@ class Component(component.Main):
 
     def connect_parent(self):
         self.connect_standardWithSimpleIkRef()
-
-    def constraint_chain(self, src, dst):
-        mat_node = applyop.gear_matrix_cns(src, dst, connect_srt="st")
-        mat_node.rename("{}_matrixConst".format(dst))
-        dec_matrix_node = pm.createNode("decomposeMatrix")
-        dec_matrix_node.rename("{}_decomposeMatrix".format(dst))
-
-        pm.connectAttr("{}.worldMatrix[0]".format(src),
-                       "{}.inputMatrix".format(dec_matrix_node))
-        pm.connectAttr("{}.outputRotate".format(dec_matrix_node),
-                       "{}.rotate".format(dst))

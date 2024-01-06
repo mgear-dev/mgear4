@@ -13,10 +13,10 @@ from . import settingsUI as sui
 
 
 # guide info
-AUTHOR = "Jeremie Passerin, Miquel Campos, Joji Nishimura"
+AUTHOR = "Jeremie Passerin, Miquel Campos"
 URL = ", www.mcsgear.com"
 EMAIL = ", "
-VERSION = [1, 0, 5]
+VERSION = [1, 0, 1]
 TYPE = "chain_01"
 NAME = "chain"
 DESCRIPTION = "Simple IK/FK chain, With IK space switch"
@@ -62,8 +62,6 @@ class Guide(guide.ComponentGuide):
         self.pType = self.addParam("mode", "long", 0, 0)
         self.pBlend = self.addParam("blend", "double", 1, 0, 1)
         self.pNeutralPose = self.addParam("neutralpose", "bool", True)
-        self.pChainAiming = self.addParam("chainAiming", "bool", False)
-        self.pMirrorBehaviour = self.addParam("mirrorBehaviour", "bool", False)
         self.pIkRefArray = self.addParam("ikrefarray", "string", "")
         self.pUseIndex = self.addParam("useIndex", "bool", False)
         self.pParentJointIndex = self.addParam(
@@ -138,16 +136,6 @@ class componentSettings(MayaQWidgetDockableMixin, guide.componentMainSettings):
             self.settingsTab.neutralPose_checkBox.setCheckState(
                 QtCore.Qt.Unchecked)
 
-        if self.root.attr("chainAiming").get():
-            self.settingsTab.aiming_checkBox.setCheckState(
-                QtCore.Qt.Checked)
-        else:
-            self.settingsTab.aiming_checkBox.setCheckState(
-                QtCore.Qt.Unchecked)
-
-        self.populateCheck(self.settingsTab.mirrorBehaviour_checkBox,
-                           "mirrorBehaviour")
-
         ikRefArrayItems = self.root.attr("ikrefarray").get().split(",")
         for item in ikRefArrayItems:
             self.settingsTab.ikRefArray_listWidget.addItem(item)
@@ -172,22 +160,10 @@ class componentSettings(MayaQWidgetDockableMixin, guide.componentMainSettings):
                     self.settingsTab.mode_comboBox,
                     "mode"))
 
-        self.settingsTab.mode_comboBox.currentIndexChanged.connect(self.enable_chain_aiming)
-
         self.settingsTab.neutralPose_checkBox.stateChanged.connect(
             partial(self.updateCheck,
                     self.settingsTab.neutralPose_checkBox,
                     "neutralpose"))
-
-        self.settingsTab.aiming_checkBox.stateChanged.connect(
-            partial(self.updateCheck,
-                    self.settingsTab.aiming_checkBox,
-                    "chainAiming"))
-
-        self.settingsTab.mirrorBehaviour_checkBox.stateChanged.connect(
-            partial(self.updateCheck,
-                    self.settingsTab.mirrorBehaviour_checkBox,
-                    "mirrorBehaviour"))
 
         self.settingsTab.ikRefArrayAdd_pushButton.clicked.connect(
             partial(self.addItem2listWidget,
@@ -209,10 +185,3 @@ class componentSettings(MayaQWidgetDockableMixin, guide.componentMainSettings):
 
     def dockCloseEventTriggered(self):
         pyqt.deleteInstances(self, MayaQDockWidget)
-
-    def enable_chain_aiming(self):
-        state = self.settingsTab.mode_comboBox.currentIndex()
-        if state == 0:
-            self.settingsTab.aiming_checkBox.setEnabled(True)
-        else:
-            self.settingsTab.aiming_checkBox.setEnabled(False)
