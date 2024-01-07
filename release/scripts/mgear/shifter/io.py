@@ -170,13 +170,13 @@ def import_partial_guide(
                         model=rig.guide.model)
 
 
-def import_guide_template(filePath=None, conf=None, *args):
+def import_guide_template(filePath=None, conf=None, **kwargs):
     """Import a guide template
 
     Args:
         filePath (str, optional): Path to the template file to import
     """
-    import_partial_guide(filePath, conf=conf)
+    import_partial_guide(filePath, conf=conf, **kwargs)
 
 
 def build_from_file(filePath=None, conf=False, *args):
