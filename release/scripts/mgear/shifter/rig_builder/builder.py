@@ -12,14 +12,18 @@ try:
 
     pyblish.api.register_host("maya")
     pyblish.api.register_gui("pyblish_lite")
-    plugin_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), "Pyblish_plugins")
+    plugin_dir = os.path.join(
+        os.path.dirname(os.path.realpath(__file__)), "Pyblish_plugins"
+    )
     pyblish.api.register_plugin_path(plugin_dir)
 
     PYBLISH_READY = True
     om.MGlobal.displayInfo("Successfully imported Pyblish.")
 except:
     PYBLISH_READY = False
-    om.MGlobal.displayWarning("Could not setup Pyblish, disabling validator option.")
+    om.MGlobal.displayWarning(
+        "Could not setup Pyblish, disabling validator option."
+    )
 
 
 class RigBuilder(object):
@@ -58,7 +62,9 @@ class RigBuilder(object):
 
     def format_report_header(self):
         """Creates the header for the validator report string."""
-        header_string = "{:<10}{:<40}{:<80}".format("Success", "Plug-in", "Instance")
+        header_string = "{:<10}{:<40}{:<80}".format(
+            "Success", "Plug-in", "Instance"
+        )
         header = "{}\n{}\n".format(header_string, "-" * 70)
         return header
 
@@ -68,7 +74,9 @@ class RigBuilder(object):
         Args:
             output_name (str): name of the rig and its output file
         """
-        result_string = "{success:<10}{check_name:<40}{instance} - {output_name}"
+        result_string = (
+            "{success:<10}{check_name:<40}{instance} - {output_name}"
+        )
         error_string = "{:<10} > error: {:<80}"
         valid = True
 
@@ -77,7 +85,9 @@ class RigBuilder(object):
         for check_name, check_data in checks_dict.items():
             results.append(
                 result_string.format(
-                    **check_data, check_name=check_name, output_name=output_name
+                    **check_data,
+                    check_name=check_name,
+                    output_name=output_name
                 )
             )
             r_error = check_data.get("error")

@@ -66,7 +66,9 @@ class validateControllersInSet(pyblish.api.Validator):
         if notInControllersSet:
             check = False
 
-        assert check, "{} are not in controllers_grp".format(str(notInControllersSet))
+        assert check, "{} are not in controllers_grp".format(
+            str(notInControllersSet)
+        )
 
     @classmethod
     def repair(self, instance):

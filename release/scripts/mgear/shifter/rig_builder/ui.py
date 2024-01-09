@@ -8,7 +8,9 @@ from mgear.core import pyqt, widgets
 from mgear.shifter.rig_builder import builder
 
 
-class RigBuilderUI(MayaQWidgetDockableMixin, QtWidgets.QDialog, pyqt.SettingsMixin):
+class RigBuilderUI(
+    MayaQWidgetDockableMixin, QtWidgets.QDialog, pyqt.SettingsMixin
+):
     """
     A UI class for building mGear rigs from .sgt files.
     """
@@ -34,7 +36,9 @@ class RigBuilderUI(MayaQWidgetDockableMixin, QtWidgets.QDialog, pyqt.SettingsMix
         self.layout.addLayout(output_folder_layout)
 
         self.output_folder_line_edit = QtWidgets.QLineEdit()
-        self.output_folder_button = widgets.create_button(icon="mgear_folder", width=25)
+        self.output_folder_button = widgets.create_button(
+            icon="mgear_folder", width=25
+        )
 
         output_folder_layout.addWidget(QtWidgets.QLabel("Output Folder"))
         output_folder_layout.addWidget(self.output_folder_line_edit)
@@ -44,18 +48,24 @@ class RigBuilderUI(MayaQWidgetDockableMixin, QtWidgets.QDialog, pyqt.SettingsMix
         run_validators_layout = QtWidgets.QHBoxLayout()
         self.layout.addLayout(run_validators_layout)
 
-        self.run_validators_checkbox = QtWidgets.QCheckBox("Run Pyblish Validators")
+        self.run_validators_checkbox = QtWidgets.QCheckBox(
+            "Run Pyblish Validators"
+        )
         self.run_validators_checkbox.setChecked(True)
         run_validators_layout.addWidget(self.run_validators_checkbox)
         run_validators_layout.addStretch()
 
-        self.results_popup_checkbox = QtWidgets.QCheckBox("Open Results Pop-Up")
+        self.results_popup_checkbox = QtWidgets.QCheckBox(
+            "Open Results Pop-Up"
+        )
         self.results_popup_checkbox.setChecked(True)
         run_validators_layout.addWidget(self.results_popup_checkbox)
         run_validators_layout.addStretch()
 
         self.publish_label = QtWidgets.QLabel("Publish Passed Rigs Only")
-        self.publish_passed_checkbox = QtWidgets.QCheckBox("Publish Passed Rigs Only")
+        self.publish_passed_checkbox = QtWidgets.QCheckBox(
+            "Publish Passed Rigs Only"
+        )
         run_validators_layout.addWidget(self.publish_passed_checkbox)
 
         if not builder.PYBLISH_READY:
@@ -66,9 +76,13 @@ class RigBuilderUI(MayaQWidgetDockableMixin, QtWidgets.QDialog, pyqt.SettingsMix
         # File Table UI
         self.table_widget = QtWidgets.QTableWidget()
         self.table_widget.setColumnCount(2)
-        self.table_widget.setHorizontalHeaderLabels([".sgt File", "Output Name"])
+        self.table_widget.setHorizontalHeaderLabels(
+            [".sgt File", "Output Name"]
+        )
 
-        self.table_widget.setEditTriggers(QtWidgets.QAbstractItemView.AllEditTriggers)
+        self.table_widget.setEditTriggers(
+            QtWidgets.QAbstractItemView.AllEditTriggers
+        )
         # Resize the first column to fit its content
         self.table_widget.horizontalHeader().setSectionResizeMode(
             0, QtWidgets.QHeaderView.ResizeToContents
@@ -91,7 +105,9 @@ class RigBuilderUI(MayaQWidgetDockableMixin, QtWidgets.QDialog, pyqt.SettingsMix
 
     def create_connections(self):
         """Connects buttons to their functions."""
-        self.output_folder_button.clicked.connect(self.on_output_folder_clicked)
+        self.output_folder_button.clicked.connect(
+            self.on_output_folder_clicked
+        )
         self.run_validators_checkbox.toggled.connect(
             self.on_run_validators_checkbox_changed
         )
@@ -167,9 +183,13 @@ class RigBuilderUI(MayaQWidgetDockableMixin, QtWidgets.QDialog, pyqt.SettingsMix
             output_name_item = self.table_widget.item(i, 1)
 
             file_path = file_path_item.text().strip() if file_path_item else ""
-            output_name = output_name_item.text().strip() if output_name_item else ""
+            output_name = (
+                output_name_item.text().strip() if output_name_item else ""
+            )
 
-            data["rows"].append({"file_path": file_path, "output_name": output_name})
+            data["rows"].append(
+                {"file_path": file_path, "output_name": output_name}
+            )
 
         return json.dumps(data)
 

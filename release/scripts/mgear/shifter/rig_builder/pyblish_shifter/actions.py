@@ -1,4 +1,3 @@
-
 import pyblish.api
 
 
@@ -24,6 +23,7 @@ class RepairAction(pyblish.api.Action):
     method is available on the plugin.
 
     """
+
     label = "Repair"
     on = "failed"  # This action is only available on a failed plug-in
     icon = "wrench"  # Icon from Awesome Icon
@@ -51,6 +51,7 @@ class SelectInvalidAction(pyblish.api.Action):
     method is available on the plugin.
 
     """
+
     label = "Select invalid"
     on = "failed"  # This action is only available on a failed plug-in
     icon = "search"  # Icon from Awesome Icon
@@ -72,8 +73,10 @@ class SelectInvalidAction(pyblish.api.Action):
                 if isinstance(invalid_nodes, (list, tuple)):
                     invalid.extend(invalid_nodes)
                 else:
-                    self.log.warning("Plug-in returned to be invalid, "
-                                     "but has no selectable nodes.")
+                    self.log.warning(
+                        "Plug-in returned to be invalid, "
+                        "but has no selectable nodes."
+                    )
 
         # Ensure unique (process each node only once)
         invalid = list(set(invalid))
