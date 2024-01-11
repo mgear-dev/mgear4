@@ -94,6 +94,32 @@ class RigBuilderUI(
 
         self.layout.addWidget(self.table_widget)
 
+        # Pre-scrtip
+        pre_script_layout = QtWidgets.QHBoxLayout()
+        self.layout.addLayout(pre_script_layout)
+
+        self.pre_script_line_edit = QtWidgets.QLineEdit()
+        self.pre_script_button = widgets.create_button(
+            icon="mgear_folder", width=25
+        )
+
+        pre_script_layout.addWidget(QtWidgets.QLabel("Edit Guide Pre Script"))
+        pre_script_layout.addWidget(self.pre_script_line_edit)
+        pre_script_layout.addWidget(self.pre_script_button)
+
+        # Post-scrtip
+        # post_script_layout = QtWidgets.QHBoxLayout()
+        # self.layout.addLayout(post_script_layout)
+
+        # self.post_script_line_edit = QtWidgets.QLineEdit()
+        # self.post_script_button = widgets.create_button(
+        #     icon="mgear_folder", width=25
+        # )
+
+        # post_script_layout.addWidget(QtWidgets.QLabel("Post Script"))
+        # post_script_layout.addWidget(self.post_script_line_edit)
+        # post_script_layout.addWidget(self.post_script_button)
+
         # Add, Remove, and Build buttons
         self.add_button = QtWidgets.QPushButton("Add")
         self.remove_button = QtWidgets.QPushButton("Remove")
@@ -114,6 +140,25 @@ class RigBuilderUI(
         self.add_button.clicked.connect(self.on_add_button_clicked)
         self.remove_button.clicked.connect(self.on_remove_button_clicked)
         self.build_button.clicked.connect(self.on_build_button_clicked)
+
+        self.pre_script_button.clicked.connect(self.set_pre_script)
+        # self.post_script_button.clicked.connect(self.set_post_script)
+
+    def set_script(self, lineEdit):
+        """Sets the output folder for exported builds."""
+        options = QtWidgets.QFileDialog.Options()
+        file_filter = "Python Files (*.py)"
+        file_name, _ = QtWidgets.QFileDialog.getOpenFileName(
+            self, "Select Python File", "", file_filter, options=options
+        )
+        if file_name:
+            lineEdit.setText(file_name)
+
+    def set_pre_script(self):
+        self.set_script(self.pre_script_line_edit)
+
+    # def set_post_script(self):
+    #     self.set_script(self.post_script_line_edit)
 
     def on_output_folder_clicked(self):
         """Sets the output folder for exported builds."""
@@ -176,6 +221,8 @@ class RigBuilderUI(
         data = {}
         row_count = self.table_widget.rowCount()
         data["output_folder"] = self.output_folder_line_edit.text().strip()
+        data["pre_script"] = self.pre_script_line_edit.text().strip()
+        # data["post_script"] = self.post_script_line_edit.text().strip()
         data["rows"] = []
 
         for i in range(row_count):

@@ -1,10 +1,13 @@
 import json
 import os
+import traceback
 
 import maya.api.OpenMaya as om
 import maya.cmds as cmds
+import pymel.core as pm
 
 from mgear.shifter import io
+from mgear.shifter import guide_manager
 
 try:
     import pyblish.api
@@ -127,15 +130,43 @@ class RigBuilder(object):
             maya_file_name = "{}.ma".format(output_name)
             maya_file_path = os.path.join(output_folder, maya_file_name)
 
-            print("Building rig '{}'...".format(output_name))
-            io.build_from_file(file_path)
+            pre_script_path = data.get("pre_script")
+            if pre_script_path:
+                io.import_guide_template(file_path)
+                guide_root = cmds.ls('*.ismodel', objectsOnly=True, long=True)
+                if guide_root:
+                    guide_root = guide_root[0]
+                    pm.displayInfo(
+                        "Updating the guide with: {}".format(pre_script_path)
+                    )
+                    with open(pre_script_path, "r") as file:
+                        try:
+                            exec(file.read())
+                        except Exception as e:
+                            error_message = str(e)
+                            full_traceback = traceback.format_exc()
+                            pm.displayWarning("Update script failed, check error log")
+                            pm.displayError("Exception message:", error_message)
+                            pm.displayError("Full traceback:", full_traceback)
+
+                    pm.select(guide_root, r=True)
+                    pm.displayInfo("Building rig '{}'...".format(output_name))
+                    guide_manager.build_from_selection()
+                    pm.delete(guide_root)
+                else:
+                    pm.displayWarning(
+                        "Guide not found."
+                    )
+            else:
+                pm.displayInfo("Building rig '{}'...".format(output_name))
+                io.build_from_file(file_path)
 
             context = None
             save_build = True
             report_string = self.format_report_header()
 
             if PYBLISH_READY and validate:
-                print("Validating rig '{}'...\n".format(output_name))
+                pm.displayInfo("Validating rig '{}'...\n".format(output_name))
                 context = self.run_validators()
                 self.build_results_dict(output_name, context)
                 valid, report = self.generate_instance_report(output_name)
@@ -143,7 +174,9 @@ class RigBuilder(object):
                 report_string += "{}\n".format(report)
                 if passed_only and not valid:
                     save_build = False
-                    print("Found errors, please fix and rebuild the rig.")
+                    pm.displayInfo(
+                        "Found errors, please fix and rebuild the rig."
+                    )
 
                 report_string += "{}\n".format(" -" * 35)
 
@@ -152,6 +185,6 @@ class RigBuilder(object):
             cmds.file(new=True, force=True)
 
         if validate:
-            print(report_string)
+            pm.displayInfo(report_string)
 
         return self.results_dict
