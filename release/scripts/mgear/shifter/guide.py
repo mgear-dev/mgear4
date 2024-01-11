@@ -318,6 +318,13 @@ class Rig(Main):
         self.pWorldCtl_name = self.addParam(
             "world_ctl_name", "string", "world_ctl")
 
+        if versions.current() >= 20220000:
+            self.pGuideXRay = self.addParam("guide_x_ray", "bool", False)
+
+        self.pGuideVis = self.addParam("guide_vis", "bool", True)
+        self.pJointRadius = self.addParam(
+            "joint_radius", "float", value=1.0, minimum=0)
+
         # --------------------------------------------------
         # skin
         self.pSkin = self.addParam("importSkin", "bool", False)
@@ -715,22 +722,6 @@ class Rig(Main):
     def initialHierarchy(self):
         """Create the initial rig guide hierarchy (model, options...)"""
         self.model = pm.group(n="guide", em=True, w=True)
-
-        if versions.current() >= 20220000:
-            attribute.addAttribute(
-                self.model, "guide_x_ray", "bool", False, keyable=True)
-
-        attribute.addAttribute(
-            self.model, "guide_vis", "bool", True, keyable=True)
-
-        attribute.addAttribute(
-            self.model,
-            "joint_radius",
-            "double",
-            value=1.0,
-            minValue=0,
-            keyable=True
-        )
 
         # Options
         self.options = self.addPropertyParamenters(self.model)
