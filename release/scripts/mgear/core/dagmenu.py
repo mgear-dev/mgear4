@@ -602,13 +602,13 @@ def install():
     state = get_option_var_state()
 
     cmds.setParent(mgear.menu_id, menu=True)
+    cmds.menuItem(divider=True)
     cmds.menuItem(
         "mgear_dagmenu_menuitem",
         label="mGear Viewport Menu ",
         command=run,
         checkBox=state,
     )
-    cmds.menuItem(divider=True)
 
     run(state)
 
