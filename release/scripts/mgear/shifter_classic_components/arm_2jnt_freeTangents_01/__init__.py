@@ -127,14 +127,30 @@ class Component(component.Main):
 
         # IK Controlers -----------------------------------
 
-        self.ik_cns = primitive.addTransformFromPos(self.root,
-                                                    self.getName("ik_cns"),
-                                                    self.guide.pos["wrist"])
+        # Define the wrist transform (wt)
+        if not self.settings["guideOrientWrist"]:
+            if self.settings["mirrorIK"] and self.negate:
+                m = transform.getTransformLookingAt(self.guide.pos["wrist"],
+                                                    self.guide.pos["eff"],
+                                                    self.normal,
+                                                    "x-y",
+                                                    True)
+            else:
+                m = transform.getTransformLookingAt(self.guide.pos["wrist"],
+                                                    self.guide.pos["eff"],
+                                                    self.normal,
+                                                    "xy",
+                                                    False)
+        else:
+            m = transform.getTransformFromPos(self.guide.pos["wrist"])
 
-        t = transform.getTransformFromPos(self.guide.pos["wrist"])
+        self.ik_cns = primitive.addTransform(self.root,
+                                             self.getName("ik_cns"),
+                                             m)
+
         self.ikcns_ctl = self.addCtl(self.ik_cns,
                                      "ikcns_ctl",
-                                     t,
+                                     m,
                                      self.color_ik,
                                      "null",
                                      w=self.size * .12,
@@ -142,18 +158,6 @@ class Component(component.Main):
 
         attribute.setInvertMirror(self.ikcns_ctl, ["tx", "ty", "tz"])
 
-        if self.negate:
-            m = transform.getTransformLookingAt(self.guide.pos["wrist"],
-                                                self.guide.pos["eff"],
-                                                self.normal,
-                                                "x-y",
-                                                True)
-        else:
-            m = transform.getTransformLookingAt(self.guide.pos["wrist"],
-                                                self.guide.pos["eff"],
-                                                self.normal,
-                                                "xy",
-                                                False)
         self.ik_ctl = self.addCtl(self.ikcns_ctl,
                                   "ik_ctl",
                                   m,
@@ -166,7 +170,6 @@ class Component(component.Main):
         if self.settings["mirrorIK"]:
             if self.negate:
                 self.ik_cns.sx.set(-1)
-                self.ik_ctl.rz.set(self.ik_ctl.rz.get() * -1)
         else:
             attribute.setInvertMirror(self.ik_ctl, ["tx", "ry", "rz"])
         attribute.setKeyableAttributes(self.ik_ctl)
@@ -510,9 +513,8 @@ class Component(component.Main):
                                            w=self.size * .2,
                                            ro=datatypes.Vector(0, 0, 1.570796),
                                            tp=self.mid_ctl)
-        if self.negate:
-            self.armTangentA_npo.rz.set(180)
-            self.armTangentA_npo.sz.set(-1)
+        if self.settings["mirrorMid"] and self.negate:
+            self.armTangentA_npo.sx.set(-1)
         attribute.setKeyableAttributes(self.armTangentA_ctl, self.t_params)
 
         t = transform.getInterpolateTransformMatrix(self.fk_ctl[0],
@@ -530,9 +532,9 @@ class Component(component.Main):
                                            w=self.size * .1,
                                            ro=datatypes.Vector(0, 0, 1.570796),
                                            tp=self.mid_ctl)
-        if self.negate:
-            self.armTangentB_npo.rz.set(180)
-            self.armTangentB_npo.sz.set(-1)
+        if self.settings["mirrorMid"] and self.negate:
+            self.armTangentB_npo.rx.set(180)
+            self.armTangentB_npo.sx.set(-1)
         attribute.setKeyableAttributes(self.armTangentB_ctl, self.t_params)
 
         tC = self.tws1B_npo.getMatrix(worldSpace=True)
@@ -553,9 +555,9 @@ class Component(component.Main):
             ro=datatypes.Vector(0, 0, 1.570796),
             tp=self.mid_ctl)
 
-        if self.negate:
-            self.forearmTangentA_npo.rz.set(180)
-            self.forearmTangentA_npo.sz.set(-1)
+        if self.settings["mirrorMid"] and self.negate:
+            self.forearmTangentA_npo.rx.set(180)
+            self.forearmTangentA_npo.sx.set(-1)
         attribute.setKeyableAttributes(self.forearmTangentA_ctl, self.t_params)
 
         t = transform.getInterpolateTransformMatrix(self.tws1B_npo, tC, .5)
@@ -577,9 +579,8 @@ class Component(component.Main):
             ro=datatypes.Vector(0, 0, 1.570796),
             tp=self.mid_ctl)
 
-        if self.negate:
-            self.forearmTangentB_npo.rz.set(180)
-            self.forearmTangentB_npo.sz.set(-1)
+        if self.settings["mirrorMid"] and self.negate:
+            self.forearmTangentB_npo.sx.set(-1)
         attribute.setKeyableAttributes(self.forearmTangentB_ctl, self.t_params)
 
         t = self.mid_ctl.getMatrix(worldSpace=True)
@@ -598,9 +599,6 @@ class Component(component.Main):
             ro=datatypes.Vector(0, 0, 1.570796),
             tp=self.mid_ctl)
 
-        if self.negate:
-            self.elbowTangent_npo.rz.set(180)
-            self.elbowTangent_npo.sz.set(-1)
         attribute.setKeyableAttributes(self.elbowTangent_ctl, self.t_params)
 
         # add visual reference
