@@ -1459,7 +1459,7 @@ class Component(component.Main):
 
         # connect elbow ref
         cns = pm.parentConstraint(self.bone1, self.knee_ref, mo=False)
-        if self.negate:
+        if self.negate and self.settings["div1"]:
             pm.setAttr(cns + ".target[0].targetOffsetRotateZ", 180)
 
         # Divisions ----------------------------------------
