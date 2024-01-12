@@ -1470,13 +1470,16 @@ def mirrorPoseOld(flip=False, nodes=False):
         pm.undoInfo(cck=1)
 
 
-def bindPose(model):
+def bindPose(model, *args):
     """Restore the reset position of the rig
 
     Args:
         model (TYPE): Description
     """
-    nameSpace = getNamespace(model.name())
+    if isinstance(model, pm.PyNode):
+        model = bindPose
+
+    nameSpace = getNamespace(model)
     if nameSpace:
         dagPoseName = nameSpace + ":dagPose1"
     else:

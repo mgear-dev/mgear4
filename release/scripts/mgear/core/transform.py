@@ -529,6 +529,9 @@ def resetTransform(node, t=True, r=True, s=True):
         None
 
     """
+    if isinstance(node, str):
+        node = pm.PyNode(node)
+
     trsDic = {"tx": 0,
               "ty": 0,
               "tz": 0,
