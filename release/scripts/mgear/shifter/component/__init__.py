@@ -183,9 +183,7 @@ class Main(object):
         """
         Step 04. Joint structure creation.
         """
-        self.retrieveParentJoint()
         self.jointStructure()
-        self.setJointRadius()
         return
 
     def step_05(self):
@@ -1952,8 +1950,13 @@ class Main(object):
     # =====================================================
     # JOINTS STRUCTURE
     # =====================================================
-    def retrieveParentJoint(self):
-        """Retrieve the parent joint based on settings."""
+    def jointStructure(self):
+        """Build the Joint structure
+
+        Handle the building of the joint structure, when we select jnt_org
+        option.
+
+        """
         # get parent component joint
         if self.settings["useIndex"]:
             try:
@@ -1988,8 +1991,12 @@ class Main(object):
                 except Exception:
                     if oParent_comp.parent_comp:
                         pgpc = oParent_comp.guide.parentComponent
-                        parent_name = pgpc.getName(oParent_comp.guide.parentLocalName)
-                        relative_name = oParent_comp.rig.getRelativeName(parent_name)
+                        parent_name = pgpc.getName(
+                            oParent_comp.guide.parentLocalName
+                        )
+                        relative_name = oParent_comp.rig.getRelativeName(
+                            parent_name
+                        )
                     else:
                         pm.displayInfo(
                             "The parent components for: %s don't have joint "
@@ -1999,23 +2006,47 @@ class Main(object):
 
                     oParent_comp = oParent_comp.parent_comp
 
-    def jointStructure(self):
-        """Build the Joint structure
-
-        Handle the building of the joint structure, when we select jnt_org
-        option.
-
-        """
-        # Create joints based on joint positions.
+        # Joint creation
         for jpo in self.jnt_pos:
+
+            # NOTE: using a list was a mitake. Adding support for a kwargs dict
             if isinstance(jpo, list):
-                # Process joint position when provided as a list
-                newActiveJnt = self.determineActiveJoint(jpo, index=2)
+                if len(jpo) >= 3 and self.options["joint_rig"]:
+                    if jpo[2] == "component_jnt_org":
+                        newActiveJnt = self.component_jnt_org
+                    elif jpo[2] == "parent_relative_jnt":
+                        # this option force the active jnt always to the parent
+                        # relative jnt.
+                        # If None the active jnt will be updated to the latest in
+                        # each jnt creation
+                        newActiveJnt = self.parent_relative_jnt
+                    else:
+                        try:
+                            # here jpo[2] is also the string name of the jnt inside
+                            # the component. IE: "root"
+                            newActiveJnt = self.jointList[
+                                self.jointRelatives[jpo[2]]
+                            ]
+
+                        except Exception:
+                            if jpo[2]:
+                                pm.displayWarning(
+                                    "Joint Structure creation: "
+                                    "The object %s can't be found. Joint parent is"
+                                    " NONE for %s, from %s"
+                                    % (jpo[2], jpo[0], self.fullName)
+                                )
+                            newActiveJnt = None
+                else:
+                    newActiveJnt = None
                 # Handle the uniform scale
                 if len(jpo) >= 4 and self.options["joint_rig"]:
                     uniScale = jpo[3]
                 else:
                     uniScale = False
+
+                # TODO: handle rotation offset and vanilla nodes connection
+                # handle the matrix node connection
 
                 # Defaults to use Maya multiply Matrix node
                 if len(jpo) >= 5 and self.options["joint_rig"]:
@@ -2023,58 +2054,51 @@ class Main(object):
                 else:
                     gearMulMatrix = False
 
-                # Handle rotation offset
-                rotOffset = jpo[5] if len(jpo) >= 6 else (0, 0, 0)
-
                 self.jointList.append(
                     self.addJoint(
-                        obj=jpo[0],
-                        name=jpo[1],
-                        newActiveJnt=newActiveJnt,
-                        UniScale=uniScale,
+                        jpo[0],
+                        jpo[1],
+                        newActiveJnt,
+                        uniScale,
                         gearMulMatrix=gearMulMatrix,
-                        rot_off=rotOffset)
+                    )
                 )
-
             elif isinstance(jpo, dict):
-                # Process joint position when provided as a dictionary
-                if "newActiveJnt" in jpo:
-                    jpo["newActiveJnt"] = self.determineActiveJoint(jpo, key="newActiveJnt")
+                if "newActiveJnt" in jpo.keys():
+                    if jpo["newActiveJnt"] == "component_jnt_org":
+                        jpo["newActiveJnt"] = self.component_jnt_org
+                    elif jpo["newActiveJnt"] == "parent_relative_jnt":
+                        # this option force the active jnt always to the parent
+                        # relative jnt.
+                        # If None the active jnt will be updated to the latest in
+                        # each jnt creation
+                        jpo["newActiveJnt"] = self.parent_relative_jnt
+                    else:
+                        try:
+                            # here jpo["newActiveJnt"] is also the string name
+                            # of the jnt inside the component. IE: "root"
+                            jpo["newActiveJnt"] = self.jointList[
+                                self.jointRelatives[jpo["newActiveJnt"]]
+                            ]
+
+                        except Exception:
+                            if jpo["newActiveJnt"]:
+                                pm.displayWarning(
+                                    "Joint Structure creation: "
+                                    "The object %s can't be found. Joint parent is"
+                                    " NONE for %s, from %s"
+                                    % (
+                                        jpo["newActiveJnt"],
+                                        jpo["obj"],
+                                        self.fullName,
+                                    )
+                                )
+                            jpo["newActiveJnt"] = None
+
                 self.jointList.append(self.addJoint(**jpo))
 
-    def determineActiveJoint(self, jpo, index=None, key=None):
-        """Determine the active joint based on the joint position info."""
-
-        # Check if jpo is a list and index is within range
-        if isinstance(jpo, list) and index is not None and index < len(jpo):
-            joint_identifier = jpo[index]
-        # Check if jpo is a dictionary and key exists
-        elif isinstance(jpo, dict) and key is not None and key in jpo:
-            joint_identifier = jpo.get(key)
-        else:
-            # Handle cases where jpo does not have the expected index or key
-            return None
-
-        if joint_identifier == "component_jnt_org":
-            return self.component_jnt_org
-        elif joint_identifier == "parent_relative_jnt":
-            return self.parent_relative_jnt
-        else:
-            try:
-                return self.jointList[self.jointRelatives[joint_identifier]]
-            except Exception:
-                obj = jpo[0] if isinstance(jpo, list) else jpo["obj"]
-                if joint_identifier:
-                    pm.displayWarning(
-                        "Joint Structure creation: The object %s can't be found. "
-                        "Joint parent is NONE for %s, from %s" % (joint_identifier, obj, self.fullName)
-                    )
-                return None
-
-    def setJointRadius(self):
-        """Set the radius for all joints."""
-        radiusValue = self.rig.guide.model.joint_radius.get()
         for jnt in self.jointList:
+            radiusValue = self.rig.guide.model.joint_radius.get()
             jnt.radius.set(radiusValue)
 
     # =====================================================
