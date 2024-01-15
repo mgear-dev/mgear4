@@ -24,6 +24,12 @@ class Component(component.Main):
         self.binormal = self.guide.blades["blade"].x
         self.WIP = self.options["mode"]
 
+        rot_offset = [
+                self.settings["joint_rot_offset_x"],
+                self.settings["joint_rot_offset_y"],
+                self.settings["joint_rot_offset_z"],
+            ]
+
         if self.negate and self.settings["overrideNegate"]:
             self.negate = False
             self.n_factor = 1
@@ -49,10 +55,6 @@ class Component(component.Main):
             self.guide.apos, self.normal, self.negate)
 
         for i, t in enumerate(chain_pos):
-            dist = vector.getDistance(self.guide.apos[i], self.guide.apos[i + 1])
-            if self.settings["mirrorBehaviour"] and self.negate:
-                dist = dist * -1
-
             if self.settings["neutralpose"] or not previous_transform:
                 tnpo = t
             else:
@@ -60,7 +62,10 @@ class Component(component.Main):
                     previous_transform,
                     transform.getPositionFromMatrix(t))
 
+            dist = vector.getDistance(self.guide.apos[i], self.guide.apos[i + 1])
             if self.settings["mirrorBehaviour"] and self.negate:
+                dist = dist * -1
+                rot_offset = [180, 180, 0]
                 tnpo = transform.setMatrixScale(t, [-1, -1, -1])
 
             fk_npo = primitive.addTransform(
@@ -84,7 +89,15 @@ class Component(component.Main):
             previous_transform = t
             parent = fk_ctl
             if self.settings["addJoints"]:
-                self.jnt_pos.append([fk_ctl, i, None, False])
+                self.jnt_pos.append(
+                    {
+                        "obj": fk_ctl,
+                        "name": i,
+                        "newActiveJnt": None,
+                        "UniScale": False,
+                        "rot_off": rot_offset
+                    }
+                )
 
     # =====================================================
     # ATTRIBUTES
