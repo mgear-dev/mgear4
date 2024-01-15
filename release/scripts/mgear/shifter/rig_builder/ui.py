@@ -1,11 +1,11 @@
-from mgear.core import pyqt
-from mgear.vendor.Qt import QtWidgets
-from maya.app.general.mayaMixin import MayaQWidgetDockableMixin
 import os
 import json
 
+from maya.app.general.mayaMixin import MayaQWidgetDockableMixin
 
-from . import builder
+from mgear.vendor.Qt import QtGui, QtWidgets
+from mgear.core import pyqt, widgets
+from mgear.shifter.rig_builder import builder
 
 
 class RigBuilderUI(
@@ -22,16 +22,56 @@ class RigBuilderUI(
         self.setAcceptDrops(True)
         self.resize(550, 650)
 
+        self.builder = builder.RigBuilder()
+        self.create_layout()
+        self.create_connections()
+
+    def create_layout(self):
+        """Creates the main layout widgets of the tool."""
         self.layout = QtWidgets.QVBoxLayout()
+        self.setLayout(self.layout)
 
         # Output Folder UI
-        self.output_folder_line_edit = QtWidgets.QLineEdit()
-        self.output_folder_button = QtWidgets.QPushButton("Set Output Folder")
-        self.output_folder_button.clicked.connect(self.set_output_folder)
+        output_folder_layout = QtWidgets.QHBoxLayout()
+        self.layout.addLayout(output_folder_layout)
 
-        self.layout.addWidget(QtWidgets.QLabel("Output Folder:"))
-        self.layout.addWidget(self.output_folder_line_edit)
-        self.layout.addWidget(self.output_folder_button)
+        self.output_folder_line_edit = QtWidgets.QLineEdit()
+        self.output_folder_button = widgets.create_button(
+            icon="mgear_folder", width=25
+        )
+
+        output_folder_layout.addWidget(QtWidgets.QLabel("Output Folder"))
+        output_folder_layout.addWidget(self.output_folder_line_edit)
+        output_folder_layout.addWidget(self.output_folder_button)
+
+        # Run Validators checkboxes
+        run_validators_layout = QtWidgets.QHBoxLayout()
+        self.layout.addLayout(run_validators_layout)
+
+        self.run_validators_checkbox = QtWidgets.QCheckBox(
+            "Run Pyblish Validators"
+        )
+        self.run_validators_checkbox.setChecked(True)
+        run_validators_layout.addWidget(self.run_validators_checkbox)
+        run_validators_layout.addStretch()
+
+        self.results_popup_checkbox = QtWidgets.QCheckBox(
+            "Open Results Pop-Up"
+        )
+        self.results_popup_checkbox.setChecked(True)
+        run_validators_layout.addWidget(self.results_popup_checkbox)
+        run_validators_layout.addStretch()
+
+        self.publish_label = QtWidgets.QLabel("Publish Passed Rigs Only")
+        self.publish_passed_checkbox = QtWidgets.QCheckBox(
+            "Publish Passed Rigs Only"
+        )
+        run_validators_layout.addWidget(self.publish_passed_checkbox)
+
+        if not builder.PYBLISH_READY:
+            self.run_validators_checkbox.setEnabled(False)
+            self.run_validators_checkbox.setChecked(False)
+            self.on_run_validators_checkbox_changed()
 
         # File Table UI
         self.table_widget = QtWidgets.QTableWidget()
@@ -39,6 +79,7 @@ class RigBuilderUI(
         self.table_widget.setHorizontalHeaderLabels(
             [".sgt File", "Output Name"]
         )
+
         self.table_widget.setEditTriggers(
             QtWidgets.QAbstractItemView.AllEditTriggers
         )
@@ -46,7 +87,6 @@ class RigBuilderUI(
         self.table_widget.horizontalHeader().setSectionResizeMode(
             0, QtWidgets.QHeaderView.ResizeToContents
         )
-
         # Make the last column stretch to fill the remaining space
         self.table_widget.horizontalHeader().setSectionResizeMode(
             1, QtWidgets.QHeaderView.Stretch
@@ -54,30 +94,88 @@ class RigBuilderUI(
 
         self.layout.addWidget(self.table_widget)
 
-        # Add and Remove buttons
-        self.add_button = QtWidgets.QPushButton("Add")
-        self.add_button.clicked.connect(self.add_files)
-        self.remove_button = QtWidgets.QPushButton("Remove")
-        self.remove_button.clicked.connect(self.remove_file)
+        # Pre-scrtip
+        pre_script_layout = QtWidgets.QHBoxLayout()
+        self.layout.addLayout(pre_script_layout)
 
-        # Build button
+        self.pre_script_line_edit = QtWidgets.QLineEdit()
+        self.pre_script_button = widgets.create_button(
+            icon="mgear_folder", width=25
+        )
+
+        pre_script_layout.addWidget(QtWidgets.QLabel("Edit Guide Pre Script"))
+        pre_script_layout.addWidget(self.pre_script_line_edit)
+        pre_script_layout.addWidget(self.pre_script_button)
+
+        # Post-scrtip
+        # post_script_layout = QtWidgets.QHBoxLayout()
+        # self.layout.addLayout(post_script_layout)
+
+        # self.post_script_line_edit = QtWidgets.QLineEdit()
+        # self.post_script_button = widgets.create_button(
+        #     icon="mgear_folder", width=25
+        # )
+
+        # post_script_layout.addWidget(QtWidgets.QLabel("Post Script"))
+        # post_script_layout.addWidget(self.post_script_line_edit)
+        # post_script_layout.addWidget(self.post_script_button)
+
+        # Add, Remove, and Build buttons
+        self.add_button = QtWidgets.QPushButton("Add")
+        self.remove_button = QtWidgets.QPushButton("Remove")
         self.build_button = QtWidgets.QPushButton("Build")
-        self.build_button.clicked.connect(self.build_rig)
 
         self.layout.addWidget(self.add_button)
         self.layout.addWidget(self.remove_button)
         self.layout.addWidget(self.build_button)
 
-        self.setLayout(self.layout)
+    def create_connections(self):
+        """Connects buttons to their functions."""
+        self.output_folder_button.clicked.connect(
+            self.on_output_folder_clicked
+        )
+        self.run_validators_checkbox.toggled.connect(
+            self.on_run_validators_checkbox_changed
+        )
+        self.add_button.clicked.connect(self.on_add_button_clicked)
+        self.remove_button.clicked.connect(self.on_remove_button_clicked)
+        self.build_button.clicked.connect(self.on_build_button_clicked)
 
-    def set_output_folder(self):
+        self.pre_script_button.clicked.connect(self.set_pre_script)
+        # self.post_script_button.clicked.connect(self.set_post_script)
+
+    def set_script(self, lineEdit):
+        """Sets the output folder for exported builds."""
+        options = QtWidgets.QFileDialog.Options()
+        file_filter = "Python Files (*.py)"
+        file_name, _ = QtWidgets.QFileDialog.getOpenFileName(
+            self, "Select Python File", "", file_filter, options=options
+        )
+        if file_name:
+            lineEdit.setText(file_name)
+
+    def set_pre_script(self):
+        self.set_script(self.pre_script_line_edit)
+
+    # def set_post_script(self):
+    #     self.set_script(self.post_script_line_edit)
+
+    def on_output_folder_clicked(self):
+        """Sets the output folder for exported builds."""
         folder_path = QtWidgets.QFileDialog.getExistingDirectory(
             self, "Select Output Folder"
         )
         if folder_path:
             self.output_folder_line_edit.setText(folder_path)
 
-    def add_files(self):
+    def on_run_validators_checkbox_changed(self):
+        """Enables/disables options for Pyblish validators."""
+        runState = self.run_validators_checkbox.isChecked()
+        self.results_popup_checkbox.setEnabled(runState)
+        self.publish_passed_checkbox.setEnabled(runState)
+
+    def on_add_button_clicked(self):
+        """Adds selected .sgt files from the list."""
         file_paths, _ = QtWidgets.QFileDialog.getOpenFileNames(
             self, "Select .sgt Files", "", "*.sgt"
         )
@@ -85,21 +183,8 @@ class RigBuilderUI(
             for file_path in file_paths:
                 self.add_file(file_path)
 
-    def add_file(self, file_path):
-        row_position = self.table_widget.rowCount()
-        self.table_widget.insertRow(row_position)
-
-        # For .sgt file path
-        file_item = QtWidgets.QTableWidgetItem("  " + file_path + "  ")
-        self.table_widget.setItem(row_position, 0, file_item)
-
-        # For Output Name
-        output_name = os.path.splitext(os.path.basename(file_path))[0]
-        output_item = QtWidgets.QTableWidgetItem("  " + output_name + "  ")
-        self.table_widget.setItem(row_position, 1, output_item)
-
-    def remove_file(self):
-        """Remove selected .sgt files from the list."""
+    def on_remove_button_clicked(self):
+        """Removes selected .sgt files from the list."""
         selected_ranges = self.table_widget.selectedRanges()
 
         # Get unique rows to be removed
@@ -113,27 +198,31 @@ class RigBuilderUI(
         for row in sorted(rows_to_remove, reverse=True):
             self.table_widget.removeRow(row)
 
-    def dragEnterEvent(self, e):
-        if e.mimeData().hasUrls():
-            e.accept()
-        else:
-            e.ignore()
+    def on_build_button_clicked(self):
+        """Runs the rig build and validators, if specified."""
+        data = self.collect_table_data()
+        validate = self.run_validators_checkbox.isChecked()
+        passed_rigs_only = self.publish_passed_checkbox.isChecked()
+        results_dict = self.builder.execute_build_logic(
+            data, validate=validate, passed_only=passed_rigs_only
+        )
+        if (
+            self.run_validators_checkbox.isChecked()
+            and self.results_popup_checkbox.isChecked()
+        ):
+            self.create_results_popup(results_dict)
 
-    def dropEvent(self, e):
-        for url in e.mimeData().urls():
-            file_path = str(url.toLocalFile())
-            if file_path.lower().endswith(".sgt"):
-                self.add_file(file_path)
-
-    def collect_data(self):
-        """Collect data from the table widget and output as JSON.
+    def collect_table_data(self):
+        """Collects data from the table widget and outputs it as JSON.
 
         Returns:
-            str: A JSON string containing the collected data.
+            str: A JSON string containing the collected data
         """
         data = {}
         row_count = self.table_widget.rowCount()
         data["output_folder"] = self.output_folder_line_edit.text().strip()
+        data["pre_script"] = self.pre_script_line_edit.text().strip()
+        # data["post_script"] = self.post_script_line_edit.text().strip()
         data["rows"] = []
 
         for i in range(row_count):
@@ -151,9 +240,100 @@ class RigBuilderUI(
 
         return json.dumps(data)
 
-    def build_rig(self):
-        data = self.collect_data()
-        builder.execute_build_logic(data)
+    def add_file(self, file_path):
+        """Adds a .sgt file to the main table.
+
+        Args:
+            file_path (str): Path of .sgt file
+        """
+        row_position = self.table_widget.rowCount()
+        self.table_widget.insertRow(row_position)
+
+        # For .sgt file path
+        file_item = QtWidgets.QTableWidgetItem(file_path)
+        self.table_widget.setItem(row_position, 0, file_item)
+
+        # For Output Name
+        output_name = os.path.splitext(os.path.basename(file_path))[0]
+        output_item = QtWidgets.QTableWidgetItem(output_name)
+        self.table_widget.setItem(row_position, 1, output_item)
+
+    def create_results_popup(self, results_dict):
+        """Launches a pop-up containing validator results.
+
+        Args:
+            results_dict (dict): validator result data generated by RigBuilder
+        """
+        popup = ResultsPopupDialog(results_dict)
+        popup.exec()
+
+    def dragEnterEvent(self, e):
+        if e.mimeData().hasUrls():
+            e.accept()
+        else:
+            e.ignore()
+
+    def dropEvent(self, e):
+        for url in e.mimeData().urls():
+            file_path = str(url.toLocalFile())
+            if file_path.lower().endswith(".sgt"):
+                self.add_file(file_path)
+
+
+class ResultsPopupDialog(QtWidgets.QDialog):
+    """
+    A custom pop-up to display Pyblish validator results.
+    """
+
+    def __init__(self, results):
+        super(ResultsPopupDialog, self).__init__()
+        self.setWindowTitle("Validator Results")
+        self.setSizeGripEnabled(True)
+        self.resize(800, 400)
+
+        self.results_dict = results
+        self.layout = QtWidgets.QVBoxLayout()
+        self.setLayout(self.layout)
+
+        self.create_results_view()
+
+    def create_results_view(self):
+        """Creates the main tree layout."""
+        self.results_tree = QtWidgets.QTreeView()
+        self.results_tree.setAlternatingRowColors(True)
+        self.results_tree.setWordWrap(True)
+        self.layout.addWidget(self.results_tree)
+
+        model = QtGui.QStandardItemModel()
+        model.setHorizontalHeaderLabels(["Rig Name", "Check Name", "Result"])
+        self.results_tree.setModel(model)
+
+        for rig_name, checks_dict in self.results_dict.items():
+            self.add_result_entry(model, rig_name, checks_dict)
+
+        for row in range(model.rowCount()):
+            idx = model.index(row, 0)
+            self.results_tree.setExpanded(idx, True)
+
+    def add_result_entry(self, model, rig_name, checks_dict):
+        """Adds a collapsible entry of results for each rig."""
+        group_root = QtGui.QStandardItem(rig_name)
+        model.appendRow(group_root)
+        summary_string = "All checks passed!"
+
+        for i, (check_name, check_data) in enumerate(checks_dict.items()):
+            result_string = "Passed" if check_data.get("success") else "Failed"
+            error = check_data.get("error")
+            if error is not None:
+                result_string += " - {}".format(error)
+                summary_string = "Some checks failed, please review errors."
+            check_item = QtGui.QStandardItem(check_name)
+            result_item = QtGui.QStandardItem(result_string)
+            group_root.setChild(i, 1, check_item)
+            group_root.setChild(i, 2, result_item)
+
+        summary_item = QtGui.QStandardItem(summary_string)
+        model.setItem(group_root.row(), 2, summary_item)
 
 
 def openRigBuilderUI(*args):

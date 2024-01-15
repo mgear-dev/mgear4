@@ -77,8 +77,25 @@ class Component(component.Main):
             "xz",
             self.negate,
         )
+        if self.settings["rest_T_Pose"]:
+            if self.negate:
+                x_dir = 1
+            else:
+                x_dir = -1
+
+            if self.up_axis == "y":
+                x = datatypes.Vector(0, x_dir, 0)
+            else:
+                x = datatypes.Vector(0, 0, x_dir)
+            z = datatypes.Vector(-1, 0, 0)
+
+            t_npo = transform.getRotationFromAxis(x, z, "xz", False)
+            t_npo = transform.setMatrixPosition(t_npo, self.guide.apos[0])
+        else:
+            t_npo = t
+
         self.fk0_npo = primitive.addTransform(
-            self.root_ctl, self.getName("fk0_npo"), t
+            self.root_ctl, self.getName("fk0_npo"), t_npo
         )
         self.fk0_ctl = self.addCtl(
             self.fk0_npo,
@@ -100,8 +117,15 @@ class Component(component.Main):
             self.negate,
         )
 
+        if self.settings["rest_T_Pose"]:
+            t_npo = transform.setMatrixPosition(
+                transform.getTransform(self.fk0_ctl), self.guide.apos[1]
+            )
+        else:
+            t_npo = t
+
         self.fk1_npo = primitive.addTransform(
-            self.fk0_ctl, self.getName("fk1_npo"), t
+            self.fk0_ctl, self.getName("fk1_npo"), t_npo
         )
 
         self.fk1_ctl = self.addCtl(
@@ -132,9 +156,19 @@ class Component(component.Main):
             self.negate,
         )
 
+        if self.settings["rest_T_Pose"]:
+            t_npo = transform.setMatrixPosition(
+                transform.getTransform(self.fk0_ctl), self.guide.apos[2]
+            )
+        else:
+            t_npo = t
+
         self.fk2_npo = primitive.addTransform(
-            self.fk1_ctl, self.getName("fk2_npo"), t
+            self.fk1_ctl, self.getName("fk2_npo"), t_npo
         )
+
+        if self.settings["rest_T_Pose"]:
+            self.fk2_npo.rz.set(90)
 
         self.fk2_ctl = self.addCtl(
             self.fk2_npo,
@@ -222,11 +256,30 @@ class Component(component.Main):
         attribute.setKeyableAttributes(self.upv_ctl, self.t_params)
 
         # IK Controlers -----------------------------------
+
+        if self.settings["rest_T_Pose"]:
+            leg_length = vector.getDistance(
+                self.guide.pos["root"], self.guide.pos["knee"]
+            ) + vector.getDistance(
+                self.guide.pos["knee"], self.guide.pos["ankle"]
+            )
+            if self.up_axis == "y":
+                ankle_pos = self.guide.pos["root"] - datatypes.Vector(
+                    0, leg_length, 0
+                )
+            else:
+                ankle_pos = self.guide.pos["root"] - datatypes.Vector(
+                    0, 0, leg_length
+                )
+
+        else:
+            ankle_pos = self.guide.pos["ankle"]
+
         self.ik_cns = primitive.addTransformFromPos(
-            self.root_ctl, self.getName("ik_cns"), self.guide.pos["ankle"]
+            self.root_ctl, self.getName("ik_cns"), ankle_pos
         )
 
-        t = transform.getTransformFromPos(self.guide.pos["ankle"])
+        t = transform.getTransformFromPos(ankle_pos)
         self.ikcns_ctl = self.addCtl(
             self.ik_cns,
             "ikcns_ctl",
@@ -1459,7 +1512,7 @@ class Component(component.Main):
 
         # connect elbow ref
         cns = pm.parentConstraint(self.bone1, self.knee_ref, mo=False)
-        if self.negate:
+        if self.negate and self.settings["div1"]:
             pm.setAttr(cns + ".target[0].targetOffsetRotateZ", 180)
 
         # Divisions ----------------------------------------
