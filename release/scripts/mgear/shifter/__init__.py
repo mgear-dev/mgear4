@@ -34,6 +34,7 @@ if not pm.pluginInfo("matrixNodes", q=True, loaded=True):
     pm.loadPlugin("matrixNodes")
 
 COMPONENT_PATH = os.path.join(os.path.dirname(__file__), "component")
+CUSTOM_COMPONENT_LIBRARY_PATH = os.path.join(os.path.dirname(__file__), "custom_component_library")
 TEMPLATE_PATH = os.path.join(COMPONENT_PATH, "templates")
 SYNOPTIC_PATH = os.path.abspath(
     os.path.join(os.path.dirname(__file__), os.pardir, "synoptic", "tabs")
@@ -97,17 +98,26 @@ def log_window():
 
 def getComponentDirectories():
     """Get the components directory"""
-    # TODO: ready to support multiple default directories
+    component_search_paths = [
+        os.path.join(os.path.dirname(shifter_classic_components.__file__)),
+        os.path.join(os.path.dirname(shifter_epic_components.__file__)),
+    ]
+
+    try:  # add any user defined custom component directories
+        component_search_paths.extend(
+            [
+                os.path.join(CUSTOM_COMPONENT_LIBRARY_PATH, name)
+                for name in os.listdir(CUSTOM_COMPONENT_LIBRARY_PATH)
+                if os.path.isdir(os.path.join(CUSTOM_COMPONENT_LIBRARY_PATH, name))
+            ]
+        )
+    except FileNotFoundError:
+        pass
+
     return mgear.core.utils.gatherCustomModuleDirectories(
         SHIFTER_COMPONENT_ENV_KEY,
-        [
-            os.path.join(os.path.dirname(shifter_classic_components.__file__)),
-            os.path.join(os.path.dirname(shifter_epic_components.__file__)),
-        ],
+        component_search_paths,
     )
-    # return mgear.core.utils.gatherCustomModuleDirectories(
-    #     SHIFTER_COMPONENT_ENV_KEY,
-    #     os.path.join(os.path.dirname(shifter_classic_components.__file__)))
 
 
 def importComponentGuide(comp_type):
