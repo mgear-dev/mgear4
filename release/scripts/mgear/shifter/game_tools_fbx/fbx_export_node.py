@@ -3,6 +3,7 @@ import json
 import maya.cmds as cmds
 import pymel.core as pm
 
+from mgear.core import utils as coreUtils
 
 EXPORT_NODE_NAME = "mgearFbxExportNode"
 
@@ -28,12 +29,16 @@ class FbxExportNode(object):
         "deformations": True,
         "partitions": {},
         "anim_clips": {},
+        "export_tab": 0,
+        "ue_enabled": False,
+        "ue_file_path": "",
+        "ue_active_skeleton":"",
+        "cull_joints":False
     }
     ANIM_CLIP_DATA = {
         "title": "Untitled",
-        "path": "",
         "enabled": True,
-        "frame_rate": "30 fps",
+        "frame_rate": "",
         "start_frame": int(pm.playbackOptions(min=True, query=True)),
         "end_frame": int(pm.playbackOptions(max=True, query=True)),
     }
@@ -200,6 +205,10 @@ class FbxExportNode(object):
             .get(root_joint_name, [])
         )
 
+    def get_ue_active_skeleton(self):
+        export_data = self.parse_export_data()
+        return export_data.get("ue_active_skeleton", None)
+
     def find_animation_clip(self, root_joint_name, clip_name):
         anim_clips = self.get_animation_clips(root_joint_name)
         if not anim_clips:
@@ -219,7 +228,13 @@ class FbxExportNode(object):
         sequences = self.get_animation_clips(root_joint_name)
         total_sequences = len(sequences)
         clip_data = FbxExportNode.ANIM_CLIP_DATA.copy()
-        clip_data["title"] = "Clip {}".format(total_sequences + 1)
+        clip_data["title"] = "Clip_{}".format(total_sequences + 1)
+
+        # Sets the clip data with the current timeline information.
+        clip_data["frame_rate"] = coreUtils.get_frame_rate()
+        clip_data["start_frame"] = str(int(cmds.playbackOptions(query=True, min=True)))
+        clip_data["end_frame"] = str(int(cmds.playbackOptions(query=True, max=True)))
+
         clip_data.update(anim_clip_data if anim_clip_data is not None else {})
 
         data = self.parse_export_data()

@@ -20,6 +20,7 @@ from mgear import shifter_classic_components
 from mgear import shifter_epic_components
 from mgear.shifter import naming
 import importlib
+from mgear.core import utils
 
 PY2 = sys.version_info[0] == 2
 
@@ -353,6 +354,18 @@ class Rig(object):
                 customSteps = [cs.replace("\\", "/") for cs in customSteps]
             self.customStep(customSteps)
 
+    # @utils.timeFunc
+    def get_guide_data(self):
+        """Get the guide data
+
+        Returns:
+            str: The guide data
+        """
+        if self.guide.guide_template_dict:
+            return json.dumps(self.guide.guide_template_dict)
+        else:
+            return json.dumps(self.guide.get_guide_template_dict())
+
     def initialHierarchy(self):
         """Build the initial hierarchy of the rig.
 
@@ -366,7 +379,9 @@ class Rig(object):
         # --------------------------------------------------
         # Model
         self.model = primitive.addTransformFromPos(None, self.options["rig_name"])
-        attribute.lockAttribute(self.model)
+
+        lockAttrs = ["tx", "ty", "tz", "rx", "ry", "rz", "sx", "sy", "sz"]
+        attribute.lockAttribute(self.model, attributes=lockAttrs)
 
         # --------------------------------------------------
         # INFOS
@@ -421,6 +436,10 @@ class Rig(object):
         self.rigPoses = self.model.addAttr("rigPoses", at="message", m=1)
         self.rigCtlTags = self.model.addAttr("rigCtlTags", at="message", m=1)
         self.rigScriptNodes = self.model.addAttr("rigScriptNodes", at="message", m=1)
+
+        self.guide_data_att = attribute.addAttribute(
+            self.model, "guide_data", "string", self.get_guide_data()
+        )
 
         # ------------------------- -------------------------
         # Global Ctl
@@ -571,10 +590,19 @@ class Rig(object):
 
         # hide all DG nodes inputs in channel box -----------------------
         # only hides if components_finalize or All steps are done
+
         if self.component_finalize:
             for c in self.model.listHistory(ac=True, f=True):
                 if c.type() != "transform":
                     c.isHistoricallyInteresting.set(False)
+            try:
+                # hide a guide if the guide_vis pram is turned off
+                if self.guide.model.hasAttr("guide_vis"):
+                    if not self.guide.model.guide_vis.get():
+                        self.guide.model.hide()
+            except AttributeError:
+                # catch error in case we build from serialized guide
+                pass
 
         # Bind skin re-apply
         if self.options["importSkin"]:

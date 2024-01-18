@@ -7,6 +7,7 @@
 #############################################
 from functools import wraps
 import pymel.core as pm
+import maya.cmds as cmds
 from pymel.core import datatypes
 import json
 import maya.mel as mel
@@ -55,28 +56,37 @@ def addCnsCurve(parent, name, centers, degree=1):
 
 
 def addCurve(
-    parent, name, points, close=False, degree=3, m=datatypes.Matrix()
+    parent, name, points, close=False, degree=3, m=datatypes.Matrix(), op=False
 ):
     """Create a NurbsCurve with a single subcurve.
 
     Arguments:
         parent (dagNode): Parent object.
         name (str): Name
-        positions (list of float): points of the curve in a one dimension array
+        points (list of float): points of the curve in a one dimension array
             [point0X, point0Y, point0Z, 1, point1X, point1Y, point1Z, 1, ...].
         close (bool): True to close the curve.
         degree (bool): 1 for linear curve, 3 for Cubic.
         m (matrix): Global transform.
+        op (bool, optional): If True will add a curve that pass over the points
+                            This is equivalent of using"editPoint " flag
 
-    Returns:
+    No Longer Returned:
         dagNode: The newly created curve.
     """
+    kwargs = {"n": name, "d": degree}
     if close:
         points.extend(points[:degree])
         knots = range(len(points) + degree - 1)
-        node = pm.curve(n=name, d=degree, p=points, per=close, k=knots)
+        # node = pm.curve(n=name, d=degree, p=points, per=close, k=knots)
+        kwargs["per"] = close
+        kwargs["k"] = knots
+    if op:
+        # kwargs["ep"] = points
+        kwargs["ep"] = [datatypes.Vector(p) for p in points]
     else:
-        node = pm.curve(n=name, d=degree, p=points)
+        kwargs["p"] = points
+    node = pm.curve(**kwargs)
 
     if m is not None:
         node.setTransformation(m)
@@ -1019,3 +1029,166 @@ def lock_first_point(crv):
     pm.connectAttr(crv.worldInverseMatrix[0], mul_mtrx.matrixIn[1])
     pm.connectAttr(mul_mtrx.matrixSum, dm_node.inputMatrix)
     pm.connectAttr(dm_node.outputTranslate, crv.getShape().controlPoints[0])
+
+
+# ========================================
+
+
+def evaluate_cubic_nurbs(control_points, percentage, knots=None, weights=None):
+    """
+    Evaluate a cubic NURBS curve at a given percentage.
+
+    Args:
+        control_points (list): List of control points, each as [x, y, z].
+        percentage (float): Curve position as a percentage (0 to 100).
+        knots (list, optional): Knot vector.
+        weights (list, optional): List of weights corresponding to control
+                                  points.
+
+    Returns:
+        list: Evaluated point as [x, y, z].
+    """
+    n = len(control_points) - 1
+    p = 3  # Degree for cubic curve
+    d = len(control_points[0])  # Dimension of each point
+
+    if knots is None:
+        knots = (
+            [0] * (p + 1)
+            + [i for i in range(1, n - p + 2)]
+            + [n - p + 2] * (p + 1)
+        )
+
+    if weights is None:
+        weights = [1.0] * (n + 1)
+
+    # Normalize the u parameter to fit within the knot vector range
+    u = knots[p] + (knots[-(p + 1)] - knots[p]) * (percentage / 100.0)
+
+    # Slightly reduce u if percentage is 100 to avoid division by zero
+    if percentage == 100:
+        u -= 1e-5
+
+    C = [0.0 for _ in range(d)]
+    W = 0.0
+
+    for i in range(n + 1):
+        N = cox_de_boor(u, i, p, knots)
+        for j in range(d):
+            C[j] += N * weights[i] * control_points[i][j]
+        W += N * weights[i]
+
+    for j in range(d):
+        C[j] /= W
+
+    return C
+
+
+def cox_de_boor(u, i, p, knots):
+    """
+    Cox-De Boor algorithm to evaluate B-Spline basis function.
+
+    Args:
+        u (float): Parameter value.
+        i (int): Index of control point.
+        p (int): Degree of the curve.
+        knots (list): Knot vector.
+
+    Returns:
+        float: Evaluated B-Spline basis function value.
+    """
+    if p == 0:
+        return 1.0 if knots[i] <= u < knots[i + 1] else 0.0
+
+    N1 = 0
+    if knots[i] != knots[i + p]:
+        N1 = ((u - knots[i]) / (knots[i + p] - knots[i])) * cox_de_boor(
+            u, i, p - 1, knots
+        )
+
+    N2 = 0
+    if knots[i + 1] != knots[i + p + 1]:
+        N2 = (
+            (knots[i + p + 1] - u) / (knots[i + p + 1] - knots[i + 1])
+        ) * cox_de_boor(u, i + 1, p - 1, knots)
+
+    return N1 + N2
+
+
+def create_locator_at_curve_point(object_names, percentage):
+    """
+    Create a locator at a point on a cubic NURBS curve in Maya.
+
+    Args:
+        object_names (list): The names of the objects representing control
+                             points in Maya.
+        percentage (float): Curve position as a percentage (0 to 100).
+
+    Example usage in Maya
+    Select objects representing control points in Maya before running the script
+
+            object_names = cmds.ls(selection=True)
+            create_locator_at_curve_point(object_names, 100)
+    """
+    control_points = []
+    for obj_name in object_names:
+        pos = cmds.xform(
+            obj_name, query=True, translation=True, worldSpace=True
+        )
+        control_points.append(pos)
+
+    point_on_curve = evaluate_cubic_nurbs(control_points, percentage)
+
+    locator_name = cmds.spaceLocator()[0]
+    cmds.setAttr(locator_name + ".translateX", point_on_curve[0])
+    cmds.setAttr(locator_name + ".translateY", point_on_curve[1])
+    cmds.setAttr(locator_name + ".translateZ", point_on_curve[2])
+
+
+def add_linear_skinning_to_curve(curve_name, joint_list):
+    """
+    Adds a skinCluster to a curve and sets the skinning weights linearly
+    among the list of joints based on the number of control points.
+
+    Args:
+        curve_name (str): The name of the curve to add the skinCluster to.
+        joint_list (list): A list of joint names to be included in the skinCluster.
+
+    Returns:
+        PyNode: The name of the created skinCluster.
+    """
+    # Ensure the curve and joints exist
+    if not pm.objExists(curve_name) or not all(
+        pm.objExists(j) for j in joint_list
+    ):
+        raise RuntimeError("Curve or joints do not exist.")
+
+    # Create skinCluster
+    skin_cluster = pm.skinCluster(joint_list, curve_name, tsb=True)
+
+    # Find the number of control points in the curve
+    curve_shape = pm.listRelatives(curve_name, shapes=True)[0]
+    num_cvs = len(curve_shape.getCVs())
+
+    num_joints = len(joint_list)
+
+    # Calculate the weight distribution
+    for i in range(num_cvs):
+        for j in range(num_joints):
+            lower_bound = float(j) / (num_joints - 1)
+            upper_bound = float(j + 1) / (num_joints - 1)
+
+            normalized_i = float(i) / (num_cvs - 1)
+
+            if lower_bound <= normalized_i <= upper_bound:
+                weight = 1 - abs(normalized_i - lower_bound) * (num_joints - 1)
+            else:
+                weight = 0
+
+            pm.skinPercent(
+                skin_cluster,
+                "{}.cv[{}]".format(curve_name, i),
+                transformValue=[(joint_list[j], weight)],
+            )
+
+    return skin_cluster

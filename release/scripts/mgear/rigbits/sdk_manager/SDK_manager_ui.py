@@ -303,8 +303,8 @@ class SDKManagerDialog(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         #                       -  M E N U - B A R -                      #
         # ================================================================#
         # File
-        self.export_SDKs_action.triggered.connect(self.export_SDKs)
-        self.import_SDKs_action.triggered.connect(self.import_SDKs)
+        self.export_SDKs_action.triggered.connect(lambda: self.export_SDKs())
+        self.import_SDKs_action.triggered.connect(lambda: self.import_SDKs())
 
         # Select
         self.select_all_sdk_ctls.triggered.connect(

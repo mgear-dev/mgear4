@@ -21,6 +21,7 @@ def install():
             str_build_from_file,
             "mgear_play-circle.svg",
         ),
+        ("Rig Builder", str_openRigBuilder, "mgear_rigBuilder.svg"),
         ("-----", None),
         (
             "Import Guide Template",
@@ -32,8 +33,23 @@ def install():
             str_export_guide_template,
             "mgear_log-out.svg",
         ),
+        (
+            "Extract Guide From Rig",
+            str_extract_guide_from_rig,
+            "mgear_download.svg",
+        ),
+        (
+            "Extract and Match Guide From Rig",
+            str_extract_match_guide_from_rig,
+            "mgear_download.svg",
+        ),
         ("-----", None),
         (None, guide_template_samples_submenu),
+        (
+            "Match Guide to Selected Joint Hierarchy",
+            str_matchGuide,
+            "mgear_crosshair.svg",
+        ),
         ("-----", None),
         ("Auto Fit Guide (BETA)", str_auto_fit_guide),
         ("-----", None),
@@ -115,9 +131,11 @@ def mocap_submenu(parent_menu_id):
         parent_menu_id (str): Parent menu. i.e: "MayaWindow|mGear|menuItem355"
     """
     commands = (
-        ("Import Mocap Skeleton Biped", str_mocap_importSkeletonBiped),
-        ("Characterize Biped", str_mocap_characterizeBiped),
-        ("Bake Mocap Biped", str_mocap_bakeMocap),
+        ("Human IK Mapper", str_mocap_humanIKMapper, "mgear_mocap.svg"),
+        ("-----", None),
+        ("Import Mocap Skeleton Biped (Legacy)", str_mocap_importSkeletonBiped),
+        ("Characterize Biped (Legacy)", str_mocap_characterizeBiped),
+        ("Bake Mocap Biped (Legacy)", str_mocap_bakeMocap),
     )
 
     mgear.menu.install("Mocap", commands, parent_menu_id)
@@ -130,7 +148,7 @@ def game_submenu(parent_menu_id):
         parent_menu_id (str): Parent menu. i.e: "MayaWindow|mGear|menuItem355"
     """
     commands = (
-        ("FBX Export (BETA)", str_game_fbx_export),
+        ("FBX Export (Beta)", str_game_fbx_export),
         ("-----", None),
         ("Disconnect Joints", str_game_disconnet),
         ("Connect Joints", str_game_connect),
@@ -315,6 +333,11 @@ from mgear.shifter import mocap_tools
 mocap_tools.bakeMocap()
 """
 
+str_mocap_humanIKMapper = """
+from mgear.animbits import humanIkMapper
+humanIkMapper.show()
+"""
+
 str_toggleLog = """
 import mgear
 state = mgear.toggleLog()
@@ -330,4 +353,25 @@ print("Debug Mode State: {}".format(state))
 str_game_fbx_export = """
 from mgear.shifter.game_tools_fbx import fbx_exporter
 fbx_exporter.openFBXExporter()
+"""
+
+
+str_extract_guide_from_rig = """
+from mgear.shifter import guide_manager
+guide_manager.extract_guide_from_rig()
+"""
+
+str_extract_match_guide_from_rig = """
+from mgear.shifter import guide_manager
+guide_manager.extract_match_guide_from_rig()
+"""
+
+str_openRigBuilder = """
+from mgear.shifter.rig_builder import ui
+ui.openRigBuilderUI()
+"""
+
+str_matchGuide = """
+from mgear.shifter import guide_manager
+guide_manager.snap_guide_to_root_joint()
 """

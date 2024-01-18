@@ -366,7 +366,7 @@ def moveChannel(attr, sourceNode, targetNode, duplicatedPolicy=None):
         )
         return
     atType = at.type()
-    if atType in ["double", "float", "enum"]:
+    if atType in ["double", "float", "enum", "bool"]:
 
         newAtt = None
         attrName = attr
@@ -439,6 +439,15 @@ def moveChannel(attr, sourceNode, targetNode, duplicatedPolicy=None):
                     en=enStr,
                     dv=value,
                     k=True,
+                )
+            elif atType == "bool":
+                pm.addAttr(
+                    targetNode,
+                    longName=attrName,
+                    niceName=nName,
+                    attributeType="bool",
+                    defaultValue=value,
+                    keyable=True,
                 )
 
             newAtt = pm.PyNode(".".join([targetNode.name(), attrName]))
@@ -620,6 +629,9 @@ def setRotOrder(node, s="XYZ"):
         unit="degrees",
     )
     er.reorderIt(s)
+
+    if node.hasAttr("rotate_order"):
+        change_default_value(node.rotate_order, a.index(s))
 
     node.setAttr("ro", a.index(s))
     node.setAttr("rotate", er.x, er.y, er.z)
@@ -1093,8 +1105,29 @@ def set_default_value(node, attribute):
 
     defVal = get_default_value(node, attribute)
     try:
-        node.attr(attribute).set(defVal)
+        if attribute in ["ro", "rotateOrder"]:
+            # custom metadata rot order attr
+            rotOrder = "rotate_order"
+            if pm.attributeQuery(rotOrder, node=node, exists=True):
+                # print(
+                #     "Resetting rotate Order for {} using custom metadata".format(
+                #         node
+                #     )
+                # )
+                intNum = pm.getAttr("{}.{}".format(node, rotOrder))
+                if not pm.getAttr("{}.rotateOrder".format(node), lock=True):
+                    pm.setAttr("{}.rotateOrder".format(node), intNum)
+            else:
+                pm.displayWarning(
+                    "No custom rotate order metadata found in {}. XYZ rotate order NOT reset".format(
+                        node
+                    )
+                )
+                # node.attr(attribute).set(defVal)
+        else:
+            node.attr(attribute).set(defVal)
     except RuntimeError:
+        # print("Failed to reset: {}".format(attribute))
         pass
 
 
@@ -1131,7 +1164,19 @@ def reset_selected_channels_value(objects=None, attributes=None):
 
 def reset_SRT(
     objects=None,
-    attributes=["tx", "ty", "tz", "rx", "ry", "rz", "sx", "sy", "sz", "v"],
+    attributes=[
+        "tx",
+        "ty",
+        "tz",
+        "rx",
+        "ry",
+        "rz",
+        "sx",
+        "sy",
+        "sz",
+        "v",
+        "ro",
+    ],
 ):
     """Reset Scale Rotation and translation attributes to default value
 
@@ -1460,6 +1505,49 @@ def get_next_available_index(attr):
         for e in range(ne):
             if not attr.attr(attr.elements()[e]).listConnections():
                 return e
+
+
+def connect_message(source, attr):
+    """
+    Connects the 'message' attribute of one or more source nodes to a
+    destination attribute.
+
+    Args:
+        source (str, pm.PyNode, list): The source node(s) with a 'message'
+                                       attribute.
+        attr (str, pm.PyNode): The destination attribute to connect to.
+
+    Raises:
+        TypeError: If the destination attribute is not a message attribute.
+    """
+    if not isinstance(source, list):
+        source = [source]
+
+    for src in source:
+        idx = get_next_available_index(attr)
+        attr_name = "{}[{}]".format(attr, idx)
+
+        src_str = str(src) if isinstance(src, pm.PyNode) else src
+        attr_str = str(attr) if isinstance(attr, pm.PyNode) else attr
+
+        source_attr_type = pm.attributeQuery(
+            "message", node=src_str.split(".")[0], attributeType=True
+        )
+        dest_attr_type = pm.attributeQuery(
+            attr_str.split("[")[0].split(".")[-1],
+            node=attr_str.split(".")[0],
+            attributeType=True,
+        )
+
+        if source_attr_type != "message":
+            raise TypeError("Source attribute is not a message attribute.")
+
+        if dest_attr_type != "message":
+            raise TypeError(
+                "Destination attribute is not a message attribute."
+            )
+
+        pm.connectAttr("{}.message".format(src_str), attr_name)
 
 
 ##########################################################

@@ -5,6 +5,7 @@ Shifter component rig class.
 #############################################
 # GLOBAL
 #############################################
+import re
 # pymel
 import pymel.core as pm
 from pymel.core import datatypes
@@ -870,13 +871,39 @@ class Main(object):
         # control_01 and other component where the description of the cotrol
         # was just the ctl suffix.
         rule = self.options["ctl_name_rule"]
+        source_rule = rule
         if not name:
-            # Replace '{description}_' with ''
-            rule = rule.replace(r"{description}_", "")
-            # Replace '_{description}' with ''
-            rule = rule.replace(r"_{description}", "")
-            # Replace '{description}' with ''
+            rule = rule.replace(r"_{description}_", "_")
             rule = rule.replace(r"{description}", "")
+            # Adjust leading underscores
+            leading_underscores = (
+                len(re.match(r"^_+", source_rule).group(0))
+                if re.match(r"^_+", source_rule)
+                else 0
+            )
+            new_leading_underscores = (
+                len(re.match(r"^_+", rule).group(0))
+                if re.match(r"^_+", rule)
+                else 0
+            )
+            while new_leading_underscores > leading_underscores:
+                rule = rule[1:]
+                new_leading_underscores -= 1
+
+            # Adjust trailing underscores
+            trailing_underscores = (
+                len(re.match(r"_+$", source_rule).group(0))
+                if re.match(r"_+$", source_rule)
+                else 0
+            )
+            new_trailing_underscores = (
+                len(re.match(r"_+$", rule).group(0))
+                if re.match(r"_+$", rule)
+                else 0
+            )
+            while new_trailing_underscores > trailing_underscores:
+                rule = rule[:-1]
+                new_trailing_underscores -= 1
 
         fullName = self.getName(
             name,
@@ -957,6 +984,14 @@ class Main(object):
             "string",
             keyable=False,
             value=self.options["side_center_name"],
+        )
+
+        attribute.addEnumAttribute(
+            ctl,
+            "rotate_order",
+            0,
+            ("xyz", "yzx", "zxy", "xzy", "yxz", "zyx"),
+            keyable=False
         )
 
         # create the attributes to handlde mirror and symetrical pose
@@ -2061,6 +2096,10 @@ class Main(object):
                             jpo["newActiveJnt"] = None
 
                 self.jointList.append(self.addJoint(**jpo))
+
+        for jnt in self.jointList:
+            radiusValue = self.rig.guide.model.joint_radius.get()
+            jnt.radius.set(radiusValue)
 
     # =====================================================
     # FINALIZE

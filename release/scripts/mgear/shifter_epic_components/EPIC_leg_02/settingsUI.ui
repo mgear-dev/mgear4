@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>255</width>
-    <height>799</height>
+    <width>330</width>
+    <height>932</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -146,6 +146,22 @@
           </property>
           <property name="text">
            <string>Mirror Mid Ctl and UPV  axis</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QCheckBox" name="TPoseRest_checkBox">
+          <property name="toolTip">
+           <string extracomment="This option set the axis of the mid CTL (elbow) and the up vector control to move in a mirror behaviour ">&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;If checked, the Rest pose for controls will be in T Pose&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+          </property>
+          <property name="statusTip">
+           <string extracomment="This option set the axis of the mid CTL (elbow) and the up vector control to move in a mirror behaviour ">This option set the axis of the mid CTL (elbow) and the up vector control to move in a mirror behaviour </string>
+          </property>
+          <property name="whatsThis">
+           <string>This option set the axis of the mid CTL (elbow) and the up vector control to move in a mirror behaviour </string>
+          </property>
+          <property name="text">
+           <string>Rest T Pose</string>
           </property>
          </widget>
         </item>

@@ -31,7 +31,7 @@ class FbxSdkGameToolsWrapper(object):
     def save(
         self,
         path=None,
-        mode="binary",
+        mode="ascii",
         close=False,
         embed_media=False,
         file_version=None,
@@ -188,7 +188,7 @@ class FbxSdkGameToolsWrapper(object):
     def get_joints(self):
         return self.get_type_nodes("LimbNode")
 
-    def cast_property(fbx_property):
+    def _cast_property(fbx_property):
 
         if not pfbx.FBX_SDK:
             return None
@@ -324,7 +324,11 @@ class FbxSdkGameToolsWrapper(object):
             _parent = parent.GetParent()
             while True:
                 top_parent = _parent
-                _parent = _parent.GetParent()
+                try:
+                    _parent = _parent.GetParent()
+                except AttributeError:
+                    _parent = self._root_node
+                    break
                 if _parent == self._root_node:
                     break
         if top_parent:
@@ -344,11 +348,11 @@ class FbxSdkGameToolsWrapper(object):
         blendshapes=None,
     ):
 
-        if not pfbx.FBX_SDK:
-            cmds.warning(
-                "Export Skeletal Mesh functionality is only available if Python FBX SDK is available!"
-            )
-            return None
+        # if not pfbx.FBX_SDK:
+        #     cmds.warning(
+        #         "Export Skeletal Mesh functionality is only available if Python FBX SDK is available!"
+        #     )
+        #     return None
 
         # TODO: Check how we can retrieve the long name using FBX SDK
         short_mesh_names = [
@@ -412,11 +416,3 @@ class FbxSdkGameToolsWrapper(object):
             skins=skins,
             blendshapes=blendshapes,
         )
-
-    def export_animation_clip(self, root_joint):
-
-        if not pfbx.FBX_SDK:
-            cmds.warning(
-                "Export Animation Clip functionality is only available if Python FBX SDK is available!"
-            )
-            return None

@@ -26,10 +26,9 @@ def addNPO(objs=None, *args):
         objs = [objs]
     for obj in objs:
         oParent = obj.getParent()
-        oTra = pm.createNode("transform",
-                             n=obj.name() + "_npo",
-                             p=oParent,
-                             ss=True)
+        oTra = pm.createNode(
+            "transform", n=obj.name() + "_npo", p=oParent, ss=True
+        )
         oTra.setTransformation(obj.getMatrix())
         pm.parent(obj, oTra)
         npoList.append(oTra)
@@ -61,12 +60,15 @@ def createCTL(type="square", child=False, *args):
     if child:
         if len(pm.selected()) > 0:
             for x in pm.selected():
-                oChilds = [item for item
-                           in x.listRelatives(ad=True, type="transform")
-                           if item.longName().split("|")[-2] == x.name()]
+                oChilds = [
+                    item
+                    for item in x.listRelatives(ad=True, type="transform")
+                    if item.longName().split("|")[-2] == x.name()
+                ]
 
                 o_icon = icon.create(
-                    None, x.name() + "_ctl", None, [1, 0, 0], type)
+                    None, x.name() + "_ctl", None, [1, 0, 0], type
+                )
                 iconList.append(o_icon)
                 o_icon.setTransformation(x.getMatrix(worldSpace=True))
                 pm.parent(o_icon, x)
@@ -76,24 +78,24 @@ def createCTL(type="square", child=False, *args):
         else:
 
             o_icon = icon.create(
-                None, type + "_ctl", datatypes.Matrix(), [1, 0, 0], type)
+                None, type + "_ctl", datatypes.Matrix(), [1, 0, 0], type
+            )
             iconList.append(o_icon)
     else:
         if len(pm.selected()) > 0:
             for x in pm.selected():
                 oParent = x.getParent()
-                o_icon = icon.create(oParent,
-                                     x.name() + "_ctl",
-                                     x.getMatrix(),
-                                     [1, 0, 0],
-                                     type)
+                o_icon = icon.create(
+                    oParent, x.name() + "_ctl", x.getMatrix(), [1, 0, 0], type
+                )
                 iconList.append(o_icon)
                 o_icon.setTransformation(x.getMatrix())
                 pm.parent(x, o_icon)
         else:
 
             o_icon = icon.create(
-                None, type + "_ctl", datatypes.Matrix(), [1, 0, 0], type)
+                None, type + "_ctl", datatypes.Matrix(), [1, 0, 0], type
+            )
             iconList.append(o_icon)
 
     for ico in iconList:
@@ -108,12 +110,9 @@ def createCTL(type="square", child=False, *args):
         pass
 
 
-def addJnt(obj=False,
-           parent=False,
-           noReplace=False,
-           grp=None,
-           jntName=None,
-           *args):
+def addJnt(
+    obj=False, parent=False, noReplace=False, grp=None, jntName=None, *args
+):
     """Create one joint for each selected object.
 
     Args:
@@ -150,9 +149,7 @@ def addJnt(obj=False,
                 jntName = "_".join(obj.name().split("_")) + "_jnt"
             else:
                 jntName = "_".join(obj.name().split("_")[:-1]) + "_jnt"
-        jnt = primitive.addJoint(oParent,
-                                 jntName,
-                                 transform.getTransform(obj))
+        jnt = primitive.addJoint(oParent, jntName, transform.getTransform(obj))
 
         if grp:
             grp.add(jnt)
@@ -210,8 +207,11 @@ def matchWorldXform(*args):
     """Align 2 selected objects in world space"""
 
     if len(pm.selected()) < 2:
-        mgear.log("2 objects or more must be selected. Source and Targets "
-                  "transform", mgear.sev_warning)
+        mgear.log(
+            "2 objects or more must be selected. Source and Targets "
+            "transform",
+            mgear.sev_warning,
+        )
     else:
         source = pm.selected()[0]
         for target in pm.selected()[1:]:
@@ -236,11 +236,11 @@ def alignToPointsLoop(points=None, loc=None, name=None, *args):
         oSel = pm.selected(fl=True)
 
         checkType = "<class 'pymel.core.general.MeshVertex'>"
-        if (not oSel
-                or len(oSel) < 3
-                or str(type(oSel[0])) != checkType):
-            pm.displayWarning("We need to select a points loop, with at "
-                              "less 3 or more points")
+        if not oSel or len(oSel) < 3 or str(type(oSel[0])) != checkType:
+            pm.displayWarning(
+                "We need to select a points loop, with at "
+                "less 3 or more points"
+            )
             return
         else:
             points = oSel
@@ -257,9 +257,9 @@ def alignToPointsLoop(points=None, loc=None, name=None, *args):
         wPos[1] += pos[1]
         wPos[2] += pos[2]
 
-    centerPosition = datatypes.Vector([wPos[0] / oLen,
-                                       wPos[1] / oLen,
-                                       wPos[2] / oLen])
+    centerPosition = datatypes.Vector(
+        [wPos[0] / oLen, wPos[1] / oLen, wPos[2] / oLen]
+    )
 
     lookat = datatypes.Vector(points[0].getPosition(space="world"))
 
@@ -274,7 +274,8 @@ def alignToPointsLoop(points=None, loc=None, name=None, *args):
     normal.normalize()
 
     trans = transform.getTransformLookingAt(
-        centerPosition, lookat, normal, axis="xy", negate=False)
+        centerPosition, lookat, normal, axis="xy", negate=False
+    )
 
     loc.setTransformation(trans)
 
@@ -286,8 +287,9 @@ def connectWorldTransform(source, target):
         source (dagNode): Source dagNode.
         target (dagNode): target dagNode.
     """
-    mulmat_node = node.createMultMatrixNode(source + ".worldMatrix",
-                                            target + ".parentInverseMatrix")
+    mulmat_node = node.createMultMatrixNode(
+        source + ".worldMatrix", target + ".parentInverseMatrix"
+    )
     dm_node = node.createDecomposeMatrixNode(mulmat_node + ".matrixSum")
     pm.connectAttr(dm_node + ".outputTranslate", target + ".t")
     pm.connectAttr(dm_node + ".outputRotate", target + ".r")
@@ -316,11 +318,17 @@ def connectLocalTransform(objects=None, s=True, r=True, t=True, *args):
 
         for target in targets:
             if t:
-                pm.connectAttr(source + ".translate", target + ".translate", force=True)
+                pm.connectAttr(
+                    source + ".translate", target + ".translate", force=True
+                )
             if s:
-                pm.connectAttr(source + ".scale", target + ".scale", force=True)
+                pm.connectAttr(
+                    source + ".scale", target + ".scale", force=True
+                )
             if r:
-                pm.connectAttr(source + ".rotate", target + ".rotate", force=True)
+                pm.connectAttr(
+                    source + ".rotate", target + ".rotate", force=True
+                )
     else:
         pm.displayWarning("Please at less select 2 objects. Source + target/s")
 
@@ -345,8 +353,9 @@ def connectUserDefinedChannels(source, targets):
             try:
                 pm.connectAttr(c, t.attr(c.name().split(".")[-1]))
             except RuntimeError:
-                pm.displayWarning("%s don't have contrapart channel "
-                                  "on %s" % (c, t))
+                pm.displayWarning(
+                    "%s don't have contrapart channel " "on %s" % (c, t)
+                )
 
 
 def connectInvertSRT(source, target, srt="srt", axis="xyz"):
@@ -440,6 +449,7 @@ def matchPosfromBBox(*args):
 # Gimmicks
 #######################################
 
+
 def spaceJump(ref=None, space=None, *args):
     """Space Jump gimmick
 
@@ -460,26 +470,33 @@ def spaceJump(ref=None, space=None, *args):
             ref = pm.selected()[0]
             space = pm.selected()[1]
         else:
-            pm.displayWarning("Please select 2 objects. Reference Space  "
-                              "and Jump Space")
+            pm.displayWarning(
+                "Please select 2 objects. Reference Space  " "and Jump Space"
+            )
             return
 
-    refLocal = primitive.addTransform(ref,
-                                      ref.name() + "_SPACE_" + space.name(),
-                                      space.getMatrix(worldSpace=True))
-    spaceLocal = primitive.addTransform(space,
-                                        ref.name() + "_JUMP_" + space.name(),
-                                        space.getMatrix(worldSpace=True))
+    refLocal = primitive.addTransform(
+        ref,
+        ref.name() + "_SPACE_" + space.name(),
+        space.getMatrix(worldSpace=True),
+    )
+    spaceLocal = primitive.addTransform(
+        space,
+        ref.name() + "_JUMP_" + space.name(),
+        space.getMatrix(worldSpace=True),
+    )
 
-    applyop.gear_mulmatrix_op(refLocal.attr("worldMatrix"),
-                              spaceLocal.attr("parentInverseMatrix[0]"),
-                              spaceLocal)
+    applyop.gear_mulmatrix_op(
+        refLocal.attr("worldMatrix"),
+        spaceLocal.attr("parentInverseMatrix[0]"),
+        spaceLocal,
+    )
 
     pm.displayInfo("Jump Space for local space: " + space.name() + "created")
     return spaceLocal
 
 
-def createInterpolateTransform(objects=None, blend=.5, *args):
+def createInterpolateTransform(objects=None, blend=0.5, *args):
     """
     Create space locator and apply gear_intmatrix_op, to interpolate the his
     pose between 2 selected objects.
@@ -504,18 +521,22 @@ def createInterpolateTransform(objects=None, blend=.5, *args):
             refA = pm.selected()[0]
             refB = pm.selected()[1]
 
-        intMatrix = applyop.gear_intmatrix_op(refA.attr("worldMatrix"),
-                                              refB.attr("worldMatrix"),
-                                              blend)
+        intMatrix = applyop.gear_intmatrix_op(
+            refA.attr("worldMatrix"), refB.attr("worldMatrix"), blend
+        )
         intTrans = primitive.addTransform(
-            refA, refA.name() + "_INTER_" + refB.name(), datatypes.Matrix())
+            refA, refA.name() + "_INTER_" + refB.name(), datatypes.Matrix()
+        )
 
-        applyop.gear_mulmatrix_op(intMatrix.attr("output"),
-                                  intTrans.attr("parentInverseMatrix[0]"),
-                                  intTrans)
+        applyop.gear_mulmatrix_op(
+            intMatrix.attr("output"),
+            intTrans.attr("parentInverseMatrix[0]"),
+            intTrans,
+        )
 
         pm.displayInfo(
-            "Interpolated Transform: " + intTrans.name() + " created")
+            "Interpolated Transform: " + intTrans.name() + " created"
+        )
     else:
         pm.displayWarning("Please select 2 objects. ")
         return
@@ -523,12 +544,9 @@ def createInterpolateTransform(objects=None, blend=.5, *args):
     return intTrans
 
 
-def addBlendedJoint(oSel=None,
-                    compScale=True,
-                    blend=.5,
-                    name=None,
-                    select=True,
-                    *args):
+def addBlendedJoint(
+    oSel=None, compScale=True, blend=0.5, name=None, select=True, *args
+):
     """Create and gimmick blended joint
 
     Create a joint that rotate 50% of the selected joint. This operation is
@@ -555,13 +573,13 @@ def addBlendedJoint(oSel=None,
         if isinstance(x, pm.nodetypes.Joint):
             parent = x.getParent()
             if name:
-                bname = 'blend_' + name
+                bname = "blend_" + name
             else:
-                bname = 'blend_' + x.name()
+                bname = "blend_" + x.name()
 
-            jnt = pm.createNode('joint', n=bname, p=x)
+            jnt = pm.createNode("joint", n=bname, p=x)
             jnt_list.append(jnt)
-            jnt.attr('radius').set(1.5)
+            jnt.attr("radius").set(1.5)
             pm.parent(jnt, parent)
             o_node = pm.createNode("pairBlend")
             o_node.attr("rotInterpolation").set(1)
@@ -594,8 +612,10 @@ def addBlendedJoint(oSel=None,
 
             pm.sets(defSet, add=jnt)
         else:
-            pm.displayWarning("Blended Joint can't be added to: %s. Because "
-                              "is not ot type Joint" % x.name())
+            pm.displayWarning(
+                "Blended Joint can't be added to: %s. Because "
+                "is not ot type Joint" % x.name()
+            )
 
     if jnt_list and select:
         pm.select(jnt_list)
@@ -625,14 +645,17 @@ def addSupportJoint(oSel=None, select=True, *args):
     jnt_list = []
     for x in oSel:
         if x.name().split("_")[0] == "blend":
-            children = [item for item
-                        in pm.selected()[0].listRelatives(ad=True,
-                                                          type="joint")]
+            children = [
+                item
+                for item in pm.selected()[0].listRelatives(
+                    ad=True, type="joint"
+                )
+            ]
             i = len(children)
             name = x.name().replace("blend", "blendSupport_%s" % str(i))
-            jnt = pm.createNode('joint', n=name, p=x)
+            jnt = pm.createNode("joint", n=name, p=x)
             jnt_list.append(jnt)
-            jnt.attr('radius').set(1.5)
+            jnt.attr("radius").set(1.5)
             jnt.attr("overrideEnabled").set(1)
             jnt.attr("overrideColor").set(17)
             try:
@@ -645,10 +668,51 @@ def addSupportJoint(oSel=None, select=True, *args):
             pm.sets(defSet, add=jnt)
 
         else:
-            pm.displayWarning("Support Joint can't be added to: %s. Because "
-                              "is not blend joint" % x.name())
+            pm.displayWarning(
+                "Support Joint can't be added to: %s. Because "
+                "is not blend joint" % x.name()
+            )
 
     if jnt_list and select:
         pm.select(jnt_list)
 
     return jnt_list
+
+
+def connect_scale_from_world_matrix(driver, driven):
+    """
+    Set up node connections to make the driven object scale based on the
+    driver object's world scale matrix. Accepts either str or PyNode.
+
+    Args:
+        driver (str or pm.nodetypes.Transform): Name or PyNode of the
+                                                driver object.
+        driven (str or pm.nodetypes.Transform): Name or PyNode of the
+                                                driven object.
+
+    Example:
+        >>> connect_scale_from_world_matrix('driver_cube', 'driven_cube')
+        >>> connect_scale_from_world_matrix(pm.PyNode('driver_cube'),
+        ...                                 pm.PyNode('driven_cube'))
+    """
+
+    # Convert to PyNode if input is str
+    if isinstance(driver, str):
+        driver = pm.PyNode(driver)
+    if isinstance(driven, str):
+        driven = pm.PyNode(driven)
+
+    # Create a decomposeMatrix node
+    dec_matrix = pm.createNode("decomposeMatrix", name="decomposeMatrix1")
+
+    # Connect the driver's worldMatrix to the decomposeMatrix node
+    pm.connectAttr(
+        driver.attr("worldMatrix[0]"), dec_matrix.attr("inputMatrix")
+    )
+
+    # Connect the decomposeMatrix's outputScale to the driven's scale
+    axes = ["X", "Y", "Z"]
+    for axis in axes:
+        pm.connectAttr(
+            dec_matrix.attr("outputScale" + axis), driven.attr("scale" + axis)
+        )

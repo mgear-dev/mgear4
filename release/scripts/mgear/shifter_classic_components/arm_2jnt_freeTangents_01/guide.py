@@ -71,6 +71,7 @@ class Guide(guide.ComponentGuide):
         self.pUpvRefArray = self.addParam("pinrefarray", "string", "")
         self.pMaxStretch = self.addParam("maxstretch", "double", 1.5, 1, None)
         self.pIKTR = self.addParam("ikTR", "bool", False)
+        self.pGuideOrientWrist = self.addParam("guideOrientWrist", "bool", False)
         self.pMirrorMid = self.addParam("mirrorMid", "bool", False)
         self.pMirrorIK = self.addParam("mirrorIK", "bool", False)
 
@@ -118,7 +119,7 @@ class componentSettings(MayaQWidgetDockableMixin, guide.componentMainSettings):
         # Delete old instances of the componet settings window.
         pyqt.deleteInstances(self, MayaQDockWidget)
 
-        super(self.__class__, self).__init__(parent=parent)
+        super(componentSettings, self).__init__(parent=parent)
         self.settingsTab = settingsTab()
 
         self.setup_componentSettingWindow()
@@ -156,6 +157,9 @@ class componentSettings(MayaQWidgetDockableMixin, guide.componentMainSettings):
         self.settingsTab.maxStretch_spinBox.setValue(
             self.root.attr("maxstretch").get())
         self.populateCheck(self.settingsTab.ikTR_checkBox, "ikTR")
+        self.populateCheck(
+            self.settingsTab.guideOrientWrist_checkBox, "guideOrientWrist"
+        )
         self.populateCheck(self.settingsTab.mirrorMid_checkBox, "mirrorMid")
         self.populateCheck(self.settingsTab.mirrorIK_checkBox, "mirrorIK")
         self.settingsTab.div0_spinBox.setValue(self.root.attr("div0").get())
@@ -221,6 +225,11 @@ class componentSettings(MayaQWidgetDockableMixin, guide.componentMainSettings):
 
         self.settingsTab.ikTR_checkBox.stateChanged.connect(
             partial(self.updateCheck, self.settingsTab.ikTR_checkBox, "ikTR"))
+
+        self.settingsTab.guideOrientWrist_checkBox.stateChanged.connect(
+            partial(self.updateCheck,
+                    self.settingsTab.guideOrientWrist_checkBox,
+                    "guideOrientWrist"))
 
         self.settingsTab.mirrorMid_checkBox.stateChanged.connect(
             partial(self.updateCheck,

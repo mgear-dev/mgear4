@@ -181,7 +181,7 @@
             <item>
              <widget class="QSpinBox" name="div0_spinBox">
               <property name="minimum">
-               <number>1</number>
+               <number>0</number>
               </property>
               <property name="value">
                <number>2</number>
@@ -191,7 +191,7 @@
             <item>
              <widget class="QSpinBox" name="div1_spinBox">
               <property name="minimum">
-               <number>1</number>
+               <number>0</number>
               </property>
               <property name="value">
                <number>2</number>
@@ -201,7 +201,7 @@
             <item>
              <widget class="QSpinBox" name="div2_spinBox">
               <property name="minimum">
-               <number>1</number>
+               <number>0</number>
               </property>
               <property name="value">
                <number>2</number>

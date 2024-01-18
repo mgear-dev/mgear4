@@ -68,7 +68,14 @@ class Component(component.Main):
                 self.jnt_pos.append([t, 0, None, self.settings["uniScale"]])
             else:
                 self.jnt_pos.append(
-                    [self.ctl, 0, None, self.settings["uniScale"]])
+                    {
+                        "obj": self.ctl,
+                        "name": 0,
+                        "guide_relative": "root",
+                        "UniScale": self.settings["uniScale"],
+                        "leaf_joint": self.settings["addLeafJoint"],
+                    }
+                )
 
     def addAttributes(self):
         # Ref

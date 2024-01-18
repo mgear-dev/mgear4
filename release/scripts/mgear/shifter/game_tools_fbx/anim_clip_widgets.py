@@ -4,8 +4,8 @@ import maya.cmds as cmds
 
 from mgear.vendor.Qt import QtWidgets, QtCore, QtGui
 
-from mgear.core import pyqt
-from mgear.shifter.game_tools_fbx import fbx_export_node, utils as fbx_utils
+from mgear.core import pyqt, utils as coreUtils, animLayers
+from mgear.shifter.game_tools_fbx import fbx_export_node, utils
 
 
 class AnimClipsListWidget(QtWidgets.QWidget):
@@ -109,7 +109,7 @@ class AnimClipsListWidget(QtWidgets.QWidget):
             )
             return
 
-        export_node = self._fbx_exporter.get_or_create_export_node()
+        export_node = fbx_export_node.FbxExportNode.get()
         anim_clip_name = export_node.add_animation_clip(self._root_joint)
         if not anim_clip_name:
             cmds.warning("Was not possible to add new animation clip")
@@ -133,14 +133,13 @@ class AnimClipsListWidget(QtWidgets.QWidget):
 class AnimClipWidget(QtWidgets.QFrame):
     def __init__(self, clip_name=None, parent=None):
         super(AnimClipWidget, self).__init__(parent)
-
         self._fbx_exporter = parent
         self._clip_name = clip_name
         self._previous_name = clip_name
 
         self.window().setAttribute(QtCore.Qt.WA_AlwaysShowToolTips, True)
         self.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
-        self.setFixedHeight(40)
+        self.setFixedHeight(45)
 
         self.create_layout()
         self.create_connections()
@@ -172,7 +171,7 @@ class AnimClipWidget(QtWidgets.QFrame):
         self._clip_name_lineedit.setStatusTip("Clip Name")
         clip_name_layout.addWidget(self._clip_name_lineedit)
 
-        self._anim_layer_combo = QtWidgets.QComboBox()
+        self._anim_layer_combo = AnimationLayerCB()
         self._anim_layer_combo.setStatusTip("Animation Layer")
         clip_name_layout.addWidget(self._anim_layer_combo)
 
@@ -254,13 +253,22 @@ class AnimClipWidget(QtWidgets.QFrame):
         with pyqt.block_signals(self._anim_layer_combo):
             self._anim_layer_combo.clear()
             # TODO: Maybe we should filter display layers that are set with override mode?
-            anim_layers = fbx_utils.all_anim_layers_ordered(
-                include_base_animation=False
-            )
+            anim_layers = animLayers.all_anim_layers_ordered()
             self._anim_layer_combo.addItems(["None"] + anim_layers)
-            self._anim_layer_combo.setCurrentText(
-                anim_clip_data.get("animLayer", "None")
-            )
+            serialised_anim_layer = anim_clip_data.get("anim_layer", "None")
+
+            if not serialised_anim_layer:
+                serialised_anim_layer = "None"
+
+            # If serialised animation layer does not exist, notify user.
+            if self._anim_layer_combo.findText(serialised_anim_layer) > -1:
+                self._anim_layer_combo.setCurrentText(serialised_anim_layer)
+            else:
+                cmds.warning(
+                    "Animation Layer not found: {}".format(
+                        serialised_anim_layer
+                    )
+                )
 
     def set_enabled(self, flag):
         self._export_checkbox.setChecked(flag)
@@ -276,9 +284,7 @@ class AnimClipWidget(QtWidgets.QFrame):
         if not export_node:
             return
 
-        root_joint = (
-            self._fbx_exporter.get_root_joint() if self._fbx_exporter else None
-        )
+        root_joint = self._fbx_exporter.get_root_joint()
         if not root_joint:
             return
 
@@ -287,9 +293,7 @@ class AnimClipWidget(QtWidgets.QFrame):
         self.deleteLater()
 
     def _on_update_anim_clip(self):
-        root_joint = (
-            self._fbx_exporter.get_root_joint() if self._fbx_exporter else None
-        )
+        root_joint = self._fbx_exporter.get_root_joint()
         if not root_joint:
             return
 
@@ -300,11 +304,11 @@ class AnimClipWidget(QtWidgets.QFrame):
         anim_clip_data = fbx_export_node.FbxExportNode.ANIM_CLIP_DATA.copy()
         anim_clip_data["title"] = self._clip_name_lineedit.text()
         anim_clip_data["enabled"] = self._export_checkbox.isChecked()
-        # anim_clip_data["frame_rate"] = self._frame_rate_combo.currentText()
+        anim_clip_data["frame_rate"] = coreUtils.get_frame_rate()
         anim_clip_data["start_frame"] = int(self._start_frame_box.text())
         anim_clip_data["end_frame"] = int(self._end_frame_box.text())
         anim_layer = self._anim_layer_combo.currentText()
-        anim_clip_data["animLayer"] = (
+        anim_clip_data["anim_layer"] = (
             anim_layer if anim_layer and anim_layer != "None" else ""
         )
 
@@ -318,9 +322,11 @@ class AnimClipWidget(QtWidgets.QFrame):
         if not export_node:
             return
 
-        result = export_node.delete_animation_clip(
-            self._root_joint, self._clip_name
-        )
+        root_joint = self._fbx_exporter.get_root_joint()
+        if not root_joint:
+            return
+
+        result = export_node.delete_animation_clip(root_joint, self._clip_name)
         if not result:
             return
 
@@ -328,26 +334,29 @@ class AnimClipWidget(QtWidgets.QFrame):
         self.deleteLater()
 
     def _on_set_range_button_clicked(self):
-        start_frame = self._start_frame_box.text()
-        end_frame = self._end_frame_box.text()
-        cmds.playbackOptions(
-            animationStartTime=start_frame,
-            minTime=start_frame,
-            animationEndTime=end_frame,
-            maxTime=end_frame,
-        )
-        cmds.currentTime(start_frame, edit=True)
+        min_frame = str(int(cmds.playbackOptions(query=True, min=True)))
+        max_frame = str(int(cmds.playbackOptions(query=True, max=True)))
+        self._start_frame_box.setText(min_frame)
+        self._end_frame_box.setText(max_frame)
 
     def _on_play_button_clicked(self):
+        start_time = str(int(cmds.playbackOptions(query=True, min=True)))
+        end_time = str(int(cmds.playbackOptions(query=True, max=True)))
+        anim_start_time = str(int(cmds.playbackOptions(query=True, ast=True)))
+        anim_end_time = str(int(cmds.playbackOptions(query=True, aet=True)))
         start_frame = self._start_frame_box.text()
         end_frame = self._end_frame_box.text()
-        cmds.playbackOptions(
-            animationStartTime=start_frame,
-            minTime=start_frame,
-            animationEndTime=end_frame,
-            maxTime=end_frame,
-        )
-        if cmds.play(query=True, state=True):
+
+        if not (start_frame == start_time and end_frame == end_time) or not (
+            start_frame == anim_start_time and end_frame == anim_end_time
+        ):
+            cmds.playbackOptions(
+                animationStartTime=start_frame,
+                minTime=start_frame,
+                animationEndTime=end_frame,
+                maxTime=end_frame,
+            )
+        elif cmds.play(query=True, state=True):
             cmds.play(state=False)
         else:
             cmds.play(forward=True)
@@ -370,18 +379,41 @@ class AnimClipWidget(QtWidgets.QFrame):
 
         delete_anim_clip_action.triggered.connect(self._on_delete_anim_clip)
         playblast_25_action.triggered.connect(
-            partial(fbx_utils.create_mgear_playblast, scale=25)
+            partial(utils.create_mgear_playblast, scale=25)
         )
         playblast_50_action.triggered.connect(
-            partial(fbx_utils.create_mgear_playblast, scale=50)
+            partial(utils.create_mgear_playblast, scale=50)
         )
         playblast_75_action.triggered.connect(
-            partial(fbx_utils.create_mgear_playblast, scale=75)
+            partial(utils.create_mgear_playblast, scale=75)
         )
         playblast_100_action.triggered.connect(
-            partial(fbx_utils.create_mgear_playblast, scale=100)
+            partial(utils.create_mgear_playblast, scale=100)
         )
         open_playblasts_folder_action.triggered.connect(
-            fbx_utils.open_mgear_playblast_folder
+            utils.open_mgear_playblast_folder
         )
         context_menu.exec_(self.mapToGlobal(pos))
+
+
+class AnimationLayerCB(QtWidgets.QComboBox):
+    """
+    Custom overloaded QComboBox, this will automatically refresh the combobox everytime
+    it shows the values. Keep the Combobox up to date with the AnimationLayers available.
+    """
+
+    def __init__(self, parent=None):
+        super(AnimationLayerCB, self).__init__(parent=parent)
+
+    def showPopup(self):
+        super(AnimationLayerCB, self).showPopup()
+        currentText = self.currentText()
+
+        self.clear()
+
+        anim_layers = animLayers.all_anim_layers_ordered()
+        self.addItems(["None"] + anim_layers)
+
+        self.setCurrentText(currentText)
+
+        # TODO: Could to a check here to see if the layer still exists, else add a warning.

@@ -318,6 +318,13 @@ class Rig(Main):
         self.pWorldCtl_name = self.addParam(
             "world_ctl_name", "string", "world_ctl")
 
+        if versions.current() >= 20220000:
+            self.pGuideXRay = self.addParam("guide_x_ray", "bool", False)
+
+        self.pGuideVis = self.addParam("guide_vis", "bool", True)
+        self.pJointRadius = self.addParam(
+            "joint_radius", "float", value=1.0, minimum=0)
+
         # --------------------------------------------------
         # skin
         self.pSkin = self.addParam("importSkin", "bool", False)
@@ -439,9 +446,6 @@ class Rig(Main):
         self.p_joint_padding = self.addParam(
             "joint_index_padding", "long", 0, 0, 99)
 
-
-
-
     def setFromSelection(self):
         """Set the guide hierarchy from selection."""
         selection = pm.ls(selection=True)
@@ -552,6 +556,8 @@ class Rig(Main):
         mgear.log("Guide loaded from hierarchy in  [ " + str(finalTime) + " ]")
 
     def set_from_dict(self, guide_template_dict):
+
+        self.guide_template_dict = guide_template_dict
 
         r_dict = guide_template_dict['guide_root']
 
@@ -716,9 +722,6 @@ class Rig(Main):
     def initialHierarchy(self):
         """Create the initial rig guide hierarchy (model, options...)"""
         self.model = pm.group(n="guide", em=True, w=True)
-        if versions.current() >= 20220000:
-            attribute.addAttribute(
-                self.model, "guide_x_ray", "bool", False, keyable=True)
 
         # Options
         self.options = self.addPropertyParamenters(self.model)
@@ -1017,7 +1020,6 @@ class Rig(Main):
             return
         self.setFromHierarchy(root, False)
         name = "_".join(root.name().split("|")[-1].split("_")[:-1])
-        print(name)
         comp_guide = self.components[name]
         comp_guide.rename(root, newName, newSide, newIndex)
 

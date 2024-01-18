@@ -1,18 +1,16 @@
 import copy
 import weakref
 
+import maya.cmds as cmds
+
+# TODO: Remove dependency
+import maya.app.flux.core as fx
+
 from mgear.vendor.Qt import QtWidgets, QtCore, QtGui
 
 from mgear.core import pyqt, utils
 from mgear.shifter.game_tools_fbx import fbx_export_node
 
-
-import maya.cmds as cmds
-
-# TODO: Remove following dependencies
-import maya.app.flux.core as fx
-from maya.app.flux.core import pix
-from MASH.itemStyle import *
 
 ROW_HEIGHT = 30
 LABEL_COLORS = ["red", "blue", "grey", "orange", "green", "yellow", "purple"]
@@ -264,27 +262,56 @@ class TreeItem(QtWidgets.QTreeWidgetItem):
         export_node = fbx_export_node.FbxExportNode.get()
         if not export_node:
             return
+
+        # Partition Node
         if self.is_root():
             result = export_node.delete_skeletal_mesh_partition(
                 self.get_name()
             )
+
             if result:
+                master_item = self.parent()._master_item
+
+                # Moves geo back to master partition
+                for i in reversed(range(self.childCount())):
+                    child = self.child(i)
+                    master_item.addChild(child)
+
+                # Deletes selected partition
                 self.parent().takeTopLevelItem(
                     self.parent().indexOfTopLevelItem(self)
                 )
+
+                # Redraws the UI
+                self.parent().reset_contents()
+
+        # Geometry Node
         else:
             result = export_node.delete_skeletal_mesh_from_partition(
                 self.parent().get_name(), self.get_name()
             )
+
             if result:
+                # Remove child from partition node
                 self.parent().takeChild(self.parent().indexOfChild(self))
+                # Get master partition
+                master_item = self.parent().parent()._master_item
+                # Parent node under master partition
+                export_node.add_skeletal_meshes_to_partition(
+                    master_item.get_name(),
+                    [self.get_name()]
+                )
+
+                # refresh the UI, which will redraw the geometry as it is on the Maya Node.
+                self.parent().parent().reset_contents()
+
 
 
 class OutlinerTreeView(QtWidgets.QTreeWidget):
     TREE_ITEM_CLASS = TreeItem
     NODE_CLASS = NodeClass
 
-    EXPAND_WIDTH = pix(60)
+    EXPAND_WIDTH = 60
     TRASH_IMAGE = pyqt.get_icon("mgear_trash")
     COPY_IMAGE = pyqt.get_icon("mgear_copy")
 
@@ -312,12 +339,11 @@ class OutlinerTreeView(QtWidgets.QTreeWidget):
         self.populate_items()
 
         self.header().setCascadingSectionResizes(False)
-        self.setColumnWidth(0, pix(250))
-        self.header().resizeSection(0, pix(250))
+        self.setColumnWidth(0, 250)
+        self.header().resizeSection(0, 250)
         self.resizeColumnToContents(0)
         delegate = TreeViewDelegate(self)
         self.setItemDelegate(delegate)
-        # self.setStyle(ItemStyle())
         self.setRootIsDecorated(False)
         self.expandAll()
         self.setExpandsOnDoubleClick(False)
@@ -399,7 +425,7 @@ class OutlinerTreeView(QtWidgets.QTreeWidget):
         if not self._action_button_pressed:
             super(OutlinerTreeView, self).mouseMoveEvent(event)
 
-        modifiers = QtGui.QGuiApplication.keyboardModifiers()
+        modifiers = QtWidgets.QApplication.keyboardModifiers()
         if modifiers == QtCore.Qt.AltModifier:
             QtWidgets.QWidget.setCursor(
                 self, (QtGui.QCursor(QtCore.Qt.DragCopyCursor))
@@ -414,7 +440,7 @@ class OutlinerTreeView(QtWidgets.QTreeWidget):
         self.setDirtyRegion(region)
 
     def mouseReleaseEvent(self, event):
-        QtGui.QGuiApplication.restoreOverrideCursor()
+        QtWidgets.QApplication.restoreOverrideCursor()
         if not self._action_button_pressed:
             super(OutlinerTreeView, self).mouseReleaseEvent(event)
         else:
@@ -620,14 +646,14 @@ class OutlinerTreeView(QtWidgets.QTreeWidget):
             return
         if item.is_root():
             if num_indexes > 0:
-                pixmap = QtGui.QPixmap(pix(100), pix(100))
+                pixmap = QtGui.QPixmap(100, 100)
                 pixmap.fill(self._get_label_color())
                 label_icon = QtGui.QIcon(pixmap)
                 prev_menu = self._context_menu.addMenu(
                     label_icon, "Label Color"
                 )
                 for color_label in LABEL_COLORS:
-                    pixmap = QtGui.QPixmap(pix(100), pix(100))
+                    pixmap = QtGui.QPixmap(100, 100)
                     pixmap.fill(self._get_color_from_label(color_label))
                     label_icon = QtGui.QIcon(pixmap)
                     prev_menu.addAction(
@@ -683,7 +709,7 @@ class TreeViewDelegate(QtWidgets.QItemDelegate):
 
     def sizeHint(self, option, index):
         hint = super(TreeViewDelegate, self).sizeHint(option, index)
-        hint.setHeight(pix(ROW_HEIGHT))
+        hint.setHeight(ROW_HEIGHT)
         return hint
 
     def createEditor(self, parent, option, index):
@@ -707,9 +733,9 @@ class TreeViewDelegate(QtWidgets.QItemDelegate):
 
         indent = self.tree_view.get_indent(index)
         rect = copy.deepcopy(option.rect)
-        rect.setLeft(indent + pix(46.5))
-        rect.setBottom(rect.bottom() - pix(4))
-        rect.setRight(rect.right() - pix(50))
+        rect.setLeft(indent + 46.5)
+        rect.setBottom(rect.bottom() - 4)
+        rect.setRight(rect.right() - 50)
         editor.setGeometry(rect)
 
     def setEditorData(self, editor, index):
@@ -736,25 +762,25 @@ class RowPainter(object):
     DISABLED_BACKGROUND_IMAGE = fx.getPixmap("out_MASH_ChevronBG")
     DISABLED_HIGHLIGHT_IMAGE = fx.getPixmap("out_MASH_ChevronBGSelected")
     EXPANDED_ARROW = (
-        pix(QtCore.QPointF(9.0, 11.0)),
-        pix(QtCore.QPointF(19.0, 11.0)),
-        pix(QtCore.QPointF(14.0, 16.0)),
+        QtCore.QPointF(9.0, 11.0),
+        QtCore.QPointF(19.0, 11.0),
+        QtCore.QPointF(14.0, 16.0),
     )
     COLLAPSED_ARROW = (
-        pix(QtCore.QPointF(12.0, 8.0)),
-        pix(QtCore.QPointF(17.0, 13.0)),
-        pix(QtCore.QPointF(12.0, 18.0)),
+        QtCore.QPointF(12.0, 8.0),
+        QtCore.QPointF(17.0, 13.0),
+        QtCore.QPointF(12.0, 18.0),
     )
     ARROW_COLOR = QtGui.QColor(189, 189, 189)
-    ICON_PADDING = pix(10.0)
-    ICON_WIDTH = pix(20)
-    ICON_WIDTH_NO_DPI = pix(20)
-    ICON_TOP_OFFSET = pix(4)
-    COLOR_BAR_WIDTH = pix(6)
+    ICON_PADDING = 10
+    ICON_WIDTH = 20
+    ICON_WIDTH_NO_DPI = 20
+    ICON_TOP_OFFSET = 4
+    COLOR_BAR_WIDTH = 6
     DRAG_HANDLE_IMAGE = fx.getPixmap("out_MASH_OutlinerDrag")
     LOCK_IMAGE = fx.getPixmap("out_MASH_OutlinerNoDrag")
-    ACTION_BORDER = pix(0)
-    ACTION_WIDTH = pix(20)
+    ACTION_BORDER = 0
+    ACTION_WIDTH = 20
     ENABLED_IMAGE = fx.getPixmap("out_MASH_Enable")
     DISABLED_IMAGE = fx.getPixmap("out_MASH_Disable")
     ENABLED_SELECTED_IMAGE = fx.getPixmap("out_MASH_Enable_Selected")
@@ -828,10 +854,10 @@ class RowPainter(object):
         rect2 = copy.deepcopy(self._rect)
         old_pen = self._painter.pen()
         self._painter.setPen(
-            QtGui.QPen(self.item.get_window_background_color(), pix(2))
+            QtGui.QPen(self.item.get_window_background_color(), 2)
         )
         rect2.setLeft(rect2.left())
-        rect2.setRight(rect2.right() - pix(2))
+        rect2.setRight(rect2.right() - 2)
         rect2.setTop(rect2.top())
         rect2.setBottom(rect2.bottom())
         self._painter.drawRect(rect2)
@@ -845,9 +871,9 @@ class RowPainter(object):
         self._painter.save()
         old_brush = self._painter.brush()
         if self.item.is_root() and self.item.childCount() > 0:
-            padding = pix(3)
+            padding = 3
             self._painter.translate(
-                self._rect.left() + padding, self._rect.top() + pix(2)
+                self._rect.left() + padding, self._rect.top() + 2
             )
             arrow = self.COLLAPSED_ARROW
             if self.item.isExpanded():
@@ -858,11 +884,11 @@ class RowPainter(object):
             self._painter.setBrush(old_brush)
         else:
             rect2 = copy.deepcopy(self._rect)
-            padding = pix(26)
+            padding = 26
             new_rect = QtCore.QRect()
             new_rect.setRight(rect2.left() + padding)
             new_rect.setLeft(new_rect.right() - self.ICON_WIDTH_NO_DPI)
-            new_rect.setBottom(rect2.top() - self.ICON_WIDTH + pix(6))
+            new_rect.setBottom(rect2.top() - self.ICON_WIDTH + 6)
             new_rect.setTop(new_rect.bottom() + self.ICON_WIDTH)
             icon = self.DRAG_HANDLE_IMAGE
             self._painter.drawPixmap(new_rect, icon)
@@ -880,16 +906,14 @@ class RowPainter(object):
             draw_enabled = False
         if self.item.node.enabled and draw_enabled:
             self._painter.setPen(
-                QtGui.QPen(self.parent().palette().text().color(), pix(1))
+                QtGui.QPen(self.parent().palette().text().color(), 1)
             )
         else:
-            self._painter.setPen(
-                QtGui.QPen(self.item.get_inactive_color(), pix(1))
-            )
+            self._painter.setPen(QtGui.QPen(self.item.get_inactive_color(), 1))
         text_rect = copy.deepcopy(self._rect)
-        text_rect.setBottom(text_rect.bottom() + pix(2))
-        text_rect.setLeft(text_rect.left() + pix(40) + self.ICON_PADDING)
-        text_rect.setRight(text_rect.right() - pix(11))
+        text_rect.setBottom(text_rect.bottom() + 2)
+        text_rect.setLeft(text_rect.left() + 40 + self.ICON_PADDING)
+        text_rect.setRight(text_rect.right() - 11)
         self._painter.drawText(
             text_rect,
             QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter,
@@ -909,9 +933,9 @@ class RowPainter(object):
         icon = self.item.get_icon()
         if icon:
             new_rect = QtCore.QRect()
-            new_rect.setRight(rect2.left() - pix(4))
+            new_rect.setRight(rect2.left() - 4)
             new_rect.setLeft(new_rect.right() - self.ICON_WIDTH_NO_DPI)
-            new_rect.setBottom(rect2.top() - self.ICON_WIDTH + pix(3))
+            new_rect.setBottom(rect2.top() - self.ICON_WIDTH + 3)
             new_rect.setTop(new_rect.bottom() + self.ICON_WIDTH)
             draw_enabled = True
             if not self.item.node.is_root and not self.item.network_enabled():
@@ -993,7 +1017,7 @@ class RowPainter(object):
                 if not show_enabled_button:
                     start += self.ACTION_WIDTH + extra_padding
                     continue
-                extra_padding = pix(10)
+                extra_padding = 10
                 pixmap = self.ENABLED_IMAGE
                 if not self.item.is_root() and not self.item.network_enabled():
                     pixmap = self.INACTIVE_ENABLED_IMAGE

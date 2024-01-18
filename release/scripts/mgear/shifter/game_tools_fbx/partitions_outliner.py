@@ -208,7 +208,7 @@ class PartitionsOutliner(partition_widgets.OutlinerTreeView):
 
         found_meshes = []
         for geo_root in self._geo_roots:
-            if not geo_root:
+            if not (geo_root and cmds.objExists(geo_root)):
                 return
             children = (
                 cmds.listRelatives(

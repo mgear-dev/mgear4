@@ -121,17 +121,13 @@ def install_main_menu():
     import mgear
     mgear.install()
 
-    # Install Dag Menu option
-    import mgear.core.dagmenu
-    mgear.core.dagmenu.install()
-
     # Install Shifter Menu
     import mgear.shifter.menu
     mgear.shifter.menu.install()
 
     # Install ueGear Menu
-    # import mgear.uegear.menu
-    # mgear.uegear.menu.install()
+    import mgear.uegear.menu
+    mgear.uegear.menu.install()
 
     # Install Simple Rig Menu
     import mgear.simpleRig.menu
@@ -181,6 +177,10 @@ def install_main_menu():
 
     # Install Help Menu
     mgear.menu.install_help_menu()
+
+    # Install Dag Menu option
+    import mgear.core.dagmenu
+    mgear.core.dagmenu.install()
 
     # from cvwrap.menu import create_menuitems
     # create_menuitems()

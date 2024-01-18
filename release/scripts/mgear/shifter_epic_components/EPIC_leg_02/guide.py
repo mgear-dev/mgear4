@@ -96,6 +96,7 @@ class Guide(guide.ComponentGuide):
         self.pMaxStretch = self.addParam("maxstretch", "double", 100, 1, None)
         self.pMirrorMid = self.addParam("mirrorMid", "bool", False)
         self.pleafJoints = self.addParam("leafJoints", "bool", False)
+        self.pTPoseRest = self.addParam("rest_T_Pose", "bool", False)
 
         # Divisions
         self.pDiv0 = self.addParam("div0", "long", 2, 0, None)
@@ -144,7 +145,7 @@ class componentSettings(MayaQWidgetDockableMixin, guide.componentMainSettings):
         # Delete old instances of the componet settings window.
         pyqt.deleteInstances(self, MayaQDockWidget)
 
-        super(self.__class__, self).__init__(parent=parent)
+        super(componentSettings, self).__init__(parent=parent)
         self.settingsTab = settingsTab()
 
         self.setup_componentSettingWindow()
@@ -175,6 +176,9 @@ class componentSettings(MayaQWidgetDockableMixin, guide.componentMainSettings):
         self.tabs.insertTab(1, self.settingsTab, "Component Settings")
 
         # populate component settings
+        self.populateCheck(
+            self.settingsTab.TPoseRest_checkBox, "rest_T_Pose"
+        )
         self.settingsTab.ikfk_slider.setValue(
             int(self.root.attr("blend").get() * 100)
         )
@@ -331,6 +335,14 @@ class componentSettings(MayaQWidgetDockableMixin, guide.componentMainSettings):
                 self.settingsTab.ikRefArray_listWidget,
                 self.settingsTab.pinRefArray_listWidget,
                 "pinrefarray",
+            )
+        )
+
+        self.settingsTab.TPoseRest_checkBox.stateChanged.connect(
+            partial(
+                self.updateCheck,
+                self.settingsTab.TPoseRest_checkBox,
+                "rest_T_Pose",
             )
         )
 

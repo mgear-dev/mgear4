@@ -15,6 +15,7 @@ def install():
         ("Add NPO", str_add_NPO),
         ("-----", None),
         (None, gimmick_submenu),
+        # ("Gimmick Setup Tool", str_gimmick_tool),
         ("-----", None),
         ("Mirror Controls Shape", str_mirror_ctls),
         ("Replace Shape", str_replace_shape),
@@ -29,6 +30,7 @@ def install():
         ("Duplicate symmetrical", str_duplicateSym),
         ("-----", None),
         ("RBF Manager", str_rbf_manager_ui),
+        ("RBF Manager2", str_rbf_manager2_ui),
         ("SDK Manager (BETA)", str_SDK_manager_ui),
         ("-----", None),
         ("Space Manager", str_space_manager),
@@ -150,6 +152,11 @@ from mgear import rigbits
 rigbits.addNPO()
 """
 
+str_gimmick_tool = """
+from mgear.rigbits.gimmick_tool import main
+main.mainUI()
+"""
+
 str_mirror_ctls = """
 from mgear.rigbits import mirror_controls
 mirror_controls.show()
@@ -182,6 +189,11 @@ rigbits.duplicateSym()
 
 str_rbf_manager_ui = """
 from mgear.rigbits import rbf_manager_ui
+rbf_manager_ui.show()
+"""
+
+str_rbf_manager2_ui = """
+from mgear.rigbits.rbf_manager2 import rbf_manager_ui
 rbf_manager_ui.show()
 """
 

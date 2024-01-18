@@ -26,9 +26,9 @@ from maya import cmds
 from mgear.core import string
 
 if sys.version_info[0] == 2:
-    string_types = (basestring, )
+    string_types = (basestring,)
 else:
-    string_types = (str, )
+    string_types = (str,)
 
 #########################################
 # Soft Tweak
@@ -42,19 +42,19 @@ SHOT_TAG = "_isSoftTweak"
 # Create the controls for the softTweak
 
 
-def _createSoftTweakControls(name,
-                             parent=None,
-                             t=datatypes.Matrix(),
-                             grps=None,
-                             size=0.5):
+def _createSoftTweakControls(
+    name, parent=None, t=datatypes.Matrix(), grps=None, size=0.5
+):
     root_name = "{}_{}".format(name, "softTweak_root")
     namespace = None
     try:
         # simple check if exist a tweak with the same name
         exist = pm.PyNode(root_name)
         if exist:
-            pm.displayError("the tweak: {} already exist. Please use a "
-                            "unique name.".format(name))
+            pm.displayError(
+                "the tweak: {} already exist. Please use a "
+                "unique name.".format(name)
+            )
             return False, False
     except pm.MayaNodeError:
         if parent:
@@ -63,27 +63,33 @@ def _createSoftTweakControls(name,
                 namespace = p.namespace()
 
             except pm.MayaNodeError:
-                pm.displayWarning("{} is not a valid parent or doesn't "
-                                  "exist".format(parent))
+                pm.displayWarning(
+                    "{} is not a valid parent or doesn't "
+                    "exist".format(parent)
+                )
                 p = None
         else:
             p = None
         root = primitive.addTransform(p, root_name, t)
         attribute.addAttribute(root, "iconSize", "float", size, keyable=False)
 
-        baseCtl = icon.create(parent=root,
-                              name="{}_{}".format(name, "baseSoftTweak_ctl"),
-                              m=t,
-                              color=[1, 0.622, 0],
-                              icon="square",
-                              d=size,
-                              w=size)
-        tweakCtl = icon.create(parent=baseCtl,
-                               name="{}_{}".format(name, "softTweak_ctl"),
-                               m=t,
-                               color=[0.89, 0.0, 0.143],
-                               icon="diamond",
-                               w=size * .8)
+        baseCtl = icon.create(
+            parent=root,
+            name="{}_{}".format(name, "baseSoftTweak_ctl"),
+            m=t,
+            color=[1, 0.622, 0],
+            icon="square",
+            d=size,
+            w=size,
+        )
+        tweakCtl = icon.create(
+            parent=baseCtl,
+            name="{}_{}".format(name, "softTweak_ctl"),
+            m=t,
+            color=[0.89, 0.0, 0.143],
+            icon="diamond",
+            w=size * 0.8,
+        )
         attribute.addAttribute(tweakCtl, "falloff", "float", size)
         attribute.addAttribute(tweakCtl, "surfaceMode", "bool", False)
 
@@ -114,16 +120,14 @@ def _createSoftTweakControls(name,
 
         return baseCtl, tweakCtl
 
+
 # Create a tweak using softMod deformer
 # We have separated the softmode creationg so we can use any pre-existing ctl.
 
 
-def _createSoftModTweak(baseCtl,
-                        tweakCtl,
-                        name,
-                        targets,
-                        nameExt="softMod",
-                        is_asset=False):
+def _createSoftModTweak(
+    baseCtl, tweakCtl, name, targets, nameExt="softMod", is_asset=False
+):
 
     sm = pm.softMod(targets, wn=[tweakCtl, tweakCtl])
     pm.rename(sm[0], "{}_{}".format(name, nameExt))
@@ -136,12 +140,14 @@ def _createSoftModTweak(baseCtl,
 
     dm_node = node.createDecomposeMatrixNode(baseCtl.worldMatrix[0])
     pm.connectAttr(dm_node.outputTranslate, sm[0].falloffCenter)
-    mul_node = node.createMulNode(dm_node.outputScaleX,
-                                  tweakCtl.attr("falloff"))
+    mul_node = node.createMulNode(
+        dm_node.outputScaleX, tweakCtl.attr("falloff")
+    )
     pm.connectAttr(mul_node.outputX, sm[0].falloffRadius)
     pm.connectAttr(tweakCtl.attr("surfaceMode"), sm[0].falloffMode)
-    mulMatrix_node = applyop.gear_mulmatrix_op(tweakCtl.worldMatrix[0],
-                                               tweakCtl.parentInverseMatrix[0])
+    mulMatrix_node = applyop.gear_mulmatrix_op(
+        tweakCtl.worldMatrix[0], tweakCtl.parentInverseMatrix[0]
+    )
     pm.connectAttr(mulMatrix_node.output, sm[0].weightedMatrix)
     pm.connectAttr(baseCtl.worldInverseMatrix[0], sm[0].postMatrix)
     pm.connectAttr(baseCtl.worldMatrix[0], sm[0].preMatrix)
@@ -152,9 +158,9 @@ def _createSoftModTweak(baseCtl,
 
     attribute.addAttribute(sm[0], tag_name, "bool", False, keyable=False)
 
-    sm[0].addAttr("ctlRoot", at='message', m=False)
-    sm[0].addAttr("ctlBase", at='message', m=False)
-    sm[0].addAttr("ctlTweak", at='message', m=False)
+    sm[0].addAttr("ctlRoot", at="message", m=False)
+    sm[0].addAttr("ctlBase", at="message", m=False)
+    sm[0].addAttr("ctlTweak", at="message", m=False)
 
     # fix issue with Maya 2022 and later for falloffAroundSelection
     if versions.current() >= 20220000:
@@ -171,8 +177,11 @@ def _createSoftModTweak(baseCtl,
 
         skin_cls = skin.getSkinCluster(targets[0])
         cnxs = skin_cls.matrix[0].listConnections()
-        if (cnxs and cnxs[0].type() == "mgear_mulMatrix" and
-                not sm[0].hasAttr("_fixedSkinFix")):
+        if (
+            cnxs
+            and cnxs[0].type() == "mgear_mulMatrix"
+            and not sm[0].hasAttr("_fixedSkinFix")
+        ):
 
             # tag the softmod as fixed
             attribute.addAttribute(sm[0], "_fixedSkinFix", "bool")
@@ -213,14 +222,16 @@ def _createSoftModTweak(baseCtl,
 
 
 #  Create softTweak and controls convenience function.
-def createSoftTweak(name,
-                    targets=[],
-                    parent=None,
-                    t=None,
-                    grp=None,
-                    size=0.5,
-                    nameExt="softMod",
-                    is_asset=False):
+def createSoftTweak(
+    name,
+    targets=[],
+    parent=None,
+    t=None,
+    grp=None,
+    size=0.5,
+    nameExt="softMod",
+    is_asset=False,
+):
 
     with pm.UndoChunk():
         if isinstance(targets, string_types):
@@ -228,8 +239,10 @@ def createSoftTweak(name,
         if not isinstance(targets, list):
             targets = [targets]
         if not targets:
-            pm.displayWarning("Can't find the targets to apply to "
-                              "softModTweak or Targets not selectedIndexes")
+            pm.displayWarning(
+                "Can't find the targets to apply to "
+                "softModTweak or Targets not selectedIndexes"
+            )
             return False, False, False
         # namespace basic handling
         # NOTE: Doesn't support more than one namespace stacked
@@ -237,15 +250,13 @@ def createSoftTweak(name,
             name = pm.PyNode(parent).namespace() + name
 
         baseCtl, tweakCtl = _createSoftTweakControls(
-            name, parent, t, grp, size)
+            name, parent, t, grp, size
+        )
 
         if baseCtl:
-            softModNode = _createSoftModTweak(baseCtl,
-                                              tweakCtl,
-                                              name,
-                                              targets,
-                                              nameExt,
-                                              is_asset)
+            softModNode = _createSoftModTweak(
+                baseCtl, tweakCtl, name, targets, nameExt, is_asset
+            )
 
             return softModNode, baseCtl, tweakCtl
         else:
@@ -253,18 +264,20 @@ def createSoftTweak(name,
 
 
 # Create Auto SoftTweak
-def createAutoSoftTweak(size=1.0,
-                        nameExt="softMod",
-                        is_asset=False):
+def createAutoSoftTweak(size=1.0, nameExt="softMod", is_asset=False):
 
     # get the object to apply
     if pm.selected() and len(pm.selected()) >= 2:
-        oSel = [x for x in pm.selected()[:-1]
-                if x.getShape().type()
-                in ["mesh", "nurbsSurface"]]
+        oSel = [
+            x
+            for x in pm.selected()[:-1]
+            if x.getShape().type() in ["mesh", "nurbsSurface"]
+        ]
     else:
-        pm.displayWarning("Selection should be at less 2 object. The "
-                          " deformed object and the parent control")
+        pm.displayWarning(
+            "Selection should be at less 2 object. The "
+            " deformed object and the parent control"
+        )
         return
     ctl_parent = pm.selected()[-1]
     grps = [s.name() for s in ctl_parent.listConnections(type="objectSet")]
@@ -276,14 +289,16 @@ def createAutoSoftTweak(size=1.0,
     while pm.ls("_".join([baseName, str(idName), "softTweak_ctl"])):
         idName += 1
 
-    createSoftTweak(baseName + "_" + str(idName),
-                    targets=oSel,
-                    parent=ctl_parent,
-                    t=ctl_parent.getMatrix(worldSpace=True),
-                    grp=grps,
-                    size=size,
-                    nameExt=nameExt,
-                    is_asset=is_asset)
+    createSoftTweak(
+        baseName + "_" + str(idName),
+        targets=oSel,
+        parent=ctl_parent,
+        t=ctl_parent.getMatrix(worldSpace=True),
+        grp=grps,
+        size=size,
+        nameExt=nameExt,
+        is_asset=is_asset,
+    )
     pm.select(oSel, r=True)
 
 
@@ -349,11 +364,13 @@ def _addRemoveSoftMode(softMods, targets=[], rm=True):
 def addToSoftMod(softMods, targets=[]):
     _addRemoveSoftMode(softMods, targets)
 
+
 # remove from soft mode
 
 
 def removeSoftMod(softMods, targets=[]):
     _addRemoveSoftMode(softMods, targets, True)
+
 
 # list soft modeTweaks in the scene
 
@@ -366,6 +383,48 @@ def _listSoftModTweaks(is_asset=False):
     return [sm for sm in pm.ls(type="softMod") if sm.hasAttr(tag_name)]
 
 
+def order_softmods(target_objects, softmod_nodes):
+    """
+    Return a list of softmod deformers based on the order they are applied to the target_objects.
+
+    Parameters:
+    - target_objects (list of str): List of Maya object names.
+    - softmod_nodes (list of str): List of softmod node names to be ordered.
+
+    Returns:
+    - list of str: Ordered list of softmod nodes based on their connection order.
+    """
+    final_ordered_list = []
+
+    for target_object in target_objects:
+        # Get the history of the current target object
+        history_nodes = pm.listHistory(target_object)
+
+        # Filter out only the softMod nodes from the history
+        ordered_softmods = [
+            node
+            for node in history_nodes
+            if pm.nodeType(node) == "softMod" and node.name() in softmod_nodes
+        ]
+
+        # Since the listHistory command returns nodes in reverse order of application,
+        # reverse the list to get the correct order.
+        ordered_softmods.reverse()
+
+        # final_ordered_list shold only extend if the mod.name() is not in the list
+        # also the entry that is repeted will be moved to the last position
+        # TODO: this logic will fail if we add object to the softmod after creation
+        for mod in ordered_softmods:
+            mod_name = mod.name()
+            if mod_name in final_ordered_list:
+                final_ordered_list.remove(mod_name)
+            final_ordered_list.append(mod_name)
+
+        # final_ordered_list.extend([mod.name() for mod in ordered_softmods])
+
+    return final_ordered_list
+
+
 def _buildConfigDict(softMods=[]):
     """build the config dictionary softMod list
 
@@ -375,7 +434,23 @@ def _buildConfigDict(softMods=[]):
     configDict = {}
 
     # Softmods list
-    configDict["softMods"] = [sm.name() for sm in softMods]
+    alphabetic_softMods = [sm.name() for sm in softMods]
+    affected_objects = []
+    # loop over alphabetic_softMods and use _getAffectedObjects(sm) to get the affected objects. add the returned list items to affected_objects if are not already in the list
+    for sm in alphabetic_softMods:
+        objs = _getAffectedObjects(sm)
+        for obj in objs:
+            if obj not in affected_objects:
+                affected_objects.append(obj)
+    configDict["affected_objects"] = affected_objects
+
+    deformation_order_softMods = order_softmods(
+        affected_objects, alphabetic_softMods
+    )
+
+    configDict["softMods"] = deformation_order_softMods
+    print(alphabetic_softMods)
+    print(deformation_order_softMods)
 
     for sm in softMods:
         softModConfig = {}
@@ -426,6 +501,7 @@ def _buildConfigDict(softMods=[]):
 
     return configDict
 
+
 # EXPORTERS -------------------------------
 # export configuration from a softMod tweaks list
 
@@ -436,14 +512,16 @@ def exportConfiguration(softMods, filePath=None):
     if not filePath:
         filePath = pm.fileDialog2(
             fileMode=0,
-            fileFilter='SoftMod Tweaks configuration .smt (*%s)' % ".smt")
+            fileFilter="SoftMod Tweaks configuration .smt (*%s)" % ".smt",
+        )
     if not filePath:
         return
     if not isinstance(filePath, string_types):
         filePath = filePath[0]
-    f = open(filePath, 'w')
+    f = open(filePath, "w")
     f.write(data_string)
     f.close()
+
 
 # IMPORTERS -------------------------------
 # import softTweaker configuration
@@ -458,8 +536,10 @@ def _importConfiguration(configDict):
                 try:
                     targets.append(pm.PyNode(t))
                 except pm.MayaNodeError:
-                    pm.displayWarning("{}: has not been found in the scene "
-                                      "and will be skipped".format(t))
+                    pm.displayWarning(
+                        "{}: has not been found in the scene "
+                        "and will be skipped".format(t)
+                    )
 
             name = smConfig["name"]
             parent = smConfig["rootParent"]
@@ -468,14 +548,16 @@ def _importConfiguration(configDict):
             is_asset = smConfig["isAsset"]
             nameExt = smConfig["nameExt"]
             rootMatrix = datatypes.Matrix(smConfig["rootMatrix"])
-            softModNode, baseCtl, tweakCtl = createSoftTweak(name,
-                                                             targets=targets,
-                                                             parent=parent,
-                                                             t=rootMatrix,
-                                                             grp=grp,
-                                                             size=size,
-                                                             nameExt=nameExt,
-                                                             is_asset=is_asset)
+            softModNode, baseCtl, tweakCtl = createSoftTweak(
+                name,
+                targets=targets,
+                parent=parent,
+                t=rootMatrix,
+                grp=grp,
+                size=size,
+                nameExt=nameExt,
+                is_asset=is_asset,
+            )
             if softModNode:
                 ctlBaseMatrix = datatypes.Matrix(smConfig["baseCtlMatrix"])
                 ctlMatrix = datatypes.Matrix(smConfig["ctlMatrix"])
@@ -486,6 +568,7 @@ def _importConfiguration(configDict):
                 # in local space
                 baseCtl.getParent().setMatrix(rootMatrix, objectSpace=True)
 
+
 # import softTweaker configuration from file
 
 
@@ -493,7 +576,8 @@ def importConfigurationFromFile(filePath=None):
     if not filePath:
         filePath = pm.fileDialog2(
             fileMode=1,
-            fileFilter='SoftMod Tweaks configuration .smt (*%s)' % ".smt")
+            fileFilter="SoftMod Tweaks configuration .smt (*%s)" % ".smt",
+        )
 
     if not filePath:
         return
@@ -507,8 +591,8 @@ def importConfigurationFromFile(filePath=None):
 # Soft tweaks Manager dialog
 ####################################
 
-class softTweakManagerUI(QtWidgets.QMainWindow, stUI.Ui_MainWindow):
 
+class softTweakManagerUI(QtWidgets.QMainWindow, stUI.Ui_MainWindow):
     def __init__(self, parent=None):
         super(softTweakManagerUI, self).__init__(parent)
         self.setupUi(self)
@@ -603,33 +687,38 @@ class softTweakManager(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.stUIInst.refresh_pushButton.clicked.connect(self.refreshList)
         self.stUIInst.addObjectToTweak_pushButton.clicked.connect(self.addObj)
         self.stUIInst.removeObjFromTweak_pushButton.clicked.connect(
-            self.removeObj)
+            self.removeObj
+        )
         self.stUIInst.auto_pushButton.clicked.connect(self.autoTweak)
         self.stUIInst.setParent_pushButton.clicked.connect(self.setTweakParent)
         self.stUIInst.setCtrlGrp_pushButton.clicked.connect(self.setCtlGrp)
         self.stUIInst.newTweak_pushButton.clicked.connect(self.newTweak)
         self.stUIInst.delete_pushButton.clicked.connect(self.deleteTweak)
         self.stUIInst.selectObjectsFromTweak_pushButton.clicked.connect(
-            self.selectectAffected)
+            self.selectectAffected
+        )
         self.stUIInst.selectCtlBase_pushButton.clicked.connect(
-            self.selectBaseCtl)
+            self.selectBaseCtl
+        )
         self.stUIInst.selectCtl_pushButton.clicked.connect(self.selectCtl)
 
         self.stUIInst.isAsset_checkBox.clicked.connect(self._refreshList)
 
         # actions
         self.stUIInst.exportSelected_action.triggered.connect(
-            self.exportSelection)
+            self.exportSelection
+        )
         self.stUIInst.exportAll_action.triggered.connect(self.exportAll)
         self.stUIInst.import_action.triggered.connect(self.importConfiguration)
 
         # Misc
-        self.stUIInst.name_lineEdit.textChanged.connect(
-            self.name_text_changed)
+        self.stUIInst.name_lineEdit.textChanged.connect(self.name_text_changed)
         self.stUIInst.customExt_lineEdit.textChanged.connect(
-            self.nameExt_text_changed)
+            self.nameExt_text_changed
+        )
         self.stUIInst.customExt_checkBox.toggled.connect(
-            self.stUIInst.customExt_lineEdit.setEnabled)
+            self.stUIInst.customExt_lineEdit.setEnabled
+        )
 
     #############
     # SLOTS
@@ -648,10 +737,9 @@ class softTweakManager(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.stUIInst.customExt_lineEdit.setText(name)
 
     def filterChanged(self, filter):
-        regExp = QtCore.QRegExp(filter,
-                                QtCore.Qt.CaseSensitive,
-                                QtCore.QRegExp.Wildcard
-                                )
+        regExp = QtCore.QRegExp(
+            filter, QtCore.Qt.CaseSensitive, QtCore.QRegExp.Wildcard
+        )
         self.__proxyModel.setFilterRegExp(regExp)
 
     # FILE MENU COMMANDS
@@ -725,8 +813,9 @@ class softTweakManager(MayaQWidgetDockableMixin, QtWidgets.QDialog):
     def newTweak(self):
         name = self.stUIInst.name_lineEdit.text()
         if not name:
-            pm.displayWarning("please define the name before create "
-                              "the softTweak.")
+            pm.displayWarning(
+                "please define the name before create " "the softTweak."
+            )
             return
         grp = self.stUIInst.ctlGrp_lineEdit.text()
         parent = self.stUIInst.parent_lineEdit.text()
@@ -736,29 +825,37 @@ class softTweakManager(MayaQWidgetDockableMixin, QtWidgets.QDialog):
                 trans = p.getMatrix(worldSpace=True)
 
             except pm.MayaNodeError:
-                pm.displayWarning("{} is not a valid parent or doesn't "
-                                  "exist".format(parent))
+                pm.displayWarning(
+                    "{} is not a valid parent or doesn't "
+                    "exist".format(parent)
+                )
                 return
         else:
             trans = datatypes.Matrix()
         try:
-            oSel = [x for x in pm.selected()
-                    if x.getShape().type()
-                    in ["mesh", "nurbsSurface"]]
+            oSel = [
+                x
+                for x in pm.selected()
+                if x.getShape().type() in ["mesh", "nurbsSurface"]
+            ]
         except pm.MayaNodeError:
-            pm.displayError("Some objects on the current selection are "
-                            "not valid. Please review the selection")
+            pm.displayError(
+                "Some objects on the current selection are "
+                "not valid. Please review the selection"
+            )
             return
 
         is_asset, nameExt, size = self._getIsAssetNameExtSize()
-        createSoftTweak(name,
-                        targets=oSel,
-                        parent=parent,
-                        t=trans,
-                        grp=grp,
-                        size=size,
-                        nameExt=nameExt,
-                        is_asset=is_asset)
+        createSoftTweak(
+            name,
+            targets=oSel,
+            parent=parent,
+            t=trans,
+            grp=grp,
+            size=size,
+            nameExt=nameExt,
+            is_asset=is_asset,
+        )
         self._refreshList()
         pm.select(oSel, r=True)
 
@@ -766,12 +863,14 @@ class softTweakManager(MayaQWidgetDockableMixin, QtWidgets.QDialog):
     # What happen if the controls have more child objects?
     # like tweaks under tweaks
     def deleteTweak(self):
-        option = pm.confirmDialog(title='Delete Tweak,',
-                                  message='Are you sure?',
-                                  button=['Delete', 'Cancel'],
-                                  defaultButton='Delete',
-                                  cancelButton='Cancel',
-                                  dismissString='Cancel')
+        option = pm.confirmDialog(
+            title="Delete Tweak,",
+            message="Are you sure?",
+            button=["Delete", "Cancel"],
+            defaultButton="Delete",
+            cancelButton="Cancel",
+            dismissString="Cancel",
+        )
         if option == "Delete":
             softMods = self._getSelectedListIndexes()
             objs = _getPluggetObj(softMods, "ctlRoot")

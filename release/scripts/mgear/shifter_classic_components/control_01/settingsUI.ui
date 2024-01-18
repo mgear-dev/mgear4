@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>283</width>
-    <height>482</height>
+    <width>556</width>
+    <height>953</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -30,6 +30,19 @@
          </widget>
         </item>
         <item>
+         <widget class="QCheckBox" name="addLeafJoint_checkBox">
+          <property name="enabled">
+           <bool>false</bool>
+          </property>
+          <property name="toolTip">
+           <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;When &amp;quot;&lt;span style=&quot; font-weight:600;&quot;&gt;Add Leaf Joint&lt;/span&gt;&amp;quot; is checked, the component will add an extra joint as a leaf joint. So we will have 2 joints. One to connect the joint structure the other to drive the skinning and allow non uniform scaling in Game Engine workflows&lt;/p&gt;&lt;p&gt;This is not the same as marking the control &amp;quot;&lt;span style=&quot; font-weight:600;&quot;&gt;is Leaf Joint&lt;/span&gt;&amp;quot; . &lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+          </property>
+          <property name="text">
+           <string>Add Leaf Joint</string>
+          </property>
+         </widget>
+        </item>
+        <item>
          <widget class="QCheckBox" name="leafJoint_checkBox">
           <property name="enabled">
            <bool>false</bool>
@@ -38,7 +51,7 @@
            <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;When &amp;quot;&lt;span style=&quot; font-weight:600;&quot;&gt;is Leaf Joint&lt;/span&gt;&amp;quot; is checked, the component will create only the joint without the controls&lt;/p&gt;&lt;p&gt;As the name indicates this option is meant to create leaf joints, but you can use it also to create &amp;quot;branches&amp;quot;&lt;/p&gt;&lt;p&gt;Leaf joint can be used as a deformation helpers or/and games pipelines&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
           </property>
           <property name="text">
-           <string>is Leaf Joint (Beta)</string>
+           <string>is Leaf Joint</string>
           </property>
          </widget>
         </item>
@@ -473,12 +486,12 @@
    <slot>toggle()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>95</x>
-     <y>233</y>
+     <x>134</x>
+     <y>485</y>
     </hint>
     <hint type="destinationlabel">
-     <x>52</x>
-     <y>256</y>
+     <x>91</x>
+     <y>526</y>
     </hint>
    </hints>
   </connection>
@@ -489,12 +502,12 @@
    <slot>toggle()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>95</x>
-     <y>233</y>
+     <x>134</x>
+     <y>485</y>
     </hint>
     <hint type="destinationlabel">
-     <x>89</x>
-     <y>279</y>
+     <x>128</x>
+     <y>567</y>
     </hint>
    </hints>
   </connection>
@@ -505,12 +518,12 @@
    <slot>toggle()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>95</x>
-     <y>233</y>
+     <x>134</x>
+     <y>485</y>
     </hint>
     <hint type="destinationlabel">
-     <x>95</x>
-     <y>302</y>
+     <x>134</x>
+     <y>608</y>
     </hint>
    </hints>
   </connection>
@@ -521,12 +534,12 @@
    <slot>toggle()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>178</x>
-     <y>228</y>
+     <x>352</x>
+     <y>485</y>
     </hint>
     <hint type="destinationlabel">
-     <x>178</x>
-     <y>251</y>
+     <x>352</x>
+     <y>526</y>
     </hint>
    </hints>
   </connection>
@@ -537,12 +550,12 @@
    <slot>toggle()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>178</x>
-     <y>228</y>
+     <x>352</x>
+     <y>485</y>
     </hint>
     <hint type="destinationlabel">
-     <x>178</x>
-     <y>274</y>
+     <x>352</x>
+     <y>567</y>
     </hint>
    </hints>
   </connection>
@@ -553,12 +566,12 @@
    <slot>toggle()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>178</x>
-     <y>228</y>
+     <x>352</x>
+     <y>485</y>
     </hint>
     <hint type="destinationlabel">
-     <x>178</x>
-     <y>297</y>
+     <x>352</x>
+     <y>608</y>
     </hint>
    </hints>
   </connection>
@@ -569,12 +582,12 @@
    <slot>toggle()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>178</x>
-     <y>228</y>
+     <x>352</x>
+     <y>485</y>
     </hint>
     <hint type="destinationlabel">
-     <x>178</x>
-     <y>320</y>
+     <x>352</x>
+     <y>649</y>
     </hint>
    </hints>
   </connection>
@@ -585,12 +598,12 @@
    <slot>toggle()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>261</x>
-     <y>233</y>
+     <x>516</x>
+     <y>485</y>
     </hint>
     <hint type="destinationlabel">
-     <x>261</x>
-     <y>256</y>
+     <x>516</x>
+     <y>526</y>
     </hint>
    </hints>
   </connection>
@@ -601,12 +614,12 @@
    <slot>toggle()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>261</x>
-     <y>233</y>
+     <x>516</x>
+     <y>485</y>
     </hint>
     <hint type="destinationlabel">
-     <x>261</x>
-     <y>279</y>
+     <x>516</x>
+     <y>567</y>
     </hint>
    </hints>
   </connection>
@@ -617,12 +630,12 @@
    <slot>toggle()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>261</x>
-     <y>233</y>
+     <x>516</x>
+     <y>485</y>
     </hint>
     <hint type="destinationlabel">
-     <x>261</x>
-     <y>302</y>
+     <x>516</x>
+     <y>608</y>
     </hint>
    </hints>
   </connection>
