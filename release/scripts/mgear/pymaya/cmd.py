@@ -1,5 +1,6 @@
 from . import base
 from . import exception
+from . import datatypes
 from maya import cmds
 from maya import mel
 from maya.api import OpenMaya
@@ -109,6 +110,22 @@ def _obj_to_name(arg):
         return arg
 
 
+def _dt_to_value(arg):
+    if isinstance(arg, (list, set, tuple)):
+        return arg.__class__([_dt_to_value(x) for x in arg])
+    elif isinstance(arg, datatypes.Vector):
+        return [arg[0], arg[1], arg[2]]
+    elif isinstance(arg, datatypes.Point):
+        return [arg[0], arg[1], arg[2], arg[3]]
+    elif isinstance(arg, datatypes.Matrix):
+        return [arg[0], arg[1], arg[2], arg[3],
+                arg[4], arg[5], arg[6], arg[7],
+                arg[8], arg[9], arg[10], arg[11],
+                arg[12], arg[13], arg[14], arg[15]]
+    else:
+        return arg
+
+
 def _name_to_obj(arg, scope=SCOPE_NODE, known_node=None):
     # lazy importing
     from . import bind
@@ -168,17 +185,46 @@ def getAttr(*args, **kwargs):
     kwargs = _obj_to_name(kwargs)
 
     try:
-        return cmds.getAttr(*args, **kwargs)
+        res = _getAttr(*args, **kwargs)
     except Exception as e:
         raise exception.MayaAttributeError(*e.args)
 
+    if isinstance(res, list) and len(res) > 0:
+        at = cmds.getAttr(args[0], type=True)
+        if isinstance(res[0], tuple):
+            if at == "pointArray":
+                return [datatypes.Vector(x) for x in res]
+            elif at == "vectorArray":
+                return [datatypes.Point(x) for x in res]
+
+            if at.endswith("3"):
+                return datatypes.Vector(res[0])
+
+            return res[0]
+        else:
+            if at == "vectorArray":
+                return [datatypes.Vector(res[i], res[i + 1], res[i + 2]) for i in range(0, len(res), 3)]
+            elif at == "matrix":
+                return datatypes.Matrix(res)
+
+            return res
+
+    return res
+
 
 def setAttr(*args, **kwargs):
-    args = _obj_to_name(args)
+    args = _dt_to_value(_obj_to_name(args))
     kwargs = _obj_to_name(kwargs)
 
     try:
-        cmds.setAttr(*args, **kwargs)
+        fargs = []
+        for arg in args:
+            if isinstance(arg, (list, set, tuple)):
+                fargs.extend(arg)
+            else:
+                fargs.append(arg)
+
+        cmds.setAttr(*fargs, **kwargs)
     except Exception as e:
         raise exception.MayaAttributeError(*e.args)
 
