@@ -119,7 +119,7 @@ def _name_to_obj(arg, scope=SCOPE_NODE, known_node=None):
     elif isinstance(arg, str):
         if (scope == SCOPE_ATTR and known_node is not None):
             try:
-                return bind.PyNode(f"{known_node}.{arg}")
+                return bind.PyNode("{}.{}".format(known_node, arg))
             except:
                 return arg
         else:

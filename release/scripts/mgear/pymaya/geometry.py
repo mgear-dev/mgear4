@@ -38,7 +38,7 @@ class _Geometry(base.Geom):
         else:
             self.__dagpath, self.__component = _Geometry.__getComponent(nodename_or_dagpath)
             if self.__dagpath is None or self.__component is None:
-                raise exception.MayaGeometryError(f"No such geometry '{nodename_or_dagpath}'")
+                raise exception.MayaGeometryError("No such geometry '{}'".format(nodename_or_dagpath))
 
     def dagPath(self):
         return self.__dagpath
@@ -68,7 +68,7 @@ class MeshVertex(_Geometry):
 
             it.next()
 
-        self.__vtxid = ".vtx[" + (str(minid) if minid == maxid else f"{minid}:{maxid}") + "]"
+        self.__vtxid = ".vtx[" + (str(minid) if minid == maxid else "{}:{}".format(minid, maxid)) + "]"
 
     def name(self):
         return self.dagPath().partialPathName() + self.__vtxid
@@ -95,7 +95,7 @@ class MeshFace(_Geometry):
 
             it.next()
 
-        self.__faceid = ".vtx[" + (str(minid) if minid == maxid else f"{minid}:{maxid}") + "]"
+        self.__faceid = ".vtx[" + (str(minid) if minid == maxid else "{}:{}".format(minid, maxid)) + "]"
 
     def name(self):
         return self.dagPath().partialPathName() + self.__faceid

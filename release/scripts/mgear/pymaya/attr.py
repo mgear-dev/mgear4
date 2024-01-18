@@ -27,24 +27,24 @@ class Attribute(base.Attr):
         else:
             self.__plug = Attribute.__getPlug(attrname_or_mplug)
             if self.__plug is None:
-                raise RuntimeError(f"No such attribute '{attrname_or_mplug}'")
+                raise RuntimeError("No such attribute '{}'".format(attrname_or_mplug))
 
     def __getitem__(self, index):
         if not self.__plug.isArray:
-            raise TypeError(f"{self.name()} is not an array plug")
+            raise TypeError("{} is not an array plug".format(self.name()))
 
         if index >= self.__plug.numElements():
             print(self.__plug.numElements())
             raise IndexError("index out of range")
 
-        return Attribute(f"{self.name()}[{index}]")
+        return Attribute("{}[{}]".format(self.name(), index))
 
     def __getattribute__(self, name):
         try:
             return super(Attribute, self).__getattribute__(name)
         except AttributeError:
             nfnc = super(Attribute, self).__getattribute__("name")
-            if cmds.ls(f"{nfnc()}.{name}"):
+            if cmds.ls("{}.{}".format(nfnc(), name)):
                 return super(Attribute, self).__getattribute__("attr")(name)
 
             raise
@@ -69,7 +69,7 @@ class Attribute(base.Attr):
 
             self.__node_name_func = nfunc
 
-        return f"{nfunc()}.{self.__plug.partialName(False, False, False, False, False, True)}"
+        return "{}.{}".format(nfunc(), self.__plug.partialName(False, False, False, False, False, True))
 
     def delete(self):
         cmds.deleteAttr(self.name())
@@ -86,9 +86,9 @@ class Attribute(base.Attr):
             return self.__attrs[name]
 
         nfnc = super(Attribute, self).__getattribute__("name")
-        if cmds.ls(f"{nfnc()}.{name}"):
-            at = Attribute(f"{nfnc()}.{name}")
+        if cmds.ls("{}.{}".format(nfnc(), name)):
+            at = Attribute("{}.{}".format(nfnc(), name))
             self.__attrs[name] = at
             return at
 
-        raise exception.MayaAttributeError(f"No '{name}' attr found")
+        raise exception.MayaAttributeError("No '{}' attr found".format(name))
