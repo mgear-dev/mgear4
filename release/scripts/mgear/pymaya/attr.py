@@ -35,10 +35,9 @@ class Attribute(base.Attr):
             raise TypeError("{} is not an array plug".format(self.name()))
 
         if index >= self.__plug.numElements():
-            print(self.__plug.numElements())
             raise IndexError("index out of range")
 
-        return Attribute("{}[{}]".format(self.name(), index))
+        return Attribute(self.__plug.elementByLogicalIndex(index))
 
     def __getattribute__(self, name):
         try:
@@ -83,14 +82,23 @@ class Attribute(base.Attr):
 
     def attr(self, name):
         attr_cache = super(Attribute, self).__getattribute__("_Attribute__attrs")
-        if name in self.__attrs:
-            return self.__attrs[name]
+        if name in attr_cache:
+            return attr_cache[name]
 
-        nfnc = super(Attribute, self).__getattribute__("name")
-        if cmds.ls("{}.{}".format(nfnc(), name)):
-            at = Attribute("{}.{}".format(nfnc(), name))
-            self.__attrs[name] = at
-            return at
+        this_plug = super(Attribute, self).__getattribute__("_Attribute__plug")
+        if this_plug.isCompound:
+            for ci in range(this_plug.numChildren()):
+                cp = this_plug.child(ci)
+                at = None
+                if name == cp.partialName(False, False, False, False, False, True).split(".")[-1]:
+                    at = Attribute(cp)
+                elif name == cp.partialName(False, False, False, False, False, False).split(".")[-1]:
+                    at = Attribute(cp)
+                else:
+                    continue
+
+                attr_cache[name] = at
+                return at
 
         raise exception.MayaAttributeError("No '{}' attr found".format(name))
 

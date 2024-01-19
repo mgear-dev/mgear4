@@ -49,6 +49,8 @@ class _Node(base.Node):
             nfnc = super(_Node, self).__getattribute__("name")
             if cmds.ls("{}.{}".format(nfnc(), name)):
                 return super(_Node, self).__getattribute__("attr")(name)
+            elif cmds.ls("{}.{}[:]".format(nfnc(), name)):
+                return geometry.BindGeometry("{}.{}[:]".format(nfnc(), name))
 
             raise
 
@@ -76,17 +78,31 @@ class _Node(base.Node):
     def name(self):
         return self.__fn_dg.name() if self.__fn_dag is None else self.__fn_dag.partialPathName()
 
-    def attr(self, name):
-        if name in self.__attrs:
-            return self.__attrs[name]
+    def attr(self, name, checkShape=True):
+        attr_cache = super(_Node, self).__getattribute__("_Node__attrs")
+        if name in attr_cache:
+            return attr_cache[name]
 
-        nfnc = super(_Node, self).__getattribute__("name")
-        if cmds.ls("{}.{}".format(nfnc(), name)):
-            at = attr.Attribute("{}.{}".format(nfnc(), name))
-            self.__attrs[name] = at
-            return at
+        p = None
+        fn_dg = super(_Node, self).__getattribute__("_Node__fn_dg")
+        try:
+            p = fn_dg.findPlug(name, False)
+        except Exception:
+            if checkShape:
+                get_shape = super(_Node, self).__getattribute__("getShape")
+                shape = get_shape()
+                if shape:
+                    try:
+                        p = shape.dgFn().findPlug(name, False)
+                    except:
+                        pass
 
-        raise exception.MayaAttributeError("No '{}' attr found".format(name))
+            if p is None:
+                raise exception.MayaAttributeError("No '{}' attr found".format(name))
+
+        at = attr.Attribute(p)
+        attr_cache[name] = at
+        return at
 
     def addAttr(self, name, **kwargs):
         kwargs.pop("ln")

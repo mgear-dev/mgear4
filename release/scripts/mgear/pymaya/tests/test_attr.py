@@ -63,7 +63,7 @@ class TestAttr(unittest.TestCase):
 
     def test_array_compound(self):
         sp = cmds.polySphere()[0]
-        sps = cmds.listRelatives(sp, s=1)[0]
+        sps = cmds.listRelatives(sp, s=True)[0]
         vrts = pm.PyNode(f"{sps}.vrts")
         self.assertEqual(vrts[0].name(), f"{sps}.vrts[0]")
         self.assertIsNotNone(vrts[0].vrtx)
@@ -71,3 +71,15 @@ class TestAttr(unittest.TestCase):
         self.assertIsNotNone(vrts[0].vrtz)
         self.assertIsNotNone(vrts[0].attr("vrtz"))
         self.assertEqual(vrts[0].vrtz.name(), f"{sps}.vrts[0].vrtz")
+        self.assertIsNotNone(pm.PyNode(f"{sps}.vrts[0].vrtz"))
+
+        circ = cmds.circle(d=1, s=5, ch=False)[0]
+        circs = cmds.listRelatives(circ, s=True)[0]
+        self.assertIsNotNone(pm.PyNode(circ).controlPoints[1])
+        self.assertIsNotNone(pm.PyNode(circ).getShape().controlPoints[1])
+        self.assertIsNotNone(pm.PyNode(f"{circs}.controlPoints[1]"))
+
+        crv = cmds.curve(p=[[0, 0, 0], [1, 1, 1]], d=1)
+        crvs = cmds.listRelatives(crv, s=True)[0]
+        self.assertIsNotNone(pm.PyNode(crv).selectHandle)
+        self.assertIsNotNone(pm.PyNode(f"{crv}.selectHandle"))

@@ -185,7 +185,7 @@ def getAttr(*args, **kwargs):
     kwargs = _obj_to_name(kwargs)
 
     try:
-        res = _getAttr(*args, **kwargs)
+        res = cmds.getAttr(*args, **kwargs)
     except Exception as e:
         raise exception.MayaAttributeError(*e.args)
 
