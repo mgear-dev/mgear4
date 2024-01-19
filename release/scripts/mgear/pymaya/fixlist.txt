@@ -4,10 +4,10 @@
 # release/scripts/mgear/anim_picker/menu.py
 # release/scripts/mgear/anim_picker/picker_node.py
 # release/scripts/mgear/anim_picker/widgets/basic.py
-release/scripts/mgear/animbits/channel_master_node.py
+# release/scripts/mgear/animbits/channel_master_node.py
 release/scripts/mgear/animbits/channel_master_utils.py
 release/scripts/mgear/animbits/channel_master_widgets.py
-release/scripts/mgear/animbits/channel_master.py
+# release/scripts/mgear/animbits/channel_master.py
 release/scripts/mgear/animbits/humanIkMapper.py
 release/scripts/mgear/animbits/softTweaks.py
 release/scripts/mgear/animbits/space_recorder.py
