@@ -1,8 +1,20 @@
 from maya.api import OpenMaya
 from maya import cmds
+from . import cmd
 from . import attr
 from . import base
+from . import datatypes
 from . import exception
+from . import geometry
+from functools import partial
+
+
+def _getPivots(node, **kwargs):
+    kwargs.pop("pivots", kwargs.pop("piv", None))
+    kwargs["pivots"] = True
+    kwargs["q"] = True
+    res = cmd.xform(node, **kwargs)
+    return (datatypes.Vector(res[:3]), datatypes.Vector(res[3:]))
 
 
 class _Node(base.Node):
@@ -38,6 +50,7 @@ class _Node(base.Node):
             dagpath = OpenMaya.MDagPath.getAPathTo(self.__obj)
             self.__dagpath = dagpath
             self.__fn_dag = OpenMaya.MFnDagNode(dagpath)
+            self.getPivots = partial(_getPivots, self)
         else:
             self.__dagpath = None
             self.__fn_dag = None
@@ -78,6 +91,12 @@ class _Node(base.Node):
     def name(self):
         return self.__fn_dg.name() if self.__fn_dag is None else self.__fn_dag.partialPathName()
 
+    def namespace(self):
+        n = self.name()
+        if ":" not in n:
+            return ""
+        return ":".join(n.split("|")[-1].split(":")[:-1]) + ":"
+
     def attr(self, name, checkShape=True):
         attr_cache = super(_Node, self).__getattribute__("_Node__attrs")
         if name in attr_cache:
@@ -105,19 +124,28 @@ class _Node(base.Node):
         return at
 
     def addAttr(self, name, **kwargs):
-        kwargs.pop("ln")
-        kwargs.pop("longName")
+        kwargs.pop("ln", None)
+        kwargs.pop("longName", None)
         kwargs["longName"] = name
         return cmds.addAttr(self.name(), **kwargs)
 
     def getAttr(self, name, **kwargs):
-        return cmds.getAttr("{}.{}".format(self.name(), name), **kwargs)
+        return cmd.getAttr("{}.{}".format(self.name(), name), **kwargs)
+
+    def setAttr(self, name, *args, **kwargs):
+        return cmd.setAttr("{}.{}".format(self.name(), name), *args, **kwargs)
 
     def hasAttr(self, name, checkShape=True):
         return cmds.objExists("{}.{}".format(self.name(), name))
 
     def listConnections(self, **kwargs):
-        return cmds.listConnections("{}.{}".format(self.name(), name), **kwargs)
+        return cmd.listConnections(self, **kwargs)
+
+    def listRelatives(self, **kwargs):
+        return cmd.listRelatives(self, **kwargs)
+
+    def type(self):
+        return self.__fn_dg.typeName
 
     def namespace(self):
         nss = self.name().split("|")[-1].split(":")[:-1]
@@ -143,6 +171,18 @@ class _Node(base.Node):
 
     def split(self, word):
         return self.name().split(word)
+
+    def getShape(self, **kwargs):
+        shapes = self.getShapes(**kwargs)
+        if shapes:
+            return shapes[0]
+
+        return None
+
+    def getShapes(self, **kwargs):
+        kwargs.pop("shapes", kwargs.pop("s", None))
+        kwargs["shapes"] = True
+        return cmd.listRelatives(self, **kwargs)
 
 
 class _NodeTypes(object):
