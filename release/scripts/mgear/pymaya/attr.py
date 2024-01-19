@@ -1,6 +1,7 @@
 from maya import cmds
 from maya.api import OpenMaya
 from . import base
+from . import cmd
 from . import exception
 
 
@@ -92,3 +93,9 @@ class Attribute(base.Attr):
             return at
 
         raise exception.MayaAttributeError("No '{}' attr found".format(name))
+
+    def get(self, *args, **kwargs):
+        return cmd.getAttr(self, *args, **kwargs)
+
+    def set(self, *args, **kwargs):
+        cmd.setAttr(self, *args, **kwargs)
