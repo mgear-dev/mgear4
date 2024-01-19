@@ -224,6 +224,9 @@ def setAttr(*args, **kwargs):
             else:
                 fargs.append(arg)
 
+        if len(fargs) == 2 and isinstance(fargs[1], str) and "typ" not in kwargs and "type" not in kwargs:
+            kwargs["type"] = "string"
+
         cmds.setAttr(*fargs, **kwargs)
     except Exception as e:
         raise exception.MayaAttributeError(*e.args)
