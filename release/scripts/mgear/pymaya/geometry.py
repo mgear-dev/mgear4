@@ -1,15 +1,30 @@
+import re
 from maya.api import OpenMaya
 from maya import cmds
 from . import base
+from . import datatypes
 from . import exception
 
 
 _SELECTION_LIST = OpenMaya.MSelectionList()
 
 
+def _to_mspace(space_str):
+    if space_str == "transform":
+        return OpenMaya.MSpace.kTransform
+    elif space_str == "preTransform":
+        return OpenMaya.MSpace.kPreTransform
+    elif space_str == "postTransform":
+        return OpenMaya.MSpace.kPostTransform
+    elif space_str == "world":
+        return OpenMaya.MSpace.kWorld
+    elif space_str == "object":
+        return OpenMaya.MSpace.kObject
+
+    return OpenMaya.MSpace.kInvalid
+
+
 class _Geometry(base.Geom):
-
-
     @classmethod
     def Match(cls, dagpath, component):
         return False
@@ -28,7 +43,10 @@ class _Geometry(base.Geom):
 
         return (dag, comp)
 
-    def __init__(self, nodename_or_dagpath, component=None):
+    def __iter__(self):
+        return iter([])
+
+    def __init__(self, nodename_or_dagpath, component):
         super(_Geometry, self).__init__()
         if isinstance(nodename_or_dagpath, OpenMaya.MDagPath):
             if not isinstance(component, OpenMaya.MObject) or not component.hasFn(OpenMaya.MFn.kComponent):
@@ -52,7 +70,16 @@ class MeshVertex(_Geometry):
     def Match(cls, dagpath, component):
         return component.hasFn(OpenMaya.MFn.kMeshVertComponent)
 
-    def __init__(self, nodename_or_dagpath, component=None):
+    def __iter__(self):
+        it = OpenMaya.MItMeshVertex(self.dagPath(), self.component())
+        while (not it.isDone()):
+            comp = OpenMaya.MFnSingleIndexedComponent()
+            comp_obj = comp.create(OpenMaya.MFn.kMeshVertComponent)
+            comp.addElement(it.index())
+            it.next()
+            yield MeshVertex(self.dagPath(), comp_obj)
+
+    def __init__(self, nodename_or_dagpath, component):
         super(MeshVertex, self).__init__(nodename_or_dagpath, component=component)
         it = OpenMaya.MItMeshVertex(self.dagPath(), self.component())
         minid = None
@@ -73,13 +100,26 @@ class MeshVertex(_Geometry):
     def name(self):
         return self.dagPath().partialPathName() + self.__vtxid
 
+    def getPosition(self, space="preTransform"):
+        it = OpenMaya.MItMeshVertex(self.dagPath(), self.component())
+        return datatypes.Point(it.position(_to_mspace(space)))
+
 
 class MeshFace(_Geometry):
     @classmethod
     def Match(cls, dagpath, component):
         return component.hasFn(OpenMaya.MFn.kMeshPolygonComponent)
 
-    def __init__(self, nodename_or_dagpath, component=None):
+    def __iter__(self):
+        it = OpenMaya.MItMeshPolygon(self.dagPath(), self.component())
+        while (not it.isDone()):
+            comp = OpenMaya.MFnSingleIndexedComponent()
+            comp_obj = comp.create(OpenMaya.MFn.kMeshPolygonComponent)
+            comp.addElement(it.index())
+            it.next()
+            yield MeshFace(self.dagPath(), comp_obj)
+
+    def __init__(self, nodename_or_dagpath, component):
         super(MeshFace, self).__init__(nodename_or_dagpath, component=component)
         it = OpenMaya.MItMeshPolygon(self.dagPath(), self.component())
         minid = None
@@ -95,15 +135,58 @@ class MeshFace(_Geometry):
 
             it.next()
 
-        self.__faceid = ".vtx[" + (str(minid) if minid == maxid else "{}:{}".format(minid, maxid)) + "]"
+        self.__faceid = ".f[" + (str(minid) if minid == maxid else "{}:{}".format(minid, maxid)) + "]"
 
     def name(self):
         return self.dagPath().partialPathName() + self.__faceid
 
 
+class NurbsCurveCV(_Geometry):
+    @classmethod
+    def Match(cls, dagpath, component):
+        return component.hasFn(OpenMaya.MFn.kCurveCVComponent)
+
+    def __iter__(self):
+        it = OpenMaya.MItCurveCV(self.dagPath(), self.component())
+        while (not it.isDone()):
+            comp = OpenMaya.MFnSingleIndexedComponent()
+            comp_obj = comp.create(OpenMaya.MFn.kCurveCVComponent)
+            comp.addElement(it.index())
+            it.next()
+            yield NurbsCurveCV(self.dagPath(), comp_obj)
+
+    def __init__(self, nodename_or_dagpath, component=None):
+        super(NurbsCurveCV, self).__init__(nodename_or_dagpath, component=component)
+        it = OpenMaya.MItCurveCV(self.dagPath(), self.component())
+        minid = None
+        maxid = None
+        while (not it.isDone()):
+            idx = it.index()
+            if minid is None:
+                minid = idx
+                maxid = idx
+            else:
+                minid = min(minid, idx)
+                maxid = max(minid, idx)
+
+            it.next()
+
+        self.__cvid = ".cv[" + (str(minid) if minid == maxid else "{}:{}".format(minid, maxid)) + "]"
+
+    def name(self):
+        return self.dagPath().partialPathName() + self.__cvid
+
+    def getPosition(self, space="preTransform"):
+        it = OpenMaya.MItCurveCV(self.dagPath(), self.component())
+        return datatypes.Point(it.position(_to_mspace(space)))
+
+
 def BindGeometry(name, silent=False):
     if "." not in name:
         return None
+
+    if not re.search("\[[0-9:]+\]$", name):
+        name += "[:]"
 
     _SELECTION_LIST.clear()
     try:
@@ -131,7 +214,7 @@ def BindGeometry(name, silent=False):
             raise exception.MayaGeometryError("Invalid geometry given")
         return None
 
-    for cls in [MeshVertex, MeshFace]:
+    for cls in [MeshVertex, MeshFace, NurbsCurveCV]:
         if cls.Match(dag, comp):
             try:
                 return cls(dag, comp)

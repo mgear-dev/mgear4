@@ -30,3 +30,5 @@ class TestNode(unittest.TestCase):
 
         self.assertTrue(isinstance(pm.PyNode("pSphereShape1.vtx[0]"), pm.MeshVertex))
         self.assertTrue(isinstance(pm.PyNode("pSphereShape1.f[0]"), pm.MeshFace))
+        self.assertTrue(isinstance(pm.PyNode("pSphere1.f"), pm.MeshFace))
+        self.assertTrue(isinstance(pm.PyNode("pSphere1").f, pm.MeshFace))
