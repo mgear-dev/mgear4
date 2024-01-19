@@ -1,9 +1,9 @@
 # release/scripts/userSetup.py
 # release/scripts/mgear/menu.py
 # release/scripts/mgear/anim_picker/gui.py
-release/scripts/mgear/anim_picker/menu.py
-release/scripts/mgear/anim_picker/picker_node.py
-release/scripts/mgear/anim_picker/widgets/basic.py
+# release/scripts/mgear/anim_picker/menu.py
+# release/scripts/mgear/anim_picker/picker_node.py
+# release/scripts/mgear/anim_picker/widgets/basic.py
 release/scripts/mgear/animbits/channel_master_node.py
 release/scripts/mgear/animbits/channel_master_utils.py
 release/scripts/mgear/animbits/channel_master_widgets.py
