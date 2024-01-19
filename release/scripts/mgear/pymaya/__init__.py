@@ -9,3 +9,4 @@ from .geometry import MeshVertex, MeshFace
 from . import datatypes
 
 nodetypes = nt
+dt = datatypes
