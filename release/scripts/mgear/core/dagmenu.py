@@ -16,6 +16,7 @@ from pymel import versions
 # mGear imports
 import mgear
 from mgear.core.anim_utils import reset_all_keyable_attributes
+from mgear.core.anim_utils import bindPose
 from mgear.core.pickWalk import get_all_tag_children
 from mgear.core.transform import resetTransform
 from mgear.core.anim_utils import mirrorPose
@@ -232,6 +233,12 @@ def __range_switch_callback(*args):
             upv=upv_list,
             ikRot=ikRot_list,
         )
+
+
+def __reset_all_transforms_callback(controls, *args):
+    print(controls)
+    for c in controls:
+        resetTransform(c, t=True, r=True, s=True)
 
 
 def __reset_attributes_callback(*args):
@@ -602,13 +609,13 @@ def install():
     state = get_option_var_state()
 
     cmds.setParent(mgear.menu_id, menu=True)
+    cmds.menuItem(divider=True)
     cmds.menuItem(
         "mgear_dagmenu_menuitem",
         label="mGear Viewport Menu ",
         command=run,
         checkBox=state,
     )
-    cmds.menuItem(divider=True)
 
     run(state)
 
@@ -868,8 +875,22 @@ def mgear_dagmenu_fill(parent_menu, current_control):
         command=partial(reset_all_keyable_attributes, child_controls),
     )
 
+    # bindpose
+    cmds.menuItem(
+        parent=resetOption,
+        label="Reset To BindPose",
+        command=partial(bindPose, _current_selection[0]),
+    )
+
     # divider
     cmds.menuItem(parent=resetOption, divider=True)
+
+    # reset all SRT
+    cmds.menuItem(
+        parent=resetOption,
+        label="Reset All SRT",
+        command=partial(__reset_all_transforms_callback, all_rig_controls),
+    )
 
     # add transform resets
     k_attrs = cmds.listAttr(current_control, keyable=True) or []

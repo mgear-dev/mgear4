@@ -106,6 +106,7 @@ class Guide(guide.ComponentGuide):
         self.pMirrorIK = self.addParam("mirrorIK", "bool", True)
         self.pleafJoints = self.addParam("leafJoints", "bool", False)
         self.pUseBlade = self.addParam("use_blade", "bool", True)
+        self.pTPoseRest = self.addParam("rest_T_Pose", "bool", False)
 
         # Divisions
         self.pDiv0 = self.addParam("div0", "long", 2, 0, None)
@@ -135,6 +136,7 @@ class Guide(guide.ComponentGuide):
         # hide blade if not in use
         for shp in self.blade.getShapes():
             pm.connectAttr(self.root.use_blade, shp.attr("visibility"))
+
 
 ##########################################################
 # Setting Page
@@ -188,6 +190,11 @@ class componentSettings(MayaQWidgetDockableMixin, guide.componentMainSettings):
         self.tabs.insertTab(1, self.settingsTab, "Component Settings")
 
         # populate component settings
+
+        self.populateCheck(
+            self.settingsTab.TPoseRest_checkBox, "rest_T_Pose"
+        )
+
         self.settingsTab.ikfk_slider.setValue(
             int(self.root.attr("blend").get() * 100)
         )
@@ -382,7 +389,6 @@ class componentSettings(MayaQWidgetDockableMixin, guide.componentMainSettings):
                 "pinrefarray",
             )
         )
-        self.settingsTab.pinRefArray_listWidget.installEventFilter(self)
         self.mainSettingsTab.connector_comboBox.currentIndexChanged.connect(
             partial(
                 self.updateConnector,
@@ -390,6 +396,16 @@ class componentSettings(MayaQWidgetDockableMixin, guide.componentMainSettings):
                 self.connector_items,
             )
         )
+
+        self.settingsTab.TPoseRest_checkBox.stateChanged.connect(
+            partial(
+                self.updateCheck,
+                self.settingsTab.TPoseRest_checkBox,
+                "rest_T_Pose",
+            )
+        )
+
+        self.settingsTab.pinRefArray_listWidget.installEventFilter(self)
 
     def eventFilter(self, sender, event):
         if event.type() == QtCore.QEvent.ChildRemoved:

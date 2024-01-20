@@ -1,6 +1,24 @@
 Release Log
 ===========
 
+4.2.2
+------
+**Bug Fix**
+	* Shifter: Fix joint radius value retrieval from guide option #367
+
+4.2.1
+------
+**New Features**
+	* Added the new module chain_02
+
+**Enhancements**
+	* arm_2jnt_free_tangents_01 Align wrist to world orientation option #373
+	* EPIC Arm and leg 02: added T reset pose option #359
+	* Human Ik Mapper - Batch bake #374
+	* Rig Builder: Added Pyblish validator and pre script to update guides #365
+	* Shifter: Unlock visibility on rig top node. New guide settings: Joint size and guide vis after build #367
+
+
 4.2.0
 ------
 **New Features**

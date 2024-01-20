@@ -2097,6 +2097,10 @@ class Main(object):
 
                 self.jointList.append(self.addJoint(**jpo))
 
+        for jnt in self.jointList:
+            radiusValue = self.options["joint_radius"]
+            jnt.radius.set(radiusValue)
+
     # =====================================================
     # FINALIZE
     # =====================================================

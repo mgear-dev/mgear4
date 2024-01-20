@@ -23,6 +23,7 @@ class Component(component.Main):
         """Add all the objects needed to create the component."""
 
         self.WIP = self.options["mode"]
+        self.up_axis = pm.upAxis(q=True, axis=True)
 
         self.blade_normal = self.guide.blades["blade"].z * -1
         self.blade_binormal = self.guide.blades["blade"].x
@@ -66,8 +67,26 @@ class Component(component.Main):
             "xz",
             self.negate,
         )
+
+        if self.settings["rest_T_Pose"]:
+            x = datatypes.Vector(1, 0, 0)
+            if self.negate:
+                z_dir = -1
+            else:
+                z_dir = 1
+
+            if self.up_axis == "y":
+                z = datatypes.Vector(0, z_dir, 0)
+            else:
+                z = datatypes.Vector(0, 0, z_dir)
+
+            t_npo = transform.getRotationFromAxis(x, z, "xz", False)
+            t_npo = transform.setMatrixPosition(t_npo, self.guide.apos[0])
+        else:
+            t_npo = t
+
         self.fk0_npo = primitive.addTransform(
-            self.root, self.getName("fk0_npo"), t
+            self.root, self.getName("fk0_npo"), t_npo
         )
 
         self.fk0_ctl = self.addCtl(
@@ -89,8 +108,16 @@ class Component(component.Main):
             "xz",
             self.negate,
         )
+
+        if self.settings["rest_T_Pose"]:
+            t_npo = transform.setMatrixPosition(
+                transform.getTransform(self.fk0_ctl), self.guide.apos[1]
+            )
+        else:
+            t_npo = t
+
         self.fk1_npo = primitive.addTransform(
-            self.fk0_ctl, self.getName("fk1_npo"), t
+            self.fk0_ctl, self.getName("fk1_npo"), t_npo
         )
 
         self.fk1_ctl = self.addCtl(
@@ -120,8 +147,17 @@ class Component(component.Main):
             "xz",
             self.negate,
         )
+
+        if self.settings["rest_T_Pose"]:
+            t_npo = transform.setMatrixPosition(
+                transform.getTransform(self.fk1_ctl), self.guide.apos[2]
+            )
+
+        else:
+            t_npo = t
+
         self.fk2_npo = primitive.addTransform(
-            self.fk1_ctl, self.getName("fk2_npo"), t
+            self.fk1_ctl, self.getName("fk2_npo"), t_npo
         )
 
         self.fk2_ctl = self.addCtl(
@@ -211,11 +247,25 @@ class Component(component.Main):
 
         # IK Controlers -----------------------------------
 
+        if self.settings["rest_T_Pose"]:
+            arm_length = vector.getDistance(
+                self.guide.pos["root"], self.guide.pos["elbow"]
+            ) + vector.getDistance(
+                self.guide.pos["elbow"], self.guide.pos["wrist"]
+            )
+            if self.negate:
+                wrist_pos = self.guide.pos["root"] - datatypes.Vector(arm_length, 0, 0)
+            else:
+                wrist_pos = self.guide.pos["root"] + datatypes.Vector(arm_length, 0, 0)
+
+        else:
+            wrist_pos = self.guide.pos["wrist"]
+
         self.ik_cns = primitive.addTransformFromPos(
-            self.root, self.getName("ik_cns"), self.guide.pos["wrist"]
+            self.root, self.getName("ik_cns"), wrist_pos
         )
 
-        t = transform.getTransformFromPos(self.guide.pos["wrist"])
+        t = transform.getTransformFromPos(wrist_pos)
         self.ikcns_ctl = self.addCtl(
             self.ik_cns,
             "ikcns_ctl",
@@ -1488,7 +1538,7 @@ class Component(component.Main):
 
         # connect elbow ref
         cns = pm.parentConstraint(self.bone1, self.elbow_ref, mo=False)
-        if self.negate:
+        if self.negate and self.settings["div1"]:
             pm.setAttr(cns + ".target[0].targetOffsetRotateZ", 180)
 
         # Divisions ----------------------------------------
