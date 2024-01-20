@@ -1,6 +1,11 @@
 Release Log
 ===========
 
+4.2.2
+------
+**Bug Fix**
+	* Shifter: Fix joint radius value retrieval from guide option #367
+
 4.2.1
 ------
 **New Features**
