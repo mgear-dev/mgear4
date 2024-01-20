@@ -2098,7 +2098,7 @@ class Main(object):
                 self.jointList.append(self.addJoint(**jpo))
 
         for jnt in self.jointList:
-            radiusValue = self.rig.guide.model.joint_radius.get()
+            radiusValue = self.options["joint_radius"]
             jnt.radius.set(radiusValue)
 
     # =====================================================
