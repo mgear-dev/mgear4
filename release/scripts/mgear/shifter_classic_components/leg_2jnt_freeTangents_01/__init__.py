@@ -155,14 +155,24 @@ class Component(component.Main):
 
         # IK Controlers -----------------------------------
 
-        self.ik_cns = primitive.addTransformFromPos(
-            self.root_ctl, self.getName("ik_cns"), self.guide.pos["ankle"]
+        # Define the wrist transform (wt)
+        if not self.settings["ikOri"]:
+            m = transform.getTransformLookingAt(self.guide.pos["ankle"],
+                                                self.guide.pos["eff"],
+                                                self.normal,
+                                                "z-x",
+                                                False)
+        else:
+            m = transform.getTransformFromPos(self.guide.pos["ankle"])
+
+        self.ik_cns = primitive.addTransform(
+            self.root_ctl, self.getName("ik_cns"), m
         )
 
         self.ikcns_ctl = self.addCtl(
             self.ik_cns,
             "ikcns_ctl",
-            transform.getTransformFromPos(self.guide.pos["ankle"]),
+            m,
             self.color_ik,
             "null",
             w=self.size * 0.12,
@@ -170,18 +180,10 @@ class Component(component.Main):
         )
         attribute.setInvertMirror(self.ikcns_ctl, ["tx"])
 
-        m = transform.getTransformLookingAt(
-            self.guide.pos["ankle"],
-            self.guide.pos["eff"],
-            self.x_axis,
-            "zx",
-            False,
-        )
-
         self.ik_ctl = self.addCtl(
             self.ikcns_ctl,
             "ik_ctl",
-            transform.getTransformFromPos(self.guide.pos["ankle"]),
+            m,
             self.color_ik,
             "cube",
             w=self.size * 0.12,

@@ -69,7 +69,7 @@ class Guide(guide.ComponentGuide):
         self.pUpvRefArray = self.addParam("pinrefarray", "string", "")
         self.pMaxStretch = self.addParam("maxstretch", "double", 1.5, 1, None)
         self.pMirrorMid = self.addParam("mirrorMid", "bool", False)
-        self.pGuideOrientWrist = self.addParam("guideOrientWrist", "bool", False)
+        self.pIKOrient = self.addParam("ikOri", "bool", True)
 
         # Divisions
         self.pDiv0 = self.addParam("div0", "long", 2, 1, None)
@@ -162,6 +162,8 @@ class componentSettings(MayaQWidgetDockableMixin, guide.componentMainSettings):
         )
 
         self.populateCheck(self.settingsTab.mirrorMid_checkBox, "mirrorMid")
+        self.populateCheck(self.settingsTab.ikOri_checkBox, "ikOri")
+
         self.settingsTab.div0_spinBox.setValue(self.root.attr("div0").get())
         self.settingsTab.div1_spinBox.setValue(self.root.attr("div1").get())
         ikRefArrayItems = self.root.attr("ikrefarray").get().split(",")
@@ -212,10 +214,10 @@ class componentSettings(MayaQWidgetDockableMixin, guide.componentMainSettings):
             self.setProfile
         )
 
-        self.settingsTab.guideOrientWrist_checkBox.stateChanged.connect(
+        self.settingsTab.ikOri_checkBox.stateChanged.connect(
             partial(self.updateCheck,
-                    self.settingsTab.guideOrientWrist_checkBox,
-                    "guideOrientWrist"))
+                    self.settingsTab.ikOri_checkBox,
+                    "ikOri"))
 
         self.settingsTab.mirrorMid_checkBox.stateChanged.connect(
             partial(
