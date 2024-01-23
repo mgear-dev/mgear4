@@ -232,6 +232,18 @@ class _NodeTypes(object):
 nt = _NodeTypes()
 
 
+class SoftMod(_Node):
+    def __init__(self, nodename_or_mobject):
+        super(SoftMod, self).__init__(nodename_or_mobject)
+
+    def getGeometry(self):
+        # pymel returns str list
+        return cmds.softMod(self.name(), g=True, q=True)
+
+
+nt.registerClass("softMod", cls=SoftMod)
+
+
 def BindNode(name):
     if not cmds.objExists(name):
         raise exception.MayaNodeError("No such node '{}'".format(name))
