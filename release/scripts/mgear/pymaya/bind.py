@@ -1,4 +1,5 @@
 import re
+from . import base
 
 
 def __find_attr(name):
@@ -21,19 +22,22 @@ def __find_attr(name):
     return cur
 
 
-def PyNode(name):
+def PyNode(name_or_node):
     from . import node
     from . import attr
     from . import geometry
 
-    if "." in name:
+    if isinstance(name_or_node, base.Base):
+        return name_or_node
+
+    if "." in name_or_node:
         try:
-            return __find_attr(name)
+            return __find_attr(name_or_node)
         except:
-            bound = geometry.BindGeometry(name, silent=True)
+            bound = geometry.BindGeometry(name_or_node, silent=True)
             if bound:
                 return bound
             else:
                 raise
     else:
-        return node.BindNode(name)
+        return node.BindNode(name_or_node)
