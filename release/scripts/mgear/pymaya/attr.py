@@ -69,6 +69,17 @@ class Attribute(base.Attr):
 
         return "{}.{}".format(nfunc(), self.__plug.partialName(False, False, False, False, False, True))
 
+    def node(self):
+        from . import node
+        obj = self.__plug.node()
+
+        if obj.hasFn(OpenMaya.MFn.kDagNode):
+            nfunc = OpenMaya.MFnDagNode(OpenMaya.MDagPath.getAPathTo(obj)).partialPathName
+        else:
+            nfunc = OpenMaya.MFnDependencyNode(obj).name
+
+        return node.BindNode(nfunc())
+
     def delete(self):
         cmds.deleteAttr(self.name())
 
@@ -77,6 +88,9 @@ class Attribute(base.Attr):
 
     def disconnect(self, other):
         return cmds.disconnectAttr(self.name(), other.name() if isinstance(other, Attribute) else other)
+
+    def listConnections(self, **kwargs):
+        return cmd.listConnections(self, **kwargs)
 
     def attr(self, name):
         attr_cache = super(Attribute, self).__getattribute__("_Attribute__attrs")
@@ -108,6 +122,18 @@ class Attribute(base.Attr):
                 return at
 
         raise exception.MayaAttributeError("No '{}' attr found".format(name))
+
+    def lock(self):
+        cmd.setAttr(self, l=True)
+
+    def unlock(self):
+        cmd.setAttr(self, l=False)
+
+    def children(self):
+        if not self.plug().isCompound:
+            raise RuntimeError(f"{self.name()} has no children")
+
+        return [Attribute(self.plug().child(x)) for x in range(self.plug().numChildren())]
 
     def get(self, *args, **kwargs):
         return cmd.getAttr(self, *args, **kwargs)
