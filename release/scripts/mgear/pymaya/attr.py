@@ -1,3 +1,4 @@
+import re
 from maya import cmds
 from maya.api import OpenMaya
 from . import base
@@ -83,6 +84,15 @@ class Attribute(base.Attr):
             return attr_cache[name]
 
         this_plug = super(Attribute, self).__getattribute__("_Attribute__plug")
+        ln = this_plug.partialName(False, False, False, False, False, True).split(".")[-1]
+        sn = this_plug.partialName(False, False, False, False, False, False).split(".")[-1]
+        res = re.match("{}\[([0-9])+\]".format(ln), name)
+        if res:
+            return super(Attribute, self).__getattribute__("__getitem__")(int(res.group(1)))
+        res = re.match("{}\[([0-9])+\]".format(sn), name)
+        if res:
+            return super(Attribute, self).__getattribute__("__getitem__")(int(res.group(1)))
+
         if this_plug.isCompound:
             for ci in range(this_plug.numChildren()):
                 cp = this_plug.child(ci)
