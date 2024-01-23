@@ -46,6 +46,9 @@ class _Geometry(base.Geom):
     def __iter__(self):
         return iter([])
 
+    def __hash__(self):
+        return hash(self.name())
+
     def __init__(self, nodename_or_dagpath, component):
         super(_Geometry, self).__init__()
         if isinstance(nodename_or_dagpath, OpenMaya.MDagPath):

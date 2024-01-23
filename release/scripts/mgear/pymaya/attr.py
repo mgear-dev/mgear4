@@ -30,6 +30,9 @@ class Attribute(base.Attr):
             if self.__plug is None:
                 raise RuntimeError("No such attribute '{}'".format(attrname_or_mplug))
 
+    def __hash__(self):
+        return hash(self.name())
+
     def __getitem__(self, index):
         if not self.__plug.isArray:
             raise TypeError("{} is not an array plug".format(self.name()))
