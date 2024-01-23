@@ -89,7 +89,11 @@ class _Node(base.Node):
         return self.__fn_dag is not None
 
     def name(self):
-        return self.__fn_dg.name() if self.__fn_dag is None else self.__fn_dag.partialPathName()
+        fdag = super(_Node, self).__getattribute__("_Node__fn_dag")
+        if fdag is not None:
+            return fdag.partialPathName()
+        fdg = super(_Node, self).__getattribute__("_Node__fn_dg")
+        return fdg.name()
 
     def namespace(self):
         n = self.name()
