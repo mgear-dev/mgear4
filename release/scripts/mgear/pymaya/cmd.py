@@ -2,7 +2,7 @@ from . import base
 from . import exception
 from . import datatypes
 from maya import cmds
-from maya import mel
+from maya import mel as _mel
 from maya.api import OpenMaya
 import functools
 import inspect
@@ -20,6 +20,54 @@ displayError = OpenMaya.MGlobal.displayError
 displayInfo = OpenMaya.MGlobal.displayInfo
 displayWarning = OpenMaya.MGlobal.displayWarning
 # TODO : None to list
+
+
+# maybe we need same class of cmds
+class _Mel(object):
+    __Instance = None
+
+    def __new__(self):
+        if _Mel.__Instance is None:
+            _Mel.__Instance = super(_Mel, self).__new__(self)
+            _Mel.__Instance.__cmds = {}
+            _Mel.__Instance.eval = _mel.eval
+            _Mel.__Instance.__cmds["eval"] = {}
+
+        return _Mel.__Instance
+
+    def __init__(self):
+        super(_Mel, self).__init__()
+
+    def __wrap_mel(self, melcmd, *args):
+        argstr = ", ".join([x.__repr__() for x in args])
+        return super(_Mel, self).__getattribute__("eval")("{}({})".format(melcmd, argstr))
+
+    def __getattribute__(self, name):
+        try:
+            return super(_Mel, self).__getattribute__(name)
+        except AttributeError:
+            cache = super(_Mel, self).__getattribute__("_Mel__cmds")
+            if name in cache:
+                return cache[name]
+
+            evl = super(_Mel, self).__getattribute__("eval")
+            if name == "eval":
+                return evl
+
+            incmd = getattr(cmds, name, None)
+            if incmd is not None:
+                cache[name] = _pymaya_cmd_wrap(incmd, wrap_object=False)
+                return cache[name]
+
+            res = evl("whatIs {}".format(name))
+            if res.endswith(".mel"):
+                cache[name] = functools.partial(self.__wrap_mel, name)
+                return cache[name]
+
+            raise
+
+
+mel = _Mel()
 
 
 def exportSelected(*args, **kwargs):
