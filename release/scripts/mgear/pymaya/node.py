@@ -17,6 +17,52 @@ def _getPivots(node, **kwargs):
     return (datatypes.Vector(res[:3]), datatypes.Vector(res[3:]))
 
 
+def _setTransformation(node, matrix):
+    if isinstance(matrix, OpenMaya.MMatrix):
+        matrix = OpenMaya.MTransformationMatrix(matrix)
+
+    OpenMaya.MFnTransform(node.dagPath()).setTransformation(matrix)
+
+
+def _getShape(node, **kwargs):
+    shapes = node.getShapes(**kwargs)
+    if shapes:
+        return shapes[0]
+
+    return None
+
+
+def _getShapes(node, **kwargs):
+    kwargs.pop("shapes", kwargs.pop("s", None))
+    kwargs["shapes"] = True
+    return cmd.listRelatives(node, **kwargs)
+
+
+def _getParent(node):
+    res = cmd.listRelatives(node, p=True)
+    if res:
+        return res[0]
+
+    return None
+
+
+def _addChild(node, child):
+    return cmd.parent(child, node)
+
+
+def _setMatrix(node, val, **kwargs):
+    kwargs.pop("m", kwargs.pop("matrix", None))
+    kwargs["m"] = cmd._dt_to_value(val)
+    cmd.xform(node, **kwargs)
+
+
+def _getMatrix(node, **kwargs):
+    kwargs.pop("m", kwargs.pop("matrix", None))
+    kwargs.pop("q", kwargs.pop("query", None))
+    kwargs.update({"q": True, "m": True})
+    return datatypes.Matrix(cmd.xform(node, **kwargs))
+
+
 class _Node(base.Node):
     __selection_list = OpenMaya.MSelectionList()
 
@@ -29,6 +75,9 @@ class _Node(base.Node):
             return None
 
         return _Node.__selection_list.getDependNode(0)
+
+    def __hash__(self):
+        return hash(self.name())
 
     def __init__(self, nodename_or_mobject):
         super(_Node, self).__init__()
@@ -51,6 +100,13 @@ class _Node(base.Node):
             self.__dagpath = dagpath
             self.__fn_dag = OpenMaya.MFnDagNode(dagpath)
             self.getPivots = partial(_getPivots, self)
+            self.setTransformation = partial(_setTransformation, self)
+            self.getShape = partial(_getShape, self)
+            self.getShapes = partial(_getShapes, self)
+            self.getParent = partial(_getParent, self)
+            self.addChild = partial(_addChild, self)
+            self.setMatrix = partial(_setMatrix, self)
+            self.getMatrix = partial(_getMatrix, self)
         else:
             self.__dagpath = None
             self.__fn_dag = None
@@ -95,7 +151,7 @@ class _Node(base.Node):
         fdg = super(_Node, self).__getattribute__("_Node__fn_dg")
         return fdg.name()
 
-    def namespace(self):
+    def namespace(self, **kwargs):
         n = self.name()
         if ":" not in n:
             return ""
@@ -175,18 +231,6 @@ class _Node(base.Node):
 
     def split(self, word):
         return self.name().split(word)
-
-    def getShape(self, **kwargs):
-        shapes = self.getShapes(**kwargs)
-        if shapes:
-            return shapes[0]
-
-        return None
-
-    def getShapes(self, **kwargs):
-        kwargs.pop("shapes", kwargs.pop("s", None))
-        kwargs["shapes"] = True
-        return cmd.listRelatives(self, **kwargs)
 
 
 class _NodeTypes(object):
