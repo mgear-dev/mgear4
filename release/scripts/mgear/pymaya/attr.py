@@ -21,7 +21,6 @@ class Attribute(base.Attr):
     def __init__(self, attrname_or_mplug):
         super(Attribute, self).__init__()
         self.__attrs = {}
-        self.__node_name_func = None
 
         if isinstance(attrname_or_mplug, OpenMaya.MPlug):
             self.__plug = attrname_or_mplug
@@ -36,9 +35,6 @@ class Attribute(base.Attr):
     def __getitem__(self, index):
         if not self.__plug.isArray:
             raise TypeError("{} is not an array plug".format(self.name()))
-
-        if index >= self.__plug.numElements():
-            raise IndexError("index out of range")
 
         return Attribute(self.__plug.elementByLogicalIndex(index))
 
@@ -63,14 +59,12 @@ class Attribute(base.Attr):
 
     def name(self):
         obj = self.__plug.node()
-        nfunc = super(Attribute, self).__getattribute__("_Attribute__node_name_func")
-        if nfunc is None:
-            if obj.hasFn(OpenMaya.MFn.kDagNode):
-                nfunc = OpenMaya.MFnDagNode(OpenMaya.MDagPath.getAPathTo(obj)).partialPathName
-            else:
-                nfunc = OpenMaya.MFnDependencyNode(obj).name
+        nfunc = None
 
-            self.__node_name_func = nfunc
+        if obj.hasFn(OpenMaya.MFn.kDagNode):
+            nfunc = OpenMaya.MFnDagNode(OpenMaya.MDagPath.getAPathTo(obj)).partialPathName
+        else:
+            nfunc = OpenMaya.MFnDependencyNode(obj).name
 
         return "{}.{}".format(nfunc(), self.__plug.partialName(False, False, False, False, False, True))
 
