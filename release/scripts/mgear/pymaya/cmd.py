@@ -138,6 +138,11 @@ __all__.append("confirmBox")
 def _obj_to_name(arg):
     if isinstance(arg, (list, set, tuple)):
         return arg.__class__([_obj_to_name(x) for x in arg])
+    elif isinstance(arg, dict):
+        newdic = {}
+        for k, v in arg.items():
+            newdic[k] = _obj_to_name(v)
+        return newdic
     elif isinstance(arg, base.Base):
         return arg.name()
     else:
@@ -184,20 +189,18 @@ def _name_to_obj(arg, scope=SCOPE_NODE, known_node=None):
 
 def _pymaya_cmd_wrap(func, wrap_object=True, scope=SCOPE_NODE):
     def wrapper(*args, **kwargs):
-        nargs = _obj_to_name(args)
-        nkwargs = {}
-        for k, v in kwargs.items():
-            nkwargs[k] = _obj_to_name(v)
+        args = _obj_to_name(args)
+        kwargs = _obj_to_name(kwargs)
 
-        res = func(*nargs, **nkwargs)
+        res = func(*args, **kwargs)
 
         if wrap_object:
             known_node = None
             if scope == SCOPE_ATTR:
                 candi = None
 
-                if nargs:
-                    known_node = nargs[0]
+                if args:
+                    known_node = args[0]
                 else:
                     sel = cmds.ls(sl=True)
                     if sel:
