@@ -269,6 +269,72 @@ def setAttr(*args, **kwargs):
         raise exception.MayaAttributeError(*e.args)
 
 
+def currentTime(*args, **kwargs):
+    if not args and not kwargs:
+        kwargs["query"] = True
+
+    return cmds.currentTime(*args, **kwargs)
+
+
+def keyframe(*args, **kwargs):
+    args = _obj_to_name(args)
+    kwargs = _obj_to_name(kwargs)
+
+    t = kwargs.pop("time", kwargs.pop("k", None))
+    if t is not None:
+        if isinstance(t, (int, float)):
+            kwargs["time"] = (t,)
+        else:
+            kwargs["time"] = t
+
+    return cmds.keyframe(*args, **kwargs)
+
+
+def cutKey(*args, **kwargs):
+    nargs = _obj_to_name(args)
+    nkwargs = {}
+    for k, v in kwargs.items():
+        nkwargs[k] = _obj_to_name(v)
+
+    t = nkwargs.pop("time", nkwargs.pop("k", None))
+    if t is not None:
+        if isinstance(t, (int, float)):
+            nkwargs["time"] = (t,)
+        else:
+            nkwargs["time"] = t
+
+    return cmds.cutKey(*nargs, **nkwargs)
+
+
+def bakeResults(*args, **kwargs):
+    args = _obj_to_name(args)
+    kwargs = _obj_to_name(kwargs)
+
+    t = kwargs.pop("t", kwargs.pop("time", None))
+    if t is not None:
+        if isinstance(t, str) and ":" in t:
+            t = tuple([float(x) for x in t.split(":")])
+        kwargs["time"] = t
+
+    return cmds.bakeResults(*args, **kwargs)
+
+
+def sets(*args, **kwargs):
+    args = _obj_to_name(args)
+    kwargs = _obj_to_name(kwargs)
+
+    add = kwargs.pop("add", kwargs.pop("addElement", None))
+    if add is not None and isinstance(add, list):
+        for a in add:
+            ckwargs = kwargs.copy()
+            ckwargs["add"] = a
+            cmds.sets(*args, **ckwargs)
+
+        return _name_to_obj(args[0])
+
+    return _name_to_obj(*args, **kwargs)
+
+
 local_dict = locals()
 
 for n, func in inspect.getmembers(cmds, callable):
