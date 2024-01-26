@@ -24,6 +24,10 @@ def _setTransformation(node, matrix):
     OpenMaya.MFnTransform(node.dagPath()).setTransformation(matrix)
 
 
+def _getTransformation(node):
+    return datatypes.TransformationMatrix(OpenMaya.MFnTransform(node.dagPath()).transformationMatrix())
+
+
 def _getShape(node, **kwargs):
     shapes = node.getShapes(**kwargs)
     if shapes:
@@ -101,6 +105,7 @@ class _Node(base.Node):
             self.__fn_dag = OpenMaya.MFnDagNode(dagpath)
             self.getPivots = partial(_getPivots, self)
             self.setTransformation = partial(_setTransformation, self)
+            self.getTransformation = partial(_getTransformation, self)
             self.getShape = partial(_getShape, self)
             self.getShapes = partial(_getShapes, self)
             self.getParent = partial(_getParent, self)
