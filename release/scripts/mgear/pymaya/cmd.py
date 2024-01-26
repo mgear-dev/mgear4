@@ -5,16 +5,14 @@ from maya import cmds
 from maya import mel as _mel
 from maya.api import OpenMaya
 import functools
-import inspect
-
-
-__all__ = []
-__DO_NOT_CAST_FUNCS = set()
-__SCOPE_ATTR_FUNCS = {"listAttr"}
 
 
 SCOPE_ATTR = 0
 SCOPE_NODE = 1
+
+
+__all__ = []
+
 Callback = functools.partial
 displayError = OpenMaya.MGlobal.displayError
 displayInfo = OpenMaya.MGlobal.displayInfo
@@ -22,7 +20,6 @@ displayWarning = OpenMaya.MGlobal.displayWarning
 # TODO : None to list
 
 
-# maybe we need same class of cmds
 class _Mel(object):
     __Instance = None
 
@@ -118,21 +115,6 @@ def confirmBox(title, message, yes="Yes", no="No", *moreButtons, **kwargs):
         return (ret == yes)
 
 
-__all__.append("Callback")
-__all__.append("displayError")
-__all__.append("displayInfo")
-__all__.append("displayWarning")
-__all__.append("exportSelected")
-__all__.append("mel")
-__all__.append("hasAttr")
-__all__.append("selected")
-__all__.append("versions")
-__all__.append("importFile")
-__all__.append("sceneName")
-__all__.append("runtime")
-__all__.append("confirmBox")
-
-
 def _obj_to_name(arg):
     if isinstance(arg, (list, set, tuple)):
         return arg.__class__([_obj_to_name(x) for x in arg])
@@ -215,7 +197,7 @@ def _pymaya_cmd_wrap(func, wrap_object=True, scope=SCOPE_NODE):
     return wrapper
 
 
-def getAttr(*args, **kwargs):
+def _getAttr(*args, **kwargs):
     args = _obj_to_name(args)
     kwargs = _obj_to_name(kwargs)
 
@@ -247,7 +229,7 @@ def getAttr(*args, **kwargs):
     return res
 
 
-def setAttr(*args, **kwargs):
+def _setAttr(*args, **kwargs):
     args = _dt_to_value(_obj_to_name(args))
     kwargs = _obj_to_name(kwargs)
 
@@ -267,14 +249,14 @@ def setAttr(*args, **kwargs):
         raise exception.MayaAttributeError(*e.args)
 
 
-def currentTime(*args, **kwargs):
+def _currentTime(*args, **kwargs):
     if not args and not kwargs:
         kwargs["query"] = True
 
     return cmds.currentTime(*args, **kwargs)
 
 
-def keyframe(*args, **kwargs):
+def _keyframe(*args, **kwargs):
     args = _obj_to_name(args)
     kwargs = _obj_to_name(kwargs)
 
@@ -288,7 +270,7 @@ def keyframe(*args, **kwargs):
     return cmds.keyframe(*args, **kwargs)
 
 
-def cutKey(*args, **kwargs):
+def _cutKey(*args, **kwargs):
     nargs = _obj_to_name(args)
     nkwargs = {}
     for k, v in kwargs.items():
@@ -304,7 +286,7 @@ def cutKey(*args, **kwargs):
     return cmds.cutKey(*nargs, **nkwargs)
 
 
-def bakeResults(*args, **kwargs):
+def _bakeResults(*args, **kwargs):
     args = _obj_to_name(args)
     kwargs = _obj_to_name(kwargs)
 
@@ -317,7 +299,7 @@ def bakeResults(*args, **kwargs):
     return cmds.bakeResults(*args, **kwargs)
 
 
-def sets(*args, **kwargs):
+def _sets(*args, **kwargs):
     args = _obj_to_name(args)
     kwargs = _obj_to_name(kwargs)
 
@@ -333,11 +315,45 @@ def sets(*args, **kwargs):
     return _name_to_obj(*args, **kwargs)
 
 
-local_dict = locals()
+class _Cmd(object):
+    __Instance = None
+    __DO_NOT_CAST_FUNCS = set()
+    __SCOPE_ATTR_FUNCS = {"listAttr"}
 
-for n, func in inspect.getmembers(cmds, callable):
-    if n not in local_dict:
-        local_dict[n] = _pymaya_cmd_wrap(func,
-                                        wrap_object=(n not in __DO_NOT_CAST_FUNCS),
-                                        scope=SCOPE_ATTR if n in __SCOPE_ATTR_FUNCS else SCOPE_NODE)
-    __all__.append(n)
+    def __new__(self):
+        if _Cmd.__Instance is None:
+            _Cmd.__Instance = super(_Cmd, self).__new__(self)
+            _Cmd.__Instance.__initialize()
+
+        return _Cmd.__Instance
+
+    def __initialize(self):
+        self.__cmds = {}
+        self.__cmds["getAttr"] = _getAttr
+        self.__cmds["setAttr"] = _setAttr
+        self.__cmds["currentTime"] = _currentTime
+        self.__cmds["keyframe"] = _keyframe
+        self.__cmds["cutKey"] = _cutKey
+        self.__cmds["bakeResults"] = _bakeResults
+        self.__cmds["sets"] = _sets
+
+    def __init__(self):
+        super(_Cmd, self).__init__()
+
+    def __getattribute__(self, name):
+        try:
+            return super(_Cmd, self).__getattribute__(name)
+        except AttributeError:
+            cache = super(_Cmd, self).__getattribute__("_Cmd__cmds")
+            if name in cache:
+                return cache[name]
+
+            incmd = getattr(cmds, name, None)
+            if incmd is not None:
+                cache[name] = _pymaya_cmd_wrap(incmd, wrap_object=(name not in _Cmd.__DO_NOT_CAST_FUNCS), scope=SCOPE_ATTR if name in _Cmd.__SCOPE_ATTR_FUNCS else SCOPE_NODE)
+                return cache[name]
+
+            raise
+
+
+cmd = _Cmd()

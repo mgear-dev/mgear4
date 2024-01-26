@@ -1,4 +1,4 @@
-import mgear.pymaya as pm
+from mgear.pymaya import core as pm
 from maya.app.general.mayaMixin import MayaQWidgetDockableMixin
 import maya.cmds as cmds
 from maya import OpenMayaUI as omui

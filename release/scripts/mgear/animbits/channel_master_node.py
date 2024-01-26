@@ -1,7 +1,7 @@
 import json
 import ast
 from maya import cmds
-import mgear.pymaya as pm
+from mgear.pymaya import core as pm
 
 from mgear.core import attribute
 from mgear.core import string

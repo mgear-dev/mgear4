@@ -1,4 +1,4 @@
-import mgear.pymaya as pm
+from mgear.pymaya import core as pm
 from mgear.core import attribute
 
 

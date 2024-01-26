@@ -4,7 +4,7 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 from maya import cmds
-import mgear.pymaya as pm
+from mgear.pymaya import core as pm
 
 import mgear
 import mgear.menu
