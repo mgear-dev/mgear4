@@ -31,7 +31,6 @@ class _Mel(object):
             _Mel.__Instance = super(_Mel, self).__new__(self)
             _Mel.__Instance.__cmds = {}
             _Mel.__Instance.eval = _mel.eval
-            _Mel.__Instance.__cmds["eval"] = {}
 
         return _Mel.__Instance
 
@@ -50,18 +49,17 @@ class _Mel(object):
             if name in cache:
                 return cache[name]
 
-            evl = super(_Mel, self).__getattribute__("eval")
             if name == "eval":
-                return evl
+                return super(_Mel, self).__getattribute__("eval")
 
             incmd = getattr(cmds, name, None)
             if incmd is not None:
                 cache[name] = _pymaya_cmd_wrap(incmd, wrap_object=False)
                 return cache[name]
 
-            res = evl("whatIs {}".format(name))
+            res = super(_Mel, self).__getattribute__("eval")("whatIs {}".format(name))
             if res.endswith(".mel"):
-                cache[name] = functools.partial(self.__wrap_mel, name)
+                cache[name] = functools.partial(super(_Mel, self).__getattribute__("_Mel__wrap_mel"), name)
                 return cache[name]
 
             raise
