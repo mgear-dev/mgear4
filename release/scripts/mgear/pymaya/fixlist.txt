@@ -13,9 +13,9 @@
 # release/scripts/mgear/animbits/space_recorder.py
 # release/scripts/mgear/animbits/spring_manager/setup.py
 # release/scripts/mgear/animbits/spring_manager/ui.py
-release/scripts/mgear/cfxbits/menu.py
-release/scripts/mgear/cfxbits/xgenboost/guide.py
-release/scripts/mgear/cfxbits/xgenboost/xgen_handler.py
+# release/scripts/mgear/cfxbits/menu.py
+# release/scripts/mgear/cfxbits/xgenboost/guide.py
+# release/scripts/mgear/cfxbits/xgenboost/xgen_handler.py
 release/scripts/mgear/core/__init__.py
 release/scripts/mgear/core/anim_utils.py
 release/scripts/mgear/core/applyop.py
