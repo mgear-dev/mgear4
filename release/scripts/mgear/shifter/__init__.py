@@ -625,6 +625,7 @@ class Rig(object):
         Returns:
             dict: The collected data
         """
+        self.build_data["MainSettings"] = self.options
         self.build_data["Components"] = []
         for c, comp in self.customStepDic["mgearRun"].components.items():
             self.build_data["Components"].append(comp.build_data)

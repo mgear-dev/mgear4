@@ -601,6 +601,10 @@ class Main(object):
                 attribute.addAttribute(jnt, "data_contracts", "string")
             jnt.data_contracts.set(data_contracts)
 
+        # # add comp type  metadata
+        # if not jnt.hasAttr("comp_type"):
+        #     attribute.addAttribute(jnt, "comp_type", "string")
+        # jnt.comp_type.set(self.settings["comp_type"])
         return jnt
 
     # old method to allow the joint creation using Maya default nodes
@@ -2133,11 +2137,19 @@ class Main(object):
         self.build_data["Ik"] = []
         self.build_data["Twist"] = []
         self.build_data["Squash"] = []
+        self.build_data["Settings"] = self.settings
+        self.build_data["jointRelatives"] = self.jointRelatives
 
         # joints
         for j in self.jointList:
             jnt_dict = {}
             jnt_dict["Name"] = j.name()
+
+            # if j.hasAttr("comp_type"):
+            #     jnt_dict["comp_type"] = j.comp_type.get()
+            # else:
+            #     jnt_dict["comp_type"] = ""
+
             jnt_dict.update(self.gather_transform_info(j))
             self.build_data["Joints"].append(jnt_dict)
             if j.hasAttr("data_contracts"):
