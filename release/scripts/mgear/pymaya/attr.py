@@ -93,6 +93,9 @@ class Attribute(base.Attr):
     def listConnections(self, **kwargs):
         return cmd.listConnections(self, **kwargs)
 
+    def isConnected(self, **kwargs):
+        return self.plug().isConnected
+
     def attr(self, name):
         attr_cache = super(Attribute, self).__getattribute__("_Attribute__attrs")
         if name in attr_cache:
@@ -130,6 +133,9 @@ class Attribute(base.Attr):
     def unlock(self):
         cmd.setAttr(self, l=False)
 
+    def isLocked(self):
+        return cmd.getAttr(self, l=True)
+
     def children(self):
         if not self.plug().isCompound:
             raise RuntimeError(f"{self.name()} has no children")
@@ -141,3 +147,22 @@ class Attribute(base.Attr):
 
     def set(self, *args, **kwargs):
         cmd.setAttr(self, *args, **kwargs)
+
+    def type(self):
+        return cmd.getAttr(self, type=True)
+
+    def getEnums(self):
+        attr = self.plug().attribute()
+        if not attr.hasFn(OpenMaya.MFn.kEnumAttribute):
+            raise Exception(f"{self.name()} is not an enum attribute")
+
+        fn = OpenMaya.MFnEnumAttribute(attr)
+        res = {}
+        splt = self.name().split(".")
+
+        for el in cmds.attributeQuery(splt[-1], n=splt[0], le=True):
+            for ev in el.split(":"):
+                ev = ev.split("=")[0]
+                res[fn.fieldValue(ev)] = ev
+
+        return res
