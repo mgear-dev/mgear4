@@ -4,24 +4,10 @@ from maya import cmds
 from . import base
 from . import datatypes
 from . import exception
+from . import util
 
 
 _SELECTION_LIST = OpenMaya.MSelectionList()
-
-
-def _to_mspace(space_str):
-    if space_str == "transform":
-        return OpenMaya.MSpace.kTransform
-    elif space_str == "preTransform":
-        return OpenMaya.MSpace.kPreTransform
-    elif space_str == "postTransform":
-        return OpenMaya.MSpace.kPostTransform
-    elif space_str == "world":
-        return OpenMaya.MSpace.kWorld
-    elif space_str == "object":
-        return OpenMaya.MSpace.kObject
-
-    return OpenMaya.MSpace.kInvalid
 
 
 class _Geometry(base.Geom):
@@ -105,7 +91,7 @@ class MeshVertex(_Geometry):
 
     def getPosition(self, space="preTransform"):
         it = OpenMaya.MItMeshVertex(self.dagPath(), self.component())
-        return datatypes.Point(it.position(_to_mspace(space)))
+        return datatypes.Point(it.position(util.to_mspace(space)))
 
 
 class MeshFace(_Geometry):
@@ -181,7 +167,7 @@ class NurbsCurveCV(_Geometry):
 
     def getPosition(self, space="preTransform"):
         it = OpenMaya.MItCurveCV(self.dagPath(), self.component())
-        return datatypes.Point(it.position(_to_mspace(space)))
+        return datatypes.Point(it.position(util.to_mspace(space)))
 
 
 def BindGeometry(name, silent=False):

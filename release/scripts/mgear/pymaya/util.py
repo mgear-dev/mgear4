@@ -1,5 +1,6 @@
 from math import degrees
 from maya import cmds
+from maya.api import OpenMaya
 from . import base
 
 
@@ -25,3 +26,18 @@ class NameParser(object):
             n = n.name()
 
         return "|".join([x.split(":")[-1] for x in n.split("|")])
+
+
+def to_mspace(space_str):
+    if space_str == "transform":
+        return OpenMaya.MSpace.kTransform
+    elif space_str == "preTransform":
+        return OpenMaya.MSpace.kPreTransform
+    elif space_str == "postTransform":
+        return OpenMaya.MSpace.kPostTransform
+    elif space_str == "world":
+        return OpenMaya.MSpace.kWorld
+    elif space_str == "object":
+        return OpenMaya.MSpace.kObject
+
+    return OpenMaya.MSpace.kInvalid

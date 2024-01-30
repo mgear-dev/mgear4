@@ -6,6 +6,7 @@ from . import base
 from . import datatypes
 from . import exception
 from . import geometry
+from . import util
 from functools import partial
 
 
@@ -64,7 +65,18 @@ def _getMatrix(node, **kwargs):
     kwargs.pop("m", kwargs.pop("matrix", None))
     kwargs.pop("q", kwargs.pop("query", None))
     kwargs.update({"q": True, "m": True})
+
     return datatypes.Matrix(cmd.xform(node, **kwargs))
+
+
+def _getTranslation(node, space="object"):
+    space = util.to_mspace(space)
+    return datatypes.Vector(OpenMaya.MFnTransform(node.dagPath()).translation(space))
+
+
+def _setTranslation(node, value, space="object"):
+    space = util.to_mspace(space)
+    OpenMaya.MFnTransform(node.dagPath()).setTranslation(value, space)
 
 
 class _Node(base.Node):
@@ -112,6 +124,8 @@ class _Node(base.Node):
             self.addChild = partial(_addChild, self)
             self.setMatrix = partial(_setMatrix, self)
             self.getMatrix = partial(_getMatrix, self)
+            self.getTranslation = partial(_getTranslation, self)
+            self.setTranslation = partial(_setTranslation, self)
         else:
             self.__dagpath = None
             self.__fn_dag = None
