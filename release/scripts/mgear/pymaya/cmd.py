@@ -167,7 +167,10 @@ def _name_to_obj(arg, scope=SCOPE_NODE, known_node=None):
     # lazy importing
     from . import bind
 
-    if isinstance(arg, (list, set, tuple)):
+    if arg is None:
+        return None
+
+    elif isinstance(arg, (list, set, tuple)):
         return arg.__class__([_name_to_obj(x, scope=scope, known_node=known_node) for x in arg])
 
     elif isinstance(arg, str):
@@ -191,6 +194,10 @@ def _pymaya_cmd_wrap(func, wrap_object=True, scope=SCOPE_NODE):
         kwargs = _obj_to_name(kwargs)
 
         res = func(*args, **kwargs)
+
+        # TODO : is it correct?
+        if func.__name__.startswith("list") and res is None:
+            res = []
 
         if wrap_object:
             known_node = None
@@ -318,19 +325,41 @@ def bakeResults(*args, **kwargs):
 
 
 def sets(*args, **kwargs):
+    # from pymel general sets
+    _set_set_flags = {"subtract", "sub",
+                      "union", "un",
+                      "intersection", "int",
+                      "isIntersecting", "ii",
+                      "isMember", "im",
+                      "split", "sp",
+                      "addElement", "add",
+                      "include", "in",
+                      "remove", "rm",
+                      "forceElement", "fe"}
+    _set_flags = {"copy", "cp",
+                  "clear", "cl",
+                  "flatten", "fl"}
+
     args = _obj_to_name(args)
     kwargs = _obj_to_name(kwargs)
 
-    add = kwargs.pop("add", kwargs.pop("addElement", None))
-    if add is not None and isinstance(add, list):
-        for a in add:
-            ckwargs = kwargs.copy()
-            ckwargs["add"] = a
-            cmds.sets(*args, **ckwargs)
+    for flag, value in kwargs.items():
+        if flag in _set_set_flags:
+            kwargs[flag] = args[0]
 
-        return _name_to_obj(args[0])
+            if isinstance(value, (tuple, list, set)):
+                args = tuple(value)
+            elif isinstance(value, str):
+                args = (value,)
+            else:
+                args = ()
+            break
+        elif flag in _set_flags:
+            kwargs[flag] = args[0]
+            args = ()
+            break
 
-    return _name_to_obj(*args, **kwargs)
+    return _name_to_obj(cmds.sets(*args, **kwargs))
 
 
 local_dict = locals()
