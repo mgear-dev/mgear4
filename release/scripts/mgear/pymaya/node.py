@@ -176,6 +176,9 @@ class _Node(base.Node):
             return ""
         return ":".join(n.split("|")[-1].split(":")[:-1]) + ":"
 
+    def stripNamespace(self):
+        return "|".join([x.split(":")[-1] for x in self.name().split("|")])
+
     def attr(self, name, checkShape=True):
         attr_cache = super(_Node, self).__getattribute__("_Node__attrs")
         if name in attr_cache:
@@ -266,10 +269,12 @@ class _NodeTypes(object):
         if cls is not None:
             self.__types[typename] = cls
         else:
+            clsname = "{}{}".format(typename[0].upper(), typename[1:])
             class _New(_Node):
                 def __repr__(self):
-                    return "{}{}('{}')".format(typename[0].upper(), typename[1:], self.name())
+                    return "{}('{}')".format(clsname, self.name())
 
+            _New.__name__ = clsname
             self.__types[typename] = _New
 
     def getTypeClass(self, typename):
@@ -307,8 +312,18 @@ class SoftMod(_Node):
         # pymel returns str list
         return cmds.softMod(self.name(), g=True, q=True)
 
-
 nt.registerClass("softMod", cls=SoftMod)
+
+
+class ObjectSet(_Node):
+    def __init__(self, nodename_or_mobject):
+        super(ObjectSet, self).__init__(nodename_or_mobject)
+
+    def members(self):
+        return cmd.sets(self, q=True) or []
+
+nt.registerClass("objectSet", cls=ObjectSet)
+
 
 
 def BindNode(name):
