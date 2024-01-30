@@ -16,9 +16,9 @@
 # release/scripts/mgear/cfxbits/menu.py
 # release/scripts/mgear/cfxbits/xgenboost/guide.py
 # release/scripts/mgear/cfxbits/xgenboost/xgen_handler.py
-release/scripts/mgear/core/__init__.py
-release/scripts/mgear/core/anim_utils.py
-release/scripts/mgear/core/applyop.py
+# release/scripts/mgear/core/__init__.py
+# release/scripts/mgear/core/anim_utils.py
+# release/scripts/mgear/core/applyop.py
 release/scripts/mgear/core/attribute.py
 release/scripts/mgear/core/curve.py
 release/scripts/mgear/core/dag.py

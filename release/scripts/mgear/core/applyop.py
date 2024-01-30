@@ -12,8 +12,8 @@ Operators are any node that connected to other nodes creates a rig behaviour::
 #############################################
 # GLOBAL
 #############################################
-import pymel.core as pm
-from pymel.core import datatypes
+import mgear.pymaya as pm
+from mgear.pymaya import datatypes
 
 import maya.api.OpenMaya as om
 from .six import string_types

@@ -7,8 +7,8 @@ from .six import PY2
 
 # Maya imports
 from maya import cmds
-import pymel.core as pm
-from pymel import versions
+import mgear.pymaya as pm
+from mgear.pymaya import versions
 
 # mGear imports
 import mgear
