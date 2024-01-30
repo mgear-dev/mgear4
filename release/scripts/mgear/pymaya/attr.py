@@ -2,7 +2,7 @@ import re
 from maya import cmds
 from maya.api import OpenMaya
 from . import base
-from .cmd import cmd
+from . import cmd
 from . import exception
 
 

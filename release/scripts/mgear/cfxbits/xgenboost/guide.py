@@ -3,7 +3,7 @@ from mgear.vendor.Qt import QtCore
 from mgear.core import pyqt
 from functools import partial
 
-from mgear.pymaya import core as pm
+import mgear.pymaya as pm
 import maya.cmds as cmds
 
 from mgear.core import transform

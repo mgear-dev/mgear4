@@ -11,7 +11,7 @@ from functools import partial
 
 # dcc
 from maya import cmds
-from mgear.pymaya import core as pm
+import mgear.pymaya as pm
 
 from maya.app.general.mayaMixin import MayaQWidgetDockableMixin
 

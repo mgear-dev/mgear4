@@ -1,6 +1,6 @@
 from maya.api import OpenMaya
 from maya import cmds
-from .cmd import cmd
+from . import cmd
 from . import attr
 from . import base
 from . import datatypes

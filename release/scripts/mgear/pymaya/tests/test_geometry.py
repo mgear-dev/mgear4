@@ -10,7 +10,7 @@ mpath = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
 if mpath not in sys.path:
     sys.path.append(mpath)
 
-from pymaya import core as pm
+import pymaya as pm
 import pymaya.geometry
 
 

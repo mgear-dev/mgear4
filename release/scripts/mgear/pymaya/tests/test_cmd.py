@@ -11,7 +11,7 @@ if mpath not in sys.path:
     sys.path.append(mpath)
 
 import math
-from pymaya import core as pm
+import pymaya as pm
 import pymaya.attr
 
 
