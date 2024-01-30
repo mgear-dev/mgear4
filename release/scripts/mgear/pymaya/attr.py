@@ -59,7 +59,8 @@ class Attribute(base.Attr):
         return self.__plug
 
     def name(self):
-        obj = self.__plug.node()
+        this_plug = super(Attribute, self).__getattribute__("_Attribute__plug")
+        obj = this_plug.node()
         nfunc = None
 
         if obj.hasFn(OpenMaya.MFn.kDagNode):
@@ -67,7 +68,7 @@ class Attribute(base.Attr):
         else:
             nfunc = OpenMaya.MFnDependencyNode(obj).name
 
-        return "{}.{}".format(nfunc(), self.__plug.partialName(False, False, False, False, False, True))
+        return "{}.{}".format(nfunc(), this_plug.partialName(False, False, False, False, False, True))
 
     def node(self):
         from . import node
