@@ -241,7 +241,7 @@ class Main(object):
         self.compCtl = self.root.addAttr("compCtl", at="message", m=1)
 
         # joint --------------------------------
-        if self.options["joint_rig"]:
+        if self.options["joint_rig"] or self.options["joint_soup"]:
             self.component_jnt_org = self.rig.jnt_org
             # The initial assigment of the active jnt and the parent relative
             # jnt is the same, later will be updated base in the user options
@@ -375,7 +375,24 @@ class Main(object):
             ]
         customName = self.getCustomJointName(len(self.jointList))
 
-        if self.options["joint_rig"]:
+        if self.options["joint_soup"]:
+            if self.rig.root_joint:
+                jnt_parent = self.rig.root_joint
+            else:
+                jnt_parent = self.active_jnt
+            jnt = primitive.addJoint(
+                jnt_parent,
+                customName or self.getName(str(name) + "_jnt"),
+                transform.getTransformFromPos(transform.getTranslation(obj)),
+            )
+
+            applyop.gear_matrix_cns(obj, jnt, connect_srt="srt")
+
+            # set first joint as root
+            if not self.rig.root_joint:
+                self.rig.root_joint = jnt
+
+        elif self.options["joint_rig"]:
             if newActiveJnt:
                 self.active_jnt = newActiveJnt
             rule_name = self.getName(
@@ -647,7 +664,25 @@ class Main(object):
 
         customName = self.getCustomJointName(len(self.jointList))
 
-        if self.options["joint_rig"]:
+        if self.options["joint_soup"]:
+            pm.displayWarning("Joint Soup option is not using Vanilla Maya nodes")
+            if self.rig.root_joint:
+                jnt_parent = self.rig.root_joint
+            else:
+                jnt_parent = self.active_jnt
+            jnt = primitive.addJoint(
+                jnt_parent,
+                customName or self.getName(str(name) + "_jnt"),
+                transform.getTransformFromPos(transform.getTranslation(obj)),
+            )
+
+            applyop.gear_matrix_cns(obj, jnt, connect_srt="srt")
+
+            # set first joint as root
+            if not self.rig.root_joint:
+                self.rig.root_joint = jnt
+
+        elif self.options["joint_rig"]:
             if newActiveJnt:
                 self.active_jnt = newActiveJnt
 

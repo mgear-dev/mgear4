@@ -402,6 +402,7 @@ class Rig(Main):
         # --------------------------------------------------
         # Settings
         self.pJointRig = self.addParam("joint_rig", "bool", True)
+        self.pJointSoup = self.addParam("joint_soup", "bool", False)
         self.pJointRig = self.addParam("force_uniScale", "bool", True)
         self.pJointConnect = self.addParam("connect_joints", "bool", True)
         self.pJointSSC = self.addParam("force_SSC", "bool", False)
@@ -1667,6 +1668,9 @@ class GuideSettings(MayaQWidgetDockableMixin, QtWidgets.QDialog, HelperSlots):
             self.guideSettingsTab.jointRig_checkBox, "joint_rig"
         )
         self.populateCheck(
+            self.guideSettingsTab.jointSoup_checkBox, "joint_soup"
+        )
+        self.populateCheck(
             self.guideSettingsTab.force_uniScale_checkBox, "force_uniScale"
         )
         self.populateCheck(
@@ -1877,6 +1881,9 @@ class GuideSettings(MayaQWidgetDockableMixin, QtWidgets.QDialog, HelperSlots):
         )
         tap.jointRig_checkBox.stateChanged.connect(
             partial(self.updateCheck, tap.jointRig_checkBox, "joint_rig")
+        )
+        tap.jointSoup_checkBox.stateChanged.connect(
+            partial(self.updateCheck, tap.jointSoup_checkBox, "joint_soup")
         )
         tap.force_uniScale_checkBox.stateChanged.connect(
             partial(
