@@ -90,7 +90,9 @@ def log_window():
             pm.setParent("..")
             pm.showWindow(log_win)
         else:
-            pm.cmdScrollFieldReporter(log_window_field_reporter, e=True, clr=True)
+            pm.cmdScrollFieldReporter(
+                log_window_field_reporter, e=True, clr=True
+            )
             pm.showWindow(log_window_name)
         mgear.logInfos()
 
@@ -196,7 +198,9 @@ class Rig(object):
         finalTime = endTime - startTime
         mgear.log(
             "\n"
-            + "= SHIFTER FILE READ {} [ {} ] {}".format("=" * 16, finalTime, "=" * 7)
+            + "= SHIFTER FILE READ {} [ {} ] {}".format(
+                "=" * 16, finalTime, "=" * 7
+            )
         )
 
         # Build
@@ -378,14 +382,18 @@ class Rig(object):
 
         # --------------------------------------------------
         # Model
-        self.model = primitive.addTransformFromPos(None, self.options["rig_name"])
+        self.model = primitive.addTransformFromPos(
+            None, self.options["rig_name"]
+        )
 
         lockAttrs = ["tx", "ty", "tz", "rx", "ry", "rz", "sx", "sy", "sz"]
         attribute.lockAttribute(self.model, attributes=lockAttrs)
 
         # --------------------------------------------------
         # INFOS
-        self.isRig_att = attribute.addAttribute(self.model, "is_rig", "bool", True)
+        self.isRig_att = attribute.addAttribute(
+            self.model, "is_rig", "bool", True
+        )
         self.rigName_att = attribute.addAttribute(
             self.model, "rig_name", "string", self.options["rig_name"]
         )
@@ -413,29 +421,47 @@ class Rig(object):
         self.comments_att = attribute.addAttribute(
             self.model, "comments", "string", str(self.options["comments"])
         )
-        self.ctlVis_att = attribute.addAttribute(self.model, "ctl_vis", "bool", True)
+        self.ctlVis_att = attribute.addAttribute(
+            self.model, "ctl_vis", "bool", True
+        )
         if versions.current() >= 201650:
             self.ctlVisPlayback_att = attribute.addAttribute(
                 self.model, "ctl_vis_on_playback", "bool", True
             )
-        self.jntVis_att = attribute.addAttribute(self.model, "jnt_vis", "bool", True)
+        self.jntVis_att = attribute.addAttribute(
+            self.model, "jnt_vis", "bool", True
+        )
         # adding the always draw shapes on top to global attribute
         if versions.current() >= 20220000:
             self.ctlXRay_att = attribute.addAttribute(
                 self.model, "ctl_x_ray", "bool", False
             )
 
-        self.qsA_att = attribute.addAttribute(self.model, "quickselA", "string", "")
-        self.qsB_att = attribute.addAttribute(self.model, "quickselB", "string", "")
-        self.qsC_att = attribute.addAttribute(self.model, "quickselC", "string", "")
-        self.qsD_att = attribute.addAttribute(self.model, "quickselD", "string", "")
-        self.qsE_att = attribute.addAttribute(self.model, "quickselE", "string", "")
-        self.qsF_att = attribute.addAttribute(self.model, "quickselF", "string", "")
+        self.qsA_att = attribute.addAttribute(
+            self.model, "quickselA", "string", ""
+        )
+        self.qsB_att = attribute.addAttribute(
+            self.model, "quickselB", "string", ""
+        )
+        self.qsC_att = attribute.addAttribute(
+            self.model, "quickselC", "string", ""
+        )
+        self.qsD_att = attribute.addAttribute(
+            self.model, "quickselD", "string", ""
+        )
+        self.qsE_att = attribute.addAttribute(
+            self.model, "quickselE", "string", ""
+        )
+        self.qsF_att = attribute.addAttribute(
+            self.model, "quickselF", "string", ""
+        )
 
         self.rigGroups = self.model.addAttr("rigGroups", at="message", m=1)
         self.rigPoses = self.model.addAttr("rigPoses", at="message", m=1)
         self.rigCtlTags = self.model.addAttr("rigCtlTags", at="message", m=1)
-        self.rigScriptNodes = self.model.addAttr("rigScriptNodes", at="message", m=1)
+        self.rigScriptNodes = self.model.addAttr(
+            "rigScriptNodes", at="message", m=1
+        )
 
         self.guide_data_att = attribute.addAttribute(
             self.model, "guide_data", "string", self.get_guide_data()
@@ -517,7 +543,9 @@ class Rig(object):
             # for count, compName in enumerate(self.componentsIndex):
             for compName in self.componentsIndex:
                 comp = self.components[compName]
-                mgear.log(name + " : " + comp.fullName + " (" + comp.type + ")")
+                mgear.log(
+                    name + " : " + comp.fullName + " (" + comp.type + ")"
+                )
                 comp.stepMethods[i]()
                 if name == "Finalize":
                     self.component_finalize = True
@@ -645,7 +673,9 @@ class Rig(object):
             file_path (Str, optional): Output path for the Json File
         """
         if not file_path:
-            ext_filter = "Shifter Collected data (*{})".format(guide.DATA_COLLECTOR_EXT)
+            ext_filter = "Shifter Collected data (*{})".format(
+                guide.DATA_COLLECTOR_EXT
+            )
             file_path = pm.fileDialog2(fileMode=0, fileFilter=ext_filter)[0]
 
         with open(file_path, "w") as f:
@@ -681,7 +711,9 @@ class Rig(object):
             try:
                 return pm.PyNode(j_name)
             except pm.MayaNodeError:
-                pm.displayError("{} doesn't exist or is not unique".format(j_name))
+                pm.displayError(
+                    "{} doesn't exist or is not unique".format(j_name)
+                )
 
     def addCtl(self, parent, name, m, color, iconShape, **kwargs):
         """Create the control and apply the shape, if this is alrealdy stored
@@ -720,7 +752,9 @@ class Rig(object):
             oShape.isHistoricallyInteresting.set(False)
             # connecting the always draw shapes on top to global attribute
             if versions.current() >= 20220000:
-                pm.connectAttr(self.ctlXRay_att, oShape.attr("alwaysDrawOnTop"))
+                pm.connectAttr(
+                    self.ctlXRay_att, oShape.attr("alwaysDrawOnTop")
+                )
 
         # set controller tag
         if versions.current() >= 201650:
@@ -937,6 +971,8 @@ class Rig(object):
             return self.ui
 
         if self.components[comp_name].ui is None:
-            self.components[comp_name].ui = pm.UIHost(self.components[comp_name].root)
+            self.components[comp_name].ui = pm.UIHost(
+                self.components[comp_name].root
+            )
 
         return self.components[comp_name].ui

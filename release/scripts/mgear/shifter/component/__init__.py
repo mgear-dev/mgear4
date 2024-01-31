@@ -6,6 +6,7 @@ Shifter component rig class.
 # GLOBAL
 #############################################
 import re
+
 # pymel
 import pymel.core as pm
 from pymel.core import datatypes
@@ -995,7 +996,7 @@ class Main(object):
             "rotate_order",
             0,
             ("xyz", "yzx", "zxy", "xzy", "yxz", "zyx"),
-            keyable=False
+            keyable=False,
         )
 
         # create the attributes to handlde mirror and symetrical pose
