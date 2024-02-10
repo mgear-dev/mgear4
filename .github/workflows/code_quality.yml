@@ -4,7 +4,7 @@ name: Code Quality
 
 on:
   push:
-    branches: [ master, github-action-fixes ]
+    branches: [ master ]
   pull_request:
     branches: [ master ]
 
