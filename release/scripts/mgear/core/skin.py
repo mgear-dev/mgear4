@@ -565,6 +565,8 @@ def importSkinPack(filePath=None, *args):
 
 
 def skinCopy(sourceMesh=None, targetMesh=None, *args):
+    """Copy skin weights from a source mesh to one or more target meshes.
+    """
     if not sourceMesh or not targetMesh:
         if len(pm.selected()) >= 2:
             sourceMesh = pm.selected()[-1]
@@ -575,38 +577,45 @@ def skinCopy(sourceMesh=None, targetMesh=None, *args):
             return
     else:
         targetMeshes = [targetMesh]
-
-        # we check this here, because if not need to check when we work
-        # base on selection.
         if isinstance(sourceMesh, string_types):
             sourceMesh = pm.PyNode(sourceMesh)
 
+    srcSC = getSkinCluster(sourceMesh)
+    if not srcSC:
+        errorMsg = "Source Mesh : {} doesn't have a skinCluster."
+        pm.displayError(errorMsg.format(sourceMesh.name()))
+    srcInf = pm.skinCluster(sourceMesh, query=True, influence=True)
+    skinMethod = srcSC.skinningMethod.get()
+
     for targetMesh in targetMeshes:
         if isinstance(targetMesh, string_types):
-            sourceMesh = pm.PyNode(targetMesh)
+            targetMesh = pm.PyNode(targetMesh)
 
-        ss = getSkinCluster(sourceMesh)
-
-        if ss:
-            skinMethod = ss.skinningMethod.get()
-            oDef = pm.skinCluster(sourceMesh, query=True, influence=True)
-            # strip | from longName, or skinCluster command may fail.
-            skinName = targetMesh.name().replace('|', '') + "_skinCluster"
-            skinCluster = pm.skinCluster(oDef,
+        dstSC = getSkinCluster(targetMesh)
+        if not dstSC:
+            skinName = targetMesh.name().split('|')[-1] + "_skinCluster"
+            dstSC = pm.skinCluster(srcInf,
                                          targetMesh,
                                          tsb=True,
                                          nw=1,
-                                         n=targetMesh.name() + "_skinCluster")
-            pm.copySkinWeights(sourceSkin=ss.stripNamespace(),
-                               destinationSkin=skinCluster.name(),
-                               noMirror=True,
-                               influenceAssociation="oneToOne",
-                               smooth=True,
-                               normalize=True)
-            skinCluster.skinningMethod.set(skinMethod)
+                                         name=skinName)
         else:
-            errorMsg = "Source Mesh : {} doesn't have a skinCluster."
-            pm.displayError(errorMsg.format(sourceMesh.name()))
+            dstInf = pm.skinCluster(dstSC, q=True, inf=True)
+            dstInf = list(set(srcInf) - set(dstInf))
+            if dstInf:
+                pm.skinCluster(dstSC, e=True, wt=0.0, ai=dstInf)
+
+        dstSC.skinningMethod.set(skinMethod)
+        pm.copySkinWeights(sourceSkin=srcSC.stripNamespace(),
+                           destinationSkin=dstSC.name(),
+                           noMirror=True,
+                           influenceAssociation="oneToOne",
+                           smooth=True,
+                           normalize=True
+                           )
+        message = "Completed: {} -> {} targets."
+        print(message.format(sourceMesh.name(), len(targetMeshes)))
+
 
 ######################################
 # Skin Utils
