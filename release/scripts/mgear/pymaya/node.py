@@ -229,7 +229,7 @@ class _Node(base.Node):
         kwargs.pop("ln", None)
         kwargs.pop("longName", None)
         kwargs["longName"] = name
-        return cmds.addAttr(self.name(), **kwargs)
+        return cmd.addAttr(self.name(), **kwargs)
 
     def getAttr(self, name, **kwargs):
         return cmd.getAttr("{}.{}".format(self.name(), name), **kwargs)
@@ -239,6 +239,9 @@ class _Node(base.Node):
 
     def hasAttr(self, name, checkShape=True):
         return cmds.objExists("{}.{}".format(self.name(), name))
+
+    def listAttr(self, **kwargs):
+        return cmd.listAttr(**kwargs)
 
     def listConnections(self, **kwargs):
         return cmd.listConnections(self, **kwargs)
@@ -344,6 +347,21 @@ class ObjectSet(_Node):
 
 nt.registerClass("objectSet", cls=ObjectSet)
 
+
+class NurbsCurve(_Node):
+    def __init__(self, nodename_or_mobject):
+        super(NurbsCurve, self).__init__(nodename_or_mobject)
+
+    def length(self):
+        return OpenMaya.MFnNurbsCurve(self.dagPath()).length()
+
+    def findParamFromLength(self, l):
+        return OpenMaya.MFnNurbsCurve(self.dagPath()).findParamFromLength(l)
+
+    def getPointAtParam(self, p):
+        return OpenMaya.MFnNurbsCurve(self.dagPath()).getPointAtParam(p)
+
+nt.registerClass("nurbsCurve", cls=NurbsCurve)
 
 
 def BindNode(name):
