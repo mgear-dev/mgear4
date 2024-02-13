@@ -139,6 +139,12 @@ class _Node(base.Node):
                 return super(_Node, self).__getattribute__("attr")(name)
             elif cmds.ls("{}.{}[:]".format(nfnc(), name)):
                 return geometry.BindGeometry("{}.{}[:]".format(nfnc(), name))
+            elif self.__dagpath is not None:
+                sp = self.getShape()
+                if sp:
+                    sym = getattr(sp, name, None)
+                    if sym:
+                        return sym
 
             raise
 
