@@ -170,6 +170,65 @@ class NurbsCurveCV(_Geometry):
         return datatypes.Point(it.position(util.to_mspace(space)))
 
 
+class MeshEdge(_Geometry):
+    @classmethod
+    def Match(cls, dagPath, component):
+        return component.hasFn(OpenMaya.MFn.kMeshEdgeComponent)
+
+    def __iter__(self):
+        it = OpenMaya.MItMeshEdge(self.dagPath(), self.component())
+        while (not it.isDone()):
+            comp = OpenMaya.MFnSingleIndexedComponent()
+            comp_obj = comp.create(OpenMaya.MFn.kMeshEdgeComponent)
+            comp.addElement(it.index())
+            it.next()
+            yield NurbsCurveCV(self.dagPath(), comp_obj)
+
+    def __init__(self, nodename_or_dagpath, component=None):
+        super(MeshEdge, self).__init__(nodename_or_dagpath, component=component)
+        it = OpenMaya.MItMeshEdge(self.dagPath(), self.component())
+        minid = None
+        maxid = None
+        while (not it.isDone()):
+            idx = it.index()
+            if minid is None:
+                minid = idx
+                maxid = idx
+            else:
+                minid = min(minid, idx)
+                maxid = max(minid, idx)
+
+            it.next()
+
+        self.__edgeid = ".e[" + (str(minid) if minid == maxid else "{}:{}".format(minid, maxid)) + "]"
+
+    def name(self):
+        return self.dagPath().partialPathName() + self.__edgeid
+
+    def connectedVertices(self):
+        it = OpenMaya.MItMeshEdge(self.dagPath(), self.component())
+        comp1 = OpenMaya.MFnSingleIndexedComponent()
+        comp_obj1 = comp1.create(OpenMaya.MFn.kMeshVertComponent)
+        comp1.addElement(it.vertexId(0))
+
+        comp2 = OpenMaya.MFnSingleIndexedComponent()
+        comp_obj2 = comp2.create(OpenMaya.MFn.kMeshVertComponent)
+        comp2.addElement(it.vertexId(1))
+
+        return MeshVertex(self.dagPath(), comp_obj1), MeshVertex(self.dagPath(), comp_obj2)
+
+    def connectedEdges(self):
+        it = OpenMaya.MItMeshEdge(self.dagPath(), self.component())
+        edges = []
+        for ei in it.getConnectedEdges():
+            comp = OpenMaya.MFnSingleIndexedComponent()
+            comp_obj = comp.create(OpenMaya.MFn.kMeshEdgeComponent)
+            comp.addElement(ei)
+            edges.append(MeshEdge(self.dagPath(), comp_obj))
+
+        return edges
+
+
 def BindGeometry(name, silent=False):
     if "." not in name:
         return None
@@ -203,7 +262,7 @@ def BindGeometry(name, silent=False):
             raise exception.MayaGeometryError("Invalid geometry given")
         return None
 
-    for cls in [MeshVertex, MeshFace, NurbsCurveCV]:
+    for cls in [MeshVertex, MeshFace, NurbsCurveCV, MeshEdge]:
         if cls.Match(dag, comp):
             try:
                 return cls(dag, comp)
