@@ -87,8 +87,8 @@ class Attribute(base.Attr):
     def connect(self, other, **kwargs):
         return cmds.connectAttr(self.name(), other.name() if isinstance(other, Attribute) else other)
 
-    def disconnect(self, other):
-        return cmds.disconnectAttr(self.name(), other.name() if isinstance(other, Attribute) else other)
+    def disconnect(self, *args):
+        return cmd.disconnectAttr(self.name(), *args)
 
     def listConnections(self, **kwargs):
         return cmd.listConnections(self, **kwargs)

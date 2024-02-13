@@ -362,6 +362,21 @@ def sets(*args, **kwargs):
     return _name_to_obj(cmds.sets(*args, **kwargs))
 
 
+def disconnectAttr(*args, **kwargs):
+    args = _obj_to_name(args)
+    kwargs = _obj_to_name(kwargs)
+
+    if len(args) == 1:
+        cons = cmds.listConnections(args[0], s=True, d=False, p=True, c=True) or []
+        for i in range(0, len(cons), 2):
+            cmds.disconnectAttr(cons[i + 1], cons[i], **kwargs)
+        cons = cmds.listConnections(args[0], s=False, d=True, p=True, c=True) or []
+        for i in range(0, len(cons), 2):
+            cmds.disconnectAttr(cons[i], cons[i + 1], **kwargs)
+    else:
+        cmds.disconnectAttr(*args, **kwargs)
+
+
 local_dict = locals()
 
 for n, func in inspect.getmembers(cmds, callable):
