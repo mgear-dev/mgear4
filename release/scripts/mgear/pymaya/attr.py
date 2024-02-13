@@ -166,3 +166,21 @@ class Attribute(base.Attr):
                 res[fn.fieldValue(ev)] = ev
 
         return res
+
+    def getMin(self):
+        if cmd.attributeQuery(self.longName(), node=self.node(), mne=True):
+            return cmd.attributeQuery(self.longName(), node=self.node(), min=True)[0]
+        else:
+            return None
+
+    def getMax(self):
+        if cmd.attributeQuery(self.longName(), node=self.node(), mxe=True):
+            return cmd.attributeQuery(self.longName(), node=self.node(), max=True)[0]
+        else:
+            return None
+
+    def longName(self):
+        return self.plug().partialName(False, False, False, False, False, True)
+
+    def shortName(self):
+        return self.plug().partialName(False, False, False, False, False, False)
