@@ -1,5 +1,5 @@
 # except translate
-STR_FUNCS = ["capitalize", "casefold", "center", "count", "encode", "endswith", "expandtabs", "find", "format", "format_map", "index", "isalnum", "isalpha", "isascii", "isdecimal", "isdigit", "islower", "isnumeric", "isprintable", "isspace", "istitle", "isupper", "join", "ljust", "lower", "lstrip", "maketrans", "partition", "replace", "rfind", "rindex", "rjust", "rpartition", "rsplit", "rstrip", "split", "splitlines", "startswith", "strip", "swapcase", "title", "upper", "zfill", "__add__", "__contains__", "__format__", "__ge__", "__gt__", "__le__", "__len__", "__lt__", "__mod__", "__mul__", "__ne__", "__rmod__", "__rmul__", "__sizeof__"]
+STR_FUNCS = ["capitalize", "casefold", "center", "count", "encode", "endswith", "expandtabs", "find", "format", "format_map", "index", "isalnum", "isalpha", "isascii", "isdecimal", "isdigit", "islower", "isnumeric", "isprintable", "isspace", "istitle", "isupper", "join", "ljust", "lower", "lstrip", "maketrans", "partition", "replace", "rfind", "rindex", "rjust", "rpartition", "rsplit", "rstrip", "split", "splitlines", "startswith", "strip", "swapcase", "title", "upper", "zfill"]
 
 
 def _wrap_str_funcs(base, funcname):
@@ -26,6 +26,51 @@ class Base(object):
 
     def __str__(self):
         return self.name()
+
+    def __add__(self, value):
+        return self.name().__add__(value)
+
+    def __radd__(self, value):
+        return value + self.name()
+
+    def __contains__(self, key):
+        return self.name().__contains__(key)
+
+    def __format__(self, format_spec):
+        return self.name().__format__(format_spec)
+
+    def __ge__(self, value):
+        return self.name().__ge__(value)
+
+    def __gt__(self, value):
+        return self.name().__gt__(value)
+
+    def __le__(self, value):
+        return self.name().__le__(value)
+
+    def __len__(self):
+        return self.name().__len__()
+
+    def __lt__(self, value):
+        return self.name().__lt__(value)
+
+    def __mod__(self, value):
+        return self.name().__mod__(value)
+
+    def __mul__(self, value):
+        return self.name().__mul__(value)
+
+    def __ne__(self, value):
+        return self.name().__ne__(value)
+
+    def __rmod__(self, value):
+        return self.name().__rmod__(value)
+
+    def __rmul__(self, value):
+        return self.name().__rmul__(value)
+
+    def __sizeof__(self):
+        return self.name().__sizeof__()
 
 
 class Node(Base):
