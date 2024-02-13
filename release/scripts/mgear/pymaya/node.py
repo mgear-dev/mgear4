@@ -1,3 +1,4 @@
+import re
 from maya.api import OpenMaya
 from maya import cmds
 from . import cmd
@@ -8,6 +9,9 @@ from . import exception
 from . import geometry
 from . import util
 from functools import partial
+
+
+RE_ATTR_INDEX = re.compile("\[([0-9]+)\]")
 
 
 def _getPivots(node, **kwargs):
@@ -191,16 +195,23 @@ class _Node(base.Node):
             return attr_cache[name]
 
         p = None
+        idx = None
+        attrname = name
+        idre = RE_ATTR_INDEX.search(name)
+        if idre:
+            attrname = name[:idre.start()]
+            idx = int(idre.group(1))
+
         fn_dg = super(_Node, self).__getattribute__("_Node__fn_dg")
         try:
-            p = fn_dg.findPlug(name, False)
+            p = fn_dg.findPlug(attrname, False)
         except Exception:
             if checkShape:
                 get_shape = super(_Node, self).__getattribute__("getShape")
                 shape = get_shape()
                 if shape:
                     try:
-                        p = shape.dgFn().findPlug(name, False)
+                        p = shape.dgFn().findPlug(attrname, False)
                     except:
                         pass
 
@@ -208,6 +219,9 @@ class _Node(base.Node):
                 raise exception.MayaAttributeError("No '{}' attr found".format(name))
 
         at = attr.Attribute(p)
+        if idx is not None:
+            at = at[idx]
+
         attr_cache[name] = at
         return at
 
