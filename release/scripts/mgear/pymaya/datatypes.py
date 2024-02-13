@@ -33,6 +33,14 @@ class Vector(OpenMaya.MVector):
                 WRAP_FUNCS.append(fn)
 
     def __init__(self, *args, **kwargs):
+        if len(args) == 1:
+            args = list(args)
+            if isinstance(args[0], (list, tuple)) and len(args[0]) == 1:
+                l = list(args[0])
+                args[0] = l * 3
+            elif isinstance(args[0], (int, float)):
+                args[0] = [args[0]] * 3
+
         super(Vector, self).__init__(*args, **kwargs)
         for fn in Vector.WRAP_FUNCS:
             setattr(self, fn, _warp_dt(super(Vector, self).__getattribute__(fn)))
