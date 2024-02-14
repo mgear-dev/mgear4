@@ -62,13 +62,16 @@
       <string>Joint Settings</string>
      </property>
      <layout class="QGridLayout" name="gridLayout_5">
-      <item row="4" column="0">
-       <widget class="QCheckBox" name="force_SSC_joints_checkBox">
+      <item row="1" column="0">
+       <widget class="QCheckBox" name="jointWorldOri_checkBox">
+        <property name="enabled">
+         <bool>true</bool>
+        </property>
         <property name="toolTip">
-         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;WARNING: Only works in Maya 2020 or later&lt;/span&gt;&lt;/p&gt;&lt;p&gt;Use SSC (Segment Scale Compensation) NOTE: UE5 supports SSC, but Unity doesn't &lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Force all the joint to be oriented in World Space&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
         </property>
         <property name="text">
-         <string>Use SSC (Segment Scale Compensation) NOTE: UE5 supports SSC, but Unity doesn't </string>
+         <string>Force World Oriented</string>
         </property>
        </widget>
       </item>
@@ -93,16 +96,6 @@
        <widget class="QCheckBox" name="jointRig_checkBox">
         <property name="text">
          <string>Separated Joint Structure</string>
-        </property>
-       </widget>
-      </item>
-      <item row="1" column="0">
-       <widget class="QCheckBox" name="jointSoup_checkBox">
-        <property name="toolTip">
-         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;When this option is checked, Shifter will create a joint structure where all the joints are child of the root joint and align with the world axis&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-        </property>
-        <property name="text">
-         <string>Joint Soup + World Oriented (NOTE: This Will Override Separated Joint Structure Option)</string>
         </property>
        </widget>
       </item>
@@ -995,5 +988,22 @@
   </layout>
  </widget>
  <resources/>
- <connections/>
+ <connections>
+  <connection>
+   <sender>jointRig_checkBox</sender>
+   <signal>clicked(bool)</signal>
+   <receiver>jointWorldOri_checkBox</receiver>
+   <slot>setEnabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>39</x>
+     <y>555</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>44</x>
+     <y>584</y>
+    </hint>
+   </hints>
+  </connection>
+ </connections>
 </ui>

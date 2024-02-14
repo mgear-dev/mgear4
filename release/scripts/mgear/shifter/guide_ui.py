@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'C:/datawork/repo/mgear4/release/scripts/mgear/shifter/guide_ui.ui'
 #
-# Created: Wed Jan 31 11:18:49 2024
+# Created: Wed Feb 14 11:55:22 2024
 #      by: pyside2-uic  running on PySide2 2.0.0~alpha0
 #
 # WARNING! All changes made in this file will be lost!
@@ -38,9 +38,10 @@ class Ui_Form(object):
         self.groupBox_3.setObjectName("groupBox_3")
         self.gridLayout_5 = QtWidgets.QGridLayout(self.groupBox_3)
         self.gridLayout_5.setObjectName("gridLayout_5")
-        self.force_SSC_joints_checkBox = QtWidgets.QCheckBox(self.groupBox_3)
-        self.force_SSC_joints_checkBox.setObjectName("force_SSC_joints_checkBox")
-        self.gridLayout_5.addWidget(self.force_SSC_joints_checkBox, 4, 0, 1, 1)
+        self.jointWorldOri_checkBox = QtWidgets.QCheckBox(self.groupBox_3)
+        self.jointWorldOri_checkBox.setEnabled(True)
+        self.jointWorldOri_checkBox.setObjectName("jointWorldOri_checkBox")
+        self.gridLayout_5.addWidget(self.jointWorldOri_checkBox, 1, 0, 1, 1)
         self.connect_joints_checkBox = QtWidgets.QCheckBox(self.groupBox_3)
         self.connect_joints_checkBox.setObjectName("connect_joints_checkBox")
         self.gridLayout_5.addWidget(self.connect_joints_checkBox, 3, 0, 1, 1)
@@ -50,9 +51,6 @@ class Ui_Form(object):
         self.jointRig_checkBox = QtWidgets.QCheckBox(self.groupBox_3)
         self.jointRig_checkBox.setObjectName("jointRig_checkBox")
         self.gridLayout_5.addWidget(self.jointRig_checkBox, 0, 0, 1, 1)
-        self.jointSoup_checkBox = QtWidgets.QCheckBox(self.groupBox_3)
-        self.jointSoup_checkBox.setObjectName("jointSoup_checkBox")
-        self.gridLayout_5.addWidget(self.jointSoup_checkBox, 1, 0, 1, 1)
         self.gridLayout_2.addWidget(self.groupBox_3, 4, 0, 1, 1)
         self.groupBox = QtWidgets.QGroupBox(Form)
         self.groupBox.setObjectName("groupBox")
@@ -495,6 +493,7 @@ class Ui_Form(object):
         self.gridLayout_2.addWidget(self.groupBox_8, 5, 0, 1, 1)
 
         self.retranslateUi(Form)
+        QtCore.QObject.connect(self.jointRig_checkBox, QtCore.SIGNAL("clicked(bool)"), self.jointWorldOri_checkBox.setEnabled)
         QtCore.QMetaObject.connectSlotsByName(Form)
 
     def retranslateUi(self, Form):
@@ -506,14 +505,12 @@ class Ui_Form(object):
         self.attrPrefix_checkBox.setToolTip(QtWidgets.QApplication.translate("Form", "<html><head/><body><p>If this option is checked. The attribute prefix will use the <span style=\" font-style:italic; text-decoration: underline;\">component instance name</span> and not the <span style=\" font-style:italic; text-decoration: underline;\">component type name</span>.</p><p>For example, if the &quot;<span style=\" font-weight:600;\">arm_2jnt_01</span>&quot; component is used and the Classic Channel Names option is unchecked. The name of the IK/FK blend will be &quot;<span style=\" font-weight:600;\">arm_blend</span>&quot; </p><p>This will match the default name of the <span style=\" font-style:italic; text-decoration: underline;\">component type</span> &quot;<span style=\" font-weight:600;\">arm</span>&quot; but if we change the name of the <span style=\" font-style:italic; text-decoration: underline;\">component instance</span> for other: for example &quot;<span style=\" font-weight:600;\">limb</span>&quot; the attribute name will not change.</p><p>With this option checked the attribute name will match the <span style=\" font-style:italic; text-decoration: underline;\">component instance name</span> &quot;<span style=\" font-weight:600;\">limb</span>&quot; so the name of the attribute will be &quot;<span style=\" font-weight:600;\">limb_blend</span>&quot; and not the component type name.</p><p>this will also affect the way that the attributes are shared when we have a shared UI host.</p></body></html>", None, -1))
         self.attrPrefix_checkBox.setText(QtWidgets.QApplication.translate("Form", "Use Component Instance Name for Attributes Prefix", None, -1))
         self.groupBox_3.setTitle(QtWidgets.QApplication.translate("Form", "Joint Settings", None, -1))
-        self.force_SSC_joints_checkBox.setToolTip(QtWidgets.QApplication.translate("Form", "<html><head/><body><p><span style=\" font-weight:600;\">WARNING: Only works in Maya 2020 or later</span></p><p>Use SSC (Segment Scale Compensation) NOTE: UE5 supports SSC, but Unity doesn\'t </p></body></html>", None, -1))
-        self.force_SSC_joints_checkBox.setText(QtWidgets.QApplication.translate("Form", "Use SSC (Segment Scale Compensation) NOTE: UE5 supports SSC, but Unity doesn\'t ", None, -1))
+        self.jointWorldOri_checkBox.setToolTip(QtWidgets.QApplication.translate("Form", "<html><head/><body><p>Force all the joint to be oriented in World Space</p></body></html>", None, -1))
+        self.jointWorldOri_checkBox.setText(QtWidgets.QApplication.translate("Form", "Force World Oriented", None, -1))
         self.connect_joints_checkBox.setToolTip(QtWidgets.QApplication.translate("Form", "<html><head/><body><p>When this option is active, mGear Shifter will try to connect to existing joints in the scene</p><p><span style=\" font-weight:600;\">WARNING</span>: The joints need to have the rotation values freeze to 0, 0, 0. </p><p>Use Maya\'s Modify &gt;&gt; Freeze Transformation command to Freeze rotation. Open the command options and ensure only Rotation is freeze, before execute the command</p><p>Freeze joint rotations steps:</p><p>1. Select all joints to freeze</p><p>2. Open Maya\'s Modify &gt;&gt; Freeze Transformation options and ensure only rotation is checked</p><p>3. Apply Modify &gt;&gt; Freeze Transformation</p><p><br/></p></body></html>", None, -1))
         self.connect_joints_checkBox.setText(QtWidgets.QApplication.translate("Form", "Connect to existing joints. NOTE: Joints need to have freezed rotations values.", None, -1))
         self.force_uniScale_checkBox.setText(QtWidgets.QApplication.translate("Form", "Force uniform scaling in all joints by connection all axis to Z axis", None, -1))
         self.jointRig_checkBox.setText(QtWidgets.QApplication.translate("Form", "Separated Joint Structure", None, -1))
-        self.jointSoup_checkBox.setToolTip(QtWidgets.QApplication.translate("Form", "<html><head/><body><p>When this option is checked, Shifter will create a joint structure where all the joints are child of the root joint and align with the world axis</p></body></html>", None, -1))
-        self.jointSoup_checkBox.setText(QtWidgets.QApplication.translate("Form", "Joint Soup + World Oriented (NOTE: This Will Override Separated Joint Structure Option)", None, -1))
         self.groupBox.setTitle(QtWidgets.QApplication.translate("Form", "Rig Settings", None, -1))
         self.rigName_label.setText(QtWidgets.QApplication.translate("Form", "Rig Name", None, -1))
         self.mode_label.setText(QtWidgets.QApplication.translate("Form", "Debug Mode", None, -1))

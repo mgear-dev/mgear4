@@ -505,7 +505,7 @@ class Rig(object):
         attribute.lockAttribute(self.setupWS)
         # --------------------------------------------------
         # Basic set of null
-        if self.options["joint_rig"] or self.options["joint_soup"]:
+        if self.options["joint_rig"]:
             self.root_joint = None
             self.jnt_org = primitive.addTransformFromPos(self.model, "jnt_org")
             if self.options["force_SSC"]:
