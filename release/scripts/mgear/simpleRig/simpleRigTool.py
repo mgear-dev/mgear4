@@ -151,9 +151,9 @@ def _create_control(name,
 
     npo = pm.createNode('transform', n=_set_name("npo"))
     npo.setTransformation(t)
-    attribute.lockAttribute(npo)
     if parent:
         pm.parent(npo, parent)
+    attribute.lockAttribute(npo)
 
     ctl = ico.create(npo,
                      _set_name("ctl"),
