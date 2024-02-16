@@ -414,7 +414,9 @@ def stripKeys(animNode):
     Args:
         animNode (pynode): sdk/anim node
     """
-    numKeys = len(pm.listAttr(animNode + ".ktv", multi=True)) / 3
+    numKeys = int(
+        len(pm.listAttr(animNode + ".ktv", multi=True)) / 3
+    )
     for x in range(0, numKeys):
         animNode.remove(0)
 
