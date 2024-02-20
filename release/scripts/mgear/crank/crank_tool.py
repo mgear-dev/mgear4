@@ -3,6 +3,7 @@ import random
 import pymel.core as pm
 import maya.mel as mel
 import maya.cmds as cmds
+import maya.utils as utils
 from maya.app.general.mayaMixin import MayaQWidgetDockableMixin
 import maya.app.renderSetup.model.renderSetup as renderSetup
 import maya.app.renderSetup.model.renderLayer as renderLayer
@@ -433,7 +434,7 @@ def edit_sculpt_frame():
     Returns:
         bool: If the edit is set successful
     """
-    if pm.window(CHANNEL_BOX_NAME, exists=True):
+    if pm.channelBox(CHANNEL_BOX_NAME, exists=True):
         attrs = pm.channelBox(CHANNEL_BOX_NAME, query=True, sma=True) or []
     else:
         attrs = attribute.getSelectedChannels()
@@ -504,54 +505,73 @@ def _set_channel_edit_target(chn, edit=True):
 ####################################
 # Crank Box
 ####################################
+def crank_box_ui():
+    # Create the window and layout
+    form = pm.formLayout("form")
+    crank_box = pm.channelBox(CHANNEL_BOX_NAME)
+    pm.formLayout(
+        form,
+        e=True,
+        af=[
+            (crank_box, "top", 0),
+            (crank_box, "left", 0),
+            (crank_box, "right", 0),
+            (crank_box, "bottom", 0),
+        ],
+    )
+
+    # Attach a popup menu to the channel box
+    cmds.popupMenu(parent=crank_box)
+    cmds.menuItem(
+        label="Custom Action 1",
+        command="get_selected_channels(CHANNEL_BOX_NAME)",
+    )
+    cmds.menuItem(
+        label="Custom Action 2",
+        command='print("Custom Action 2 executed")',
+    )
+    # pm.showWindow()
+
+    # # Position the window based on the cursor's position
+    # if update_pos:
+    #     pm.window("Crank_Box", e=True, tlc=(point[1], point[0]))
+
+    # Connect the layer to the channel box
+    pm.selectionConnection("crank_holder", object=pm.selected()[0])
+    pm.channelBox(
+        crank_box,
+        edit=True,
+        mainListConnection="crank_holder",
+        st=True,
+    )
+
+
 def crank_box(crank_layer):
     if crank_layer:
         # Position of the cursor
-        point = QtGui.QCursor.pos().toTuple()
-        update_pos = True
+        # point = QtGui.QCursor.pos().toTuple()
+        # update_pos = True
         try:
             pm.deleteUI("crank_holder")
             pm.deleteUI(CHANNEL_BOX_NAME)
-            update_pos = False
+            # update_pos = False
         except:
             pass
 
-        # Create the window and layout
-        pm.window(CHANNEL_BOX_NAME, title="Crank Box")
-        form = pm.formLayout("form")
-        crank_box = pm.channelBox(CHANNEL_BOX_NAME)
-        pm.formLayout(
-            form,
-            e=True,
-            af=[
-                (crank_box, "top", 0),
-                (crank_box, "left", 0),
-                (crank_box, "right", 0),
-                (crank_box, "bottom", 0),
-            ],
-        )
+    dock_control_name = CHANNEL_BOX_NAME + "_Dock"
 
-        # Attach a popup menu to the channel box
-        cmds.popupMenu(parent=crank_box)
-        cmds.menuItem(
-            label="Custom Action 1",
-            command="get_selected_channels(CHANNEL_BOX_NAME)",
-        )
-        cmds.menuItem(
-            label="Custom Action 2",
-            command='print("Custom Action 2 executed")',
-        )
-        pm.showWindow()
+    # Check if the dockControl exists already, delete if it does
+    if cmds.workspaceControl(dock_control_name, exists=True):
+        cmds.deleteUI(dock_control_name, control=True)
 
-        # Position the window based on the cursor's position
-        if update_pos:
-            pm.window("Crank_Box", e=True, tlc=(point[1], point[0]))
-
-        # Connect the layer to the channel box
-        pm.selectionConnection("crank_holder", object=crank_layer)
-        pm.channelBox(
-            crank_box, edit=True, mainListConnection="crank_holder", st=True
-        )
+    # Create a new workspaceControl (dockable UI)
+    cmds.workspaceControl(
+        dock_control_name,
+        label="Crank Box",
+        uiScript="crank_box_ui()",
+        retain=False,
+        floating=True,
+    )
 
 
 ####################################
