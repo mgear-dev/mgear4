@@ -15,7 +15,7 @@ from mgear.core import string, callbackManager
 
 from mgear.crank import crank_ui
 
-'''
+"""
 TODO:
 
     layer lister:
@@ -35,7 +35,7 @@ TODO:
             -Turn All OFF
 
 
-'''
+"""
 
 ####################################
 # Crank
@@ -58,20 +58,22 @@ def create_layer(oSel):
     Returns:
         dagNode: cranklayer node with all the layer data
     """
-    oSel = [x for x in oSel
-            if x.getShapes()
-            and x.getShapes()[0].type() == 'mesh']
+    oSel = [
+        x for x in oSel if x.getShapes() and x.getShapes()[0].type() == "mesh"
+    ]
 
     if oSel:
-        result = pm.promptDialog(title='Crank Layer Name',
-                                 message='Enter Name:',
-                                 button=['OK', 'Cancel'],
-                                 defaultButton='OK',
-                                 cancelButton='Cancel',
-                                 dismissString='Cancel',
-                                 text="")
+        result = pm.promptDialog(
+            title="Crank Layer Name",
+            message="Enter Name:",
+            button=["OK", "Cancel"],
+            defaultButton="OK",
+            cancelButton="Cancel",
+            dismissString="Cancel",
+            text="",
+        )
 
-        if result == 'OK':
+        if result == "OK":
             text = pm.promptDialog(query=True, text=True)
             name = string.normalize(text)
 
@@ -80,9 +82,11 @@ def create_layer(oSel):
             for bs in bs_list:
                 layer_node.crank_layer_envelope >> bs.envelope
                 idx = attribute.get_next_available_index(
-                    layer_node.layer_blendshape_node)
-                pm.connectAttr(bs.message,
-                               layer_node.layer_blendshape_node[idx])
+                    layer_node.layer_blendshape_node
+                )
+                pm.connectAttr(
+                    bs.message, layer_node.layer_blendshape_node[idx]
+                )
             pm.select(oSel)
 
             return layer_node
@@ -100,11 +104,11 @@ def create_blendshape_node(bsName, oSel):
     """
     bs_list = []
     for obj in oSel:
-        bs = pm.blendShape(obj,
-                           name="_".join([obj.name(),
-                                          bsName,
-                                          "blendShape_crank"]),
-                           foc=False)[0]
+        bs = pm.blendShape(
+            obj,
+            name="_".join([obj.name(), bsName, "blendShape_crank"]),
+            foc=False,
+        )[0]
         bs_list.append(bs)
 
     return bs_list
@@ -128,27 +132,26 @@ def create_layer_node(name, affectedElements):
     if pm.ls(fullName):
         pm.displayWarning("{} already exist".format(fullName))
         return
-    layer_node = pm.createNode("transform",
-                               n=fullName,
-                               p=None,
-                               ss=True)
+    layer_node = pm.createNode("transform", n=fullName, p=None, ss=True)
     attribute.lockAttribute(layer_node)
     # add attrs
-    attribute.addAttribute(
-        layer_node, CRANK_TAG, "bool", False, keyable=False)
+    attribute.addAttribute(layer_node, CRANK_TAG, "bool", False, keyable=False)
     # this attribute will help to track the edit state to speed up the callback
     attribute.addAttribute(
-        layer_node, "edit_state", "bool", False, keyable=False)
+        layer_node, "edit_state", "bool", False, keyable=False
+    )
     # affected objects
-    layer_node.addAttr("layer_objects", at='message', m=True)
-    layer_node.addAttr("layer_blendshape_node", at='message', m=True)
+    layer_node.addAttr("layer_objects", at="message", m=True)
+    layer_node.addAttr("layer_blendshape_node", at="message", m=True)
     # master envelope for on/off
-    attribute.addAttribute(layer_node,
-                           "crank_layer_envelope",
-                           "float",
-                           value=1,
-                           minValue=0,
-                           maxValue=1)
+    attribute.addAttribute(
+        layer_node,
+        "crank_layer_envelope",
+        "float",
+        value=1,
+        minValue=0,
+        maxValue=1,
+    )
     # create the post-blendshapes nodes for each affected object
 
     # connections
@@ -165,8 +168,11 @@ def list_crank_layer_nodes():
     Returns:
         dagNode list: List of all the Crank layer nodes
     """
-    return [sm for sm in cmds.ls(type="transform") if cmds.attributeQuery(
-        CRANK_TAG, node=sm, exists=True)]
+    return [
+        sm
+        for sm in cmds.ls(type="transform")
+        if cmds.attributeQuery(CRANK_TAG, node=sm, exists=True)
+    ]
 
 
 def get_layer_affected_elements(layer_node):
@@ -190,6 +196,7 @@ def get_layer_affected_elements(layer_node):
 ####################################
 # random color layer visualization
 ####################################
+
 
 def make_random_color_mtl(mtl_type="phong", seedStr="0", seedOffset=1):
     """Make randomColor material
@@ -225,14 +232,14 @@ def make_random_color_rsl(geo_list, lyr_name, seed=0):
 
         rs = renderSetup.instance()
         rs.clearAll()
-        mel.eval('MLdeleteUnused;')
+        mel.eval("MLdeleteUnused;")
 
         rl = rs.createRenderLayer(CRANK_RENDER_LAYER_NAME)
         for geo in geo_list:
             mtl = make_random_color_mtl(seedStr=str(geo), seedOffset=seed)
             clct = rl.createCollection("clct")
             clct.getSelector().setPattern(geo)
-            shOv = clct.createOverride('shOv', typeIDs.shaderOverride)
+            shOv = clct.createOverride("shOv", typeIDs.shaderOverride)
             shOv.setShader(mtl)
 
         rs.switchToLayer(rl)
@@ -253,13 +260,12 @@ def get_all_rsl():
 
 
 def clear_all_rsl():
-    """Clear all renderSetupLayers
-    """
+    """Clear all renderSetupLayers"""
     try:
         pm.undoInfo(openChunk=True)
         rs = renderSetup.instance()
         rs.clearAll()
-        mel.eval('MLdeleteUnused;')
+        mel.eval("MLdeleteUnused;")
     finally:
         pm.undoInfo(closeChunk=True)
 
@@ -281,7 +287,7 @@ def clear_rsl_by_name(lyr_name):
                 rs.switchToLayer(rs.getDefaultRenderLayer())
             rs.detachRenderLayer(layer)
             renderLayer.delete(layer)
-        mel.eval('MLdeleteUnused;')
+        mel.eval("MLdeleteUnused;")
     finally:
         pm.undoInfo(closeChunk=True)
 
@@ -306,6 +312,7 @@ def setEnabled_random_color_rsl(lyr_name, enabled=True):
 ####################################
 # sculpt frame
 ####################################
+
 
 def add_frame_sculpt(layer_node, anim=False, keyf=[1, 0, 0, 1]):
     """Add a sculpt frame to each selected layer
@@ -335,12 +342,9 @@ def add_frame_sculpt(layer_node, anim=False, keyf=[1, 0, 0, 1]):
         i += 1
 
     # create frame master channel
-    master_chn = attribute.addAttribute(layer_node,
-                                        frame_name,
-                                        "float",
-                                        value=1,
-                                        minValue=0,
-                                        maxValue=1)
+    master_chn = attribute.addAttribute(
+        layer_node, frame_name, "float", value=1, minValue=0, maxValue=1
+    )
 
     # set edit state
     layer_node.edit_state.set(True)
@@ -348,56 +352,68 @@ def add_frame_sculpt(layer_node, anim=False, keyf=[1, 0, 0, 1]):
     # keyframe in range the master channel
     if anim:
         # current frame
-        pm.setKeyframe(master_chn,
-                       t=[cframe],
-                       v=1,
-                       inTangentType="linear",
-                       outTangentType="linear")
+        pm.setKeyframe(
+            master_chn,
+            t=[cframe],
+            v=1,
+            inTangentType="linear",
+            outTangentType="linear",
+        )
 
         # pre and post hold
         pre_hold = keyf[1]
         if pre_hold:
-            pm.setKeyframe(master_chn,
-                           t=[cframe - pre_hold],
-                           v=1,
-                           inTangentType="linear",
-                           outTangentType="linear")
+            pm.setKeyframe(
+                master_chn,
+                t=[cframe - pre_hold],
+                v=1,
+                inTangentType="linear",
+                outTangentType="linear",
+            )
 
         post_hold = keyf[2]
         if post_hold:
-            pm.setKeyframe(master_chn,
-                           t=[cframe + post_hold],
-                           v=1,
-                           inTangentType="linear",
-                           outTangentType="linear")
+            pm.setKeyframe(
+                master_chn,
+                t=[cframe + post_hold],
+                v=1,
+                inTangentType="linear",
+                outTangentType="linear",
+            )
 
         # ease in and out
         if keyf[0]:
             ei = pre_hold + keyf[0]
-            pm.setKeyframe(master_chn,
-                           t=[cframe - ei],
-                           v=0,
-                           inTangentType="linear",
-                           outTangentType="linear")
+            pm.setKeyframe(
+                master_chn,
+                t=[cframe - ei],
+                v=0,
+                inTangentType="linear",
+                outTangentType="linear",
+            )
         if keyf[3]:
             eo = post_hold + keyf[3]
-            pm.setKeyframe(master_chn,
-                           t=[cframe + eo],
-                           v=0,
-                           inTangentType="linear",
-                           outTangentType="linear")
+            pm.setKeyframe(
+                master_chn,
+                t=[cframe + eo],
+                v=0,
+                inTangentType="linear",
+                outTangentType="linear",
+            )
 
     for obj, bsn in zip(objs, bs_node):
         dup = pm.duplicate(obj)[0]
         bst_name = "_".join([obj.stripNamespace(), frame_name])
         pm.rename(dup, bst_name)
         indx = bsn.weight.getNumElements()
-        pm.blendShape(bsn,
-                      edit=True,
-                      t=(obj, indx, dup, 1.0),
-                      ts=True,
-                      tc=True,
-                      w=(indx, 1))
+        pm.blendShape(
+            bsn,
+            edit=True,
+            t=(obj, indx, dup, 1.0),
+            ts=True,
+            tc=True,
+            w=(indx, 1),
+        )
         pm.delete(dup)
         pm.blendShape(bsn, e=True, rtd=(0, indx))
         # is same as: bs.inputTarget[0].sculptTargetIndex.set(3)
@@ -450,8 +466,7 @@ def edit_layer_off(layer_node):
 
 
 def _edit_all_off():
-    """Set all crank layer edit off
-    """
+    """Set all crank layer edit off"""
     for lyr in list_crank_layer_nodes():
         edit_layer_off(pm.PyNode(lyr))
 
@@ -467,25 +482,29 @@ def _set_channel_edit_target(chn, edit=True):
     for a in attrs:
         if edit:
             pm.sculptTarget(a.node(), e=True, t=a.index())
-            pm.inViewMessage(amg="{}: Edit mode is ON".format(chn.name()),
-                             pos='midCenterBot',
-                             fade=True)
+            pm.inViewMessage(
+                amg="{}: Edit mode is ON".format(chn.name()),
+                pos="midCenterBot",
+                fade=True,
+            )
         else:
             a.node().inputTarget[a.index()].sculptTargetIndex.set(-1)
             pm.mel.eval("updateBlendShapeEditHUD;")
-            pm.inViewMessage(amg="{}: Edit mode is OFF".format(chn.name()),
-                             pos='midCenterBot',
-                             fade=True)
+            pm.inViewMessage(
+                amg="{}: Edit mode is OFF".format(chn.name()),
+                pos="midCenterBot",
+                fade=True,
+            )
 
 
 ####################################
 # Crank Tool UI
 ####################################
 
+
 class crankUIW(QtWidgets.QDialog, crank_ui.Ui_Form):
 
-    """UI Widget
-    """
+    """UI Widget"""
 
     def __init__(self, parent=None):
         super(crankUIW, self).__init__(parent)
@@ -500,9 +519,7 @@ class crankUIW(QtWidgets.QDialog, crank_ui.Ui_Form):
 
 class crankTool(MayaQWidgetDockableMixin, QtWidgets.QDialog):
 
-    """Crank shot sculpt main window
-
-    """
+    """Crank shot sculpt main window"""
 
     valueChanged = QtCore.Signal(int)
     wi_to_destroy = []
@@ -566,18 +583,15 @@ class crankTool(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         # For other events, return super's eventFilter result
         return super(crankTool, self).eventFilter(obj, event)
 
-
     def setup_crankWindow(self):
-        """Setup the window
-        """
+        """Setup the window"""
         self.setObjectName(self.toolName)
         self.setWindowFlags(QtCore.Qt.Window)
         self.setWindowTitle("Crank: Shot Sculpting")
         self.resize(266, 445)
 
     def create_layout(self):
-        """Create the layout
-        """
+        """Create the layout"""
         self.crank_layout = QtWidgets.QVBoxLayout()
         self.crank_layout.addWidget(self.crankUIWInst)
         self.crank_layout.setContentsMargins(3, 3, 3, 3)
@@ -597,8 +611,7 @@ class crankTool(MayaQWidgetDockableMixin, QtWidgets.QDialog):
     ###########################
 
     def _refreshList(self):
-        """Refresh listview content
-        """
+        """Refresh listview content"""
         model = QtGui.QStandardItemModel(self)
         for c_node in list_crank_layer_nodes():
             model.appendRow(QtGui.QStandardItem(c_node))
@@ -621,20 +634,17 @@ class crankTool(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         return layers
 
     def select_layer_node(self):
-        """Select the layer node from the list index
-        """
+        """Select the layer node from the list index"""
         layers = self._getSelectedListIndexes()
         pm.select(layers)
 
     def create_layer(self):
-        """Create a new layer and update the window list
-        """
+        """Create a new layer and update the window list"""
         create_layer(pm.selected())
         self._refreshList()
 
     def add_frame_sculpt(self):
-        """Add a new fram sculpt
-        """
+        """Add a new fram sculpt"""
         # remove CB to avoid false triggering
         # if self.cbm:
         #     print("temp clean CB")
@@ -652,20 +662,17 @@ class crankTool(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         # self.time_change_cb()
 
     def edit_frame_sculpt(self):
-        """Edit fram sculpt
-        """
+        """Edit fram sculpt"""
         if edit_sculpt_frame():
             self.select_members()
 
     def edit_layer_off(self):
-        """Turn off the layer edit status
-        """
+        """Turn off the layer edit status"""
         for layer_node in self._getSelectedListIndexes():
             edit_layer_off(layer_node)
 
     def edit_all_off(self, *args):
-        """Turn off all the layers edit status
-        """
+        """Turn off all the layers edit status"""
 
         if om.MConditionMessage.getConditionState("playingBack"):
             return
@@ -678,8 +685,7 @@ class crankTool(MayaQWidgetDockableMixin, QtWidgets.QDialog):
     def time_change_cb(self):
         self.cbm = callbackManager.CallbackManager()
         self.cbm.debug = False
-        self.cbm.timeChangedCB("crankTimeChange_editOFF",
-                                   self.edit_all_off)
+        self.cbm.timeChangedCB("crankTimeChange_editOFF", self.edit_all_off)
 
     ###########################
     # "right click context menu for layers"
@@ -719,60 +725,58 @@ class crankTool(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.lyr_menu.show()
 
     def select_members(self):
-        """Select the members of a given layer
-        """
+        """Select the members of a given layer"""
         layers = self._getSelectedListIndexes()
         pm.select(get_layer_affected_elements(layers))
 
     def random_color(self):
-        """Create a random color render layer for each layer
-        """
+        """Create a random color render layer for each layer"""
         layers = self._getSelectedListIndexes()
         geo_list = get_layer_affected_elements(layers)
         make_random_color_rsl(geo_list, CRANK_RENDER_LAYER_NAME)
 
     def clear_random_color(self):
-        """Clear random color layers of all layers
-        """
+        """Clear random color layers of all layers"""
         clear_rsl_by_name(CRANK_RENDER_LAYER_NAME)
 
     ###########################
     # create connections SIGNALS
     ###########################
     def create_connections(self):
-        """Create connections
-        """
+        """Create connections"""
         self.crankUIWInst.search_lineEdit.textChanged.connect(
-            self.filterChanged)
-        self.crankUIWInst.refresh_pushButton.clicked.connect(
-            self._refreshList)
+            self.filterChanged
+        )
+        self.crankUIWInst.refresh_pushButton.clicked.connect(self._refreshList)
         self.crankUIWInst.createLayer_pushButton.clicked.connect(
-            self.create_layer)
+            self.create_layer
+        )
         self.crankUIWInst.addFrame_pushButton.clicked.connect(
-            self.add_frame_sculpt)
+            self.add_frame_sculpt
+        )
         self.crankUIWInst.editFrame_pushButton.clicked.connect(
-            self.edit_frame_sculpt)
+            self.edit_frame_sculpt
+        )
 
         selModel = self.crankUIWInst.layers_listView.selectionModel()
         selModel.selectionChanged.connect(self.select_layer_node)
 
         # connect menu
         self.crankUIWInst.layers_listView.setContextMenuPolicy(
-            QtCore.Qt.CustomContextMenu)
+            QtCore.Qt.CustomContextMenu
+        )
         self.crankUIWInst.layers_listView.customContextMenuRequested.connect(
-            self._layer_menu)
+            self._layer_menu
+        )
 
     #############
     # SLOTS
     #############
     def filterChanged(self, filter):
-        """Filter out the elements in the list view
-
-        """
-        regExp = QtCore.QRegExp(filter,
-                                QtCore.Qt.CaseSensitive,
-                                QtCore.QRegExp.Wildcard
-                                )
+        """Filter out the elements in the list view"""
+        regExp = QtCore.QRegExp(
+            filter, QtCore.Qt.CaseSensitive, QtCore.QRegExp.Wildcard
+        )
         self.__proxyModel.setFilterRegExp(regExp)
 
 
@@ -783,6 +787,7 @@ def openUI(*args):
         *args: Dummy
     """
     pyqt.showDialog(crankTool, dockable=True)
+
 
 ####################################
 
