@@ -617,7 +617,11 @@ class crankTool(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.create_connections()
         self._refreshList()
 
-        self.time_change_cb()
+        self.eval_mode = self.get_evaluation_mode()
+
+        # check if the eval model is DG , if is not the callback will be deactivated
+        if self.check_evaluation_mode():
+            self.time_change_cb()
 
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose, True)
         self.installEventFilter(self)
@@ -626,8 +630,12 @@ class crankTool(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         pm.displayInfo("Closing Crank")
         self.clear_random_color()
         self.edit_all_off()
+        # callback cleaning
         if self.cbm:
             self.cbm.removeAllManagedCB()
+        # set the previous state in the evaluation manager if it was parallel
+        if self.eval_mode == "parallel":
+            self.set_eval_to_parallel()
         self.deleteLater()
 
     def closeEvent(self, evnt):
@@ -751,6 +759,74 @@ class crankTool(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         # else:
         print("Turn off Edit triggered")
         _edit_all_off()
+
+    def get_evaluation_mode(self):
+        """
+        Checks the current evaluation mode in Autodesk Maya.
+
+        Returns:
+            str: The current evaluation mode, either 'off' or 'parallel'.
+        """
+        # Query the current evaluation mode
+        mode = cmds.evaluationManager(query=True, mode=True)
+
+        # The evaluationManager command returns a list of modes. The first
+        # mode in the list is the current evaluation mode.
+        current_mode = mode[0]
+
+        return current_mode
+
+    def set_eval_to_parallel(self, parallel=True):
+        # Function to set evaluation mode to parallel or DG
+        if parallel:
+            eval_mode = "parallel"
+        else:
+            eval_mode = "off"
+
+        def set_eval():
+            cmds.evaluationManager(mode=eval_mode)
+
+        # Use Maya's main thread to change evaluation mode
+        pm.displayInfo("Parallel evaluation: {}".format(eval_mode))
+        utils.executeInMainThreadWithResult(set_eval)
+        # cmds.evaluationManager(mode="parallel")
+
+    def check_evaluation_mode(self):
+        """
+        Checks the current evaluation mode. If it is in Parallel, prompts the
+        user with a dialog to ask if they want to change to DG mode. If Yes,
+        changes the evaluation mode to DG.
+        """
+        # Check current evaluation mode
+        current_mode = self.get_evaluation_mode()
+
+        # If in Parallel mode, prompt the user
+        if current_mode == "parallel":
+            # Define the dialog message
+            message = (
+                "The current evaluation mode is Parallel. \n"
+                "For shot sculpting is recommended to use DG. \n"
+                "Do you want to change it to DG?"
+            )
+
+            # Show confirmation dialog
+            result = cmds.confirmDialog(
+                title="Change Evaluation Mode",
+                message=message,
+                button=["Yes", "No"],
+                defaultButton="Yes",
+                cancelButton="No",
+                dismissString="No",
+            )
+
+            # If user chooses 'Yes', change to DG mode
+            if result == "Yes":
+                self.set_eval_to_parallel(False)
+                pm.displayInfo("Evaluation mode changed to DG.")
+                return True
+            else:
+                pm.displayInfo("Evaluation mode remains as Parallel.")
+                return False
 
     ###########################
     # Callback
