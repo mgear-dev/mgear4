@@ -23,13 +23,26 @@ class RigBuilderUI(
         self.resize(550, 650)
 
         self.builder = builder.RigBuilder()
+        self.create_actions()
         self.create_layout()
         self.create_connections()
 
+    def create_actions(self):
+        self.import_action = QtWidgets.QAction("Import Config")
+        self.export_action = QtWidgets.QAction("Export Config")
+
     def create_layout(self):
         """Creates the main layout widgets of the tool."""
+
+        self.menu_bar = QtWidgets.QMenuBar()
+        self.file_menu = self.menu_bar.addMenu("File")
+        self.file_menu.addAction(self.import_action)
+        self.file_menu.addAction(self.export_action)
+
         self.layout = QtWidgets.QVBoxLayout()
         self.setLayout(self.layout)
+
+        self.layout.setMenuBar(self.menu_bar)
 
         # Output Folder UI
         output_folder_layout = QtWidgets.QHBoxLayout()
@@ -131,6 +144,10 @@ class RigBuilderUI(
 
     def create_connections(self):
         """Connects buttons to their functions."""
+
+        self.import_action.triggered.connect(self.import_config)
+        self.export_action.triggered.connect(self.export_config)
+
         self.output_folder_button.clicked.connect(
             self.on_output_folder_clicked
         )
@@ -278,6 +295,12 @@ class RigBuilderUI(
             file_path = str(url.toLocalFile())
             if file_path.lower().endswith(".sgt"):
                 self.add_file(file_path)
+
+    def import_config(self):
+        print("Calling import config")
+    
+    def export_config(self):
+        print("Calling export config")
 
 
 class ResultsPopupDialog(QtWidgets.QDialog):
