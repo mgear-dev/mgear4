@@ -12,7 +12,6 @@ from maya.api import OpenMaya as om
 from mgear.vendor.Qt import QtCore, QtWidgets, QtGui
 from mgear.core import attribute, pyqt
 from mgear.core import string, callbackManager
-
 from mgear.crank import crank_ui
 
 """
@@ -43,6 +42,7 @@ TODO:
 
 CRANK_TAG = "_isCrankLayer"
 CRANK_RENDER_LAYER_NAME = "crankLayer_randomColor"
+CHANNEL_BOX_NAME = "Crank_Box"
 
 ####################################
 # Layer Node
@@ -87,6 +87,7 @@ def create_layer(oSel):
                 pm.connectAttr(
                     bs.message, layer_node.layer_blendshape_node[idx]
                 )
+                bs.isHistoricallyInteresting.set(False)
             pm.select(oSel)
 
             return layer_node
@@ -432,7 +433,10 @@ def edit_sculpt_frame():
     Returns:
         bool: If the edit is set successful
     """
-    attrs = attribute.getSelectedChannels()
+    if pm.window(CHANNEL_BOX_NAME, exists=True):
+        attrs = pm.channelBox(CHANNEL_BOX_NAME, query=True, sma=True) or []
+    else:
+        attrs = attribute.getSelectedChannels()
 
     if attrs:
         # get the time from the channel name
@@ -495,6 +499,59 @@ def _set_channel_edit_target(chn, edit=True):
                 pos="midCenterBot",
                 fade=True,
             )
+
+
+####################################
+# Crank Box
+####################################
+def crank_box(crank_layer):
+    if crank_layer:
+        # Position of the cursor
+        point = QtGui.QCursor.pos().toTuple()
+        update_pos = True
+        try:
+            pm.deleteUI("crank_holder")
+            pm.deleteUI(CHANNEL_BOX_NAME)
+            update_pos = False
+        except:
+            pass
+
+        # Create the window and layout
+        pm.window(CHANNEL_BOX_NAME, title="Crank Box")
+        form = pm.formLayout("form")
+        crank_box = pm.channelBox(CHANNEL_BOX_NAME)
+        pm.formLayout(
+            form,
+            e=True,
+            af=[
+                (crank_box, "top", 0),
+                (crank_box, "left", 0),
+                (crank_box, "right", 0),
+                (crank_box, "bottom", 0),
+            ],
+        )
+
+        # Attach a popup menu to the channel box
+        cmds.popupMenu(parent=crank_box)
+        cmds.menuItem(
+            label="Custom Action 1",
+            command="get_selected_channels(CHANNEL_BOX_NAME)",
+        )
+        cmds.menuItem(
+            label="Custom Action 2",
+            command='print("Custom Action 2 executed")',
+        )
+        pm.showWindow()
+
+        # Position the window based on the cursor's position
+        if update_pos:
+            pm.window("Crank_Box", e=True, tlc=(point[1], point[0]))
+
+        # Connect the layer to the channel box
+        pm.selectionConnection("crank_holder", object=crank_layer)
+        pm.channelBox(
+            crank_box, edit=True, mainListConnection="crank_holder", st=True
+        )
 
 
 ####################################
@@ -645,10 +702,6 @@ class crankTool(MayaQWidgetDockableMixin, QtWidgets.QDialog):
 
     def add_frame_sculpt(self):
         """Add a new fram sculpt"""
-        # remove CB to avoid false triggering
-        # if self.cbm:
-        #     print("temp clean CB")
-        #     self.cbm.removeAllManagedCB()
         anim = self.crankUIWInst.keyframe_checkBox.isChecked()
         ei = self.crankUIWInst.easeIn_spinBox.value()
         eo = self.crankUIWInst.easeOut_spinBox.value()
@@ -659,10 +712,9 @@ class crankTool(MayaQWidgetDockableMixin, QtWidgets.QDialog):
 
         self.select_members()
 
-        # self.time_change_cb()
-
     def edit_frame_sculpt(self):
         """Edit fram sculpt"""
+        self.select_layer_node()
         if edit_sculpt_frame():
             self.select_members()
 
@@ -674,10 +726,11 @@ class crankTool(MayaQWidgetDockableMixin, QtWidgets.QDialog):
     def edit_all_off(self, *args):
         """Turn off all the layers edit status"""
 
-        if om.MConditionMessage.getConditionState("playingBack"):
-            return
-        else:
-            _edit_all_off()
+        # if om.MConditionMessage.getConditionState("playingBack"):
+        #     return
+        # else:
+        print("Turn off Edit triggered")
+        _edit_all_off()
 
     ###########################
     # Callback
@@ -706,6 +759,8 @@ class crankTool(MayaQWidgetDockableMixin, QtWidgets.QDialog):
             return
         self.lyr_menu = QtWidgets.QMenu()
         parentPosition = lyr_widget.mapToGlobal(QtCore.QPoint(0, 0))
+        menu_item_00 = self.lyr_menu.addAction("Open Crannk Box")
+        self.lyr_menu.addSeparator()
         menu_item_01 = self.lyr_menu.addAction("Select Members")
         self.lyr_menu.addSeparator()
         menu_item_02 = self.lyr_menu.addAction("Selected Layer Edit OFF")
@@ -715,6 +770,7 @@ class crankTool(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         menu_item_05 = self.lyr_menu.addAction("Clear Random Color")
         self.lyr_menu.addSeparator()
 
+        menu_item_00.triggered.connect(self.open_crank_box)
         menu_item_01.triggered.connect(self.select_members)
         menu_item_02.triggered.connect(self.edit_layer_off)
         menu_item_03.triggered.connect(self.edit_all_off)
@@ -723,6 +779,12 @@ class crankTool(MayaQWidgetDockableMixin, QtWidgets.QDialog):
 
         self.lyr_menu.move(parentPosition + QPos)
         self.lyr_menu.show()
+
+    def open_crank_box(self):
+        layers = self._getSelectedListIndexes()
+        print(layers)
+        if layers:
+            crank_box(layers[0])
 
     def select_members(self):
         """Select the members of a given layer"""
@@ -758,8 +820,14 @@ class crankTool(MayaQWidgetDockableMixin, QtWidgets.QDialog):
             self.edit_frame_sculpt
         )
 
+        self.crankUIWInst.editOFF_pushButton.clicked.connect(self.edit_all_off)
+
+        # handle first time the item is selected
         selModel = self.crankUIWInst.layers_listView.selectionModel()
         selModel.selectionChanged.connect(self.select_layer_node)
+
+        # handle if the item is already selected
+        self.crankUIWInst.layers_listView.clicked.connect(self.onItemClicked)
 
         # connect menu
         self.crankUIWInst.layers_listView.setContextMenuPolicy(
@@ -778,6 +846,17 @@ class crankTool(MayaQWidgetDockableMixin, QtWidgets.QDialog):
             filter, QtCore.Qt.CaseSensitive, QtCore.QRegExp.Wildcard
         )
         self.__proxyModel.setFilterRegExp(regExp)
+
+    def onItemClicked(self, index):
+        """Handle clicks on items in the view.
+
+        Args:
+            index (QModelIndex): The index of the clicked item.
+        """
+        selModel = self.crankUIWInst.layers_listView.selectionModel()
+        if selModel.isSelected(index):
+            # The clicked item is already selected
+            self.select_layer_node()
 
 
 def openUI(*args):

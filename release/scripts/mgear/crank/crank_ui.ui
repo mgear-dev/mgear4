@@ -6,15 +6,24 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>252</width>
-    <height>396</height>
+    <width>299</width>
+    <height>590</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>Form</string>
   </property>
   <layout class="QGridLayout" name="gridLayout_4">
-   <property name="margin">
+   <property name="leftMargin">
+    <number>5</number>
+   </property>
+   <property name="topMargin">
+    <number>5</number>
+   </property>
+   <property name="rightMargin">
+    <number>5</number>
+   </property>
+   <property name="bottomMargin">
     <number>5</number>
    </property>
    <property name="spacing">
@@ -26,7 +35,16 @@
       <string>Sculpt Layers</string>
      </property>
      <layout class="QGridLayout" name="gridLayout_2">
-      <property name="margin">
+      <property name="leftMargin">
+       <number>6</number>
+      </property>
+      <property name="topMargin">
+       <number>6</number>
+      </property>
+      <property name="rightMargin">
+       <number>6</number>
+      </property>
+      <property name="bottomMargin">
        <number>6</number>
       </property>
       <property name="spacing">
@@ -97,7 +115,16 @@
       <string>Sculpt Frames</string>
      </property>
      <layout class="QGridLayout" name="gridLayout_3">
-      <property name="margin">
+      <property name="leftMargin">
+       <number>6</number>
+      </property>
+      <property name="topMargin">
+       <number>6</number>
+      </property>
+      <property name="rightMargin">
+       <number>6</number>
+      </property>
+      <property name="bottomMargin">
        <number>6</number>
       </property>
       <property name="spacing">
@@ -187,6 +214,13 @@
          <widget class="QPushButton" name="editFrame_pushButton">
           <property name="text">
            <string>Edit Selected Sculpt Frame</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="editOFF_pushButton">
+          <property name="text">
+           <string>All Layers Edit OFF</string>
           </property>
          </widget>
         </item>
