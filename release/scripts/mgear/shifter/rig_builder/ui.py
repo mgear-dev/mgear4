@@ -297,7 +297,6 @@ class RigBuilderUI(
                 self.add_file(file_path)
 
     def import_config(self):
-        print("Calling import config")
         data = builder.RigBuilder.load_config_data_from_file()
 
         self.output_folder_line_edit.setText(data["output_folder"])
@@ -320,7 +319,6 @@ class RigBuilderUI(
 
     
     def export_config(self):
-        print("Calling export config")
         data_string = self.collect_table_data()
         builder.RigBuilder.write_config_data_to_file(data_string)
 

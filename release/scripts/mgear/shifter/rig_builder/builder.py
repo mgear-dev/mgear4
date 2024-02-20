@@ -111,7 +111,7 @@ class RigBuilder(object):
             validate (bool): Option to run Pyblish validators
             passed_only (bool): Option to publish only rigs that pass validation
         """
-        data = json.loads(json_data)
+        data = json_data
 
         data_rows = data.get("rows")
         if not data_rows:
@@ -189,9 +189,13 @@ class RigBuilder(object):
 
         return self.results_dict
 
+    def build_from_file(self, file_path):
+        json_data = self.load_config_data_from_file(file_path)
+        self.execute_build_logic(json_data)
+
+
     @classmethod
     def write_config_data_to_file(cls, data_string):
-        print("Writing data to file")
         file_path = pm.fileDialog2(fileMode=0, fileFilter="*.srb")[0]
         if not file_path:
             return
@@ -201,8 +205,10 @@ class RigBuilder(object):
 
 
     @classmethod    
-    def load_config_data_from_file(cls):
-        file_path = pm.fileDialog2(fileMode=1, fileFilter="*.srb")[0]
+    def load_config_data_from_file(cls, file_path=""):
+        if not file_path:
+            file_path = pm.fileDialog2(fileMode=1, fileFilter="*.srb")[0]
+        
         if not file_path:
             return
         
