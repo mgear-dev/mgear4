@@ -13,7 +13,7 @@ from mgear.vendor.Qt import QtCore, QtWidgets, QtGui
 from mgear.core import attribute, pyqt
 from mgear.core import string, callbackManager
 
-from . import crank_ui
+from mgear.crank import crank_ui
 
 '''
 TODO:
@@ -318,6 +318,7 @@ def add_frame_sculpt(layer_node, anim=False, keyf=[1, 0, 0, 1]):
         keyf (list, optional):  Keyframe range configuration. EaseIn, pre hold,
         post hold and ease out
     """
+
     objs = layer_node.layer_objects.inputs()
     bs_node = layer_node.layer_blendshape_node.inputs()
 
@@ -527,19 +528,44 @@ class crankTool(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose, True)
         self.installEventFilter(self)
 
+    def close(self):
+        pm.displayInfo("Closing Crank")
+        self.clear_random_color()
+        self.edit_all_off()
+        if self.cbm:
+            self.cbm.removeAllManagedCB()
+        self.deleteLater()
+
+    def closeEvent(self, evnt):
+        self.close()
+
+    def dockCloseEventTriggered(self):
+        self.close()
+
     def keyPressEvent(self, event):
         if not event.key() == QtCore.Qt.Key_Escape:
             super(crankTool, self).keyPressEvent(event)
 
-    def closeEvent(self, evnt):
-        """oon close, kill all callbacks
+    # def closeEvent(self, event):
+    #     """oon close, kill all callbacks
 
-        Args:
-            evnt (Qt.QEvent): Close event called
-        """
-        self.clear_random_color()
-        self.edit_all_off()
-        self.cbm.removeAllManagedCB()
+    #     Args:
+    #         evnt (Qt.QEvent): Close event called
+    #     """
+    #     print("Close2 triggersed")
+    #     self.clear_random_color()
+    #     self.edit_all_off()
+    #     self.cbm.removeAllManagedCB()
+
+    def eventFilter(self, obj, event):
+        """Custom event filter."""
+        if event.type() == QtCore.QEvent.Close:
+            # Optionally do something before close
+            # Return False to continue the event propagation
+            return False
+        # For other events, return super's eventFilter result
+        return super(crankTool, self).eventFilter(obj, event)
+
 
     def setup_crankWindow(self):
         """Setup the window
@@ -609,6 +635,10 @@ class crankTool(MayaQWidgetDockableMixin, QtWidgets.QDialog):
     def add_frame_sculpt(self):
         """Add a new fram sculpt
         """
+        # remove CB to avoid false triggering
+        # if self.cbm:
+        #     print("temp clean CB")
+        #     self.cbm.removeAllManagedCB()
         anim = self.crankUIWInst.keyframe_checkBox.isChecked()
         ei = self.crankUIWInst.easeIn_spinBox.value()
         eo = self.crankUIWInst.easeOut_spinBox.value()
@@ -618,6 +648,8 @@ class crankTool(MayaQWidgetDockableMixin, QtWidgets.QDialog):
             add_frame_sculpt(layer_node, anim=anim, keyf=[ei, pre, pos, eo])
 
         self.select_members()
+
+        # self.time_change_cb()
 
     def edit_frame_sculpt(self):
         """Edit fram sculpt
@@ -646,7 +678,7 @@ class crankTool(MayaQWidgetDockableMixin, QtWidgets.QDialog):
     def time_change_cb(self):
         self.cbm = callbackManager.CallbackManager()
         self.cbm.debug = False
-        self.cbm.userTimeChangedCB("crankTimeChange_editOFF",
+        self.cbm.timeChangedCB("crankTimeChange_editOFF",
                                    self.edit_all_off)
 
     ###########################
