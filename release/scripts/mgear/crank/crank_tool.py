@@ -505,6 +505,95 @@ def _set_channel_edit_target(chn, edit=True):
 ####################################
 # Crank Box
 ####################################
+def open_graph_editor():
+    """
+    Opens the Graph Editor if it is not already open.
+    """
+    # Check if the Graph Editor is open
+    graph_editor = "graphEditor1Window"
+    if not cmds.window(graph_editor, q=True, exists=True):
+        # Use Mel command to open Graph Editor as a workaround
+        mel.eval("GraphEditor;")
+
+
+def get_layer_objects():
+    mlc = cmds.channelBox(
+        CHANNEL_BOX_NAME, query=True, mainListConnection=True
+    )
+    layer_objects = cmds.selectionConnection(mlc, object=True, query=True)
+
+    return layer_objects
+
+
+def get_selected_attrs_fullname():
+    layer_objects = get_layer_objects()
+    selected_channels = cmds.channelBox(
+        CHANNEL_BOX_NAME, q=True, selectedMainAttributes=True
+    )
+
+    if layer_objects and selected_channels:
+        # Build a list of the selected attributes (channels) on selected objects
+        selected_attrs = [
+            "{}.{}".format(obj, channel)
+            for obj in layer_objects
+            for channel in selected_channels
+        ]
+        return selected_attrs
+
+
+def show_selected_channels_in_graph_editor():
+    """
+    Shows the selected channels from a specified channelBox in the Graph Editor.
+    If the Graph Editor is not open, it opens it.
+    """
+    # Ensure the Graph Editor is open
+    open_graph_editor()
+
+    # Get and select objects to ensure their channels can be displayed
+    layer_objects = get_layer_objects()
+    cmds.select(layer_objects)
+
+    # Get selected channels from the channel box
+    selected_channels = cmds.channelBox(
+        CHANNEL_BOX_NAME, q=True, selectedMainAttributes=True
+    )
+
+    if layer_objects and selected_channels:
+        # Build a list of the selected attributes (channels) on selected objects
+        selected_attrs = get_selected_attrs_fullname()
+
+        # Use select command with replace flag to show only selected channels in the Graph Editor
+        if selected_attrs:
+            cmds.select(selected_attrs, r=True)
+    else:
+        print("No objects or channels selected.")
+
+
+def set_key():
+    """Keyframes the attribute at current frame"""
+    cmds.setKeyframe(get_selected_attrs_fullname())
+
+
+def set_key_val(val=1):
+    for at in get_selected_attrs_fullname():
+        cmds.setAttr(at, val)
+    set_key()
+
+
+def set_key_to_0():
+    set_key_val(0)
+
+
+def remove_key():
+    """Remove the keyframe of an attribute at current frame"""
+    pm.cutKey(get_selected_attrs_fullname(), clear=True, time=pm.currentTime())
+
+
+def remove_animation():
+    """Remove the animation of an attribute"""
+    pm.cutKey(get_selected_attrs_fullname(), clear=True)
+
+
 def crank_box_ui():
     # Create the window and layout
     form = pm.formLayout("form")
@@ -523,18 +612,38 @@ def crank_box_ui():
     # Attach a popup menu to the channel box
     cmds.popupMenu(parent=crank_box)
     cmds.menuItem(
-        label="Custom Action 1",
-        command="get_selected_channels(CHANNEL_BOX_NAME)",
+        label="Keyframe",
+        command="set_key()",
+        image=pyqt.get_icon_path("mgear_key.svg"),
     )
     cmds.menuItem(
-        label="Custom Action 2",
-        command='print("Custom Action 2 executed")',
+        label="Keyframe to 1",
+        command="set_key_val()",
+        image=pyqt.get_icon_path("mgear_key.svg"),
     )
-    # pm.showWindow()
-
-    # # Position the window based on the cursor's position
-    # if update_pos:
-    #     pm.window("Crank_Box", e=True, tlc=(point[1], point[0]))
+    cmds.menuItem(
+        label="Keyframe to 0",
+        command="set_key_to_0()",
+        image=pyqt.get_icon_path("mgear_key.svg"),
+    )
+    cmds.menuItem(divider=True)
+    cmds.menuItem(
+        label="Delete Keyframe",
+        command="remove_key()",
+        image=pyqt.get_icon_path("mgear_minus-square.svg"),
+    )
+    cmds.menuItem(divider=True)
+    cmds.menuItem(
+        label="Open GraphEditor",
+        command="show_selected_channels_in_graph_editor()",
+        image=pyqt.get_icon_path("mgear_activity.svg"),
+    )
+    cmds.menuItem(divider=True)
+    cmds.menuItem(
+        label="Delete Animation",
+        command="remove_animation()",
+        image=pyqt.get_icon_path("mgear_trash-2.svg"),
+    )
 
     # Connect the layer to the channel box
     pm.selectionConnection("crank_holder", object=pm.selected()[0])
