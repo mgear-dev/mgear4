@@ -611,37 +611,47 @@ def crank_box_ui():
 
     # Attach a popup menu to the channel box
     cmds.popupMenu(parent=crank_box)
+    call_set_key = "import mgear.crank.crank_tool as ct; ct.set_key()"
     cmds.menuItem(
         label="Keyframe",
-        command="set_key()",
+        command=call_set_key,
         image=pyqt.get_icon_path("mgear_key.svg"),
     )
+    call_set_key_val = "import mgear.crank.crank_tool as ct; ct.set_key_val()"
     cmds.menuItem(
         label="Keyframe to 1",
-        command="set_key_val()",
+        command=call_set_key_val,
         image=pyqt.get_icon_path("mgear_key.svg"),
+    )
+    call_set_key_to_0 = (
+        "import mgear.crank.crank_tool as ct; ct.set_key_to_0()"
     )
     cmds.menuItem(
         label="Keyframe to 0",
-        command="set_key_to_0()",
+        command=call_set_key_to_0,
         image=pyqt.get_icon_path("mgear_key.svg"),
     )
     cmds.menuItem(divider=True)
+    call_remove_key = "import mgear.crank.crank_tool as ct; ct.remove_key()"
     cmds.menuItem(
         label="Delete Keyframe",
-        command="remove_key()",
+        command=call_remove_key,
         image=pyqt.get_icon_path("mgear_minus-square.svg"),
     )
     cmds.menuItem(divider=True)
+    call_show_selected_channels_in_graph_editor = "import mgear.crank.crank_tool as ct; ct.show_selected_channels_in_graph_editor()"
     cmds.menuItem(
         label="Open GraphEditor",
-        command="show_selected_channels_in_graph_editor()",
+        command=call_show_selected_channels_in_graph_editor,
         image=pyqt.get_icon_path("mgear_activity.svg"),
     )
     cmds.menuItem(divider=True)
+    call_remove_animation = (
+        "import mgear.crank.crank_tool as ct; ct.remove_animation()"
+    )
     cmds.menuItem(
         label="Delete Animation",
-        command="remove_animation()",
+        command=call_remove_animation,
         image=pyqt.get_icon_path("mgear_trash-2.svg"),
     )
 
@@ -674,10 +684,11 @@ def crank_box(crank_layer):
         cmds.deleteUI(dock_control_name, control=True)
 
     # Create a new workspaceControl (dockable UI)
+    call_crank_box = "import mgear.crank.crank_tool as ct; ct.crank_box_ui()"
     cmds.workspaceControl(
         dock_control_name,
         label="Crank Box",
-        uiScript="crank_box_ui()",
+        uiScript=call_crank_box,
         retain=False,
         floating=True,
     )
@@ -756,17 +767,6 @@ class crankTool(MayaQWidgetDockableMixin, QtWidgets.QDialog):
     def keyPressEvent(self, event):
         if not event.key() == QtCore.Qt.Key_Escape:
             super(crankTool, self).keyPressEvent(event)
-
-    # def closeEvent(self, event):
-    #     """oon close, kill all callbacks
-
-    #     Args:
-    #         evnt (Qt.QEvent): Close event called
-    #     """
-    #     print("Close2 triggersed")
-    #     self.clear_random_color()
-    #     self.edit_all_off()
-    #     self.cbm.removeAllManagedCB()
 
     def eventFilter(self, obj, event):
         """Custom event filter."""
@@ -964,7 +964,7 @@ class crankTool(MayaQWidgetDockableMixin, QtWidgets.QDialog):
             return
         self.lyr_menu = QtWidgets.QMenu()
         parentPosition = lyr_widget.mapToGlobal(QtCore.QPoint(0, 0))
-        menu_item_00 = self.lyr_menu.addAction("Open Crannk Box")
+        menu_item_00 = self.lyr_menu.addAction("Open Crank Box")
         self.lyr_menu.addSeparator()
         menu_item_01 = self.lyr_menu.addAction("Select Members")
         self.lyr_menu.addSeparator()
@@ -987,7 +987,6 @@ class crankTool(MayaQWidgetDockableMixin, QtWidgets.QDialog):
 
     def open_crank_box(self):
         layers = self._getSelectedListIndexes()
-        print(layers)
         if layers:
             crank_box(layers[0])
 
