@@ -188,3 +188,26 @@ class RigBuilder(object):
             pm.displayInfo(report_string)
 
         return self.results_dict
+
+    @classmethod
+    def write_config_data_to_file(cls, data_string):
+        print("Writing data to file")
+        file_path = pm.fileDialog2(fileMode=0, fileFilter="*.srb")[0]
+        if not file_path:
+            return
+        
+        with open(file_path, "w") as fp:
+            fp.write(data_string)
+
+
+    @classmethod    
+    def load_config_data_from_file(cls):
+        file_path = pm.fileDialog2(fileMode=1, fileFilter="*.srb")[0]
+        if not file_path:
+            return
+        
+        data = ""
+        with open(file_path, "r") as fp:
+            data = json.load(fp)
+
+        return data
