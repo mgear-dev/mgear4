@@ -7,6 +7,8 @@ from mgear.vendor.Qt import QtGui, QtWidgets
 from mgear.core import pyqt, widgets
 from mgear.shifter.rig_builder import builder
 
+from functools import partial
+
 
 class RigBuilderUI(
     MayaQWidgetDockableMixin, QtWidgets.QDialog, pyqt.SettingsMixin
@@ -145,7 +147,7 @@ class RigBuilderUI(
     def create_connections(self):
         """Connects buttons to their functions."""
 
-        self.import_action.triggered.connect(self.import_config)
+        self.import_action.triggered.connect(partial(self.import_config, ""))
         self.export_action.triggered.connect(self.export_config)
 
         self.output_folder_button.clicked.connect(
@@ -295,9 +297,11 @@ class RigBuilderUI(
             file_path = str(url.toLocalFile())
             if file_path.lower().endswith(".sgt"):
                 self.add_file(file_path)
+            if file_path.lower().endswith(".srb"):
+                self.import_config(file_path=file_path)
 
-    def import_config(self):
-        data = builder.RigBuilder.load_config_data_from_file()
+    def import_config(self, file_path=""):
+        data = builder.RigBuilder.load_config_data_from_file(file_path=file_path)
 
         self.output_folder_line_edit.setText(data["output_folder"])
         self.pre_script_line_edit.setText(data["pre_script"])
