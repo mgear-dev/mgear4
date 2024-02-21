@@ -1,5 +1,6 @@
 import os
 import json
+import pymel.core as pm
 
 from maya.app.general.mayaMixin import MayaQWidgetDockableMixin
 
@@ -109,6 +110,26 @@ class FolderStructureCreatorUI(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.config_path_btn.clicked.connect(self.set_config_path)
         self.path_btn.clicked.connect(self.set_main_path)
 
+        # update confing
+        self.type_le.editingFinished.connect(self.update_config_type)
+        self.name_le.editingFinished.connect(self.update_config_name)
+        self.variant_le.editingFinished.connect(self.update_config_variant)
+        self.target_le.editingFinished.connect(self.update_config_target)
+
+    def update_config_type(self):
+        self.config["type"] = self.type_le.text()
+
+    def update_config_name(self):
+        self.config["name"] = self.name_le.text()
+
+    def update_config_variant(self):
+        variants = [v.strip() for v in self.variant_le.text().split(",")]
+        self.config["variant"] = variants
+
+    def update_config_target(self):
+        targets = [t.strip() for t in self.target_le.text().split(",")]
+        self.config["target"] = targets
+
     def load_last_config_path(self):
         settings_file = os.path.join(
             os.path.expanduser("~"), ".data_centric_fs_creator_settings"
@@ -139,9 +160,9 @@ class FolderStructureCreatorUI(MayaQWidgetDockableMixin, QtWidgets.QDialog):
             }
         return config
 
-    def save_config(self):
-        with open(self.config_path, "w") as f:
-            json.dump(self.config, f, indent=4)
+    # def save_config(self):
+    #     with open(self.config_path, "w") as f:
+    #         json.dump(self.config, f, indent=4)
 
     def set_config_path(self):
         file_name, _ = QtWidgets.QFileDialog.getSaveFileName(
@@ -196,6 +217,9 @@ class FolderStructureCreatorUI(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         base_path = self.path_le.text()
         asset_type = self.type_le.text()
         name = self.name_le.text()
+        if not name:
+            pm.displayWarning("Please set the name of the asset")
+            return
         variants = [v.strip() for v in self.variant_le.text().split(",")]
         targets = [t.strip() for t in self.target_le.text().split(",")]
 
