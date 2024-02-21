@@ -7,6 +7,8 @@ from mgear.vendor.Qt import QtGui, QtWidgets
 from mgear.core import pyqt, widgets
 from mgear.shifter.rig_builder import builder
 
+from functools import partial
+
 
 class RigBuilderUI(
     MayaQWidgetDockableMixin, QtWidgets.QDialog, pyqt.SettingsMixin
@@ -23,13 +25,26 @@ class RigBuilderUI(
         self.resize(550, 650)
 
         self.builder = builder.RigBuilder()
+        self.create_actions()
         self.create_layout()
         self.create_connections()
 
+    def create_actions(self):
+        self.import_action = QtWidgets.QAction("Import Config")
+        self.export_action = QtWidgets.QAction("Export Config")
+
     def create_layout(self):
         """Creates the main layout widgets of the tool."""
+
+        self.menu_bar = QtWidgets.QMenuBar()
+        self.file_menu = self.menu_bar.addMenu("File")
+        self.file_menu.addAction(self.import_action)
+        self.file_menu.addAction(self.export_action)
+
         self.layout = QtWidgets.QVBoxLayout()
         self.setLayout(self.layout)
+
+        self.layout.setMenuBar(self.menu_bar)
 
         # Output Folder UI
         output_folder_layout = QtWidgets.QHBoxLayout()
@@ -131,6 +146,10 @@ class RigBuilderUI(
 
     def create_connections(self):
         """Connects buttons to their functions."""
+
+        self.import_action.triggered.connect(partial(self.import_config, ""))
+        self.export_action.triggered.connect(self.export_config)
+
         self.output_folder_button.clicked.connect(
             self.on_output_folder_clicked
         )
@@ -238,7 +257,7 @@ class RigBuilderUI(
                 {"file_path": file_path, "output_name": output_name}
             )
 
-        return json.dumps(data)
+        return json.dumps(data, indent=4)
 
     def add_file(self, file_path):
         """Adds a .sgt file to the main table.
@@ -278,6 +297,34 @@ class RigBuilderUI(
             file_path = str(url.toLocalFile())
             if file_path.lower().endswith(".sgt"):
                 self.add_file(file_path)
+            if file_path.lower().endswith(".srb"):
+                self.import_config(file_path=file_path)
+
+    def import_config(self, file_path=""):
+        data = builder.RigBuilder.load_config_data_from_file(file_path=file_path)
+
+        self.output_folder_line_edit.setText(data["output_folder"])
+        self.pre_script_line_edit.setText(data["pre_script"])
+
+        self.table_widget.clearContents()
+        data_rows = data["rows"]
+
+        for row in data_rows:
+            row_position = self.table_widget.rowCount()
+            self.table_widget.insertRow(row_position)
+
+            file_item = QtWidgets.QTableWidgetItem(row["file_path"])
+            self.table_widget.setItem(row_position, 0, file_item)
+
+            # For Output Name
+            output_name = row["output_name"]
+            output_item = QtWidgets.QTableWidgetItem(output_name)
+            self.table_widget.setItem(row_position, 1, output_item)
+
+    
+    def export_config(self):
+        data_string = self.collect_table_data()
+        builder.RigBuilder.write_config_data_to_file(data_string)
 
 
 class ResultsPopupDialog(QtWidgets.QDialog):
