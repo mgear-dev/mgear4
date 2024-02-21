@@ -133,7 +133,7 @@ class RigBuilder(object):
             pre_script_path = data.get("pre_script")
             if pre_script_path:
                 io.import_guide_template(file_path)
-                guide_root = cmds.ls('*.ismodel', objectsOnly=True, long=True)
+                guide_root = cmds.ls("*.ismodel", objectsOnly=True, long=True)
                 if guide_root:
                     guide_root = guide_root[0]
                     pm.displayInfo(
@@ -145,8 +145,12 @@ class RigBuilder(object):
                         except Exception as e:
                             error_message = str(e)
                             full_traceback = traceback.format_exc()
-                            pm.displayWarning("Update script failed, check error log")
-                            pm.displayError("Exception message:", error_message)
+                            pm.displayWarning(
+                                "Update script failed, check error log"
+                            )
+                            pm.displayError(
+                                "Exception message:", error_message
+                            )
                             pm.displayError("Full traceback:", full_traceback)
 
                     pm.select(guide_root, r=True)
@@ -154,9 +158,7 @@ class RigBuilder(object):
                     guide_manager.build_from_selection()
                     pm.delete(guide_root)
                 else:
-                    pm.displayWarning(
-                        "Guide not found."
-                    )
+                    pm.displayWarning("Guide not found.")
             else:
                 pm.displayInfo("Building rig '{}'...".format(output_name))
                 io.build_from_file(file_path)
@@ -193,25 +195,23 @@ class RigBuilder(object):
         json_data = self.load_config_data_from_file(file_path)
         self.execute_build_logic(json_data)
 
-
     @classmethod
     def write_config_data_to_file(cls, data_string):
         file_path = pm.fileDialog2(fileMode=0, fileFilter="*.srb")[0]
         if not file_path:
             return
-        
+
         with open(file_path, "w") as fp:
             fp.write(data_string)
 
-
-    @classmethod    
+    @classmethod
     def load_config_data_from_file(cls, file_path=""):
         if not file_path:
             file_path = pm.fileDialog2(fileMode=1, fileFilter="*.srb")[0]
-        
+
         if not file_path:
             return
-        
+
         data = ""
         with open(file_path, "r") as fp:
             data = json.load(fp)
