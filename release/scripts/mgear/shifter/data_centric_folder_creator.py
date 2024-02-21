@@ -7,7 +7,7 @@ from mgear.vendor.Qt import QtGui, QtWidgets, QtCore
 from mgear.core import pyqt, widgets
 
 
-class FolderStructureCreatorUI(QtWidgets.QWidget):
+class FolderStructureCreatorUI(MayaQWidgetDockableMixin, QtWidgets.QDialog):
     def __init__(self, parent=None):
         super(FolderStructureCreatorUI, self).__init__(parent)
         self.setWindowTitle("Data-Centric Folder Structure Creator")
@@ -18,25 +18,48 @@ class FolderStructureCreatorUI(QtWidgets.QWidget):
             self.load_last_config_path() or self.default_config_path
         )
         self.config = self.load_config()
+        self.create_actions()
         self.init_ui()
+        self.setMinimumWidth(200)
+        self.setAcceptDrops(True)
+        self.resize(550, 200)
         self.connect_signals()
 
+    def create_actions(self):
+        self.import_action = QtWidgets.QAction("Import Config")
+        self.export_action = QtWidgets.QAction("Export Config")
+
     def init_ui(self):
+        # menu bar
+        self.menu_bar = QtWidgets.QMenuBar()
+        self.file_menu = self.menu_bar.addMenu("File")
+        self.file_menu.addAction(self.import_action)
+        self.file_menu.addAction(self.export_action)
+
+        # main layout
         self.layout = QtWidgets.QVBoxLayout(self)
+        self.layout.setMenuBar(self.menu_bar)
 
         # Configuration Path UI
         self.config_path_le = QtWidgets.QLineEdit(self.config_path)
-        self.config_path_btn = QtWidgets.QPushButton("Set Config Path")
+        self.config_path_btn = widgets.create_button(
+            icon="mgear_folder", width=25
+        )
         config_path_layout = QtWidgets.QHBoxLayout()
         config_path_layout.addWidget(self.config_path_le)
         config_path_layout.addWidget(self.config_path_btn)
 
+        config_path_groupbox = QtWidgets.QGroupBox("Configuration Path")
+        config_path_groupbox.setLayout(config_path_layout)
+
         # Main Path UI
         self.path_le = QtWidgets.QLineEdit(self.config.get("path", ""))
-        self.path_btn = QtWidgets.QPushButton("...")
+        self.path_btn = widgets.create_button(icon="mgear_folder", width=25)
         main_path_layout = QtWidgets.QHBoxLayout()
         main_path_layout.addWidget(self.path_le)
         main_path_layout.addWidget(self.path_btn)
+        main_path_groupbox = QtWidgets.QGroupBox("Root Path")
+        main_path_groupbox.setLayout(main_path_layout)
 
         # Other Inputs
         self.type_le = QtWidgets.QLineEdit(self.config.get("type", "char"))
@@ -50,29 +73,39 @@ class FolderStructureCreatorUI(QtWidgets.QWidget):
 
         # Buttons
         self.create_btn = QtWidgets.QPushButton("Create Folder Structure")
-        self.export_btn = QtWidgets.QPushButton("Export Config")
-        self.import_btn = QtWidgets.QPushButton("Import Config")
 
+        # settings layout
+        settings_layout = QtWidgets.QVBoxLayout()
+        settings_layout.addWidget(QtWidgets.QLabel("Type:"))
+        settings_layout.addWidget(self.type_le)
+        settings_layout.addWidget(QtWidgets.QLabel("Name:"))
+        settings_layout.addWidget(self.name_le)
+        settings_layout.addWidget(QtWidgets.QLabel("Variant:"))
+        settings_layout.addWidget(self.variant_le)
+        settings_layout.addWidget(QtWidgets.QLabel("Target:"))
+        settings_layout.addWidget(self.target_le)
+        settings_layout.addWidget(self.create_btn)
+        settings_groupbox = QtWidgets.QGroupBox("Settings")
+        settings_groupbox.setLayout(settings_layout)
+
+        # Vertical expander (spacer)
+        vertical_spacer = QtWidgets.QSpacerItem(
+            20,
+            40,
+            QtWidgets.QSizePolicy.Minimum,
+            QtWidgets.QSizePolicy.Expanding,
+        )
         # Layout setup
-        self.layout.addLayout(config_path_layout)
-        self.layout.addWidget(QtWidgets.QLabel("Path:"))
-        self.layout.addLayout(main_path_layout)
-        self.layout.addWidget(QtWidgets.QLabel("Type:"))
-        self.layout.addWidget(self.type_le)
-        self.layout.addWidget(QtWidgets.QLabel("Name:"))
-        self.layout.addWidget(self.name_le)
-        self.layout.addWidget(QtWidgets.QLabel("Variant:"))
-        self.layout.addWidget(self.variant_le)
-        self.layout.addWidget(QtWidgets.QLabel("Target:"))
-        self.layout.addWidget(self.target_le)
-        self.layout.addWidget(self.create_btn)
-        self.layout.addWidget(self.export_btn)
-        self.layout.addWidget(self.import_btn)
+        self.layout.addWidget(config_path_groupbox)
+        self.layout.addWidget(main_path_groupbox)
+        self.layout.addWidget(settings_groupbox)
+        self.layout.addItem(vertical_spacer)
 
     def connect_signals(self):
+        self.import_action.triggered.connect(self.import_config)
+        self.export_action.triggered.connect(self.export_config)
+
         self.create_btn.clicked.connect(self.create_folder_structure)
-        self.export_btn.clicked.connect(self.export_config)
-        self.import_btn.clicked.connect(self.import_config)
         self.config_path_btn.clicked.connect(self.set_config_path)
         self.path_btn.clicked.connect(self.set_main_path)
 
@@ -227,5 +260,4 @@ def openFolderStructureCreator(*args):
 
 
 if __name__ == "__main__":
-    window = FolderStructureCreatorUI()
-    window.show()
+    openFolderStructureCreator()
