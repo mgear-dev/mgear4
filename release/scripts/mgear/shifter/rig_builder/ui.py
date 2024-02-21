@@ -301,7 +301,9 @@ class RigBuilderUI(
                 self.import_config(file_path=file_path)
 
     def import_config(self, file_path=""):
-        data = builder.RigBuilder.load_config_data_from_file(file_path=file_path)
+        data = builder.RigBuilder.load_config_data_from_file(
+            file_path=file_path
+        )
 
         self.output_folder_line_edit.setText(data["output_folder"])
         self.pre_script_line_edit.setText(data["pre_script"])
@@ -321,7 +323,6 @@ class RigBuilderUI(
             output_item = QtWidgets.QTableWidgetItem(output_name)
             self.table_widget.setItem(row_position, 1, output_item)
 
-    
     def export_config(self):
         data_string = self.collect_table_data()
         builder.RigBuilder.write_config_data_to_file(data_string)
