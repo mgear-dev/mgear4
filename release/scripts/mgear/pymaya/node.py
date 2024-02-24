@@ -351,15 +351,38 @@ nt.registerClass("objectSet", cls=ObjectSet)
 class NurbsCurve(_Node):
     def __init__(self, nodename_or_mobject):
         super(NurbsCurve, self).__init__(nodename_or_mobject)
+        self.__fn_curve = OpenMaya.MFnNurbsCurve(self.dagPath())
 
     def length(self):
-        return OpenMaya.MFnNurbsCurve(self.dagPath()).length()
+        return self.__fn_curve.length()
 
     def findParamFromLength(self, l):
-        return OpenMaya.MFnNurbsCurve(self.dagPath()).findParamFromLength(l)
+        return self.__fn_curve.findParamFromLength(l)
 
     def getPointAtParam(self, p):
-        return OpenMaya.MFnNurbsCurve(self.dagPath()).getPointAtParam(p)
+        return self.__fn_curve.getPointAtParam(p)
+
+    def form(self):
+        frm = self.__fn_curve.form
+        if frm == OpenMaya.MFnNurbsCurve.kInvalid:
+            return attr.EnumValue(0, "invalid")
+        elif frm == OpenMaya.MFnNurbsCurve.kOpen:
+            return attr.EnumValue(1, "open")
+        elif frm == OpenMaya.MFnNurbsCurve.kClosed:
+            return attr.EnumValue(2, "closed")
+        elif frm == OpenMaya.MFnNurbsCurve.kPeriodic:
+            return attr.EnumValue(3, "periodic")
+        else:
+            return attr.EnumValue(4, "last")
+
+    def degree(self):
+        return self.__fn_curve.degree
+
+    def getKnots(self):
+        return [x for x in self.__fn_curve.knots()]
+
+    def getCVs(self, space="preTransform"):
+        return [datatypes.Point(x) for x in self.__fn_curve.cvPositions(util.to_mspace(space))]
 
 nt.registerClass("nurbsCurve", cls=NurbsCurve)
 

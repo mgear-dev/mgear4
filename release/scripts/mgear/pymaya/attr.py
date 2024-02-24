@@ -6,6 +6,21 @@ from . import cmd
 from . import exception
 
 
+class EnumValue(object):
+    def __init__(self, key, index):
+        super(EnumValue, self).__init__()
+        self.__key = key
+        self.__index = index
+
+    @property
+    def key(self):
+        return self.__key
+
+    @property
+    def index(self):
+        return self.__index
+
+
 class Attribute(base.Attr):
     __selectionlist = OpenMaya.MSelectionList()
 
