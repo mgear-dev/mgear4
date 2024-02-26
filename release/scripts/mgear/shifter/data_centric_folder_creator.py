@@ -62,6 +62,17 @@ class FolderStructureCreatorUI(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         main_path_groupbox = QtWidgets.QGroupBox("Root Path")
         main_path_groupbox.setLayout(main_path_layout)
 
+        # root folder names
+        self.custom_step_name_le = QtWidgets.QLineEdit(self.config["custom_step_folder"])
+        self.data_name_le = QtWidgets.QLineEdit(self.config["data_folder"])
+        folder_names_layout = QtWidgets.QVBoxLayout()
+        folder_names_layout.addWidget(QtWidgets.QLabel("Custom Step Folder:"))
+        folder_names_layout.addWidget(self.custom_step_name_le)
+        folder_names_layout.addWidget(QtWidgets.QLabel("Data Folder:"))
+        folder_names_layout.addWidget(self.data_name_le)
+        folder_names_groupbox = QtWidgets.QGroupBox("Root Folders Names")
+        folder_names_groupbox.setLayout(folder_names_layout)
+
         # Other Inputs
         self.type_le = QtWidgets.QLineEdit(self.config.get("type", "char"))
         self.name_le = QtWidgets.QLineEdit(self.config.get("name", ""))
@@ -99,6 +110,7 @@ class FolderStructureCreatorUI(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         # Layout setup
         self.layout.addWidget(config_path_groupbox)
         self.layout.addWidget(main_path_groupbox)
+        self.layout.addWidget(folder_names_groupbox)
         self.layout.addWidget(settings_groupbox)
         self.layout.addItem(vertical_spacer)
 
@@ -111,10 +123,18 @@ class FolderStructureCreatorUI(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.path_btn.clicked.connect(self.set_main_path)
 
         # update confing
+        self.custom_step_name_le.editingFinished.connect(self.update_config_custom_step)
+        self.data_name_le.editingFinished.connect(self.update_config_data)
         self.type_le.editingFinished.connect(self.update_config_type)
         self.name_le.editingFinished.connect(self.update_config_name)
         self.variant_le.editingFinished.connect(self.update_config_variant)
         self.target_le.editingFinished.connect(self.update_config_target)
+
+    def update_config_custom_step(self):
+        self.config["custom_step_folder"] = self.custom_step_name_le.text()
+    
+    def update_config_data(self):
+        self.config["data_folder"] = self.data_name_le.text()
 
     def update_config_type(self):
         self.config["type"] = self.type_le.text()
@@ -157,6 +177,8 @@ class FolderStructureCreatorUI(MayaQWidgetDockableMixin, QtWidgets.QDialog):
                 "name": "",
                 "variant": ["default"],
                 "target": ["layout", "anim"],
+                "custom_step_folder": "custom_step",
+                "data_folder": "data",
             }
         return config
 
@@ -214,69 +236,52 @@ class FolderStructureCreatorUI(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         )
 
     def create_folder_structure(self):
-        base_path = self.path_le.text()
-        asset_type = self.type_le.text()
-        name = self.name_le.text()
+        base_path = self.config["path"]
+        custom_step_folder_name = self.config["custom_step_folder"]
+        data_folder_name = self.config["data_folder"]
+        asset_type = self.config["type"]
+        name = self.config["name"]
         if not name:
             pm.displayWarning("Please set the name of the asset")
             return
-        variants = [v.strip() for v in self.variant_le.text().split(",")]
-        targets = [t.strip() for t in self.target_le.text().split(",")]
+        variants = self.config["variant"]
+        targets = self.config["target"]
 
-        for variant in variants:
-            for target in targets:
-                # Define paths for data and custom_step directories
-                data_paths = [
-                    os.path.join(
-                        base_path,
-                        "data",
-                        asset_type,
-                        name,
-                        variant,
-                        target,
-                        subdir,
-                    )
-                    for subdir in ["data", "assets"]
-                ]
-                custom_step_paths = [
-                    os.path.join(
-                        base_path,
-                        "custom_step",
-                        asset_type,
-                        name,
-                        variant,
-                        target,
-                        subdir,
-                    )
-                    for subdir in ["pre", "post"]
-                ]
-                shared_data_path = os.path.join(
-                    base_path, "data", asset_type, name, "_shared"
-                )
-                shared_custom_path = os.path.join(
-                    base_path, "custom_step", asset_type, name, "_shared"
-                )
+        def create_folder(path):
+            # determines sub_folders based on whether data_folder_name is in path 
+            sub_dirs = ["data", "assets"] if data_folder_name in path else ["pre", "post"]
+            for sub_dir in sub_dirs:
+                sub_dir_path = os.path.join(path, sub_dir)
+                if not os.path.exists(sub_dir_path):
+                    os.makedirs(sub_dir_path)
 
-                # Create directories
-                for path in data_paths + custom_step_paths:
-                    if not os.path.exists(path):
-                        os.makedirs(path)
 
-                # Create _shared directories
-                for subdir in ["data", "assets"]:
-                    path = os.path.join(shared_data_path, subdir)
-                    if not os.path.exists(path):
-                        os.makedirs(path)
-                for subdir in ["pre", "post"]:
-                    path = os.path.join(shared_custom_path, subdir)
-                    if not os.path.exists(path):
-                        os.makedirs(path)
+        for root_folder in [custom_step_folder_name, data_folder_name]:
+            root_shared = os.path.join(base_path, root_folder, "_shared")
+            create_folder(root_shared)
+            
+            asset_type_shared = os.path.join(base_path, root_folder, asset_type, "_shared")
+            create_folder(asset_type_shared)
+
+            name_shared = os.path.join(base_path, root_folder, asset_type, name, "_shared")
+            create_folder(name_shared)
+
+            for variant in variants:
+                variant_shared = os.path.join(base_path, root_folder, asset_type, name, variant, "_shared")
+                create_folder(variant_shared)
+
+                for target in targets:
+
+                    path = os.path.join(base_path, root_folder, asset_type, name, variant, target)
+                    create_folder(path)
 
         QtWidgets.QMessageBox.information(
             self,
             "Success",
             "Data Centric Folder structure created successfully.",
         )
+
+       
 
 
 def openFolderStructureCreator(*args):
