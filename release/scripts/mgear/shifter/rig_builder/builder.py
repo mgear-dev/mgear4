@@ -111,7 +111,10 @@ class RigBuilder(object):
             validate (bool): Option to run Pyblish validators
             passed_only (bool): Option to publish only rigs that pass validation
         """
-        data = json_data
+        if type(json_data) is str:
+            data = json.loads(json_data)
+        else:
+            data = json_data
 
         data_rows = data.get("rows")
         if not data_rows:
