@@ -828,7 +828,7 @@ def gear_inverseRotorder_op(out_obj, in_obj):
     return node
 
 
-def create_proximity_constraint(shape, in_trans, existing_pin=None):
+def create_proximity_constraint(shape, in_trans, existing_pin=None, mtx_connect=True, out_trans=None):
     """Create a proximity constraint between a shape and a transform.
 
     Args:
@@ -883,12 +883,16 @@ def create_proximity_constraint(shape, in_trans, existing_pin=None):
         shape_orig.outMesh >> pin.originalGeometry
 
     # Connect in_trans to the found or default idx
-    in_trans.matrix >> pin.inputMatrix[idx]
+    if mtx_connect:
+        in_trans.matrix >> pin.inputMatrix[idx]
+    else:
+        pin.inputMatrix[idx].set(in_trans.matrix.get())
 
-    # Create the output transform
-    out_trans = pm.createNode(
-        "transform", n="{}_pinTrans{}".format(shape, idx)
-    )
+    if not out_trans:
+        # Create the output transform
+        out_trans = pm.createNode(
+            "transform", n="{}_pinTrans{}".format(shape, idx)
+        )
 
     # Set the input connections for the output transform
     pin.outputMatrix[idx] >> out_trans.offsetParentMatrix
