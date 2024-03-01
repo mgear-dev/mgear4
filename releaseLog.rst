@@ -1,6 +1,20 @@
 Release Log
 ===========
 
+4.2.4
+------
+
+**Enhancements**
+	* Shifter: Update data collector #383
+	* Shifter: New joint structure options: World oriented #384
+	* Crank: New functions and Crank channel box #386
+	* Shifter: Rig Builder: IO for configurations and option to run from script #388
+	* Shifter: Data Centric folder structure creator #390
+
+
+**Bug Fix**
+	* Crank: new targets are not keeping Edit on by default #386
+
 4.2.2
 ------
 **Bug Fix**
