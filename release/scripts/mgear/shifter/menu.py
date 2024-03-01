@@ -60,6 +60,12 @@ def install():
         ("-----", None),
         ("Reload Components", str_reloadComponents, "mgear_refresh-cw.svg"),
         ("-----", None),
+        (
+            "Data-Centric Folders Creator",
+            str_dataCentricFolders,
+            "mgear_folder.svg",
+        ),
+        ("-----", None),
         (None, log_submenu),
     )
 
@@ -133,7 +139,10 @@ def mocap_submenu(parent_menu_id):
     commands = (
         ("Human IK Mapper", str_mocap_humanIKMapper, "mgear_mocap.svg"),
         ("-----", None),
-        ("Import Mocap Skeleton Biped (Legacy)", str_mocap_importSkeletonBiped),
+        (
+            "Import Mocap Skeleton Biped (Legacy)",
+            str_mocap_importSkeletonBiped,
+        ),
         ("Characterize Biped (Legacy)", str_mocap_characterizeBiped),
         ("Bake Mocap Biped (Legacy)", str_mocap_bakeMocap),
     )
@@ -374,4 +383,9 @@ ui.openRigBuilderUI()
 str_matchGuide = """
 from mgear.shifter import guide_manager
 guide_manager.snap_guide_to_root_joint()
+"""
+
+str_dataCentricFolders = """
+import mgear.shifter.data_centric_folder_creator as dcfc
+dcfc.openFolderStructureCreator()
 """
