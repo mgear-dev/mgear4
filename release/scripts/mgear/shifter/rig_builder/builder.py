@@ -128,6 +128,14 @@ class RigBuilder(object):
             output_folder = data.get("output_folder")
             if not output_folder:
                 output_folder = os.path.dirname(file_path)
+            
+            custom_output_path = row.get("custom_output_path")
+            
+            # if row has a custom path, override output folder with custom path
+            if custom_output_path:
+                print(f"custom output{custom_output_path}")
+                output_folder = custom_output_path
+                
 
             output_name = row.get("output_name")
             maya_file_name = "{}.ma".format(output_name)
@@ -140,7 +148,7 @@ class RigBuilder(object):
                 if guide_root:
                     guide_root = guide_root[0]
                     pm.displayInfo(
-                        "Updating the guide with: {}".format(pre_script_path)
+                        "Updating the guide with pre-script: {}".format(pre_script_path)
                     )
                     with open(pre_script_path, "r") as file:
                         try:
@@ -165,6 +173,26 @@ class RigBuilder(object):
             else:
                 pm.displayInfo("Building rig '{}'...".format(output_name))
                 io.build_from_file(file_path)
+
+            post_script_path = data.get("post_script")
+            
+            if post_script_path:
+                pm.displayInfo(
+                        "Updating the guide with post-script: {}".format(post_script_path)
+                    )
+                with open(post_script_path, "r") as file:
+                    try:
+                        exec(file.read())
+                    except Exception as e:
+                        error_message = str(e)
+                        full_traceback = traceback.format_exc()
+                        pm.displayWarning(
+                            "Update script failed, check error log"
+                        )
+                        pm.displayError(
+                            "Exception message:", error_message
+                        )
+                        pm.displayError("Full traceback:", full_traceback)
 
             context = None
             save_build = True
