@@ -67,7 +67,7 @@ def create_square_polygon(
 
     # Create mesh
     mesh_fn = om2.MFnMesh()
-    new_mesh = mesh_fn.create(points, [4], [0, 1, 2, 3])
+    mesh_fn.create(points, [4], [0, 1, 2, 3])
 
     # Get the transform node of the created mesh
     new_mesh_name = mesh_fn.fullPathName()
@@ -86,8 +86,68 @@ def create_square_polygon(
     return transform_node
 
 
-if __name__ == "__main__":
+def create_square_polygon_with_reference(
+    side_length=1.0, alignment="Y", name=None, reference_matrix=None
+):
+    """
+    Creates a square polygon face with its normal aligned and positioned
+    according to the transformation matrix of a reference object and applies
+    the default shader. The alignment is corrected to ensure the polygon
+    aligns with the Y-axis as intended.
 
-    create_square_polygon(
-        side_length=0.5, alignment="Y", name=None, position=(0, 5, 0)
+    Args:
+        side_length (float, optional): The length of each side of the square.
+            Defaults to 1.0.
+        alignment (str, optional): The axis ('X', 'Y', 'Z') along which the
+            square's normal will be aligned based on the reference object.
+            Defaults to 'Y'.
+        name (str, optional): The name of the new polygon object. If None,
+            Maya will assign a default name.
+        reference_matrix (matrix, optional): The matrix used for alignment and
+            positioning.
+
+    Returns:
+        pm.nt.Transform: The PyNode transform of the newly created polygon object.
+    """
+    if reference_matrix is None:
+        pm.displayWarning("Reference matrix is not specified. Aborting.")
+        return None
+
+    # # Retrieve the world matrix from the reference object
+    # reference_matrix = reference_object.getMatrix(worldSpace=True)
+    ref_matrix_mfn = om2.MTransformationMatrix(om2.MMatrix(reference_matrix))
+
+    half_length = side_length / 2.0
+    points = om2.MPointArray()
+
+    # Adjust base points for square polygon to ensure proper alignment with the Y-axis
+    vectors = [
+        (-half_length, 0, half_length),  # Top-Left
+        (half_length, 0, half_length),  # Top-Right
+        (half_length, 0, -half_length),  # Bottom-Right
+        (-half_length, 0, -half_length),  # Bottom-Left
+    ]
+
+    for vec in vectors:
+        point = om2.MPoint(vec) * ref_matrix_mfn.asMatrix()
+        points.append(point)
+
+    # Create mesh
+    mesh_fn = om2.MFnMesh()
+    mesh_fn.create(points, [4], [0, 1, 2, 3])
+
+    # Get the transform node of the created mesh and apply the default shader
+    new_mesh_transform = pm.listRelatives(
+        pm.PyNode(mesh_fn.fullPathName()), parent=True
+    )[0]
+    if name:
+        new_mesh_transform = new_mesh_transform.rename(name)
+
+    # Apply default shader (lambert1) to the new object
+    pm.sets(
+        "initialShadingGroup",
+        edit=True,
+        forceElement=new_mesh_transform.name(),
     )
+
+    return new_mesh_transform
