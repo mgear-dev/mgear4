@@ -1676,6 +1676,56 @@ class Main(object):
                     pm.setAttr(node_name + ".colorIfFalseR", 0)
                     pm.connectAttr(node_name + ".outColorR", attr)
 
+    def connect_orientCns2(self):
+        """Connection with ori cns
+
+        Connection definition using orientation constraint.
+        maintainOffset flag is not working correctly.
+        In connect_orientCns2 we add an extra transform as reference to avoid
+        offsets
+
+        """
+
+        self.parent.addChild(self.root)
+        mtx = self.ik_cns.getMatrix(worldSpace=True)
+
+        refArray = self.settings["ikrefarray"]
+
+        if refArray:
+            ref_names = self.get_valid_ref_list(refArray.split(","))
+            if len(ref_names) == 1:
+                ref = self.rig.findRelative(ref_names[0])
+                pm.parent(self.ik_cns, ref)
+            else:
+                ref = []
+                for ref_name in ref_names:
+                    ref.append(self.rig.findRelative(ref_name))
+
+                # ref.append(self.ik_cns)
+                ref_off = []
+                for r in ref:
+                    cns_off = primitive.addTransform(
+                        r,
+                        r.name() + "_offset",
+                        m=mtx,
+                    )
+                    ref_off.append(cns_off)
+                ref_off.append(self.ik_cns)
+                cns_node = pm.orientConstraint(*ref_off, maintainOffset=False)
+                cns_attr = pm.orientConstraint(
+                    cns_node, query=True, weightAliasList=True
+                )
+
+                for i, attr in enumerate(cns_attr):
+                    pm.setAttr(attr, 1.0)
+                    node_name = pm.createNode("condition")
+                    pm.connectAttr(self.ikref_att, node_name + ".firstTerm")
+                    pm.setAttr(node_name + ".secondTerm", i)
+                    pm.setAttr(node_name + ".operation", 0)
+                    pm.setAttr(node_name + ".colorIfTrueR", 1)
+                    pm.setAttr(node_name + ".colorIfFalseR", 0)
+                    pm.connectAttr(node_name + ".outColorR", attr)
+
     def connect_standardWithSimpleIkRef(self):
         """Standard connection definition with simple IK reference."""
 
