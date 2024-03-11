@@ -1105,6 +1105,7 @@ def _parent_pivot(pivot, parent):
                           "valid simple rig ctl.".format(parent.name()))
 
 
+@utils.one_undo
 def _edit_pivot_position(ctl):
     """Edit control pivot
 
@@ -1139,6 +1140,7 @@ def _edit_pivot_position(ctl):
         return
 
 
+@utils.one_undo
 def _consolidate_pivot_position(ctl):
     """Consolidate the pivot position after editing
 
@@ -1154,7 +1156,10 @@ def _consolidate_pivot_position(ctl):
         npo = ctl.getParent()
         attribute.unlockAttribute(npo)
         children = npo.listRelatives(type="transform")
-        pm.parent(children, rig)
+        if children:
+            for ch in children:
+                attribute.unlockAttribute(ch)
+            pm.parent(children, rig)
         # filter out the ctl
         children = [c for c in children if c != ctl]
         # set the npo to his position
@@ -1163,6 +1168,8 @@ def _consolidate_pivot_position(ctl):
         # reparent childrens
         if children:
             pm.parent(children, ctl)
+            for ch in children:
+                attribute.lockAttribute(ch)
         # re-connect/update driven elements
         _update_driven(ctl)
         ctl.attr("edit_mode").set(False)
