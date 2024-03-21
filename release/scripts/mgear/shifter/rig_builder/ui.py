@@ -8,6 +8,7 @@ from mgear.core import pyqt, widgets
 from mgear.shifter.rig_builder import builder
 
 from functools import partial
+import pymel.core as pm
 
 
 class RigBuilderUI(
@@ -54,7 +55,6 @@ class RigBuilderUI(
         self.output_folder_button = widgets.create_button(
             icon="mgear_folder", width=25
         )
-
 
         output_folder_layout.addWidget(QtWidgets.QLabel("Output Folder"))
         output_folder_layout.addWidget(self.output_folder_line_edit)
@@ -113,8 +113,6 @@ class RigBuilderUI(
         self.table_widget.horizontalHeader().setSectionResizeMode(
             3, QtWidgets.QHeaderView.ResizeToContents
         )
-
-        
 
         self.layout.addWidget(self.table_widget)
 
@@ -256,16 +254,24 @@ class RigBuilderUI(
         for i in range(row_count):
             file_path_item = self.table_widget.item(i, 0)
             output_name_item = self.table_widget.item(i, 1)
-            custom_output_path_item = self.table_widget.item(i, 2) 
+            custom_output_path_item = self.table_widget.item(i, 2)
 
             file_path = file_path_item.text().strip() if file_path_item else ""
             output_name = (
                 output_name_item.text().strip() if output_name_item else ""
             )
-            custom_output_path = custom_output_path_item.text().strip() if custom_output_path_item else ""
+            custom_output_path = (
+                custom_output_path_item.text().strip()
+                if custom_output_path_item
+                else ""
+            )
 
             data["rows"].append(
-                {"file_path": file_path, "output_name": output_name, "custom_output_path":custom_output_path}
+                {
+                    "file_path": file_path,
+                    "output_name": output_name,
+                    "custom_output_path": custom_output_path,
+                }
             )
 
         return json.dumps(data, indent=4)
@@ -291,10 +297,16 @@ class RigBuilderUI(
         custom_output_path = QtWidgets.QTableWidgetItem("")
         self.table_widget.setItem(row_position, 2, custom_output_path)
 
-        set_custom_output_bttn = widgets.create_button(icon="mgear_folder", setMax=False, size=37.5)
-        
-        self.table_widget.setCellWidget(row_position, 3, set_custom_output_bttn)
-        set_custom_output_bttn.clicked.connect(partial(self.on_custom_path_clicked, custom_output_path))
+        set_custom_output_bttn = widgets.create_button(
+            icon="mgear_folder", setMax=False, size=37.5
+        )
+
+        self.table_widget.setCellWidget(
+            row_position, 3, set_custom_output_bttn
+        )
+        set_custom_output_bttn.clicked.connect(
+            partial(self.on_custom_path_clicked, custom_output_path)
+        )
 
     def create_results_popup(self, results_dict):
         """Launches a pop-up containing validator results.
@@ -326,7 +338,10 @@ class RigBuilderUI(
 
         self.output_folder_line_edit.setText(data["output_folder"])
         self.pre_script_line_edit.setText(data["pre_script"])
-        self.post_script_line_edit.setText(data["post_script"])
+        try:
+            self.post_script_line_edit.setText(data["post_script"])
+        except KeyError:
+            pm.displayInfo("Post Script not available in Config")
 
         self.table_widget.clearContents()
         data_rows = data["rows"]
@@ -343,14 +358,25 @@ class RigBuilderUI(
             output_item = QtWidgets.QTableWidgetItem(output_name)
             self.table_widget.setItem(row_position, 1, output_item)
 
-            custom_output_path = row["custom_output_path"]
-            custom_output_path_item = QtWidgets.QTableWidgetItem(custom_output_path)
+            try:
+                custom_output_path = row["custom_output_path"]
+            except KeyError:
+                custom_output_path = ""
+            custom_output_path_item = QtWidgets.QTableWidgetItem(
+                custom_output_path
+            )
             self.table_widget.setItem(row_position, 2, custom_output_path_item)
 
-            set_custom_output_bttn = widgets.create_button(icon="mgear_folder", setMax=False, size=37.5)
-            
-            self.table_widget.setCellWidget(row_position, 3, set_custom_output_bttn)
-            set_custom_output_bttn.clicked.connect(partial(self.on_custom_path_clicked, custom_output_path_item))
+            set_custom_output_bttn = widgets.create_button(
+                icon="mgear_folder", setMax=False, size=37.5
+            )
+
+            self.table_widget.setCellWidget(
+                row_position, 3, set_custom_output_bttn
+            )
+            set_custom_output_bttn.clicked.connect(
+                partial(self.on_custom_path_clicked, custom_output_path_item)
+            )
 
     def export_config(self):
         data_string = self.collect_table_data()
@@ -363,7 +389,6 @@ class RigBuilderUI(
         )
         if folder_path:
             custom_path_widget.setText(folder_path)
-
 
 
 class ResultsPopupDialog(QtWidgets.QDialog):
