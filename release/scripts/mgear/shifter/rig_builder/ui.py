@@ -55,6 +55,7 @@ class RigBuilderUI(
             icon="mgear_folder", width=25
         )
 
+
         output_folder_layout.addWidget(QtWidgets.QLabel("Output Folder"))
         output_folder_layout.addWidget(self.output_folder_line_edit)
         output_folder_layout.addWidget(self.output_folder_button)
@@ -126,7 +127,7 @@ class RigBuilderUI(
             icon="mgear_folder", width=25
         )
 
-        pre_script_layout.addWidget(QtWidgets.QLabel("Edit Guide Pre Script"))
+        pre_script_layout.addWidget(QtWidgets.QLabel("Pre Script"))
         pre_script_layout.addWidget(self.pre_script_line_edit)
         pre_script_layout.addWidget(self.pre_script_button)
 
@@ -290,7 +291,8 @@ class RigBuilderUI(
         custom_output_path = QtWidgets.QTableWidgetItem("")
         self.table_widget.setItem(row_position, 2, custom_output_path)
 
-        set_custom_output_bttn = widgets.create_button(icon="mgear_folder", width=40, size=45)
+        set_custom_output_bttn = widgets.create_button(icon="mgear_folder", setMax=False, size=37.5)
+        
         self.table_widget.setCellWidget(row_position, 3, set_custom_output_bttn)
         set_custom_output_bttn.clicked.connect(partial(self.on_custom_path_clicked, custom_output_path))
 
@@ -345,9 +347,10 @@ class RigBuilderUI(
             custom_output_path_item = QtWidgets.QTableWidgetItem(custom_output_path)
             self.table_widget.setItem(row_position, 2, custom_output_path_item)
 
-            set_custom_output_bttn = widgets.create_button(icon="mgear_folder", width=40, size=45)
+            set_custom_output_bttn = widgets.create_button(icon="mgear_folder", setMax=False, size=37.5)
+            
             self.table_widget.setCellWidget(row_position, 3, set_custom_output_bttn)
-            set_custom_output_bttn.clicked.connect(partial(self.on_custom_path_clicked, custom_output_path))
+            set_custom_output_bttn.clicked.connect(partial(self.on_custom_path_clicked, custom_output_path_item))
 
     def export_config(self):
         data_string = self.collect_table_data()
