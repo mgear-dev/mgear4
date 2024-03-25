@@ -44,8 +44,11 @@ def getSkinCluster(obj, first_SC=False):
     if isinstance(obj, string_types):
         obj = pm.PyNode(obj)
     try:
-        if (pm.nodeType(obj.getShape())
-                in ["mesh", "nurbsSurface", "nurbsCurve"]):
+        if pm.nodeType(obj.getShape()) in [
+            "mesh",
+            "nurbsSurface",
+            "nurbsCurve",
+        ]:
 
             for shape in obj.getShapes():
                 try:
@@ -149,6 +152,7 @@ def getCurrentWeights(skinCls, dagPath, components):
     skinCls.__apimfn__().getWeights(dagPath, components, weights, pUInt)
     return weights
 
+
 ######################################
 # Skin Collectors
 ######################################
@@ -170,10 +174,10 @@ def collectInfluenceWeights(skinCls, dagPath, components, dataDic):
             if weights[jj * numInfluences + ii] != 0.0
         }
         # cast to float to avoid rounding errors when dividing integers?
-        dataDic['vertexCount'] = int(weights.length() / float(numInfluences))
+        dataDic["vertexCount"] = int(weights.length() / float(numInfluences))
         # cast influenceWithoutNamespace as string otherwise it can end up
         # as DependNodeName(u'jointName') in the data.
-        dataDic['weights'][str(influenceWithoutNamespace)] = inf_w
+        dataDic["weights"][str(influenceWithoutNamespace)] = inf_w
 
 
 def collectBlendWeights(skinCls, dagPath, components, dataDic):
@@ -181,7 +185,7 @@ def collectBlendWeights(skinCls, dagPath, components, dataDic):
     skinCls.__apimfn__().getBlendWeights(dagPath, components, weights)
     # round the weights down. This should be safe on Dual Quat blends
     # because it is not normalized. And 6 should be more than accurate enough.
-    dataDic['blendWeights'] = {
+    dataDic["blendWeights"] = {
         i: round(weights[i], 6)
         for i in range(weights.length())
         if round(weights[i], 6) != 0.0
@@ -193,15 +197,16 @@ def collectData(skinCls, dataDic):
     collectInfluenceWeights(skinCls, dagPath, components, dataDic)
     collectBlendWeights(skinCls, dagPath, components, dataDic)
 
-    for attr in ['skinningMethod', 'normalizeWeights']:
+    for attr in ["skinningMethod", "normalizeWeights"]:
         dataDic[attr] = skinCls.attr(attr).get()
 
-    dataDic['skinClsName'] = skinCls.name()
+    dataDic["skinClsName"] = skinCls.name()
 
 
 ######################################
 # Skin export
 ######################################
+
 
 def exportSkin(filePath=None, objs=None, *args):
     if not objs:
@@ -211,27 +216,25 @@ def exportSkin(filePath=None, objs=None, *args):
             pm.displayWarning("Please Select One or more objects")
             return False
 
-    packDic = {"objs": [],
-               "objDDic": [],
-               "bypassObj": []
-               }
+    packDic = {"objs": [], "objDDic": [], "bypassObj": []}
 
     if not filePath:
 
         f2 = "jSkin ASCII  (*{});;gSkin Binary (*{})".format(
-            FILE_JSON_EXT, FILE_EXT)
+            FILE_JSON_EXT, FILE_EXT
+        )
         f3 = ";;All Files (*.*)"
         fileFilters = f2 + f3
-        filePath = pm.fileDialog2(fileMode=0,
-                                  fileFilter=fileFilters)
+        filePath = pm.fileDialog2(fileMode=0, fileFilter=fileFilters)
         if filePath:
             filePath = filePath[0]
 
         else:
             return False
 
-    if (not filePath.endswith(FILE_EXT)
-            and not filePath.endswith(FILE_JSON_EXT)):
+    if not filePath.endswith(FILE_EXT) and not filePath.endswith(
+        FILE_JSON_EXT
+    ):
         # filePath += file_ext
         pm.displayWarning("Not valid file extension for: {}".format(filePath))
         return
@@ -242,7 +245,8 @@ def exportSkin(filePath=None, objs=None, *args):
         skinCls = getSkinCluster(obj)
         if not skinCls:
             pm.displayWarning(
-                obj.name() + ": Skipped because don't have Skin Cluster")
+                obj.name() + ": Skipped because don't have Skin Cluster"
+            )
             pass
         else:
             # start by pruning by a tiny amount. Enough to not make  noticeable
@@ -252,14 +256,15 @@ def exportSkin(filePath=None, objs=None, *args):
                 # TODO: Implement pruning on nurbs. Less straight-forward
                 pm.skinPercent(skinCls, obj, pruneWeights=0.001)
 
-            dataDic = {'weights': {},
-                       'blendWeights': [],
-                       'skinClsName': "",
-                       'objName': "",
-                       'nameSpace': "",
-                       'vertexCount': 0,
-                       'skinDataFormat': 'compressed',
-                       }
+            dataDic = {
+                "weights": {},
+                "blendWeights": [],
+                "skinClsName": "",
+                "objName": "",
+                "nameSpace": "",
+                "vertexCount": 0,
+                "skinDataFormat": "compressed",
+            }
 
             dataDic["objName"] = obj.name()
             dataDic["nameSpace"] = obj.namespace()
@@ -270,17 +275,20 @@ def exportSkin(filePath=None, objs=None, *args):
             packDic["objDDic"].append(dataDic)
             exportMsg = "Exported skinCluster {} ({} influences, {} points) {}"
             pm.displayInfo(
-                exportMsg.format(skinCls.name(),
-                                 len(dataDic['weights'].keys()),
-                                 len(dataDic['blendWeights']),
-                                 obj.name()))
+                exportMsg.format(
+                    skinCls.name(),
+                    len(dataDic["weights"].keys()),
+                    len(dataDic["blendWeights"]),
+                    obj.name(),
+                )
+            )
 
     if packDic["objs"]:
         if filePath.endswith(FILE_EXT):
-            with open(filePath, 'wb') as fp:
+            with open(filePath, "wb") as fp:
                 pickle.dump(packDic, fp, pickle.HIGHEST_PROTOCOL)
         else:
-            with open(filePath, 'w') as fp:
+            with open(filePath, "w") as fp:
                 json.dump(packDic, fp, indent=4, sort_keys=True)
 
         return True
@@ -299,14 +307,12 @@ def exportSkinPack(packPath=None, objs=None, use_json=False, *args):
             pm.displayWarning("Please Select Some Objects")
             return
 
-    packDic = {
-        "packFiles": [],
-        "rootPath": []
-    }
+    packDic = {"packFiles": [], "rootPath": []}
 
     if packPath is None:
-        packPath = pm.fileDialog2(fileMode=0,
-                                  fileFilter='mGear skinPack (*%s)' % PACK_EXT)
+        packPath = pm.fileDialog2(
+            fileMode=0, fileFilter="mGear skinPack (*%s)" % PACK_EXT
+        )
         if not packPath:
             return
         packPath = packPath[0]
@@ -327,20 +333,24 @@ def exportSkinPack(packPath=None, objs=None, use_json=False, *args):
             pm.displayInfo(filePath)
         else:
             pm.displayWarning(
-                obj.name() + ": Skipped because don't have Skin Cluster")
+                obj.name() + ": Skipped because don't have Skin Cluster"
+            )
 
     if packDic["packFiles"]:
         data_string = json.dumps(packDic, indent=4, sort_keys=True)
-        with open(packPath, 'w') as f:
+        with open(packPath, "w") as f:
             f.write(data_string + "\n")
         pm.displayInfo("Skin Pack exported: " + packPath)
     else:
-        pm.displayWarning("Any of the selected objects have Skin Cluster. "
-                          "Skin Pack export aborted.")
+        pm.displayWarning(
+            "Any of the selected objects have Skin Cluster. "
+            "Skin Pack export aborted."
+        )
 
 
 def exportJsonSkinPack(packPath=None, objs=None, *args):
     exportSkinPack(packPath, objs, use_json=True)
+
 
 ######################################
 # Skin setters
@@ -354,7 +364,7 @@ def setInfluenceWeights(skinCls, dagPath, components, dataDic, compressed):
     numInfluences = skinCls.__apimfn__().influenceObjects(influencePaths)
     numComponentsPerInfluence = int(weights.length() / numInfluences)
 
-    for importedInfluence, wtValues in dataDic['weights'].items():
+    for importedInfluence, wtValues in dataDic["weights"].items():
         for ii in range(influencePaths.length()):
             influenceName = influencePaths[ii].partialPathName()
             nnspace = pm.PyNode(influenceName).stripNamespace()
@@ -379,11 +389,9 @@ def setInfluenceWeights(skinCls, dagPath, components, dataDic, compressed):
     influenceIndices = OpenMaya.MIntArray(numInfluences)
     for ii in range(numInfluences):
         influenceIndices.set(ii, ii)
-    skinCls.__apimfn__().setWeights(dagPath,
-                                    components,
-                                    influenceIndices,
-                                    weights,
-                                    False)
+    skinCls.__apimfn__().setWeights(
+        dagPath, components, influenceIndices, weights, False
+    )
 
 
 def setBlendWeights(skinCls, dagPath, components, dataDic, compressed):
@@ -392,14 +400,14 @@ def setBlendWeights(skinCls, dagPath, components, dataDic, compressed):
         # set it to 0.0. JSON keys can't be integers. The vtx number key
         # is unicode. example: vtx[35] would be: u"35": 0.6974,
         # But the binary format is still an int, so cast the key to int.
-        blendWeights = OpenMaya.MDoubleArray(dataDic['vertexCount'])
-        for key, value in dataDic['blendWeights'].items():
+        blendWeights = OpenMaya.MDoubleArray(dataDic["vertexCount"])
+        for key, value in dataDic["blendWeights"].items():
             blendWeights.set(value, int(key))
     else:
         # The original weight format was a full list for every vertex
         # For backwards compatibility on older skin files:
-        blendWeights = OpenMaya.MDoubleArray(len(dataDic['blendWeights']))
-        for ii, w in enumerate(dataDic['blendWeights']):
+        blendWeights = OpenMaya.MDoubleArray(len(dataDic["blendWeights"]))
+        for ii, w in enumerate(dataDic["blendWeights"]):
             blendWeights.set(w, ii)
 
     skinCls.__apimfn__().setBlendWeights(dagPath, components, blendWeights)
@@ -408,7 +416,7 @@ def setBlendWeights(skinCls, dagPath, components, dataDic, compressed):
 def setData(skinCls, dataDic, compressed):
     dagPath, components = getGeometryComponents(skinCls)
     setInfluenceWeights(skinCls, dagPath, components, dataDic, compressed)
-    for attr in ['skinningMethod', 'normalizeWeights']:
+    for attr in ["skinningMethod", "normalizeWeights"]:
         skinCls.attr(attr).set(dataDic[attr])
     setBlendWeights(skinCls, dagPath, components, dataDic, compressed)
 
@@ -421,20 +429,20 @@ def setData(skinCls, dataDic, compressed):
 def _getObjsFromSkinFile(filePath=None, *args):
     # retrive the object names inside gSkin file
     if not filePath:
-        f1 = 'mGear Skin (*{0} *{1})'.format(FILE_EXT, FILE_JSON_EXT)
+        f1 = "mGear Skin (*{0} *{1})".format(FILE_EXT, FILE_JSON_EXT)
         f2 = ";;gSkin Binary (*{0});;jSkin ASCII  (*{1})".format(
-            FILE_EXT, FILE_JSON_EXT)
+            FILE_EXT, FILE_JSON_EXT
+        )
         f3 = ";;All Files (*.*)"
         fileFilters = f1 + f2 + f3
-        filePath = pm.fileDialog2(fileMode=1,
-                                  fileFilter=fileFilters)
+        filePath = pm.fileDialog2(fileMode=1, fileFilter=fileFilters)
     if not filePath:
         return
     if not isinstance(filePath, string_types):
         filePath = filePath[0]
 
     # Read in the file
-    with open(filePath, 'r') as fp:
+    with open(filePath, "r") as fp:
         if filePath.endswith(FILE_EXT):
             data = pickle.load(fp)
         else:
@@ -453,13 +461,13 @@ def getObjsFromSkinFile(filePath=None, *args):
 def importSkin(filePath=None, *args):
 
     if not filePath:
-        f1 = 'mGear Skin (*{0} *{1})'.format(FILE_EXT, FILE_JSON_EXT)
+        f1 = "mGear Skin (*{0} *{1})".format(FILE_EXT, FILE_JSON_EXT)
         f2 = ";;gSkin Binary (*{0});;jSkin ASCII  (*{1})".format(
-            FILE_EXT, FILE_JSON_EXT)
+            FILE_EXT, FILE_JSON_EXT
+        )
         f3 = ";;All Files (*.*)"
         fileFilters = f1 + f2 + f3
-        filePath = pm.fileDialog2(fileMode=1,
-                                  fileFilter=fileFilters)
+        filePath = pm.fileDialog2(fileMode=1, fileFilter=fileFilters)
     if not filePath:
         return
     if not isinstance(filePath, string_types):
@@ -467,10 +475,10 @@ def importSkin(filePath=None, *args):
 
     # Read in the file
     if filePath.endswith(FILE_EXT):
-        with open(filePath, 'rb') as fp:
+        with open(filePath, "rb") as fp:
             dataPack = pickle.load(fp)
     else:
-        with open(filePath, 'r') as fp:
+        with open(filePath, "r") as fp:
             dataPack = json.load(fp)
 
     for data in dataPack["objDDic"]:
@@ -478,8 +486,8 @@ def importSkin(filePath=None, *args):
         # use a skinDataFormat key to check for backwards compatibility.
         # If it doesn't exist, just continue with the old method.
         compressed = False
-        if 'skinDataFormat' in data:
-            if data['skinDataFormat'] == 'compressed':
+        if "skinDataFormat" in data:
+            if data["skinDataFormat"] == "compressed":
                 compressed = True
 
         try:
@@ -506,14 +514,16 @@ def importSkin(filePath=None, *args):
                     meshVertices = 0
 
                 if compressed:
-                    importedVertices = data['vertexCount']
+                    importedVertices = data["vertexCount"]
                 else:
-                    importedVertices = len(data['blendWeights'])
+                    importedVertices = len(data["blendWeights"])
                 if meshVertices != importedVertices:
-                    warningMsg = 'Vertex counts on {} do not match. {} != {}'
-                    pm.displayWarning(warningMsg.format(objName,
-                                                        meshVertices,
-                                                        importedVertices))
+                    warningMsg = "Vertex counts on {} do not match. {} != {}"
+                    pm.displayWarning(
+                        warningMsg.format(
+                            objName, meshVertices, importedVertices
+                        )
+                    )
                     continue
             except Exception:
                 pass
@@ -522,25 +532,29 @@ def importSkin(filePath=None, *args):
                 skinCluster = getSkinCluster(objNode)
             else:
                 try:
-                    joints = list(data['weights'].keys())
+                    joints = list(data["weights"].keys())
                     # strip | from longName, or skinCluster command may fail.
-                    skinName = data['skinClsName'].replace('|', '')
+                    skinName = data["skinClsName"].replace("|", "")
                     skinCluster = pm.skinCluster(
-                        joints, objNode, tsb=True, nw=2, n=skinName)
+                        joints, objNode, tsb=True, nw=2, n=skinName
+                    )
                 except Exception:
-                    sceneJoints = set([pm.PyNode(x).name()
-                                       for x in pm.ls(type='joint')])
+                    sceneJoints = set(
+                        [pm.PyNode(x).name() for x in pm.ls(type="joint")]
+                    )
                     notFound = []
-                    for j in data['weights'].keys():
+                    for j in data["weights"].keys():
                         if j not in sceneJoints:
                             notFound.append(str(j))
-                    pm.displayWarning("Object: " + objName + " Skiped. Can't "
-                                      "found corresponding deformer for the "
-                                      "following joints: " + str(notFound))
+                    pm.displayWarning(
+                        "Object: " + objName + " Skiped. Can't "
+                        "found corresponding deformer for the "
+                        "following joints: " + str(notFound)
+                    )
                     continue
             if skinCluster:
                 setData(skinCluster, data, compressed)
-                print('Imported skin for: {}'.format(objName))
+                print("Imported skin for: {}".format(objName))
 
         except Exception:
             warningMsg = "Object: {} Skipped. Can NOT be found in the scene"
@@ -549,8 +563,9 @@ def importSkin(filePath=None, *args):
 
 def importSkinPack(filePath=None, *args):
     if not filePath:
-        filePath = pm.fileDialog2(fileMode=1,
-                                  fileFilter='mGear skinPack (*%s)' % PACK_EXT)
+        filePath = pm.fileDialog2(
+            fileMode=1, fileFilter="mGear skinPack (*%s)" % PACK_EXT
+        )
     if not filePath:
         return
     if not isinstance(filePath, string_types):
@@ -561,6 +576,7 @@ def importSkinPack(filePath=None, *args):
         for pFile in packDic["packFiles"]:
             filePath = os.path.join(os.path.split(filePath)[0], pFile)
             importSkin(filePath, True)
+
 
 ######################################
 # Skin Copy
@@ -573,8 +589,10 @@ def skinCopy(sourceMesh=None, targetMesh=None, *args, **kwargs):
             sourceMesh = pm.selected()[-1]
             targetMeshes = pm.selected()[:-1]
         else:
-            pm.displayWarning("Please select target mesh/meshes and source "
-                              "mesh with skinCluster.")
+            pm.displayWarning(
+                "Please select target mesh/meshes and source "
+                "mesh with skinCluster."
+            )
             return
     else:
         targetMeshes = [targetMesh]
@@ -599,17 +617,17 @@ def skinCopy(sourceMesh=None, targetMesh=None, *args, **kwargs):
                 skinName = kwargs["name"]
             else:
                 skinName = targetMesh.name() + "_skinCluster"
-            skinCluster = pm.skinCluster(oDef,
-                                         targetMesh,
-                                         tsb=True,
-                                         nw=1,
-                                         n=skinName)
-            pm.copySkinWeights(sourceSkin=ss.stripNamespace(),
-                               destinationSkin=skinCluster.name(),
-                               noMirror=True,
-                               influenceAssociation="oneToOne",
-                               smooth=True,
-                               normalize=True)
+            skinCluster = pm.skinCluster(
+                oDef, targetMesh, tsb=True, nw=1, n=skinName
+            )
+            pm.copySkinWeights(
+                sourceSkin=ss.stripNamespace(),
+                destinationSkin=skinCluster.name(),
+                noMirror=True,
+                influenceAssociation="oneToOne",
+                smooth=True,
+                normalize=True,
+            )
             skinCluster.skinningMethod.set(skinMethod)
         else:
             errorMsg = "Source Mesh : {} doesn't have a skinCluster."
@@ -670,15 +688,22 @@ def skin_copy_add(sourceMesh=None, targetMesh=None, layer_name=None, *args):
 
     if previous_skin:
         # Reconnect the original geometry to the new skin cluster
-        pm.connectAttr(previous_skin.outputGeometry[0], new_skin.input[0].inputGeometry, f=True)
+        pm.connectAttr(
+            previous_skin.outputGeometry[0],
+            new_skin.input[0].inputGeometry,
+            f=True,
+        )
         new_orig_shape = new_skin.originalGeometry[0].inputs(shapes=True)
-        pm.connectAttr(orig_shape.outMesh, new_skin.originalGeometry[0], f=True)
+        pm.connectAttr(
+            orig_shape.outMesh, new_skin.originalGeometry[0], f=True
+        )
 
         # Clean up if there's a new original shape connected
         if new_orig_shape:
             pm.delete(new_orig_shape)
 
     return new_skin
+
 
 ######################################
 # Skin Utils
