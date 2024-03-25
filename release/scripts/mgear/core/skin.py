@@ -28,11 +28,12 @@ PACK_EXT = ".gSkinPack"
 ######################################
 
 
-def getSkinCluster(obj):
+def getSkinCluster(obj, first_SC=False):
     """Get the skincluster of a given object
 
     Arguments:
         obj (dagNode): The object to get skincluster
+        first_SC (bool, optional): If True, it will  return the first SkinCluster found
 
     Returns:
         pyNode: The skin cluster pynode object
@@ -52,6 +53,8 @@ def getSkinCluster(obj):
                         try:
                             if skC.getGeometry()[0] == shape:
                                 skinCluster = skC
+                                if first_SC:
+                                    return skinCluster
                         except Exception:
                             pass
                 except Exception:
@@ -564,7 +567,7 @@ def importSkinPack(filePath=None, *args):
 ######################################
 
 
-def skinCopy(sourceMesh=None, targetMesh=None, *args):
+def skinCopy(sourceMesh=None, targetMesh=None, *args, **kwargs):
     if not sourceMesh or not targetMesh:
         if len(pm.selected()) >= 2:
             sourceMesh = pm.selected()[-1]
@@ -591,12 +594,16 @@ def skinCopy(sourceMesh=None, targetMesh=None, *args):
             skinMethod = ss.skinningMethod.get()
             oDef = pm.skinCluster(sourceMesh, query=True, influence=True)
             # strip | from longName, or skinCluster command may fail.
-            skinName = targetMesh.name().replace('|', '') + "_skinCluster"
+            # skinName = targetMesh.name().replace('|', '') + "_skinCluster"
+            if "name" in kwargs.keys():
+                skinName = kwargs["name"]
+            else:
+                skinName = targetMesh.name() + "_skinCluster"
             skinCluster = pm.skinCluster(oDef,
                                          targetMesh,
                                          tsb=True,
                                          nw=1,
-                                         n=targetMesh.name() + "_skinCluster")
+                                         n=skinName)
             pm.copySkinWeights(sourceSkin=ss.stripNamespace(),
                                destinationSkin=skinCluster.name(),
                                noMirror=True,
@@ -607,6 +614,71 @@ def skinCopy(sourceMesh=None, targetMesh=None, *args):
         else:
             errorMsg = "Source Mesh : {} doesn't have a skinCluster."
             pm.displayError(errorMsg.format(sourceMesh.name()))
+
+
+def skin_copy_add(sourceMesh=None, targetMesh=None, layer_name=None, *args):
+    """
+    Copies skinning information from a source mesh to a target mesh, adding/Stacking the
+    new skinning on top of any existing skin clusters on the target mesh.
+
+    This function first checks if there is an existing skin cluster on the target
+    mesh. If found, it disconnects the output geometry of this skin cluster to
+    preserve the original skinning setup. After copying the skin weights from the
+    source mesh to the target mesh using `skin.skinCopy`, it reconnects the
+    original geometry to the newly created skin cluster on the target mesh, ensuring
+    that the original skinning is not lost but enhanced with the new skinning
+    information.
+
+    Args:
+        sourceMesh (str, optional): The name of the source mesh from which to copy
+            the skinning information. Defaults to None.
+        targetMesh (str, optional): The name of the target mesh to which the skinning
+            information will be applied. Defaults to None.
+        layer_name (str, optional): Custom Layer name for the skinCluster Node
+        *args: Additional arguments passed to the function. Not used in the
+            current implementation.
+
+    Notes:
+        - This function requires `pm` (pymel.core) and assumes the existence of
+          a `skin.skinCopy` function for copying skin weights.
+        - It also uses `getSkinCluster` to retrieve the skin cluster associated
+          with a given mesh. Implementations of `skin.skinCopy` and `getSkinCluster`
+          are assumed to be available in the current script or environment.
+
+    No Longer Returned:
+        None: This function does not return a value but modifies the target mesh
+            by adding or updating its skinning information based on the source mesh.
+
+    Returns:
+        PyNode: New skin cluster
+    """
+    previous_skin = getSkinCluster(targetMesh, first_SC=True)
+    if previous_skin:
+        # Disconnect the original skin cluster's output geometry
+        pm.disconnectAttr(previous_skin.outputGeometry[0])
+        orig_shape = previous_skin.originalGeometry[0].inputs(shapes=True)[0]
+        print(orig_shape)
+
+    # set name
+    if layer_name:
+        sc_name = "{}_{}_skinCluster".format(targetMesh.name(), layer_name)
+    else:
+        sc_name = None
+    # Copy the skin from sourceMesh to targetMesh
+    skinCopy(sourceMesh, targetMesh, name=sc_name)
+    new_skin = getSkinCluster(targetMesh, first_SC=True)
+
+    if previous_skin:
+        # Reconnect the original geometry to the new skin cluster
+        pm.connectAttr(previous_skin.outputGeometry[0], new_skin.input[0].inputGeometry, f=True)
+        new_orig_shape = new_skin.originalGeometry[0].inputs(shapes=True)
+        pm.connectAttr(orig_shape.outMesh, new_skin.originalGeometry[0], f=True)
+
+        # Clean up if there's a new original shape connected
+        if new_orig_shape:
+            pm.delete(new_orig_shape)
+
+    return new_skin
 
 ######################################
 # Skin Utils
