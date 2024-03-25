@@ -272,6 +272,7 @@ class Main(object):
         leaf_joint=False,
         guide_relative=None,
         data_contracts=None,
+        preBind_relative=None,
     ):
         """Add joint as child of the active joint or under driver object.
 
@@ -323,6 +324,7 @@ class Main(object):
                 leaf_joint=leaf_joint,
                 guide_relative=guide_relative,
                 data_contracts=data_contracts,
+                preBind_relative=preBind_relative,
             )
 
     def _addJoint(
@@ -336,6 +338,7 @@ class Main(object):
         leaf_joint=False,
         guide_relative=None,
         data_contracts=None,
+        preBind_relative=None,
     ):
         """Add joint as child of the active joint or under driver object.
 
@@ -357,6 +360,9 @@ class Main(object):
                 a leaf joint to  imput the scale. This option is meant for games
             guide_relative (str, optional): Guide locator name tha define joint
                 position
+            preBind_relative (dagNode): if the argument is set will create a
+                message connection to track the prebind reference of the joint
+                to use in the skinning prebind matrix (like Doritos technique ;) .
 
 
         Deleted Parameters:
@@ -553,6 +559,14 @@ class Main(object):
                         jnt.disconnectAttr("shear")
                         pm.connectAttr(cns_m.scale, leaf_jnt.scale)
                         pm.connectAttr(cns_m.shear, leaf_jnt.shear)
+
+                    if preBind_relative:
+                        pm.addAttr(
+                            jnt, ln="preBind_relative", at="message", m=False
+                        )
+                        pm.connectAttr(
+                            preBind_relative.message, jnt.preBind_relative
+                        )
 
                 else:
                     cns_m = None
