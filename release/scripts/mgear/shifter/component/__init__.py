@@ -64,6 +64,8 @@ class Main(object):
         self.settings = self.guide.values
         self.setupWS = self.rig.setupWS
 
+        self.WIP = self.options["mode"]
+
         self.name = self.settings["comp_name"]
         self.side = self.settings["comp_side"]
         self.index = self.settings["comp_index"]
@@ -122,6 +124,9 @@ class Main(object):
         self.jnt_pos = []
         self.jointList = []
 
+        self.bindPlanes = self.rig.bindPlanes
+        self.combinedBindPlanes = self.rig.combinedBindPlanes
+
         self.transform2Lock = []
 
         # Data collector
@@ -157,6 +162,7 @@ class Main(object):
         Get the properties host, create parameters and set layout and logic.
         """
         self.getHost()
+        self.config_bind_planes()
         self.validateProxyChannels()
         self.addFullNameParam()
         self.addAttributes()
@@ -258,6 +264,32 @@ class Main(object):
 
         """
         return
+
+    def config_bind_planes(self):
+        """This method combine the bind planes."""
+
+        # we process the combine bind planes with the first component
+        if not self.combinedBindPlanes:
+            for k in self.bindPlanes.keys():
+                if len(k) >= 2:
+                    combined_mesh = pm.polyUnite(
+                        self.bindPlanes[k],
+                        ch=False,
+                        mergeUVSets=True,
+                        name="{}_bindPlane".format(k),
+                    )
+                    if (
+                        isinstance(combined_mesh, list)
+                        and len(combined_mesh) >= 1
+                    ):
+                        combined_mesh = combined_mesh[0]
+
+                else:
+                    combined_mesh = self.bindPlanes[k][0]
+                if not self.WIP:
+                    combined_mesh.visibility.set(False)
+                pm.parent(combined_mesh, self.setupWS)
+                self.combinedBindPlanes[k] = combined_mesh
 
     def addJoint(
         self,

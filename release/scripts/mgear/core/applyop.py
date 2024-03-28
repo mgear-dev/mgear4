@@ -828,7 +828,9 @@ def gear_inverseRotorder_op(out_obj, in_obj):
     return node
 
 
-def create_proximity_constraint(shape, in_trans, existing_pin=None, mtx_connect=True, out_trans=None):
+def create_proximity_constraint(
+    shape, in_trans, existing_pin=None, mtx_connect=True, out_trans=None
+):
     """Create a proximity constraint between a shape and a transform.
 
     Args:
@@ -865,6 +867,12 @@ def create_proximity_constraint(shape, in_trans, existing_pin=None, mtx_connect=
         shape_orig.worldMesh[0] >> shape.inMesh
     else:
         shape_orig = shape_orig_connections[0]
+        # in some situation we get the transform instead of the shape.
+        # In that case we try to get the shape
+        try:
+            shape_orig = shape_orig.getShape()
+        except AttributeError:
+            pass
         if not isinstance(shape_orig, pm.nt.Mesh):
             shape_orig = shape_orig.originalGeometry[0].listConnections(
                 d=True, sh=True

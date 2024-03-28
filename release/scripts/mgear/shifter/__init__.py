@@ -177,6 +177,9 @@ class Rig(object):
         self.groups = {}
         self.subGroups = {}
 
+        self.bindPlanes = {}
+        self.combinedBindPlanes = {}
+
         self.components = {}
         self.componentsIndex = []
 
