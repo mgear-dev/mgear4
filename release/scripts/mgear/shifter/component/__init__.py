@@ -271,7 +271,7 @@ class Main(object):
         # we process the combine bind planes with the first component
         if not self.combinedBindPlanes:
             for k in self.bindPlanes.keys():
-                if len(k) >= 2:
+                if len(self.bindPlanes[k]) >= 2:
                     combined_mesh = pm.polyUnite(
                         self.bindPlanes[k],
                         ch=False,
