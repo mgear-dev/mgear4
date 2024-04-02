@@ -18,6 +18,11 @@ import pymel.core as pm
 from maya import cmds
 import maya.OpenMaya as OpenMaya
 from .six import string_types
+from mgear.vendor.Qt import QtWidgets
+from mgear.vendor.Qt import QtCore
+from mgear.vendor.Qt import QtGui
+from mgear.core import pyqt
+from maya.app.general.mayaMixin import MayaQWidgetDockableMixin
 
 FILE_EXT = ".gSkin"
 FILE_JSON_EXT = ".jSkin"
@@ -710,6 +715,7 @@ def skin_copy_add(sourceMesh=None, targetMesh=None, layer_name=None, *args):
 ######################################
 
 
+# Select deformers
 def selectDeformers(*args):
     if pm.selected():
         try:
@@ -720,3 +726,177 @@ def selectDeformers(*args):
             pm.displayError("Select one object with skinCluster")
     else:
         pm.displayWarning("Select one object with skinCluster")
+
+
+# Skin cluster selector
+def rename_skin_clusters(*args):
+    """
+    Renames the skinClusters of all selected objects to match the
+    format: objectName_skinCluster.
+    """
+    # List all selected objects
+    selected_objects = cmds.ls(selection=True)
+
+    for obj in selected_objects:
+        # List all skinClusters connected to the current object
+        skin_clusters = cmds.ls(cmds.listHistory(obj), type="skinCluster")
+        if skin_clusters:
+            # Assuming the first found skinCluster is the one to rename
+            skin_cluster_name = skin_clusters[0]
+            # New name format: objectName_skinCluster
+            if "_skinCluster" in skin_cluster_name:
+                print(
+                    "Looks like {} is correctly formatted".format(
+                        skin_cluster_name
+                    )
+                )
+            else:
+                new_name = "{}_skinCluster".format(obj)
+                # Rename the skinCluster
+                cmds.rename(skin_cluster_name, new_name)
+                print("Renamed {} to {}".format(skin_cluster_name, new_name))
+        else:
+            print("No skinCluster found for {}".format(obj))
+
+
+# Skin cluster selector
+class SkinClusterSelector(
+    MayaQWidgetDockableMixin, QtWidgets.QDialog, pyqt.SettingsMixin
+):
+    def __init__(self, parent=None):
+        super(SkinClusterSelector, self).__init__(parent)
+        self.setWindowTitle("SkinCluster Selector Tool")
+        self.setMinimumWidth(200)
+        self.setWindowFlags(
+            self.windowFlags() ^ QtCore.Qt.WindowContextHelpButtonHint
+        )
+
+        self.create_widgets()
+        self.create_layouts()
+        self.create_connections()
+
+        # Get and store the default text color from the list widget
+        self.default_text_color = self.skin_cluster_list.palette().color(
+            QtGui.QPalette.Text
+        )
+
+    def create_widgets(self):
+        self.set_object_btn = QtWidgets.QPushButton("Set Object")
+        self.skin_cluster_list = QtWidgets.QListWidget()
+        self.skin_cluster_list.setSelectionMode(
+            QtWidgets.QAbstractItemView.ExtendedSelection
+        )
+
+    def create_layouts(self):
+        main_layout = QtWidgets.QVBoxLayout(self)
+        main_layout.addWidget(self.set_object_btn)
+        main_layout.addWidget(self.skin_cluster_list)
+
+    def create_connections(self):
+        self.set_object_btn.clicked.connect(self.set_object)
+        self.skin_cluster_list.itemClicked.connect(self.select_skin_cluster)
+        self.skin_cluster_list.setContextMenuPolicy(
+            QtCore.Qt.CustomContextMenu
+        )
+        self.skin_cluster_list.customContextMenuRequested.connect(
+            self.show_context_menu
+        )
+
+    def find_connected_skinclusters(self, skin_cluster, found_clusters=list()):
+        """
+        Recursively finds all skinClusters directly connected to another
+        skinCluster.
+
+        Args:
+            skin_cluster (str): The starting skinCluster's name.
+            found_clusters (list): A list of already found skinCluster names.
+
+        Returns:
+            set: A set of skinCluster names, including the starting skinCluster
+                 and all directly connected skinClusters found recursively.
+        """
+        if skin_cluster not in found_clusters:
+            found_clusters.append(skin_cluster)
+            input_connections = (
+                cmds.listConnections(
+                    "{}.input".format(skin_cluster), type="skinCluster"
+                )
+                or []
+            )
+            for connected_sc in input_connections:
+                # Recursive call to find further connected skinClusters
+                self.find_connected_skinclusters(connected_sc, found_clusters)
+        return found_clusters
+
+    def set_object(self):
+        """
+        Populates the skin_cluster_list with skinClusters connected to the
+        selected object. It includes skinClusters connected as inputs to other
+        skinClusters, searched recursively.
+        """
+        # Clear list before
+        self.skin_cluster_list.clear()
+        selection = cmds.ls(selection=True, objectsOnly=True)
+        # recursion new fresh list  before find more connections
+        found_clusters = list()
+        if selection:
+            # self.skin_cluster_list.clear()
+            shapes = (
+                cmds.listRelatives(selection[0], shapes=True, fullPath=True)
+                or []
+            )
+            for shape in shapes:
+                connections = cmds.listConnections(shape, type="skinCluster")
+                # print(connections)
+                if connections:
+                    for sc in connections:
+                        # Use recursive function to find all connected skinClusters
+                        all_skin_clusters = self.find_connected_skinclusters(
+                            sc, found_clusters
+                        )
+            # print(all_skin_clusters)
+            for sc in all_skin_clusters:
+                item = QtWidgets.QListWidgetItem(sc)
+                # Check if the skin cluster is active (envelope > 0)
+                if cmds.getAttr("{}.envelope".format(sc)) <= 0:
+                    item.setForeground(QtGui.QColor("red"))
+                self.skin_cluster_list.addItem(item)
+
+    def select_skin_cluster(self, item):
+        cmds.select(item.text())
+
+    def update_skin_cluster_status(self, skin_clusters, status):
+        """
+        Update the envelope status of selected skin clusters and adjust list item color.
+
+        Args:
+            skin_clusters (list): List of skin cluster names.
+            status (float): New envelope status (0 for off, 1 for on).
+        """
+        for i in range(self.skin_cluster_list.count()):
+            item = self.skin_cluster_list.item(i)
+            if item.text() in skin_clusters:
+                cmds.setAttr("{}.envelope".format(item.text()), status)
+                item.setForeground(
+                    QtGui.QColor("red")
+                    if status <= 0
+                    else self.default_text_color
+                )
+
+    def show_context_menu(self, position):
+        context_menu = QtWidgets.QMenu()
+        turn_off_action = context_menu.addAction("Turn OFF Skin Cluster")
+        turn_on_action = context_menu.addAction("Turn ON Skin Cluster")
+        action = context_menu.exec_(
+            self.skin_cluster_list.mapToGlobal(position)
+        )
+        selected_items = self.skin_cluster_list.selectedItems()
+        selected_skin_clusters = [item.text() for item in selected_items]
+        if action == turn_off_action:
+            self.update_skin_cluster_status(selected_skin_clusters, 0)
+        elif action == turn_on_action:
+            self.update_skin_cluster_status(selected_skin_clusters, 1)
+
+
+def openSkinClusterSelector(*args):
+    return pyqt.showDialog(SkinClusterSelector, dockable=True)
