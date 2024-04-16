@@ -2,6 +2,7 @@ from math import degrees
 from maya import cmds
 from maya.api import OpenMaya
 from . import base
+import math
 
 
 class UndoChunk(object):
