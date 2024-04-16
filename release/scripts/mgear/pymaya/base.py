@@ -13,7 +13,8 @@ class Base(object):
     def __init__(self, *args, **kwargs):
         super(Base, self).__init__()
         for sf in STR_FUNCS:
-            setattr(self, sf, _wrap_str_funcs(self, sf))
+            if not hasattr(self, sf):
+                setattr(self, sf, _wrap_str_funcs(self, sf))
 
     def name(self):
         raise NotImplementedError("'name' is not implemented yet")
