@@ -47,8 +47,8 @@ def _getShapes(node, **kwargs):
     return cmd.listRelatives(node, **kwargs)
 
 
-def _getParent(node, generation=1):
-    if generation == 1:
+def _getParent(node, generations=1):
+    if generations == 1:
         res = cmd.listRelatives(node, p=True)
         if res:
             return res[0]
@@ -57,16 +57,16 @@ def _getParent(node, generation=1):
     else:
         splt = [x for x in node.dagPath().fullPathName().split("|") if x]
         spltlen = len(splt)
-        if generation >= 0:
-            if generation >= spltlen:
+        if generations >= 0:
+            if generations >= spltlen:
                 return None
 
-            return BindNode("|" + "|".join(splt[:spltlen - generation]))
+            return BindNode("|" + "|".join(splt[:spltlen - generations]))
         else:
-            if abs(generation) > spltlen:
+            if abs(generations) > spltlen:
                 return None
 
-            return BindNode("|" + "|".join(splt[:-generation]))
+            return BindNode("|" + "|".join(splt[:-generations]))
 
 
 def _addChild(node, child):
