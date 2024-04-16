@@ -69,8 +69,8 @@ def _getParent(node, generations=1):
             return BindNode("|" + "|".join(splt[:-generations]))
 
 
-def _addChild(node, child):
-    return cmd.parent(child, node)
+def _addChild(node, child, **kwargs):
+    return cmd.parent(child, node, **kwargs)
 
 
 def _setMatrix(node, val, **kwargs):
