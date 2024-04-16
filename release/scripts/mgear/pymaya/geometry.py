@@ -54,156 +54,205 @@ class _Geometry(base.Geom):
         return self.__component
 
 
-class MeshVertex(_Geometry):
+class _SingleIndexGeom(_Geometry):
+    @classmethod
+    def IterClass(cls):
+        raise Exception("IterClass is not implemeted yet")
+
+    @classmethod
+    def ComponentType(cls):
+        raise Exception("ComponentType is not implemeted yet")
+
+    @classmethod
+    def AttrName(cls):
+        raise Exception("AttrName is not implemeted yet")
+
+    def __init__(self, nodename_or_dagpath, component):
+        super(_SingleIndexGeom, self).__init__(nodename_or_dagpath, component)
+        self.__indices = None
+
+    def __indices_str(self):
+        indices = self.indices()
+        latest = None
+        grps = []
+
+        for id in sorted(indices):
+            if latest is None:
+                latest = id
+                grps.append([id])
+            elif latest + 1 == id:
+                grps[-1].append(id)
+            else:
+                grps.append([id])
+            latest = id
+
+        ts = []
+        for grp in grps:
+            if len(grp) == 1:
+                ts.append(str(grp[0]))
+            else:
+                ts.append(f"{grp[0]}:{grp[-1]}")
+
+        return ",".join(ts)
+
+    def indices(self):
+        if self.__indices is None:
+            self.__indices = set()
+            it = self.IterClass()(self.dagPath(), self.component())
+            while (not it.isDone()):
+                self.__indices.add(it.index())
+                it.next()
+
+        return list(self.__indices)
+
+    def name(self):
+        return self.dagPath().partialPathName() + f".{self.AttrName()}[{self.__indices_str()}]"
+
+    def index(self):
+        return self.indices()[0]
+
+    def __iter__(self):
+        it = self.IterClass()(self.dagPath(), self.component())
+        while (not it.isDone()):
+            comp = OpenMaya.MFnSingleIndexedComponent()
+            comp_obj = comp.create(self.ComponentType())
+            comp.addElement(it.index())
+            it.next()
+            yield self.__class__(self.dagPath(), comp_obj)
+
+    def __getitem__(self, index):
+        self.indices()
+
+        indices = []
+        if isinstance(index, (list, tuple)):
+            for ind in index:
+                if isinstance(ind, slice):
+                    indices.extend(range(ind.start, ind.stop + 1))
+                else:
+                    indices.append(ind)
+        elif isinstance(index, slice):
+            indices.extend(range(index.start, index.stop + 1))
+        else:
+            indices = [index]
+
+        comp = OpenMaya.MFnSingleIndexedComponent()
+        comp_obj = comp.create(self.ComponentType())
+        for id in indices:
+            if not id in self.__indices:
+                raise Exception("index out of range")
+
+            comp.addElement(id)
+
+        return self.__class__(self.dagPath(), comp_obj)
+
+
+class MeshVertex(_SingleIndexGeom):
     @classmethod
     def Match(cls, dagpath, component):
         return component.hasFn(OpenMaya.MFn.kMeshVertComponent)
 
-    def __iter__(self):
-        it = OpenMaya.MItMeshVertex(self.dagPath(), self.component())
-        while (not it.isDone()):
-            comp = OpenMaya.MFnSingleIndexedComponent()
-            comp_obj = comp.create(OpenMaya.MFn.kMeshVertComponent)
-            comp.addElement(it.index())
-            it.next()
-            yield MeshVertex(self.dagPath(), comp_obj)
+    @classmethod
+    def IterClass(cls):
+        return OpenMaya.MItMeshVertex
+
+    @classmethod
+    def ComponentType(cls):
+        return OpenMaya.MFn.kMeshVertComponent
+
+    @classmethod
+    def AttrName(cls):
+        return "vtx"
 
     def __init__(self, nodename_or_dagpath, component):
         super(MeshVertex, self).__init__(nodename_or_dagpath, component=component)
-        it = OpenMaya.MItMeshVertex(self.dagPath(), self.component())
-        minid = None
-        maxid = None
-        while (not it.isDone()):
-            idx = it.index()
-            if minid is None:
-                minid = idx
-                maxid = idx
-            else:
-                minid = min(minid, idx)
-                maxid = max(minid, idx)
-
-            it.next()
-
-        self.__vtxid = ".vtx[" + (str(minid) if minid == maxid else "{}:{}".format(minid, maxid)) + "]"
-
-    def name(self):
-        return self.dagPath().partialPathName() + self.__vtxid
 
     def getPosition(self, space="preTransform"):
         it = OpenMaya.MItMeshVertex(self.dagPath(), self.component())
         return datatypes.Point(it.position(util.to_mspace(space)))
 
+    def connectedEdges(self):
+        it = OpenMaya.MItMeshVertex(self.dagPath(), self.component())
+        comp = OpenMaya.MFnSingleIndexedComponent()
+        comp_obj = comp.create(OpenMaya.MFn.kMeshEdgeComponent)
+        for ei in it.getConnectedEdges():
+            comp.addElement(ei)
 
-class MeshFace(_Geometry):
+        return MeshEdge(self.dagPath(), comp_obj)
+
+
+class MeshFace(_SingleIndexGeom):
     @classmethod
     def Match(cls, dagpath, component):
         return component.hasFn(OpenMaya.MFn.kMeshPolygonComponent)
 
-    def __iter__(self):
-        it = OpenMaya.MItMeshPolygon(self.dagPath(), self.component())
-        while (not it.isDone()):
-            comp = OpenMaya.MFnSingleIndexedComponent()
-            comp_obj = comp.create(OpenMaya.MFn.kMeshPolygonComponent)
-            comp.addElement(it.index())
-            it.next()
-            yield MeshFace(self.dagPath(), comp_obj)
+    @classmethod
+    def IterClass(cls):
+        return OpenMaya.MItMeshPolygon
+
+    @classmethod
+    def ComponentType(cls):
+        return OpenMaya.MFn.kMeshPolygonComponent
+
+    @classmethod
+    def AttrName(cls):
+        return "f"
 
     def __init__(self, nodename_or_dagpath, component):
         super(MeshFace, self).__init__(nodename_or_dagpath, component=component)
+
+    def getVertices(self):
         it = OpenMaya.MItMeshPolygon(self.dagPath(), self.component())
-        minid = None
-        maxid = None
-        while (not it.isDone()):
-            idx = it.index()
-            if minid is None:
-                minid = idx
-                maxid = idx
-            else:
-                minid = min(minid, idx)
-                maxid = max(minid, idx)
-
-            it.next()
-
-        self.__faceid = ".f[" + (str(minid) if minid == maxid else "{}:{}".format(minid, maxid)) + "]"
-
-    def name(self):
-        return self.dagPath().partialPathName() + self.__faceid
+        return list(it.getVertices())
 
 
-class NurbsCurveCV(_Geometry):
+class NurbsCurveCV(_SingleIndexGeom):
     @classmethod
     def Match(cls, dagpath, component):
         return component.hasFn(OpenMaya.MFn.kCurveCVComponent)
 
-    def __iter__(self):
-        it = OpenMaya.MItCurveCV(self.dagPath(), self.component())
-        while (not it.isDone()):
-            comp = OpenMaya.MFnSingleIndexedComponent()
-            comp_obj = comp.create(OpenMaya.MFn.kCurveCVComponent)
-            comp.addElement(it.index())
-            it.next()
-            yield NurbsCurveCV(self.dagPath(), comp_obj)
+    @classmethod
+    def IterClass(cls):
+        return OpenMaya.MItCurveCV
+
+    @classmethod
+    def ComponentType(cls):
+        return OpenMaya.MFn.kCurveCVComponent
+
+    @classmethod
+    def AttrName(cls):
+        return "cv"
 
     def __init__(self, nodename_or_dagpath, component=None):
         super(NurbsCurveCV, self).__init__(nodename_or_dagpath, component=component)
-        it = OpenMaya.MItCurveCV(self.dagPath(), self.component())
-        minid = None
-        maxid = None
-        while (not it.isDone()):
-            idx = it.index()
-            if minid is None:
-                minid = idx
-                maxid = idx
-            else:
-                minid = min(minid, idx)
-                maxid = max(minid, idx)
-
-            it.next()
-
-        self.__cvid = ".cv[" + (str(minid) if minid == maxid else "{}:{}".format(minid, maxid)) + "]"
-
-    def name(self):
-        return self.dagPath().partialPathName() + self.__cvid
 
     def getPosition(self, space="preTransform"):
         it = OpenMaya.MItCurveCV(self.dagPath(), self.component())
         return datatypes.Point(it.position(util.to_mspace(space)))
 
 
-class MeshEdge(_Geometry):
+class MeshEdge(_SingleIndexGeom):
     @classmethod
     def Match(cls, dagPath, component):
         return component.hasFn(OpenMaya.MFn.kMeshEdgeComponent)
 
-    def __iter__(self):
-        it = OpenMaya.MItMeshEdge(self.dagPath(), self.component())
-        while (not it.isDone()):
-            comp = OpenMaya.MFnSingleIndexedComponent()
-            comp_obj = comp.create(OpenMaya.MFn.kMeshEdgeComponent)
-            comp.addElement(it.index())
-            it.next()
-            yield NurbsCurveCV(self.dagPath(), comp_obj)
+    @classmethod
+    def IterClass(cls):
+        return OpenMaya.MItMeshEdge
+
+    @classmethod
+    def ComponentType(cls):
+        return OpenMaya.MFn.kMeshEdgeComponent
+
+    @classmethod
+    def AttrName(cls):
+        return "e"
 
     def __init__(self, nodename_or_dagpath, component=None):
         super(MeshEdge, self).__init__(nodename_or_dagpath, component=component)
+
+    def getPoint(self, index, space='preTransform'):
         it = OpenMaya.MItMeshEdge(self.dagPath(), self.component())
-        minid = None
-        maxid = None
-        while (not it.isDone()):
-            idx = it.index()
-            if minid is None:
-                minid = idx
-                maxid = idx
-            else:
-                minid = min(minid, idx)
-                maxid = max(minid, idx)
-
-            it.next()
-
-        self.__edgeid = ".e[" + (str(minid) if minid == maxid else "{}:{}".format(minid, maxid)) + "]"
-
-    def name(self):
-        return self.dagPath().partialPathName() + self.__edgeid
+        return datatypes.Point(it.point(index, util.to_mspace(space)))
 
     def connectedVertices(self):
         it = OpenMaya.MItMeshEdge(self.dagPath(), self.component())
@@ -220,13 +269,17 @@ class MeshEdge(_Geometry):
     def connectedEdges(self):
         it = OpenMaya.MItMeshEdge(self.dagPath(), self.component())
         edges = []
+        comp = OpenMaya.MFnSingleIndexedComponent()
+        comp_obj = comp.create(OpenMaya.MFn.kMeshEdgeComponent)
         for ei in it.getConnectedEdges():
-            comp = OpenMaya.MFnSingleIndexedComponent()
-            comp_obj = comp.create(OpenMaya.MFn.kMeshEdgeComponent)
             comp.addElement(ei)
-            edges.append(MeshEdge(self.dagPath(), comp_obj))
 
-        return edges
+        return MeshEdge(self.dagPath(), comp_obj)
+
+    def __contains__(self, other):
+        if isinstance(other, MeshEdge):
+            return False if set(other.indices()) - set(self.indices()) else True
+        return False
 
 
 def BindGeometry(name, silent=False):
