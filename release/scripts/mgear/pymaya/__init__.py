@@ -6,6 +6,7 @@ from .util import NameParser
 from . import util
 from .bind import PyNode
 from .node import nt
+from .attr import Attribute
 from .geometry import MeshVertex, MeshFace
 from . import datatypes
 
