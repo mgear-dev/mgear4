@@ -6,9 +6,9 @@
 # GLOBAL
 #############################################
 from functools import wraps
-import pymel.core as pm
+import mgear.pymaya as pm
 import maya.cmds as cmds
-from pymel.core import datatypes
+from mgear.pymaya import datatypes
 import json
 import maya.mel as mel
 
@@ -877,7 +877,7 @@ def keep_point_0_cnx_state(func):
 def lock_length(crv, lock=True):
     crv_shape = crv.getShape()
     if not crv_shape.hasAttr("lockLength"):
-        crv_shape.addAttr("lockLength", at=bool)
+        crv_shape.addAttr("lockLength", at="bool")
     crv_shape.lockLength.set(lock)
     return crv_shape.lockLength
 

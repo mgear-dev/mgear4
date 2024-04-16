@@ -20,16 +20,16 @@
 # release/scripts/mgear/core/anim_utils.py
 # release/scripts/mgear/core/applyop.py
 # release/scripts/mgear/core/attribute.py  # changed
-release/scripts/mgear/core/curve.py
-release/scripts/mgear/core/dag.py
-release/scripts/mgear/core/dagmenu.py
-release/scripts/mgear/core/deformer.py
-release/scripts/mgear/core/dragdrop.py
-release/scripts/mgear/core/fcurve.py
-release/scripts/mgear/core/icon.py
-release/scripts/mgear/core/menu.py
-release/scripts/mgear/core/meshNavigation.py
-release/scripts/mgear/core/node.py
+# release/scripts/mgear/core/curve.py # bool -> "bool"
+# release/scripts/mgear/core/dag.py
+# release/scripts/mgear/core/dagmenu.py
+# release/scripts/mgear/core/deformer.py
+# release/scripts/mgear/core/dragdrop.py
+# release/scripts/mgear/core/fcurve.py
+# release/scripts/mgear/core/icon.py
+# release/scripts/mgear/core/menu.py
+# release/scripts/mgear/core/meshNavigation.py
+# release/scripts/mgear/core/node.py
 release/scripts/mgear/core/pickWalk.py
 release/scripts/mgear/core/primitive.py
 release/scripts/mgear/core/pyFBX.py
