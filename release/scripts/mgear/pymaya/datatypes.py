@@ -48,6 +48,17 @@ class Vector(OpenMaya.MVector):
     def __getitem__(self, item):
         return [self.x, self.y, self.z][item]
 
+    def rotateBy(self, *args):
+        if args:
+            if len(args) == 2 and isinstance(args[0], Vector):
+                return Vector(super(Vector, self).rotateBy(Quaternion(float(args[1]), args[0])))
+            elif len(args) == 1 and isinstance(args[0], Matrix):
+                return Vector(super(Vector, self).rotateBy(TransformationMatrix(args[0]).rotation(True)))
+            else:
+                return Vector(super(Vector, self).rotateBy(EulerRotation(*args)))
+        else:
+            return self
+
 
 class Point(OpenMaya.MPoint):
     WRAP_FUNCS = []
