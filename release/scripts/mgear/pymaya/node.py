@@ -97,6 +97,25 @@ def _setTranslation(node, value, space="object"):
     OpenMaya.MFnTransform(node.dagPath()).setTranslation(value, space)
 
 
+def _getBoundingBox(node, invisible=False, space="object"):
+    opts = {"query": True}
+    if invisible:
+        opts["boundingBoxInvisible"] = True
+    else:
+        opts["boundingBox"] = True
+
+    if space == "object":
+        opts["objectSpace"] = True
+    elif space == "world":
+        opts["worldSpace"] = True
+    else:
+        raise Exception("unknown space '{}'".format(space))
+
+    res = cmd.xform(node, **opts)
+
+    return datatypes.BoundingBox(res[:3], res[3:])
+
+
 class _Node(base.Node):
     __selection_list = OpenMaya.MSelectionList()
 
@@ -144,6 +163,8 @@ class _Node(base.Node):
             self.getMatrix = partial(_getMatrix, self)
             self.getTranslation = partial(_getTranslation, self)
             self.setTranslation = partial(_setTranslation, self)
+            if self.__obj.hasFn(OpenMaya.MFn.kTransform):
+                self.getBoundingBox = partial(_getBoundingBox, self)
         else:
             self.__dagpath = None
             self.__fn_dag = None
