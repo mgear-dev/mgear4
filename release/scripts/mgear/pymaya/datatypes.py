@@ -114,4 +114,32 @@ class TransformationMatrix(OpenMaya.MTransformationMatrix):
         return self.asMatrix().get()
 
 
-__all__ = ["Vector", "EulerRotation", "Matrix", "TransformationMatrix", "Quaternion", "degrees", "Point"]
+class BoundingBox(OpenMaya.MBoundingBox):
+    WRAP_FUNCS = []
+    for fn in dir(OpenMaya.MBoundingBox):
+        if not fn.startswith("_"):
+            f = getattr(OpenMaya.MBoundingBox, fn)
+            if callable(f):
+                WRAP_FUNCS.append(fn)
+
+    def __init__(self, *args, **kwargs):
+        nargs = []
+        for arg in args:
+            if isinstance(arg, (list, tuple)):
+                arg = Point(arg)
+            nargs.append(arg)
+
+        super(BoundingBox, self).__init__(*nargs, **kwargs)
+        for fn in BoundingBox.WRAP_FUNCS:
+            setattr(self, fn, _warp_dt(super(BoundingBox, self).__getattribute__(fn)))
+
+    def __getitem__(self, index):
+        if index == 0:
+            return Point(self.min)
+        elif index == 1:
+            return Point(self.max)
+        else:
+            raise Exception("Index out of range")
+
+
+__all__ = ["Vector", "EulerRotation", "Matrix", "TransformationMatrix", "Quaternion", "degrees", "Point", "BoundingBox"]
