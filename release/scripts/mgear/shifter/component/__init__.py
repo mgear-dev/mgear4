@@ -2242,6 +2242,12 @@ class Main(object):
         self.build_data["Squash"] = []
         self.build_data["Settings"] = self.settings
         self.build_data["jointRelatives"] = self.jointRelatives
+        if self.guide.parentComponent:
+            self.build_data["parent_fullName"] = self.guide.parentComponent.fullName
+            self.build_data["parent_localName"] = self.guide.parentLocalName
+        else:
+            self.build_data["parent_fullName"] = None
+            self.build_data["parent_localName"] = None
 
         # joints
         for j in self.jointList:
