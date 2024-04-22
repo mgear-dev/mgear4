@@ -1,10 +1,10 @@
 import math
 from maya.api import OpenMaya
+from . import util
 
 
-EulerRotation = OpenMaya.MEulerRotation
-Quaternion = OpenMaya.MQuaternion
 degrees = math.degrees
+Space = OpenMaya.MSpace
 
 
 def _warp_dt(func):
@@ -17,7 +17,7 @@ def _warp_dt(func):
         elif isinstance(res, OpenMaya.MMatrix):
             return Matrix(res)
         elif isinstance(res, OpenMaya.MTransformationMatrix):
-            return TransformationMatrix(res)
+            return TransformationMatrix(res.asMatrix())
         else:
             return res
 
@@ -86,19 +86,50 @@ class Matrix(OpenMaya.MMatrix):
                 WRAP_FUNCS.append(fn)
 
     def __init__(self, *args, **kwargs):
+        if len(args) == 16:
+            args = (args, )
         super(Matrix, self).__init__(*args, **kwargs)
         for fn in Matrix.WRAP_FUNCS:
             setattr(self, fn, _warp_dt(super(Matrix, self).__getattribute__(fn)))
 
     def get(self):
-        return ((self[0], self[1], self[2], self[3]),
-                (self[4], self[5], self[6], self[7]),
-                (self[8], self[9], self[10], self[11]),
-                (self[12], self[13], self[14], self[15]))
+        gt = super(Matrix, self).__getitem__
+        return ((gt(0), gt(1), gt(2), gt(3)),
+                (gt(4), gt(5), gt(6), gt(7)),
+                (gt(8), gt(9), gt(10), gt(11)),
+                (gt(12), gt(13), gt(14), gt(15)))
+
+    def __setitem__(self, index, value):
+        if index < 0 or index > 3:
+            raise Exception("list index out of range")
+
+        if len(value) > 4:
+            raise Exception("over 4 values given")
+
+        for i, v in enumerate(value):
+            super(Matrix, self).__setitem__(index * 4 + i, v)
+
+    def __getitem__(self, index):
+        if index < 0 or index > 3:
+            raise Exception("list index out of range")
+
+        gt = super(Matrix, self).__getitem__
+        return [gt(index * 4), gt(index * 4 + 1), gt(index * 4 + 2), gt(index * 4 + 3)]
+
+    @property
+    def translate(self):
+        return TransformationMatrix(self).getTranslation(Space.kTransform)
 
 
-class TransformationMatrix(OpenMaya.MTransformationMatrix):
+def _trnsfrommatrix_wrp(func, this):
+    def wrapper(*args, **kwargs):
+        return getattr(OpenMaya.MTransformationMatrix(this), func)(*args, **kwargs)
+    return _warp_dt(wrapper)
+
+
+class TransformationMatrix(Matrix):
     WRAP_FUNCS = []
+    ORG_MEMS = []
     for fn in dir(OpenMaya.MTransformationMatrix):
         if not fn.startswith("_"):
             f = getattr(OpenMaya.MTransformationMatrix, fn)
@@ -108,10 +139,67 @@ class TransformationMatrix(OpenMaya.MTransformationMatrix):
     def __init__(self, *args, **kwargs):
         super(TransformationMatrix, self).__init__(*args, **kwargs)
         for fn in TransformationMatrix.WRAP_FUNCS:
-            setattr(self, fn, _warp_dt(super(TransformationMatrix, self).__getattribute__(fn)))
+            if not hasattr(self, fn):
+                setattr(self, fn, _trnsfrommatrix_wrp(fn, self))
+        for m in TransformationMatrix.ORG_MEMS:
+            setattr(self, m, getattr(OpenMaya.MTransformationMatrix, m))
+
+    def __repr__(self):
+        return super(TransformationMatrix, self).__repr__().replace("MMatrix", "TransformationMatrix")
 
     def get(self):
         return self.asMatrix().get()
+
+    def __copy(self, other):
+        if not isinstance(other, Matrix):
+            other = Matrix(other)
+        self[0] = other[0]
+        self[1] = other[1]
+        self[2] = other[2]
+        self[3] = other[3]
+
+    def setRotationQuaternion(self, x, y, z, w):
+        t = OpenMaya.MTransformationMatrix(self)
+        t.setRotation(Quaternion(x, y, z, w))
+        self.__copy(t.asMatrix())
+
+    def getRotationQuaternion(self):
+        q = self.rotation().asQuaternion()
+        return (q.x, q.y, q.z, q.w)
+
+    def getRotation(self):
+        return self.rotation()
+
+    def setRotation(self, *args):
+        if len(args) == 1 and isinstance(args[0], list):
+            args = args[0]
+        t = OpenMaya.MTransformationMatrix(self)
+        t.setRotation(EulerRotation(*[math.radians(x) for x in args]))
+        self.__copy(t.asMatrix())
+
+    def getScale(self, space):
+        return self.scale(util.to_mspace(space))
+
+    def setScale(self, scale, space):
+        t = OpenMaya.MTransformationMatrix(self)
+        t.setScale(scale, util.to_mspace(space))
+        self.__copy(t.asMatrix())
+
+    def setShear(self, shear, space):
+        t = OpenMaya.MTransformationMatrix(self)
+        t.setShear(shear, util.to_mspace(space))
+        self.__copy(t.asMatrix())
+
+    def getShear(self, space):
+        return self.shear(util.to_mspace(space))
+
+    def setTranslation(self, vector, space):
+        t = OpenMaya.MTransformationMatrix(self)
+        t.setTranslation(vector, util.to_mspace(space))
+        self.__copy(t.asMatrix())
+
+    def getTranslation(self, space):
+        return self.translation(util.to_mspace(space))
 
 
 class BoundingBox(OpenMaya.MBoundingBox):
@@ -142,4 +230,37 @@ class BoundingBox(OpenMaya.MBoundingBox):
             raise Exception("Index out of range")
 
 
-__all__ = ["Vector", "EulerRotation", "Matrix", "TransformationMatrix", "Quaternion", "degrees", "Point", "BoundingBox"]
+class Quaternion(OpenMaya.MQuaternion):
+    WRAP_FUNCS = []
+    for fn in dir(OpenMaya.MQuaternion):
+        if not fn.startswith("_"):
+            f = getattr(OpenMaya.MQuaternion, fn)
+            if callable(f):
+                WRAP_FUNCS.append(fn)
+
+    def __init__(self, *args, **kwargs):
+        super(Quaternion, self).__init__(*args, **kwargs)
+
+        for fn in Quaternion.WRAP_FUNCS:
+            setattr(self, fn, _warp_dt(super(Quaternion, self).__getattribute__(fn)))
+
+    def scaleIt(self, scal):
+        return Quaternion(self.x * scal, self.y * scal, self.z * scal, self.w * scal)
+
+
+class EulerRotation(OpenMaya.MEulerRotation):
+    WRAP_FUNCS = []
+    for fn in dir(OpenMaya.MEulerRotation):
+        if not fn.startswith("_"):
+            f = getattr(OpenMaya.MEulerRotation, fn)
+            if callable(f):
+                WRAP_FUNCS.append(fn)
+
+    def __init__(self, *args, **kwargs):
+        super(EulerRotation, self).__init__(*args, **kwargs)
+
+        for fn in EulerRotation.WRAP_FUNCS:
+            setattr(self, fn, _warp_dt(super(EulerRotation, self).__getattribute__(fn)))
+
+
+__all__ = ["Vector", "EulerRotation", "Matrix", "TransformationMatrix", "Quaternion", "degrees", "Point", "BoundingBox", "Space"]

@@ -14,7 +14,7 @@ import os
 import json
 import pickle as pickle
 
-import pymel.core as pm
+import mgear.pymaya as pm
 from maya import cmds
 import maya.OpenMaya as OpenMaya
 from .six import string_types

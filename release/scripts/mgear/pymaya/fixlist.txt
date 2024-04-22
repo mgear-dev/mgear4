@@ -30,14 +30,14 @@
 # release/scripts/mgear/core/menu.py
 # release/scripts/mgear/core/meshNavigation.py
 # release/scripts/mgear/core/node.py
-release/scripts/mgear/core/pickWalk.py
-release/scripts/mgear/core/primitive.py
-release/scripts/mgear/core/pyFBX.py
-release/scripts/mgear/core/pyqt.py
-release/scripts/mgear/core/skin.py
-release/scripts/mgear/core/transform.py
-release/scripts/mgear/core/utils.py
-release/scripts/mgear/core/vector.py
+# release/scripts/mgear/core/pickWalk.py
+# release/scripts/mgear/core/primitive.py
+# release/scripts/mgear/core/pyFBX.py
+# release/scripts/mgear/core/pyqt.py
+# release/scripts/mgear/core/skin.py
+# release/scripts/mgear/core/transform.py
+# release/scripts/mgear/core/utils.py
+# release/scripts/mgear/core/vector.py
 release/scripts/mgear/core/wmap.py
 release/scripts/mgear/crank/crank_tool.py
 release/scripts/mgear/crank/menu.py

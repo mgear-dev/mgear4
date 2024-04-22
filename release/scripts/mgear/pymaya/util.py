@@ -1,6 +1,7 @@
 from math import degrees
 from maya import cmds
 from maya.api import OpenMaya
+from maya import OpenMaya as om
 from . import base
 import math
 
@@ -29,16 +30,37 @@ class NameParser(object):
         return "|".join([x.split(":")[-1] for x in n.split("|")])
 
 
-def to_mspace(space_str):
-    if space_str == "transform":
-        return OpenMaya.MSpace.kTransform
-    elif space_str == "preTransform":
-        return OpenMaya.MSpace.kPreTransform
-    elif space_str == "postTransform":
-        return OpenMaya.MSpace.kPostTransform
-    elif space_str == "world":
-        return OpenMaya.MSpace.kWorld
-    elif space_str == "object":
-        return OpenMaya.MSpace.kObject
+def to_mspace(space, as_api2=True):
+    if isinstance(space, int):
+        return space
 
-    return OpenMaya.MSpace.kInvalid
+    if as_api2:
+        if space == "transform":
+            return OpenMaya.MSpace.kTransform
+        elif space == "preTransform":
+            return OpenMaya.MSpace.kPreTransform
+        elif space == "postTransform":
+            return OpenMaya.MSpace.kPostTransform
+        elif space == "world":
+            return OpenMaya.MSpace.kWorld
+        elif space == "object":
+            return OpenMaya.MSpace.kObject
+
+        return OpenMaya.MSpace.kInvalid
+    else:
+        if space == "transform":
+            return om.MSpace.kTransform
+        elif space == "preTransform":
+            return om.MSpace.kPreTransform
+        elif space == "postTransform":
+            return om.MSpace.kPostTransform
+        elif space == "world":
+            return om.MSpace.kWorld
+        elif space == "object":
+            return om.MSpace.kObject
+
+        return om.MSpace.kInvalid
+
+
+def cross(a, b):
+    return a ^ b

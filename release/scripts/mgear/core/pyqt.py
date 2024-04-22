@@ -7,8 +7,8 @@ import os
 import traceback
 import contextlib
 import maya.OpenMayaUI as omui
-import pymel.core as pm
-from pymel import versions
+import mgear.pymaya as pm
+from mgear.pymaya import versions
 from maya import cmds
 
 from mgear.vendor.Qt import QtWidgets

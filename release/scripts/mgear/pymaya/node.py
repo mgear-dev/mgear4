@@ -1,5 +1,6 @@
 import re
 from maya.api import OpenMaya
+from maya.api import OpenMayaAnim
 from maya import cmds
 from . import cmd
 from . import attr
@@ -69,6 +70,11 @@ def _getParent(node, generations=1):
             return BindNode("|" + "|".join(splt[:-generations]))
 
 
+def _getChildren(node, **kwargs):
+    kwargs["c"] = True
+    return cmd.listRelatives(node, **kwargs)
+
+
 def _addChild(node, child, **kwargs):
     return cmd.parent(child, node, **kwargs)
 
@@ -135,6 +141,7 @@ class _Node(base.Node):
     def __init__(self, nodename_or_mobject):
         super(_Node, self).__init__()
         self.__attrs = {}
+        self.__api_mfn = None
 
         if isinstance(nodename_or_mobject, OpenMaya.MObject):
             self.__obj = nodename_or_mobject
@@ -147,24 +154,27 @@ class _Node(base.Node):
             raise exception.MayaNodeError("Not a dependency node '{}'".format(nodename_or_mobject))
 
         self.__fn_dg = OpenMaya.MFnDependencyNode(self.__obj)
+        self.__api_mfn = self.__fn_dg
 
         if self.__obj.hasFn(OpenMaya.MFn.kDagNode):
             dagpath = OpenMaya.MDagPath.getAPathTo(self.__obj)
             self.__dagpath = dagpath
             self.__fn_dag = OpenMaya.MFnDagNode(dagpath)
-            self.getPivots = partial(_getPivots, self)
-            self.setTransformation = partial(_setTransformation, self)
-            self.getTransformation = partial(_getTransformation, self)
-            self.getShape = partial(_getShape, self)
-            self.getShapes = partial(_getShapes, self)
             self.getParent = partial(_getParent, self)
+            self.getChildren = partial(_getChildren, self)
             self.addChild = partial(_addChild, self)
-            self.setMatrix = partial(_setMatrix, self)
-            self.getMatrix = partial(_getMatrix, self)
-            self.getTranslation = partial(_getTranslation, self)
-            self.setTranslation = partial(_setTranslation, self)
             if self.__obj.hasFn(OpenMaya.MFn.kTransform):
                 self.getBoundingBox = partial(_getBoundingBox, self)
+                self.getPivots = partial(_getPivots, self)
+                self.setTransformation = partial(_setTransformation, self)
+                self.getTransformation = partial(_getTransformation, self)
+                self.getShape = partial(_getShape, self)
+                self.getShapes = partial(_getShapes, self)
+                self.setMatrix = partial(_setMatrix, self)
+                self.getMatrix = partial(_getMatrix, self)
+                self.getTranslation = partial(_getTranslation, self)
+                self.setTranslation = partial(_setTranslation, self)
+            self.__api_mfn = self.__fn_dag
         else:
             self.__dagpath = None
             self.__fn_dag = None
@@ -207,6 +217,9 @@ class _Node(base.Node):
 
     def isDag(self):
         return self.__fn_dag is not None
+
+    def __apimfn__(self):
+        return self.__api_mfn
 
     def name(self):
         fdag = super(_Node, self).__getattribute__("_Node__fn_dag")
@@ -420,6 +433,22 @@ class NurbsCurve(_Node):
         return [datatypes.Point(x) for x in self.__fn_curve.cvPositions(util.to_mspace(space))]
 
 nt.registerClass("nurbsCurve", cls=NurbsCurve)
+
+
+class SkinCluster(_Node):
+    def __init__(self, nodename_or_mobject):
+        super(SkinCluster, self).__init__(nodename_or_mobject)
+        self.__skn = OpenMayaAnim.MFnSkinCluster(self.object())
+
+    def getGeometry(self, **kwargs):
+        kwargs["geometry"] = True
+        kwargs["query"] = True
+        return cmd.skinCluster(self, **kwargs)
+
+    def __apimfn__(self):
+        return self.__skn
+
+nt.registerClass("skinCluster", cls=SkinCluster)
 
 
 def BindNode(name):

@@ -155,10 +155,10 @@ def _dt_to_value(arg):
     elif isinstance(arg, datatypes.Point):
         return [arg[0], arg[1], arg[2], arg[3]]
     elif isinstance(arg, datatypes.Matrix):
-        return [arg[0], arg[1], arg[2], arg[3],
-                arg[4], arg[5], arg[6], arg[7],
-                arg[8], arg[9], arg[10], arg[11],
-                arg[12], arg[13], arg[14], arg[15]]
+        return [arg[0][0], arg[0][1], arg[0][2], arg[0][3],
+                arg[1][0], arg[1][1], arg[1][2], arg[1][3],
+                arg[2][0], arg[2][1], arg[2][2], arg[2][3],
+                arg[3][0], arg[3][1], arg[3][2], arg[3][3]]
     else:
         return arg
 
@@ -279,6 +279,20 @@ def currentTime(*args, **kwargs):
         kwargs["query"] = True
 
     return cmds.currentTime(*args, **kwargs)
+
+
+def listHistory(*args, type=None, exactType=None, **kwargs):
+    args = _obj_to_name(args)
+    kwargs = _obj_to_name(kwargs)
+
+    res = cmds.listHistory(*args, **kwargs) or []
+
+    if exactType:
+        return _name_to_obj([x for x in res if cmds.nodeType(x) == exactType])
+    elif type:
+        return _name_to_obj([x for x in res if type in cmds.nodeType(x, inherited=True)])
+    else:
+        return _name_to_obj(res)
 
 
 def keyframe(*args, **kwargs):

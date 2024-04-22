@@ -4,7 +4,7 @@ import math
 
 import maya.OpenMaya as OpenMaya
 
-from pymel.core import datatypes
+from mgear.pymaya import datatypes
 
 
 #############################################

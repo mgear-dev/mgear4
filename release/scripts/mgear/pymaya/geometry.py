@@ -1,5 +1,6 @@
 import re
 from maya.api import OpenMaya
+from maya import OpenMaya as om
 from maya import cmds
 from . import base
 from . import datatypes
@@ -203,6 +204,22 @@ class MeshFace(_SingleIndexGeom):
     def getVertices(self):
         it = OpenMaya.MItMeshPolygon(self.dagPath(), self.component())
         return list(it.getVertices())
+
+    def getNormal(self, space="preTransform"):
+        # getNormal of api2 is returning inaccurate results?
+        sel = om.MSelectionList()
+        sel.add(self.dagPath().fullPathName())
+        dag = om.MDagPath()
+        sel.getDagPath(0, dag)
+        comp = om.MFnSingleIndexedComponent()
+        comp_obj = comp.create(om.MFn.kMeshPolygonComponent)
+        for i in self.indices():
+            comp.addElement(i)
+
+        it = om.MItMeshPolygon(dag, comp_obj)
+        v = om.MVector()
+        it.getNormal(v, util.to_mspace(space, as_api2=False))
+        return datatypes.Vector(v.x, v.y, v.z)
 
 
 class NurbsCurveCV(_SingleIndexGeom):
