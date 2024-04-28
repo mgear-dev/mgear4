@@ -59,6 +59,27 @@ def duplicate(sym, *args):
         )
 
 
+def duplicate_multi(sym, *args):
+    """Duplicate a multiple component by drawing a new one and setting the same
+    properties values
+
+    Args:
+        sym (bool): If True, will create a symmetrical component
+        *args: None
+
+    """
+    oSel = pm.selected()
+    if oSel:
+        for root in oSel:
+            guide = shifter.guide.Rig()
+            guide.duplicate(root, sym)
+    else:
+        mgear.log(
+            "Select one or more component root to edit properties",
+            mgear.sev_error,
+        )
+
+
 def build_from_selection(*args):
     """Build rig from current selection
 
