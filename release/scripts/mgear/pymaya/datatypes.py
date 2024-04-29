@@ -3,7 +3,7 @@ from maya.api import OpenMaya
 from . import util
 
 
-degrees = math.degrees
+degrees = util.degrees
 Space = OpenMaya.MSpace
 
 

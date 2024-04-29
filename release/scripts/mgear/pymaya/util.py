@@ -6,6 +6,13 @@ from . import base
 import math
 
 
+def degrees(*args):
+    if isinstance(args[0], OpenMaya.MEulerRotation):
+        return args[0].__class__(math.degrees(args[0].x), math.degrees(args[0].y), math.degrees(args[0].z), args[0].order)
+
+    return math.degrees(*args)
+
+
 class UndoChunk(object):
     def __init__(self):
         super(UndoChunk, self).__init__()
