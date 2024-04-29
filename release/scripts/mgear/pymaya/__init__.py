@@ -7,7 +7,7 @@ from . import util
 from .bind import PyNode
 from .node import nt
 from .attr import Attribute
-from .geometry import MeshVertex, MeshFace
+from .geometry import MeshVertex, MeshFace, NurbsCurveCV, MeshEdge
 from . import datatypes
 
 nodetypes = nt
