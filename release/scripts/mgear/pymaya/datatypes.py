@@ -48,6 +48,9 @@ class Vector(OpenMaya.MVector):
     def __getitem__(self, item):
         return [self.x, self.y, self.z][item]
 
+    def tolist(self):
+        return [self.x, self.y, self.z]
+
     def rotateBy(self, *args):
         if args:
             if len(args) == 2 and isinstance(args[0], Vector):
@@ -72,6 +75,9 @@ class Point(OpenMaya.MPoint):
         super(Point, self).__init__(*args, **kwargs)
         for fn in Point.WRAP_FUNCS:
             setattr(self, fn, _warp_dt(super(Point, self).__getattribute__(fn)))
+
+    def tolist(self):
+        return [self.x, self.y, self.z]
 
     def __getitem__(self, item):
         return [self.x, self.y, self.z, self.w][item]
