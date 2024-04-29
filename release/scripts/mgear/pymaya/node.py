@@ -155,6 +155,7 @@ class _Node(base.Node):
 
         self.__fn_dg = OpenMaya.MFnDependencyNode(self.__obj)
         self.__api_mfn = self.__fn_dg
+        self.__is_transform = False
 
         if self.__obj.hasFn(OpenMaya.MFn.kDagNode):
             dagpath = OpenMaya.MDagPath.getAPathTo(self.__obj)
@@ -164,6 +165,7 @@ class _Node(base.Node):
             self.getChildren = partial(_getChildren, self)
             self.addChild = partial(_addChild, self)
             if self.__obj.hasFn(OpenMaya.MFn.kTransform):
+                self.__is_transform = True
                 self.getBoundingBox = partial(_getBoundingBox, self)
                 self.getPivots = partial(_getPivots, self)
                 self.setTransformation = partial(_setTransformation, self)
@@ -188,7 +190,7 @@ class _Node(base.Node):
                 return super(_Node, self).__getattribute__("attr")(name)
             elif cmds.ls("{}.{}[:]".format(nfnc(), name)):
                 return geometry.BindGeometry("{}.{}[:]".format(nfnc(), name))
-            elif self.__dagpath is not None:
+            elif self.__is_transform:
                 sp = self.getShape()
                 if sp:
                     sym = getattr(sp, name, None)
@@ -225,6 +227,13 @@ class _Node(base.Node):
         fdag = super(_Node, self).__getattribute__("_Node__fn_dag")
         if fdag is not None:
             return fdag.partialPathName()
+        fdg = super(_Node, self).__getattribute__("_Node__fn_dg")
+        return fdg.name()
+
+    def longName(self):
+        fdag = super(_Node, self).__getattribute__("_Node__fn_dag")
+        if fdag is not None:
+            return fdag.fullPathName()
         fdg = super(_Node, self).__getattribute__("_Node__fn_dg")
         return fdg.name()
 
@@ -349,12 +358,13 @@ class _NodeTypes(object):
             self.__types[typename] = _New
 
     def getTypeClass(self, typename):
-        if typename in self.__types:
-            return self.__types[typename]
+        self_types = super(_NodeTypes, self).__getattribute__("_NodeTypes__types")
+        if typename in self_types:
+            return self_types[typename]
 
         if typename in cmds.allNodeTypes():
             self.registerClass(typename, cls=None)
-            return self.__types[typename]
+            return self_types[typename]
 
         return None
 
@@ -449,6 +459,31 @@ class SkinCluster(_Node):
         return self.__skn
 
 nt.registerClass("skinCluster", cls=SkinCluster)
+
+
+class Mesh(_Node):
+    def __init__(self, nodename_or_mobject):
+        super(Mesh, self).__init__(nodename_or_mobject)
+        self.__fm = OpenMaya.MFnMesh(self.object())
+
+    @property
+    def faces(self):
+        return geometry.BindGeometry("{}.f[:]".format(self.name()))
+
+    def numFaces(self):
+        return self.__fm.numPolygons
+
+nt.registerClass("mesh", cls=Mesh)
+
+
+class Joint(_Node):
+    def __init__(self, nodename_or_mobject):
+        super(Joint, self).__init__(nodename_or_mobject)
+
+    def getRadius(self):
+        return cmd.joint(self, q=True, radius=True)[0]
+
+nt.registerClass("joint", cls=Joint)
 
 
 def BindNode(name):
