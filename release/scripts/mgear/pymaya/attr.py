@@ -85,6 +85,26 @@ class Attribute(base.Attr):
 
         return "{}.{}".format(nfunc(), this_plug.partialName(False, False, False, False, False, True))
 
+    def plugAttr(self, longName=False, fullPath=False):
+        return self.__plug.partialName(False, False, False, False, fullPath, longName)
+
+    def attrName(self, longName=False, includeNode=False):
+        if includeNode:
+            obj = self.__plug.node()
+            nfunc = None
+
+            if obj.hasFn(OpenMaya.MFn.kDagNode):
+                nfunc = OpenMaya.MFnDagNode(OpenMaya.MDagPath.getAPathTo(obj)).partialPathName
+            else:
+                nfunc = OpenMaya.MFnDependencyNode(obj).name
+
+            return "{}.{}".format(nfunc(), self.__plug.partialName(False, False, False, False, False, longName))
+
+        return self.__plug.partialName(False, False, False, False, False, longName)
+
+    def getAlias(self):
+        return OpenMaya.MFnDependencyNode(self.__plug.node()).plugsAlias(self.__plug)
+
     def node(self):
         from . import node
         obj = self.__plug.node()
@@ -95,6 +115,9 @@ class Attribute(base.Attr):
             nfunc = OpenMaya.MFnDependencyNode(obj).name
 
         return node.BindNode(nfunc())
+
+    def nodeName(self):
+        return self.node().name()
 
     def delete(self):
         cmds.deleteAttr(self.name())
@@ -107,6 +130,24 @@ class Attribute(base.Attr):
 
     def listConnections(self, **kwargs):
         return cmd.listConnections(self, **kwargs)
+
+    def inputs(self, **kwargs):
+        kwargs.pop("destination", None)
+        kwargs.pop("d", None)
+        kwargs.pop("source", None)
+        kwargs.pop("s", None)
+        kwargs["s"] = True
+        kwargs["d"] = False
+        return self.listConnections(**kwargs)
+
+    def outputs(self, **kwargs):
+        kwargs.pop("destination", None)
+        kwargs.pop("d", None)
+        kwargs.pop("source", None)
+        kwargs.pop("s", None)
+        kwargs["s"] = False
+        kwargs["d"] = True
+        return self.listConnections(**kwargs)
 
     def isConnected(self, **kwargs):
         return self.plug().isConnected
