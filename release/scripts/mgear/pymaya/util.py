@@ -1,4 +1,3 @@
-from math import degrees
 from maya import cmds
 from maya.api import OpenMaya
 from maya import OpenMaya as om
