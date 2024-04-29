@@ -1,6 +1,6 @@
 """Rigbits Rope rig creator"""
 
-import pymel.core as pm
+import mgear.pymaya as pm
 
 from mgear.core import applyop
 from mgear import rigbits

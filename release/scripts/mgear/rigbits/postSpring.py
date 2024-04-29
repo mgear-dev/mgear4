@@ -3,7 +3,7 @@
 creates a spring dynamic rig on top of a pre-existing FK chain rig.
 """
 
-import pymel.core as pm
+import mgear.pymaya as pm
 
 from mgear.core import applyop, attribute
 

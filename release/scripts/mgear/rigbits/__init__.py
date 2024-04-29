@@ -1,6 +1,6 @@
-import pymel.core as pm
-from pymel.core import datatypes
-from pymel import util as pmu
+import mgear.pymaya as pm
+from mgear.pymaya import datatypes
+from mgear.pymaya import util as pmu
 
 
 import mgear

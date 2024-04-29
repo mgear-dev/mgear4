@@ -1,4 +1,4 @@
-import pymel.core as pm
+import mgear.pymaya as pm
 import mgear
 
 from mgear.core import string

@@ -38,44 +38,44 @@
 # release/scripts/mgear/core/transform.py
 # release/scripts/mgear/core/utils.py
 # release/scripts/mgear/core/vector.py
-release/scripts/mgear/core/wmap.py
-release/scripts/mgear/crank/crank_tool.py
-release/scripts/mgear/crank/menu.py
-release/scripts/mgear/flex/update.py
-release/scripts/mgear/rigbits/__init__.py
-release/scripts/mgear/rigbits/blendShapes.py
-release/scripts/mgear/rigbits/channelWrangler.py
-release/scripts/mgear/rigbits/cycleTweaks.py
-release/scripts/mgear/rigbits/ghost.py
-release/scripts/mgear/rigbits/menu.py
-release/scripts/mgear/rigbits/mirror_controls.py
-release/scripts/mgear/rigbits/postSpring.py
-release/scripts/mgear/rigbits/proxyGeo.py
-release/scripts/mgear/rigbits/proxySlicer.py
-release/scripts/mgear/rigbits/rbf_manager_ui.py
-release/scripts/mgear/rigbits/rbf_node.py
-release/scripts/mgear/rigbits/rivet.py
-release/scripts/mgear/rigbits/rope.py
-release/scripts/mgear/rigbits/sdk_io.py
-release/scripts/mgear/rigbits/tweaks.py
-release/scripts/mgear/rigbits/utils.py
-release/scripts/mgear/rigbits/weightNode_io.py
-release/scripts/mgear/rigbits/facial_rigger/brow_rigger.py
-release/scripts/mgear/rigbits/facial_rigger/constraints.py
-release/scripts/mgear/rigbits/facial_rigger/eye_rigger.py
-release/scripts/mgear/rigbits/facial_rigger/helpers.py
-release/scripts/mgear/rigbits/facial_rigger/lib.py
-release/scripts/mgear/rigbits/facial_rigger/lips_rigger.py
-release/scripts/mgear/rigbits/facial_rigger2/eye_rigger.py
-release/scripts/mgear/rigbits/facial_rigger2/eye_riggerUI.py
-release/scripts/mgear/rigbits/facial_rigger2/helpers.py
-release/scripts/mgear/rigbits/facial_rigger2/lib.py
-release/scripts/mgear/rigbits/gimmick_tool/core.py
-release/scripts/mgear/rigbits/gimmick_tool/main.py
-release/scripts/mgear/rigbits/rbf_manager2/rbf_manager_ui.py
-release/scripts/mgear/rigbits/sdk_manager/core.py
-release/scripts/mgear/rigbits/sdk_manager/SDK_manager_ui.py
-release/scripts/mgear/rigbits/sdk_manager/SDK_transfer_ui.py
+# release/scripts/mgear/core/wmap.py # __apimfn__()
+# release/scripts/mgear/crank/crank_tool.py
+# release/scripts/mgear/crank/menu.py
+# release/scripts/mgear/flex/update.py # update_attribute
+# release/scripts/mgear/rigbits/__init__.py
+# release/scripts/mgear/rigbits/blendShapes.py
+# release/scripts/mgear/rigbits/channelWrangler.py
+# release/scripts/mgear/rigbits/cycleTweaks.py
+# release/scripts/mgear/rigbits/ghost.py
+# release/scripts/mgear/rigbits/menu.py
+# release/scripts/mgear/rigbits/mirror_controls.py
+# release/scripts/mgear/rigbits/postSpring.py
+# release/scripts/mgear/rigbits/proxyGeo.py
+# release/scripts/mgear/rigbits/proxySlicer.py
+# release/scripts/mgear/rigbits/rbf_manager_ui.py
+# release/scripts/mgear/rigbits/rbf_node.py
+# release/scripts/mgear/rigbits/rivet.py
+# release/scripts/mgear/rigbits/rope.py
+# release/scripts/mgear/rigbits/sdk_io.py
+# release/scripts/mgear/rigbits/tweaks.py
+# release/scripts/mgear/rigbits/utils.py
+# release/scripts/mgear/rigbits/weightNode_io.py
+# release/scripts/mgear/rigbits/facial_rigger/brow_rigger.py
+# release/scripts/mgear/rigbits/facial_rigger/constraints.py
+# release/scripts/mgear/rigbits/facial_rigger/eye_rigger.py
+# release/scripts/mgear/rigbits/facial_rigger/helpers.py
+# release/scripts/mgear/rigbits/facial_rigger/lib.py
+# release/scripts/mgear/rigbits/facial_rigger/lips_rigger.py
+# release/scripts/mgear/rigbits/facial_rigger2/eye_rigger.py
+# release/scripts/mgear/rigbits/facial_rigger2/eye_riggerUI.py
+# release/scripts/mgear/rigbits/facial_rigger2/helpers.py
+# release/scripts/mgear/rigbits/facial_rigger2/lib.py # Workspace
+# release/scripts/mgear/rigbits/gimmick_tool/core.py
+# release/scripts/mgear/rigbits/gimmick_tool/main.py
+# release/scripts/mgear/rigbits/rbf_manager2/rbf_manager_ui.py
+# release/scripts/mgear/rigbits/sdk_manager/core.py
+# release/scripts/mgear/rigbits/sdk_manager/SDK_manager_ui.py
+# release/scripts/mgear/rigbits/sdk_manager/SDK_transfer_ui.py
 release/scripts/mgear/shifter/__init__.py
 release/scripts/mgear/shifter/afg_tools_ui.py
 release/scripts/mgear/shifter/afg_tools.py

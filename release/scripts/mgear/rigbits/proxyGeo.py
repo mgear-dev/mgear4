@@ -2,10 +2,10 @@ import os
 import json
 
 
-import pymel.core as pm
+import mgear.pymaya as pm
 import maya.cmds as cmds
-from pymel.core import datatypes
-from pymel.core import nodetypes
+from mgear.pymaya import datatypes
+from mgear.pymaya import nodetypes
 
 
 from mgear.core import attribute

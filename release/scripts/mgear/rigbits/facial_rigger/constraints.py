@@ -1,7 +1,7 @@
-import pymel.core as pm
+import mgear.pymaya as pm
 import maya.OpenMaya as om
 
-import pymel.core.datatypes as datatypes
+import mgear.pymaya.datatypes as datatypes
 
 ##################
 # Helper functions
