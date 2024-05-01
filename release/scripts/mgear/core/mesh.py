@@ -9,6 +9,39 @@ import maya.cmds as cmds
 import pymel.core as pm
 
 
+def is_selected_object_mesh(obj=None):
+    """
+    Check if the currently selected object's transform has a mesh shape.
+
+    Returns:
+        bool: True if the transform's shape is a mesh, False otherwise.
+
+    Args:
+        obj (str or PyNode, optional): Object to check if is mesh
+
+    """
+    if not obj:
+        # Get the current selection
+        selection = pm.selected()
+
+        if not selection:
+            raise ValueError("No object is selected.")
+
+        # Get the first item in the selection
+        obj = selection[0]
+    else:
+        if isinstance(obj, str):
+            obj = pm.PyNode(obj)
+
+    # Check if the selected object is a transform and has a shape
+    if obj.nodeType() == "transform" and obj.getShape():
+        # Check if the shape of the selected object is a mesh
+        is_mesh = isinstance(obj.getShape(), pm.nodetypes.Mesh)
+        return is_mesh
+    else:
+        return False
+
+
 def create_square_polygon(
     side_length=1.0, alignment="Y", name=None, position=(0, 0, 0)
 ):
