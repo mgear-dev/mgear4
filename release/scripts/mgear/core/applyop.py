@@ -862,7 +862,8 @@ def create_proximity_constraint(
         dup = pm.duplicate(shape, n="{}OrigTrans".format(shape), rc=True)[0]
         shape_orig = pm.listRelatives(dup, s=True)[0]
         shape_orig.rename("{}Orig".format(shape))
-        dup.visibility.set(0)
+        pm.parent(shape_orig, shape, shape=True, add=True)
+        pm.delete(dup)
         shape_orig.intermediateObject.set(1)
         shape_orig.worldMesh[0] >> shape.inMesh
     else:
