@@ -76,8 +76,8 @@
 # release/scripts/mgear/rigbits/sdk_manager/core.py
 # release/scripts/mgear/rigbits/sdk_manager/SDK_manager_ui.py
 # release/scripts/mgear/rigbits/sdk_manager/SDK_transfer_ui.py
-release/scripts/mgear/shifter/__init__.py
-release/scripts/mgear/shifter/afg_tools_ui.py
+# release/scripts/mgear/shifter/__init__.py # pm.UIHost?
+# release/scripts/mgear/shifter/afg_tools_ui.py
 release/scripts/mgear/shifter/afg_tools.py
 release/scripts/mgear/shifter/custom_step.py
 release/scripts/mgear/shifter/game_tools_disconnect.py

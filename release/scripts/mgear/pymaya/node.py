@@ -98,7 +98,12 @@ def _getTranslation(node, space="object"):
     return datatypes.Vector(OpenMaya.MFnTransform(node.dagPath()).translation(space))
 
 
-def _setTranslation(node, value, space="object"):
+def _setTranslation(node, value, space="object", **kwargs):
+    if kwargs.pop("worldSpace", kwargs.pop("ws", False)):
+        space = "world"
+    elif kwargs.pop("objectSpace", kwargs.pop("os", False)):
+        space = "object"
+
     space = util.to_mspace(space)
     OpenMaya.MFnTransform(node.dagPath()).setTranslation(value, space)
 
