@@ -108,6 +108,38 @@ def _setTranslation(node, value, space="object", **kwargs):
     OpenMaya.MFnTransform(node.dagPath()).setTranslation(value, space)
 
 
+def _getRotation(node, space="object", quaternion=False, **kwargs):
+    space = util.to_mspace(space)
+    res = OpenMaya.MFnTransform(node.dagPath()).rotation(space=space, asQuaternion=True)
+
+    if quaternion:
+        return datatypes.Quaternion(res)
+    else:
+        return datatypes.EulerRotation(res.asEulerRotation())
+
+
+def _setRotation(node, rotation, space="object"):
+    if isinstance(rotation, list):
+        if len(rotation) == 3:
+            rotation = datatypes.EulerRotation(*[math.radians(x) for x in rotation])
+        elif len(rotation) == 4:
+            rotation = datatypes.Quaternion(*rotation)
+
+    if isinstance(rotation, OpenMaya.MEulerRotation):
+        rotation = rotation.asQuaternion()
+
+    space = util.to_mspace(space)
+    OpenMaya.MFnTransform(node.dagPath()).setRotation(rotation, space)
+
+
+def _setScale(node, scale):
+    OpenMaya.MFnTransform(node.dagPath()).setScale(scale)
+
+
+def _getScale(node):
+    return OpenMaya.MFnTransform(node.dagPath()).scale()
+
+
 def _getBoundingBox(node, invisible=False, space="object"):
     opts = {"query": True}
     if invisible:
@@ -181,6 +213,11 @@ class _Node(base.Node):
                 self.getMatrix = partial(_getMatrix, self)
                 self.getTranslation = partial(_getTranslation, self)
                 self.setTranslation = partial(_setTranslation, self)
+                self.setRotation =  partial(_setRotation, self)
+                self.getRotation =  partial(_getRotation, self)
+                self.getScale =  partial(_getScale, self)
+                self.setScale =  partial(_setScale, self)
+
             self.__api_mfn = self.__fn_dag
         else:
             self.__dagpath = None
