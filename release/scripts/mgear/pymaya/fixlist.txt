@@ -79,17 +79,17 @@
 # release/scripts/mgear/shifter/__init__.py # pm.UIHost?
 # release/scripts/mgear/shifter/afg_tools_ui.py
 # release/scripts/mgear/shifter/afg_tools.py
-release/scripts/mgear/shifter/custom_step.py
-release/scripts/mgear/shifter/game_tools_disconnect.py
-release/scripts/mgear/shifter/guide_manager_component.py
-release/scripts/mgear/shifter/guide_manager.py
-release/scripts/mgear/shifter/guide_template_explorer.py
-release/scripts/mgear/shifter/guide_template.py
-release/scripts/mgear/shifter/guide.py
-release/scripts/mgear/shifter/io.py
-release/scripts/mgear/shifter/mocap_tools.py
-release/scripts/mgear/shifter/naming.py
-release/scripts/mgear/shifter/plebes.py
+# release/scripts/mgear/shifter/custom_step.py
+# release/scripts/mgear/shifter/game_tools_disconnect.py
+# release/scripts/mgear/shifter/guide_manager_component.py
+# release/scripts/mgear/shifter/guide_manager.py
+# release/scripts/mgear/shifter/guide_template_explorer.py
+# release/scripts/mgear/shifter/guide_template.py
+# release/scripts/mgear/shifter/guide.py
+# release/scripts/mgear/shifter/io.py
+# release/scripts/mgear/shifter/mocap_tools.py
+# release/scripts/mgear/shifter/naming.py
+# release/scripts/mgear/shifter/plebes.py
 release/scripts/mgear/shifter/relative_guide_placement.py
 release/scripts/mgear/shifter/utils.py
 release/scripts/mgear/shifter/component/__init__.py

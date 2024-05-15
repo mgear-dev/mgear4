@@ -3,7 +3,7 @@ import sys
 import traceback
 from functools import partial
 
-import pymel.core as pm
+import mgear.pymaya as pm
 
 from maya.app.general.mayaMixin import MayaQWidgetDockableMixin
 from mgear.core import pyqt
