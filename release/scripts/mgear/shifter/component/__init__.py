@@ -2180,6 +2180,8 @@ class Main(object):
                         # If None the active jnt will be updated to the latest in
                         # each jnt creation
                         jpo["newActiveJnt"] = self.parent_relative_jnt
+                    elif isinstance(jpo["newActiveJnt"], int):
+                        jpo["newActiveJnt"] = self.jointList[jpo["newActiveJnt"]]
                     else:
                         try:
                             # here jpo["newActiveJnt"] is also the string name
