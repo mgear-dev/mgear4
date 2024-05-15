@@ -699,7 +699,7 @@ class ComponentGuide(guide.Main):
         self.connect_x_ray(loc)
         pm.delete(add_ref_joint)
 
-    def addLoc(self, name, parent, position=None):
+    def addLoc(self, name, parent, position=None, color=17, width=.5):
         """Add a loc object to the guide.
 
         This mehod can initialize the object or draw it.
@@ -721,11 +721,19 @@ class ComponentGuide(guide.Main):
             # this functionality is not implemented. The actual design from
             # softimage Gear should be review to fit in Maya.
             loc = self.prim[name].create(
-                parent, self.getName(name), self.tra[name], color=17
+                parent,
+                self.getName(name),
+                self.tra[name],
+                color=color,
+                width=width
             )
         else:
             loc = icon.guideLocatorIcon(
-                parent, self.getName(name), color=17, m=self.tra[name]
+                parent,
+                self.getName(name),
+                color=color,
+                m=self.tra[name],
+                width=width
             )
         self.connect_x_ray(loc)
         return loc
