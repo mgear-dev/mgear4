@@ -351,6 +351,10 @@ class _Node(base.Node):
     def type(self):
         return self.__fn_dg.typeName
 
+    # same????
+    def nodeType(self):
+        return self.__fn_dg.typeName
+
     def namespace(self):
         nss = self.name().split("|")[-1].split(":")[:-1]
         if not nss:
