@@ -60,7 +60,9 @@ def create_layer(oSel):
         dagNode: cranklayer node with all the layer data
     """
     oSel = [
-        x for x in oSel if x.getShapes() and x.getShapes()[0].type() == "mesh"
+        x
+        for x in oSel
+        if x.getShapes() and x.getShapes()[0].type() in ["mesh", "nurbsCurve"]
     ]
 
     if oSel:
