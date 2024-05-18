@@ -7,9 +7,9 @@ Shifter component rig class.
 #############################################
 import re
 # pymel
-import pymel.core as pm
-from pymel.core import datatypes
-from pymel import versions
+import mgear.pymaya as pm
+from mgear.pymaya import datatypes
+from mgear.pymaya import versions
 
 # mgear
 import mgear

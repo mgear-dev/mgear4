@@ -1,4 +1,4 @@
-import pymel.core as pm
+import mgear.pymaya as pm
 
 from mgear.vendor.Qt import QtCore, QtWidgets
 

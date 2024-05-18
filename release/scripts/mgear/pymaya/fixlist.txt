@@ -90,11 +90,11 @@
 # release/scripts/mgear/shifter/mocap_tools.py
 # release/scripts/mgear/shifter/naming.py
 # release/scripts/mgear/shifter/plebes.py
-release/scripts/mgear/shifter/relative_guide_placement.py
-release/scripts/mgear/shifter/utils.py
-release/scripts/mgear/shifter/component/__init__.py
-release/scripts/mgear/shifter/component/chain_guide_initializer.py
-release/scripts/mgear/shifter/component/guide.py
+# release/scripts/mgear/shifter/relative_guide_placement.py
+# release/scripts/mgear/shifter/utils.py
+# release/scripts/mgear/shifter/component/__init__.py
+# release/scripts/mgear/shifter/component/chain_guide_initializer.py
+# release/scripts/mgear/shifter/component/guide.py
 release/scripts/mgear/shifter/game_tools_fbx/fbx_batch.py
 release/scripts/mgear/shifter/game_tools_fbx/fbx_export_node.py
 release/scripts/mgear/shifter/game_tools_fbx/fbx_exporter.py

@@ -7,8 +7,8 @@ from functools import partial
 import maya.cmds as cmds
 
 # pyMel
-import pymel.core as pm
-from pymel.core import datatypes
+import mgear.pymaya as pm
+from mgear.pymaya import datatypes
 
 # mgear
 import mgear
