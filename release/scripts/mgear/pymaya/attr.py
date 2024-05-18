@@ -131,6 +131,10 @@ class Attribute(base.Attr):
     def listConnections(self, **kwargs):
         return cmd.listConnections(self, **kwargs)
 
+    # .... why ...
+    def connections(self, **kwargs):
+        return cmd.listConnections(self, **kwargs)
+
     def inputs(self, **kwargs):
         kwargs.pop("destination", None)
         kwargs.pop("d", None)
