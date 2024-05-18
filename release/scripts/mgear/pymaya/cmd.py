@@ -141,6 +141,8 @@ def _obj_to_name(arg):
         for k, v in arg.items():
             newdic[k] = _obj_to_name(v)
         return newdic
+    elif isinstance(arg, base.Geom):
+        return arg.toStringList()
     elif isinstance(arg, base.Base):
         return arg.name()
     else:

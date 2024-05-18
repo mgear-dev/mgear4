@@ -83,4 +83,5 @@ class Attr(Base):
 
 
 class Geom(Base):
-    pass
+    def toStringList(self):
+        raise NotImplementedError("{}.toStringList is not implemented yet".format(self.__class.__name__))

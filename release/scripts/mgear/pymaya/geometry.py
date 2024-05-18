@@ -92,7 +92,7 @@ class _SingleIndexGeom(_Geometry):
             if len(grp) == 1:
                 ts.append(str(grp[0]))
             else:
-                ts.append(f"{grp[0]}:{grp[-1]}")
+                ts.append("{}:{}".format(grp[0], grp[-1]))
 
         return ",".join(ts)
 
@@ -106,8 +106,14 @@ class _SingleIndexGeom(_Geometry):
 
         return list(self.__indices)
 
+    def toStringList(self):
+        names = []
+        for i in self.indices():
+            names.append(self.dagPath().partialPathName() + ".{}[{}]".format(self.AttrName(), i))
+        return names
+
     def name(self):
-        return self.dagPath().partialPathName() + f".{self.AttrName()}[{self.__indices_str()}]"
+        return self.dagPath().partialPathName() + ".{}[{}]".format(self.AttrName(), self.__indices_str())
 
     def index(self):
         return self.indices()[0]
