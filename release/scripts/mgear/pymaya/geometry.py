@@ -186,6 +186,15 @@ class MeshVertex(_SingleIndexGeom):
 
         return MeshEdge(self.dagPath(), comp_obj)
 
+    def connectedFaces(self):
+        it = OpenMaya.MItMeshVertex(self.dagPath(), self.component())
+        comp = OpenMaya.MFnSingleIndexedComponent()
+        comp_obj = comp.create(OpenMaya.MFn.kMeshPolygonComponent)
+        for ei in it.getConnectedFaces():
+            comp.addElement(ei)
+
+        return MeshFace(self.dagPath(), comp_obj)
+
 
 class MeshFace(_SingleIndexGeom):
     @classmethod
