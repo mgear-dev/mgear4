@@ -95,10 +95,10 @@
 # release/scripts/mgear/shifter/component/__init__.py
 # release/scripts/mgear/shifter/component/chain_guide_initializer.py
 # release/scripts/mgear/shifter/component/guide.py
-release/scripts/mgear/shifter/game_tools_fbx/fbx_batch.py
-release/scripts/mgear/shifter/game_tools_fbx/fbx_export_node.py
-release/scripts/mgear/shifter/game_tools_fbx/fbx_exporter.py
-release/scripts/mgear/shifter/game_tools_fbx/utils.py
+# release/scripts/mgear/shifter/game_tools_fbx/fbx_batch.py
+# release/scripts/mgear/shifter/game_tools_fbx/fbx_export_node.py
+# release/scripts/mgear/shifter/game_tools_fbx/fbx_exporter.py
+# release/scripts/mgear/shifter/game_tools_fbx/utils.py
 release/scripts/mgear/shifter/rig_builder/builder.py
 release/scripts/mgear/shifter/rig_builder/pyblish_plugins/collect_rig.py
 release/scripts/mgear/shifter/rig_builder/pyblish_plugins/validate_controllers_in_set.py
