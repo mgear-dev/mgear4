@@ -1350,6 +1350,7 @@ class Main(object):
         storable=True,
         writable=True,
         uihost=None,
+        exactName=False,
     ):
         """Add a parameter to the animation property.
 
@@ -1375,6 +1376,11 @@ class Main(object):
         if not uihost:
             uihost = self.uihost
 
+        if exactName:
+            attr_name = longName
+        else:
+            attr_name = self.getAttrName(longName)
+
         if self.options["classicChannelNames"]:
             attr = attribute.addEnumAttribute(
                 uihost,
@@ -1389,12 +1395,12 @@ class Main(object):
                 writable=writable,
             )
         else:
-            if uihost.hasAttr(self.getAttrName(longName)):
-                attr = uihost.attr(self.getAttrName(longName))
+            if uihost.hasAttr(attr_name):
+                attr = uihost.attr(attr_name)
             else:
                 attr = attribute.addEnumAttribute(
                     uihost,
-                    self.getAttrName(longName),
+                    attr_name,
                     value,
                     enum,
                     niceName,
