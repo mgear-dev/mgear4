@@ -323,7 +323,9 @@ def addProxyAttribute(sourceAttrs, targets, duplicatedPolicy=None):
                 )
 
 
-def moveChannel(attr, sourceNode, targetNode, duplicatedPolicy=None):
+def moveChannel(
+    attr, sourceNode, targetNode, duplicatedPolicy=None, forceFullName=False
+):
     """Move channels  keeping the output connections.
     Duplicated channel policy, stablish the rule in case the channel already
     exist on the target.
@@ -397,6 +399,10 @@ def moveChannel(attr, sourceNode, targetNode, duplicatedPolicy=None):
                     )
                     return False
 
+        if forceFullName:
+            attrName = "{}_{}".format(sourceNode.name(), attr)
+            nName = "{}_{}".format(sourceNode.name(), nName)
+
         outcnx = at.listConnections(p=True)
         if not newAtt:
             # get the attr data
@@ -457,6 +463,7 @@ def moveChannel(attr, sourceNode, targetNode, duplicatedPolicy=None):
         for cnx in outcnx:
             try:
                 pm.connectAttr(newAtt, cnx, f=True)
+                return newAtt
             except RuntimeError:
                 pm.displayError(
                     "There is a problem connecting the "
