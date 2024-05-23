@@ -2,7 +2,7 @@
 import traceback
 
 # dcc
-import pymel.core as pm
+import mgear.pymaya as pm
 
 # mgear
 import mgear

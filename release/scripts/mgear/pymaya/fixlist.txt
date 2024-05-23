@@ -191,17 +191,17 @@ release/scripts/mgear/shifter_epic_components/EPIC_shoulder_01/__init__.py
 release/scripts/mgear/shifter_epic_components/EPIC_spine_01/__init__.py
 release/scripts/mgear/shifter_epic_components/EPIC_spine_02/__init__.py
 release/scripts/mgear/shifter_epic_components/EPIC_spine_cartoon_01/__init__.py
-release/scripts/mgear/simpleRig/menu.py
-release/scripts/mgear/simpleRig/simpleRigTool.py
-release/scripts/mgear/synoptic/__init__.py
-release/scripts/mgear/synoptic/menu.py
-release/scripts/mgear/synoptic/utils.py
-release/scripts/mgear/synoptic/tabs/__init__.py
-release/scripts/mgear/uegear/commands.py
+# release/scripts/mgear/simpleRig/menu.py
+# release/scripts/mgear/simpleRig/simpleRigTool.py
+# release/scripts/mgear/synoptic/__init__.py
+# release/scripts/mgear/synoptic/menu.py
+# release/scripts/mgear/synoptic/utils.py
+# release/scripts/mgear/synoptic/tabs/__init__.py
+# release/scripts/mgear/uegear/commands.py # changed (using attribute.setRotOrder)
 tests/conftest.py
 tests/test_mgear/test_core/test_vector.py
 
-anim_picker_samples/biped_simple.pkr
-anim_picker_samples/biped.pkr
-release/scripts/mgear/anim_picker/picker_templates/biped_simple.pkr
-release/scripts/mgear/anim_picker/picker_templates/biped.pkr
+# anim_picker_samples/biped_simple.pkr
+# anim_picker_samples/biped.pkr
+# release/scripts/mgear/anim_picker/picker_templates/biped_simple.pkr
+# release/scripts/mgear/anim_picker/picker_templates/biped.pkr
