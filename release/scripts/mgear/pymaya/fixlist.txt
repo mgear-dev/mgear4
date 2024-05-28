@@ -122,23 +122,23 @@
 # release/scripts/mgear/shifter_classic_components/chain_IK_spline_variable_FK_01/__init__.py
 # release/scripts/mgear/shifter_classic_components/chain_IK_spline_variable_FK_stack_01/__init__.py
 # release/scripts/mgear/shifter_classic_components/chain_IK_spline_variable_FK_stack_01/guide.py
-release/scripts/mgear/shifter_classic_components/chain_loc_ori_01/__init__.py
-release/scripts/mgear/shifter_classic_components/chain_loc_ori_01/guide.py
-release/scripts/mgear/shifter_classic_components/chain_net_01/__init__.py
-release/scripts/mgear/shifter_classic_components/chain_net_01/guide.py
-release/scripts/mgear/shifter_classic_components/chain_spring_01/__init__.py
-release/scripts/mgear/shifter_classic_components/chain_spring_lite_stack_master_01/__init__.py
-release/scripts/mgear/shifter_classic_components/chain_stack_01/__init__.py
-release/scripts/mgear/shifter_classic_components/chain_stack_01/guide.py
-release/scripts/mgear/shifter_classic_components/chain_variable_IK_01/__init__.py
-release/scripts/mgear/shifter_classic_components/chain_whip_01/__init__.py
-release/scripts/mgear/shifter_classic_components/control_01/__init__.py
-release/scripts/mgear/shifter_classic_components/control_01/guide.py
-release/scripts/mgear/shifter_classic_components/eye_01/__init__.py
-release/scripts/mgear/shifter_classic_components/foot_bk_01/__init__.py
-release/scripts/mgear/shifter_classic_components/foot_bk_01/guide.py
-release/scripts/mgear/shifter_classic_components/leg_2jnt_01/__init__.py
-release/scripts/mgear/shifter_classic_components/leg_2jnt_02/__init__.py
+# release/scripts/mgear/shifter_classic_components/chain_loc_ori_01/__init__.py
+# release/scripts/mgear/shifter_classic_components/chain_loc_ori_01/guide.py
+# release/scripts/mgear/shifter_classic_components/chain_net_01/__init__.py
+# release/scripts/mgear/shifter_classic_components/chain_net_01/guide.py
+# release/scripts/mgear/shifter_classic_components/chain_spring_01/__init__.py
+# release/scripts/mgear/shifter_classic_components/chain_spring_lite_stack_master_01/__init__.py
+# release/scripts/mgear/shifter_classic_components/chain_stack_01/__init__.py
+# release/scripts/mgear/shifter_classic_components/chain_stack_01/guide.py
+# release/scripts/mgear/shifter_classic_components/chain_variable_IK_01/__init__.py
+# release/scripts/mgear/shifter_classic_components/chain_whip_01/__init__.py
+# release/scripts/mgear/shifter_classic_components/control_01/__init__.py
+# release/scripts/mgear/shifter_classic_components/control_01/guide.py
+# release/scripts/mgear/shifter_classic_components/eye_01/__init__.py
+# release/scripts/mgear/shifter_classic_components/foot_bk_01/__init__.py
+# release/scripts/mgear/shifter_classic_components/foot_bk_01/guide.py
+# release/scripts/mgear/shifter_classic_components/leg_2jnt_01/__init__.py
+# release/scripts/mgear/shifter_classic_components/leg_2jnt_02/__init__.py
 release/scripts/mgear/shifter_classic_components/leg_2jnt_freeTangents_01/__init__.py
 release/scripts/mgear/shifter_classic_components/leg_3jnt_01/__init__.py
 release/scripts/mgear/shifter_classic_components/leg_ms_2jnt_01/__init__.py
