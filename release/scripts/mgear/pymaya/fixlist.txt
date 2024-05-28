@@ -102,26 +102,26 @@
 # release/scripts/mgear/shifter/rig_builder/builder.py
 # release/scripts/mgear/shifter/rig_builder/pyblish_plugins/collect_rig.py
 # release/scripts/mgear/shifter/rig_builder/pyblish_plugins/validate_controllers_in_set.py
-release/scripts/mgear/shifter_classic_components/arm_2jnt_01/__init__.py
-release/scripts/mgear/shifter_classic_components/arm_2jnt_01/guide.py
-release/scripts/mgear/shifter_classic_components/arm_2jnt_02/__init__.py
-release/scripts/mgear/shifter_classic_components/arm_2jnt_02/guide.py
-release/scripts/mgear/shifter_classic_components/arm_2jnt_03/__init__.py
-release/scripts/mgear/shifter_classic_components/arm_2jnt_03/guide.py
-release/scripts/mgear/shifter_classic_components/arm_2jnt_04/__init__.py
-release/scripts/mgear/shifter_classic_components/arm_2jnt_04/guide.py
-release/scripts/mgear/shifter_classic_components/arm_2jnt_freeTangents_01/__init__.py
-release/scripts/mgear/shifter_classic_components/arm_2jnt_freeTangents_01/guide.py
-release/scripts/mgear/shifter_classic_components/arm_ms_2jnt_01/__init__.py
-release/scripts/mgear/shifter_classic_components/cable_01/__init__.py
-release/scripts/mgear/shifter_classic_components/chain_01/__init__.py
-release/scripts/mgear/shifter_classic_components/chain_02/__init__.py
-release/scripts/mgear/shifter_classic_components/chain_FK_spline_01/__init__.py
-release/scripts/mgear/shifter_classic_components/chain_FK_spline_02/__init__.py
-release/scripts/mgear/shifter_classic_components/chain_FK_spline_variable_IK_01/__init__.py
-release/scripts/mgear/shifter_classic_components/chain_IK_spline_variable_FK_01/__init__.py
-release/scripts/mgear/shifter_classic_components/chain_IK_spline_variable_FK_stack_01/__init__.py
-release/scripts/mgear/shifter_classic_components/chain_IK_spline_variable_FK_stack_01/guide.py
+# release/scripts/mgear/shifter_classic_components/arm_2jnt_01/__init__.py
+# release/scripts/mgear/shifter_classic_components/arm_2jnt_01/guide.py
+# release/scripts/mgear/shifter_classic_components/arm_2jnt_02/__init__.py
+# release/scripts/mgear/shifter_classic_components/arm_2jnt_02/guide.py
+# release/scripts/mgear/shifter_classic_components/arm_2jnt_03/__init__.py
+# release/scripts/mgear/shifter_classic_components/arm_2jnt_03/guide.py
+# release/scripts/mgear/shifter_classic_components/arm_2jnt_04/__init__.py
+# release/scripts/mgear/shifter_classic_components/arm_2jnt_04/guide.py
+# release/scripts/mgear/shifter_classic_components/arm_2jnt_freeTangents_01/__init__.py
+# release/scripts/mgear/shifter_classic_components/arm_2jnt_freeTangents_01/guide.py
+# release/scripts/mgear/shifter_classic_components/arm_ms_2jnt_01/__init__.py
+# release/scripts/mgear/shifter_classic_components/cable_01/__init__.py
+# release/scripts/mgear/shifter_classic_components/chain_01/__init__.py
+# release/scripts/mgear/shifter_classic_components/chain_02/__init__.py
+# release/scripts/mgear/shifter_classic_components/chain_FK_spline_01/__init__.py
+# release/scripts/mgear/shifter_classic_components/chain_FK_spline_02/__init__.py
+# release/scripts/mgear/shifter_classic_components/chain_FK_spline_variable_IK_01/__init__.py
+# release/scripts/mgear/shifter_classic_components/chain_IK_spline_variable_FK_01/__init__.py
+# release/scripts/mgear/shifter_classic_components/chain_IK_spline_variable_FK_stack_01/__init__.py
+# release/scripts/mgear/shifter_classic_components/chain_IK_spline_variable_FK_stack_01/guide.py
 release/scripts/mgear/shifter_classic_components/chain_loc_ori_01/__init__.py
 release/scripts/mgear/shifter_classic_components/chain_loc_ori_01/guide.py
 release/scripts/mgear/shifter_classic_components/chain_net_01/__init__.py
