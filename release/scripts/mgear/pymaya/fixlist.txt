@@ -139,23 +139,23 @@
 # release/scripts/mgear/shifter_classic_components/foot_bk_01/guide.py
 # release/scripts/mgear/shifter_classic_components/leg_2jnt_01/__init__.py
 # release/scripts/mgear/shifter_classic_components/leg_2jnt_02/__init__.py
-release/scripts/mgear/shifter_classic_components/leg_2jnt_freeTangents_01/__init__.py
-release/scripts/mgear/shifter_classic_components/leg_3jnt_01/__init__.py
-release/scripts/mgear/shifter_classic_components/leg_ms_2jnt_01/__init__.py
-release/scripts/mgear/shifter_classic_components/lite_chain_01/__init__.py
-release/scripts/mgear/shifter_classic_components/lite_chain_stack_01/__init__.py
-release/scripts/mgear/shifter_classic_components/lite_chain_stack_01/guide.py
-release/scripts/mgear/shifter_classic_components/lite_chain_stack_02/__init__.py
-release/scripts/mgear/shifter_classic_components/lite_chain_stack_02/guide.py
-release/scripts/mgear/shifter_classic_components/meta_01/__init__.py
-release/scripts/mgear/shifter_classic_components/mouth_01/__init__.py
-release/scripts/mgear/shifter_classic_components/mouth_02/__init__.py
-release/scripts/mgear/shifter_classic_components/neck_ik_01/__init__.py
-release/scripts/mgear/shifter_classic_components/sdk_control_01/__init__.py
-release/scripts/mgear/shifter_classic_components/sdk_control_01/guide.py
-release/scripts/mgear/shifter_classic_components/shoulder_01/__init__.py
-release/scripts/mgear/shifter_classic_components/shoulder_02/__init__.py
-release/scripts/mgear/shifter_classic_components/shoulder_ms_01/__init__.py
+# release/scripts/mgear/shifter_classic_components/leg_2jnt_freeTangents_01/__init__.py
+# release/scripts/mgear/shifter_classic_components/leg_3jnt_01/__init__.py
+# release/scripts/mgear/shifter_classic_components/leg_ms_2jnt_01/__init__.py
+# release/scripts/mgear/shifter_classic_components/lite_chain_01/__init__.py
+# release/scripts/mgear/shifter_classic_components/lite_chain_stack_01/__init__.py
+# release/scripts/mgear/shifter_classic_components/lite_chain_stack_01/guide.py
+# release/scripts/mgear/shifter_classic_components/lite_chain_stack_02/__init__.py
+# release/scripts/mgear/shifter_classic_components/lite_chain_stack_02/guide.py
+# release/scripts/mgear/shifter_classic_components/meta_01/__init__.py
+# release/scripts/mgear/shifter_classic_components/mouth_01/__init__.py
+# release/scripts/mgear/shifter_classic_components/mouth_02/__init__.py
+# release/scripts/mgear/shifter_classic_components/neck_ik_01/__init__.py
+# release/scripts/mgear/shifter_classic_components/sdk_control_01/__init__.py
+# release/scripts/mgear/shifter_classic_components/sdk_control_01/guide.py
+# release/scripts/mgear/shifter_classic_components/shoulder_01/__init__.py
+# release/scripts/mgear/shifter_classic_components/shoulder_02/__init__.py
+# release/scripts/mgear/shifter_classic_components/shoulder_ms_01/__init__.py
 release/scripts/mgear/shifter_classic_components/spine_FK_01/__init__.py
 release/scripts/mgear/shifter_classic_components/spine_ik_01/__init__.py
 release/scripts/mgear/shifter_classic_components/spine_ik_02/__init__.py
