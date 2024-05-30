@@ -69,7 +69,7 @@ def get_file_path(filter, mode):
     if mode == "save":
         filemode = 0
 
-    file_path = pymel.core.fileDialog2(
+    file_path = mgear.pymaya.fileDialog2(
         fileMode=filemode,
         fileFilter=filter
     )
