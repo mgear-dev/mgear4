@@ -167,30 +167,30 @@
 # release/scripts/mgear/shifter_classic_components/ui_container_01/guide.py
 # release/scripts/mgear/shifter_classic_components/ui_slider_01/__init__.py
 # release/scripts/mgear/shifter_classic_components/ui_slider_01/guide.py
-release/scripts/mgear/shifter_epic_components/EPIC_arm_01/__init__.py
-release/scripts/mgear/shifter_epic_components/EPIC_arm_01/guide.py
-release/scripts/mgear/shifter_epic_components/EPIC_arm_02/__init__.py
-release/scripts/mgear/shifter_epic_components/EPIC_arm_02/guide.py
-release/scripts/mgear/shifter_epic_components/EPIC_chain_01/__init__.py
-release/scripts/mgear/shifter_epic_components/EPIC_chain_IK_FK_01/__init__.py
-release/scripts/mgear/shifter_epic_components/EPIC_control_01/guide.py
-release/scripts/mgear/shifter_epic_components/EPIC_foot_01/__init__.py
-release/scripts/mgear/shifter_epic_components/EPIC_foot_01/guide.py
-release/scripts/mgear/shifter_epic_components/EPIC_layered_control_01/__init__.py
-release/scripts/mgear/shifter_epic_components/EPIC_layered_control_01/guide.py
-release/scripts/mgear/shifter_epic_components/EPIC_leg_01/__init__.py
-release/scripts/mgear/shifter_epic_components/EPIC_leg_02/__init__.py
-release/scripts/mgear/shifter_epic_components/EPIC_leg_3jnt_01/__init__.py
-release/scripts/mgear/shifter_epic_components/EPIC_mannequin_arm_01/__init__.py
-release/scripts/mgear/shifter_epic_components/EPIC_mannequin_arm_01/guide.py
-release/scripts/mgear/shifter_epic_components/EPIC_mannequin_leg_01/__init__.py
-release/scripts/mgear/shifter_epic_components/EPIC_meta_01/__init__.py
-release/scripts/mgear/shifter_epic_components/EPIC_neck_01/__init__.py
-release/scripts/mgear/shifter_epic_components/EPIC_neck_02/__init__.py
-release/scripts/mgear/shifter_epic_components/EPIC_shoulder_01/__init__.py
-release/scripts/mgear/shifter_epic_components/EPIC_spine_01/__init__.py
-release/scripts/mgear/shifter_epic_components/EPIC_spine_02/__init__.py
-release/scripts/mgear/shifter_epic_components/EPIC_spine_cartoon_01/__init__.py
+# release/scripts/mgear/shifter_epic_components/EPIC_arm_01/__init__.py
+# release/scripts/mgear/shifter_epic_components/EPIC_arm_01/guide.py
+# release/scripts/mgear/shifter_epic_components/EPIC_arm_02/__init__.py
+# release/scripts/mgear/shifter_epic_components/EPIC_arm_02/guide.py
+# release/scripts/mgear/shifter_epic_components/EPIC_chain_01/__init__.py
+# release/scripts/mgear/shifter_epic_components/EPIC_chain_IK_FK_01/__init__.py
+# release/scripts/mgear/shifter_epic_components/EPIC_control_01/guide.py
+# release/scripts/mgear/shifter_epic_components/EPIC_foot_01/__init__.py
+# release/scripts/mgear/shifter_epic_components/EPIC_foot_01/guide.py
+# release/scripts/mgear/shifter_epic_components/EPIC_layered_control_01/__init__.py
+# release/scripts/mgear/shifter_epic_components/EPIC_layered_control_01/guide.py
+# release/scripts/mgear/shifter_epic_components/EPIC_leg_01/__init__.py
+# release/scripts/mgear/shifter_epic_components/EPIC_leg_02/__init__.py
+# release/scripts/mgear/shifter_epic_components/EPIC_leg_3jnt_01/__init__.py
+# release/scripts/mgear/shifter_epic_components/EPIC_mannequin_arm_01/__init__.py
+# release/scripts/mgear/shifter_epic_components/EPIC_mannequin_arm_01/guide.py
+# release/scripts/mgear/shifter_epic_components/EPIC_mannequin_leg_01/__init__.py
+# release/scripts/mgear/shifter_epic_components/EPIC_meta_01/__init__.py
+# release/scripts/mgear/shifter_epic_components/EPIC_neck_01/__init__.py
+# release/scripts/mgear/shifter_epic_components/EPIC_neck_02/__init__.py
+# release/scripts/mgear/shifter_epic_components/EPIC_shoulder_01/__init__.py
+# release/scripts/mgear/shifter_epic_components/EPIC_spine_01/__init__.py
+# release/scripts/mgear/shifter_epic_components/EPIC_spine_02/__init__.py
+# release/scripts/mgear/shifter_epic_components/EPIC_spine_cartoon_01/__init__.py
 # release/scripts/mgear/simpleRig/menu.py
 # release/scripts/mgear/simpleRig/simpleRigTool.py
 # release/scripts/mgear/synoptic/__init__.py

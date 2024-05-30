@@ -2,7 +2,7 @@
 
 import math
 
-from pymel import util
+from mgear.pymaya import util
 import mgear.pymaya as pm
 from mgear.pymaya import datatypes
 from mgear.pymaya import nodetypes

@@ -15,7 +15,7 @@ import mgear
 
 from mgear.core import string
 from mgear.core import node
-from pymel import versions
+from mgear.pymaya import versions
 
 from mgear.core import dag, vector, transform, applyop, attribute, icon, pyqt
 
