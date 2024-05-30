@@ -12,19 +12,27 @@ class MirrorController:
 
     @staticmethod
     def get_opposite_control(node):
-        side_l = node.attr("L_custom_side_label").get()
-        side_r = node.attr("R_custom_side_label").get()
-        side = node.attr("side_label").get()
+        try:
+            side_l = node.attr("L_custom_side_label").get()
+            side_r = node.attr("R_custom_side_label").get()
+            side = node.attr("side_label").get()
 
-        target_name = None
-        if side == "L":
-            target_name = node.name().replace(side_l, side_r)
-        elif side == "R":
-            target_name = node.name().replace(side_r, side_l)
+            target_name = None
+            if side == "L":
+                target_name = node.name().replace(side_l, side_r)
+            elif side == "R":
+                target_name = node.name().replace(side_r, side_l)
 
-        if target_name and pm.objExists(target_name):
-            return pm.PyNode(target_name)
-        return None
+            if target_name and pm.objExists(target_name):
+                return pm.PyNode(target_name)
+            return None
+        except pm.MayaAttributeError:
+            # try to get the opposite control using the old logic
+            target_name = mgear.core.string.convertRLName(node.name())
+            target = None
+            if pm.objExists(target_name):
+                target = pm.PyNode(target_name)
+            return target
 
     @staticmethod
     def get_specific_side_controls(side="L"):

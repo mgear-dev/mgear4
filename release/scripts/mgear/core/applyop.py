@@ -828,7 +828,9 @@ def gear_inverseRotorder_op(out_obj, in_obj):
     return node
 
 
-def create_proximity_constraint(shape, in_trans, existing_pin=None):
+def create_proximity_constraint(
+    shape, in_trans, existing_pin=None, mtx_connect=True, out_trans=None
+):
     """Create a proximity constraint between a shape and a transform.
 
     Args:
@@ -860,11 +862,18 @@ def create_proximity_constraint(shape, in_trans, existing_pin=None):
         dup = pm.duplicate(shape, n="{}OrigTrans".format(shape), rc=True)[0]
         shape_orig = pm.listRelatives(dup, s=True)[0]
         shape_orig.rename("{}Orig".format(shape))
-        dup.visibility.set(0)
+        pm.parent(shape_orig, shape, shape=True, add=True)
+        pm.delete(dup)
         shape_orig.intermediateObject.set(1)
         shape_orig.worldMesh[0] >> shape.inMesh
     else:
         shape_orig = shape_orig_connections[0]
+        # in some situation we get the transform instead of the shape.
+        # In that case we try to get the shape
+        try:
+            shape_orig = shape_orig.getShape()
+        except AttributeError:
+            pass
         if not isinstance(shape_orig, pm.nt.Mesh):
             shape_orig = shape_orig.originalGeometry[0].listConnections(
                 d=True, sh=True
@@ -883,12 +892,16 @@ def create_proximity_constraint(shape, in_trans, existing_pin=None):
         shape_orig.outMesh >> pin.originalGeometry
 
     # Connect in_trans to the found or default idx
-    in_trans.matrix >> pin.inputMatrix[idx]
+    if mtx_connect:
+        in_trans.matrix >> pin.inputMatrix[idx]
+    else:
+        pin.inputMatrix[idx].set(in_trans.matrix.get())
 
-    # Create the output transform
-    out_trans = pm.createNode(
-        "transform", n="{}_pinTrans{}".format(shape, idx)
-    )
+    if not out_trans:
+        # Create the output transform
+        out_trans = pm.createNode(
+            "transform", n="{}_pinTrans{}".format(shape, idx)
+        )
 
     # Set the input connections for the output transform
     pin.outputMatrix[idx] >> out_trans.offsetParentMatrix

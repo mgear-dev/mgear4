@@ -1041,7 +1041,8 @@ def ikFkMatch_with_namespace(
             transform.matchWorldTransform(upv_ctrl_target, upv_ctrl)
         else:
             # ensure that the pole vector distance is a minimun of 1 unit
-            while arrow_vector.length() < 1.0:
+            # while arrow_vector.length() < 1.0:
+            while arrow_vector.length() < start_mid.length():
                 arrow_vector *= 2.0
 
             final_vector = arrow_vector + fk_targets[1].getTranslation(

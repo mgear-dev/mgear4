@@ -3,6 +3,7 @@ from maya.app.general.mayaMixin import MayaQWidgetDockableMixin
 import maya.cmds as cmds
 from maya import OpenMayaUI as omui
 from shiboken2 import wrapInstance
+from maya import mel
 
 import mgear
 from mgear.core import callbackManager
@@ -146,7 +147,7 @@ class HumanIKMapper:
                 0,
             )
 
-        pm.mel.hikUpdateDefinitionUI()
+        mel.eval("hikUpdateDefinitionUI();")
 
     @classmethod
     def is_initialized(cls):

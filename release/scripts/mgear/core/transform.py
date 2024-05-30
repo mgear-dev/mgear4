@@ -455,6 +455,10 @@ def getRotationFromAxis(in_a, in_b, axis="xy", negate=False):
         x = a
         z = b
         y = -c
+    elif axis == "x-y":
+        x = a
+        y = -b
+        z = c
     elif axis == "yx":
         y = a
         x = b

@@ -1,6 +1,38 @@
 Release Log
 ===========
 
+4.2.4
+------
+
+**Enhancements**
+	* Shifter: Update data collector #383
+	* Shifter: New joint structure options: World oriented #384
+	* Crank: New functions and Crank channel box #386
+	* Shifter: Rig Builder: IO for configurations and option to run from script #388
+	* Shifter: Data Centric folder structure creator #390
+
+
+**Bug Fix**
+	* Crank: new targets are not keeping Edit on by default #386
+
+4.2.2
+------
+**Bug Fix**
+	* Shifter: Fix joint radius value retrieval from guide option #367
+
+4.2.1
+------
+**New Features**
+	* Added the new module chain_02
+
+**Enhancements**
+	* arm_2jnt_free_tangents_01 Align wrist to world orientation option #373
+	* EPIC Arm and leg 02: added T reset pose option #359
+	* Human Ik Mapper - Batch bake #374
+	* Rig Builder: Added Pyblish validator and pre script to update guides #365
+	* Shifter: Unlock visibility on rig top node. New guide settings: Joint size and guide vis after build #367
+
+
 4.2.0
 ------
 **New Features**

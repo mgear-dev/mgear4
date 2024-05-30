@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>505</width>
-    <height>917</height>
+    <width>750</width>
+    <height>1324</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -62,14 +62,20 @@
       <string>Joint Settings</string>
      </property>
      <layout class="QGridLayout" name="gridLayout_5">
-      <item row="0" column="0">
-       <widget class="QCheckBox" name="jointRig_checkBox">
+      <item row="1" column="0">
+       <widget class="QCheckBox" name="jointWorldOri_checkBox">
+        <property name="enabled">
+         <bool>true</bool>
+        </property>
+        <property name="toolTip">
+         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Force all the joint to be oriented in World Space&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+        </property>
         <property name="text">
-         <string>Separated Joint Structure</string>
+         <string>Force World Oriented</string>
         </property>
        </widget>
       </item>
-      <item row="2" column="0">
+      <item row="3" column="0">
        <widget class="QCheckBox" name="connect_joints_checkBox">
         <property name="toolTip">
          <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;When this option is active, mGear Shifter will try to connect to existing joints in the scene&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;WARNING&lt;/span&gt;: The joints need to have the rotation values freeze to 0, 0, 0. &lt;/p&gt;&lt;p&gt;Use Maya's Modify &amp;gt;&amp;gt; Freeze Transformation command to Freeze rotation. Open the command options and ensure only Rotation is freeze, before execute the command&lt;/p&gt;&lt;p&gt;Freeze joint rotations steps:&lt;/p&gt;&lt;p&gt;1. Select all joints to freeze&lt;/p&gt;&lt;p&gt;2. Open Maya's Modify &amp;gt;&amp;gt; Freeze Transformation options and ensure only rotation is checked&lt;/p&gt;&lt;p&gt;3. Apply Modify &amp;gt;&amp;gt; Freeze Transformation&lt;/p&gt;&lt;p&gt;&lt;br/&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
@@ -79,20 +85,17 @@
         </property>
        </widget>
       </item>
-      <item row="1" column="0">
+      <item row="2" column="0">
        <widget class="QCheckBox" name="force_uniScale_checkBox">
         <property name="text">
          <string>Force uniform scaling in all joints by connection all axis to Z axis</string>
         </property>
        </widget>
       </item>
-      <item row="3" column="0">
-       <widget class="QCheckBox" name="force_SSC_joints_checkBox">
-        <property name="toolTip">
-         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;WARNING: Only works in Maya 2020 or later&lt;/span&gt;&lt;/p&gt;&lt;p&gt;Use SSC (Segment Scale Compensation) NOTE: UE5 supports SSC, but Unity doesn't &lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-        </property>
+      <item row="0" column="0">
+       <widget class="QCheckBox" name="jointRig_checkBox">
         <property name="text">
-         <string>Use SSC (Segment Scale Compensation) NOTE: UE5 supports SSC, but Unity doesn't </string>
+         <string>Separated Joint Structure</string>
         </property>
        </widget>
       </item>
@@ -985,5 +988,22 @@
   </layout>
  </widget>
  <resources/>
- <connections/>
+ <connections>
+  <connection>
+   <sender>jointRig_checkBox</sender>
+   <signal>clicked(bool)</signal>
+   <receiver>jointWorldOri_checkBox</receiver>
+   <slot>setEnabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>39</x>
+     <y>555</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>44</x>
+     <y>584</y>
+    </hint>
+   </hints>
+  </connection>
+ </connections>
 </ui>

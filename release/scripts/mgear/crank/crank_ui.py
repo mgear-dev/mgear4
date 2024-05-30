@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'D:/repo/mgear_dist/crank/crank/crank_ui.ui'
+# Form implementation generated from reading ui file 'C:/datawork/repo/mgear4/release/scripts/mgear/crank/crank_ui.ui'
 #
-# Created: Wed Jul 25 18:25:23 2018
+# Created: Tue Feb 20 09:34:46 2024
 #      by: pyside2-uic  running on PySide2 2.0.0~alpha0
 #
 # WARNING! All changes made in this file will be lost!
@@ -12,16 +12,16 @@ from PySide2 import QtCore, QtGui, QtWidgets
 class Ui_Form(object):
     def setupUi(self, Form):
         Form.setObjectName("Form")
-        Form.resize(252, 396)
+        Form.resize(299, 590)
         self.gridLayout_4 = QtWidgets.QGridLayout(Form)
-        self.gridLayout_4.setContentsMargins(5, 5, 5, 5)
         self.gridLayout_4.setSpacing(0)
+        self.gridLayout_4.setContentsMargins(5, 5, 5, 5)
         self.gridLayout_4.setObjectName("gridLayout_4")
         self.groupBox = QtWidgets.QGroupBox(Form)
         self.groupBox.setObjectName("groupBox")
         self.gridLayout_2 = QtWidgets.QGridLayout(self.groupBox)
-        self.gridLayout_2.setContentsMargins(6, 6, 6, 6)
         self.gridLayout_2.setSpacing(4)
+        self.gridLayout_2.setContentsMargins(6, 6, 6, 6)
         self.gridLayout_2.setObjectName("gridLayout_2")
         self.search_lineEdit = QtWidgets.QLineEdit(self.groupBox)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Fixed)
@@ -53,8 +53,8 @@ class Ui_Form(object):
         self.groupBox_2 = QtWidgets.QGroupBox(Form)
         self.groupBox_2.setObjectName("groupBox_2")
         self.gridLayout_3 = QtWidgets.QGridLayout(self.groupBox_2)
-        self.gridLayout_3.setContentsMargins(6, 6, 6, 6)
         self.gridLayout_3.setSpacing(4)
+        self.gridLayout_3.setContentsMargins(6, 6, 6, 6)
         self.gridLayout_3.setObjectName("gridLayout_3")
         self.verticalLayout = QtWidgets.QVBoxLayout()
         self.verticalLayout.setObjectName("verticalLayout")
@@ -101,6 +101,9 @@ class Ui_Form(object):
         self.editFrame_pushButton = QtWidgets.QPushButton(self.groupBox_2)
         self.editFrame_pushButton.setObjectName("editFrame_pushButton")
         self.verticalLayout.addWidget(self.editFrame_pushButton)
+        self.editOFF_pushButton = QtWidgets.QPushButton(self.groupBox_2)
+        self.editOFF_pushButton.setObjectName("editOFF_pushButton")
+        self.verticalLayout.addWidget(self.editOFF_pushButton)
         self.line = QtWidgets.QFrame(self.groupBox_2)
         self.line.setFrameShape(QtWidgets.QFrame.HLine)
         self.line.setFrameShadow(QtWidgets.QFrame.Sunken)
@@ -128,5 +131,6 @@ class Ui_Form(object):
         self.label_3.setText(QtWidgets.QApplication.translate("Form", "Pre Hold", None, -1))
         self.addFrame_pushButton.setText(QtWidgets.QApplication.translate("Form", "Add Sculpt Frame", None, -1))
         self.editFrame_pushButton.setText(QtWidgets.QApplication.translate("Form", "Edit Selected Sculpt Frame", None, -1))
+        self.editOFF_pushButton.setText(QtWidgets.QApplication.translate("Form", "All Layers Edit OFF", None, -1))
         self.keyframe_checkBox.setText(QtWidgets.QApplication.translate("Form", "Auto Keyframe", None, -1))
 
