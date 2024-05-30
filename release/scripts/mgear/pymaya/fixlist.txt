@@ -156,17 +156,17 @@
 # release/scripts/mgear/shifter_classic_components/shoulder_01/__init__.py
 # release/scripts/mgear/shifter_classic_components/shoulder_02/__init__.py
 # release/scripts/mgear/shifter_classic_components/shoulder_ms_01/__init__.py
-release/scripts/mgear/shifter_classic_components/spine_FK_01/__init__.py
-release/scripts/mgear/shifter_classic_components/spine_ik_01/__init__.py
-release/scripts/mgear/shifter_classic_components/spine_ik_02/__init__.py
-release/scripts/mgear/shifter_classic_components/spine_S_shape_01/__init__.py
-release/scripts/mgear/shifter_classic_components/squash4Sides_01/__init__.py
-release/scripts/mgear/shifter_classic_components/squash_01/__init__.py
-release/scripts/mgear/shifter_classic_components/tangent_spline_01/__init__.py
-release/scripts/mgear/shifter_classic_components/ui_container_01/__init__.py
-release/scripts/mgear/shifter_classic_components/ui_container_01/guide.py
-release/scripts/mgear/shifter_classic_components/ui_slider_01/__init__.py
-release/scripts/mgear/shifter_classic_components/ui_slider_01/guide.py
+# release/scripts/mgear/shifter_classic_components/spine_FK_01/__init__.py
+# release/scripts/mgear/shifter_classic_components/spine_ik_01/__init__.py
+# release/scripts/mgear/shifter_classic_components/spine_ik_02/__init__.py
+# release/scripts/mgear/shifter_classic_components/spine_S_shape_01/__init__.py
+# release/scripts/mgear/shifter_classic_components/squash4Sides_01/__init__.py
+# release/scripts/mgear/shifter_classic_components/squash_01/__init__.py
+# release/scripts/mgear/shifter_classic_components/tangent_spline_01/__init__.py
+# release/scripts/mgear/shifter_classic_components/ui_container_01/__init__.py
+# release/scripts/mgear/shifter_classic_components/ui_container_01/guide.py
+# release/scripts/mgear/shifter_classic_components/ui_slider_01/__init__.py
+# release/scripts/mgear/shifter_classic_components/ui_slider_01/guide.py
 release/scripts/mgear/shifter_epic_components/EPIC_arm_01/__init__.py
 release/scripts/mgear/shifter_epic_components/EPIC_arm_01/guide.py
 release/scripts/mgear/shifter_epic_components/EPIC_arm_02/__init__.py
