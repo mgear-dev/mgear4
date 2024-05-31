@@ -649,6 +649,10 @@ def setInvertMirror(node, invList=None):
 
     Arguments:
         node (dagNode): The object to set invert mirror Values
+        invList (list, optional): list of axis to invert ["tx", "tz"]
+
+    i.e: attribute.setInvertMirror(ctl_pyNode, invList=["tx", "tz"] )
+
 
     """
 
