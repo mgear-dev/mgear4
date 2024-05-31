@@ -179,8 +179,7 @@ def getChainTransform(positions, normal, negate=False, axis="xz"):
 
         # Normal Offset
         if i > 0:
-            normal = vector.getTransposedVector(
-                normal, [v0, v1], [v1, v2])
+            normal = vector.getTransposedVector(normal, [v0, v1], [v1, v2])
 
         t = getTransformLookingAt(v1, v2, normal, axis, negate)
         transforms.append(t)
@@ -223,11 +222,12 @@ def getChainTransform2(positions, normal, negate=False, axis="xz"):
 
         # Normal Offset
         if i > 0 and i != len(positions) - 1:
-            normal = vector.getTransposedVector(
-                normal, [v0, v1], [v1, v2])
+            normal = vector.getTransposedVector(normal, [v0, v1], [v1, v2])
 
         if i == len(positions) - 1:
-            t = getTransformLookingAt(v1, v0, normal, "-{}".format(axis), negate)
+            t = getTransformLookingAt(
+                v1, v0, normal, "-{}".format(axis), negate
+            )
         else:
             t = getTransformLookingAt(v1, v2, normal, axis, negate)
         transforms.append(t)
@@ -362,10 +362,7 @@ def setMatrixScale(m, scl=[1, 1, 1]):
     return m
 
 
-def getFilteredTransform(m,
-                         translation=True,
-                         rotation=True,
-                         scaling=True):
+def getFilteredTransform(m, translation=True, rotation=True, scaling=True):
     """Retrieve a transformation filtered.
 
     Arguments:
@@ -397,13 +394,17 @@ def getFilteredTransform(m,
     elif rotation and not scaling:
         out = setMatrixRotation(out, [x.normal(), y.normal(), z.normal()])
     elif not rotation and scaling:
-        out = setMatrixRotation(out,
-                                [datatypes.Vector(1, 0, 0)
-                                 * x.length(), datatypes.Vector(0, 1, 0)
-                                 * y.length(), datatypes.Vector(0, 0, 1)
-                                 * z.length()])
+        out = setMatrixRotation(
+            out,
+            [
+                datatypes.Vector(1, 0, 0) * x.length(),
+                datatypes.Vector(0, 1, 0) * y.length(),
+                datatypes.Vector(0, 0, 1) * z.length(),
+            ],
+        )
 
     return out
+
 
 ##########################################################
 # ROTATION
@@ -498,21 +499,18 @@ def getSymmetricalTransform(t, axis="yz", fNegScale=False):
     """
 
     if axis == "yz":
-        mirror = datatypes.TransformationMatrix(-1, 0, 0, 0,
-                                                0, 1, 0, 0,
-                                                0, 0, 1, 0,
-                                                0, 0, 0, 1)
+        mirror = datatypes.TransformationMatrix(
+            -1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1
+        )
 
     if axis == "xy":
-        mirror = datatypes.TransformationMatrix(1, 0, 0, 0,
-                                                0, 1, 0, 0,
-                                                0, 0, -1, 0,
-                                                0, 0, 0, 1)
+        mirror = datatypes.TransformationMatrix(
+            1, 0, 0, 0, 0, 1, 0, 0, 0, 0, -1, 0, 0, 0, 0, 1
+        )
     if axis == "zx":
-        mirror = datatypes.TransformationMatrix(1, 0, 0, 0,
-                                                0, -1, 0, 0,
-                                                0, 0, 1, 0,
-                                                0, 0, 0, 1)
+        mirror = datatypes.TransformationMatrix(
+            1, 0, 0, 0, 0, -1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1
+        )
     t *= mirror
 
     # TODO: add freeze negative scaling procedure.
@@ -536,15 +534,17 @@ def resetTransform(node, t=True, r=True, s=True):
     if isinstance(node, str):
         node = pm.PyNode(node)
 
-    trsDic = {"tx": 0,
-              "ty": 0,
-              "tz": 0,
-              "rx": 0,
-              "ry": 0,
-              "rz": 0,
-              "sx": 1,
-              "sy": 1,
-              "sz": 1}
+    trsDic = {
+        "tx": 0,
+        "ty": 0,
+        "tz": 0,
+        "rx": 0,
+        "ry": 0,
+        "rz": 0,
+        "sx": 1,
+        "sy": 1,
+        "sz": 1,
+    }
 
     tAxis = ["tx", "ty", "tz"]
     rAxis = ["rx", "ry", "rz"]
@@ -629,8 +629,9 @@ def quaternionSlerp(q1, q2, blend):
         w1 = 1.0 - blend
         w2 = blend
 
-    result = (datatypes.Quaternion(q1).scaleIt(w1)
-              + datatypes.Quaternion(q2).scaleIt(w2))
+    result = datatypes.Quaternion(q1).scaleIt(w1) + datatypes.Quaternion(
+        q2
+    ).scaleIt(w2)
 
     return result
 
@@ -656,7 +657,7 @@ def convert2TransformMatrix(tm):
     return tm
 
 
-def getInterpolateTransformMatrix(t1, t2, blend=.5):
+def getInterpolateTransformMatrix(t1, t2, blend=0.5):
     """Interpolate 2 matrix.
 
     Arguments:
@@ -676,15 +677,17 @@ def getInterpolateTransformMatrix(t1, t2, blend=.5):
     t1 = convert2TransformMatrix(t1)
     t2 = convert2TransformMatrix(t2)
 
-    if (blend == 1.0):
+    if blend == 1.0:
         return t2
-    elif (blend == 0.0):
+    elif blend == 0.0:
         return t1
 
     # translate
-    pos = vector.linearlyInterpolate(t1.getTranslation(space="world"),
-                                     t2.getTranslation(space="world"),
-                                     blend)
+    pos = vector.linearlyInterpolate(
+        t1.getTranslation(space="world"),
+        t2.getTranslation(space="world"),
+        blend,
+    )
 
     # scale
     scaleA = datatypes.Vector(*t1.getScale(space="world"))
@@ -693,9 +696,11 @@ def getInterpolateTransformMatrix(t1, t2, blend=.5):
     vs = vector.linearlyInterpolate(scaleA, scaleB, blend)
 
     # rotate
-    q = quaternionSlerp(datatypes.Quaternion(t1.getRotationQuaternion()),
-                        datatypes.Quaternion(t2.getRotationQuaternion()),
-                        blend)
+    q = quaternionSlerp(
+        datatypes.Quaternion(t1.getRotationQuaternion()),
+        datatypes.Quaternion(t2.getRotationQuaternion()),
+        blend,
+    )
 
     # out
     result = datatypes.TransformationMatrix()
@@ -778,7 +783,7 @@ def getClosestPolygonFromTransform(geo, loc):
 
     """
     if isinstance(loc, pm.nodetypes.Transform):
-        pos = loc.getTranslation(space='world')
+        pos = loc.getTranslation(space="world")
     else:
         pos = datatypes.Vector(loc[0], loc[1], loc[2])
 
@@ -789,8 +794,9 @@ def getClosestPolygonFromTransform(geo, loc):
         nodeDagPath = om.MDagPath()
         selectionList.getDagPath(0, nodeDagPath)
     except Exception as e:
-        raise RuntimeError("MDagPath failed "
-                           "on {}. \n {}".format(geo.name(), e))
+        raise RuntimeError(
+            "MDagPath failed " "on {}. \n {}".format(geo.name(), e)
+        )
 
     mfnMesh = om.MFnMesh(nodeDagPath)
 
@@ -862,10 +868,116 @@ def get_raycast_translation_from_mouse_click(mesh, mpx, mpy):
         None,
         None,
         None,
-        None)
+        None,
+    )
     if intersection:
         x = hitpoint.x
         y = hitpoint.y
         z = hitpoint.z
 
         return [x, y, z]
+
+
+# Offset Parent Matrix functions
+
+
+def set_offset_parent_matrix(node, world_matrix):
+    """
+    Sets the offset parent matrix of a given node.
+
+    Args:
+        node (str or pm.PyNode): The node to set the offset parent matrix for.
+        world_matrix (pm.datatypes.Matrix): The world matrix to set as the offset parent matrix.
+    """
+    if isinstance(node, str):
+        node = pm.PyNode(node)
+
+    offset_parent_matrix = pm.datatypes.Matrix(world_matrix)
+    node.offsetParentMatrix.set(offset_parent_matrix)
+
+
+def set_offset_parent_matrix_SRT(node, scale, rotate, translate):
+    """
+    Sets the offset parent matrix of a given node using scale, rotate, and translate values.
+
+    Args:
+        node (str or pm.PyNode): The node to set the offset parent matrix for.
+        scale (tuple): A tuple of three floats representing the scale values (sx, sy, sz).
+        rotate (tuple): A tuple of three floats representing the rotation values (rx, ry, rz) in degrees.
+        translate (tuple): A tuple of three floats representing the translation values (tx, ty, tz).
+    """
+    if isinstance(node, str):
+        node = pm.PyNode(node)
+
+    # Create transformation matrices
+    scale_matrix = pm.datatypes.Matrix()
+    rotate_matrix = pm.datatypes.EulerRotation(
+        rotate[0], rotate[1], rotate[2], unit="degrees"
+    ).asMatrix()
+    translate_matrix = pm.datatypes.Matrix()
+
+    # Set the scale values
+    scale_matrix[0, 0] = scale[0]
+    scale_matrix[1, 1] = scale[1]
+    scale_matrix[2, 2] = scale[2]
+
+    # Set the translation values
+    translate_matrix[3, 0] = translate[0]
+    translate_matrix[3, 1] = translate[1]
+    translate_matrix[3, 2] = translate[2]
+
+    # Combine the matrices
+    world_matrix = scale_matrix * rotate_matrix * translate_matrix
+
+    node.offsetParentMatrix.set(world_matrix)
+
+
+def bake_local_to_offset_parent_matrix(node):
+    """
+    Bakes the current local scale, rotate, and translate values to the offset
+    parent matrix, resetting the local values to neutral.
+
+    Args:
+        node (str or pm.PyNode): The node to bake the local transforms for.
+    """
+    if isinstance(node, str):
+        node = pm.PyNode(node)
+
+    # Get current local transform values
+    local_scale = node.getAttr("scale")
+    local_rotate = node.getAttr("rotate")
+    local_translate = node.getAttr("translate")
+
+    # Create transformation matrices
+    scale_matrix = pm.datatypes.Matrix()
+    rotate_matrix = pm.datatypes.EulerRotation(
+        local_rotate[0], local_rotate[1], local_rotate[2], unit="degrees"
+    ).asMatrix()
+    translate_matrix = pm.datatypes.Matrix()
+
+    # Set the scale values
+    scale_matrix[0, 0] = local_scale[0]
+    scale_matrix[1, 1] = local_scale[1]
+    scale_matrix[2, 2] = local_scale[2]
+
+    # Set the translation values
+    translate_matrix[3, 0] = local_translate[0]
+    translate_matrix[3, 1] = local_translate[1]
+    translate_matrix[3, 2] = local_translate[2]
+
+    # Combine the matrices
+    local_matrix = scale_matrix * rotate_matrix * translate_matrix
+
+    # Get current offset parent matrix
+    current_offset_matrix = node.getAttr("offsetParentMatrix")
+
+    # Combine the current offset parent matrix with the local matrix
+    new_offset_matrix = local_matrix * current_offset_matrix
+
+    # Set the new offset parent matrix
+    node.setAttr("offsetParentMatrix", new_offset_matrix)
+
+    # Reset local transform values to neutral
+    node.setAttr("scale", (1, 1, 1))
+    node.setAttr("rotate", (0, 0, 0))
+    node.setAttr("translate", (0, 0, 0))
