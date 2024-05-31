@@ -279,6 +279,14 @@ class _Node(base.Node):
         fdg = super(_Node, self).__getattribute__("_Node__fn_dg")
         return fdg.name()
 
+    def shortName(self):
+        """Return the short name of the node."""
+        fdag = super(_Node, self).__getattribute__("_Node__fn_dag")
+        if fdag is not None:
+            return fdag.partialPathName()
+        fdg = super(_Node, self).__getattribute__("_Node__fn_dg")
+        return fdg.name().split('|')[-1]
+
     def namespace(self, **kwargs):
         n = self.name()
         if ":" not in n:
