@@ -265,10 +265,10 @@ class _Node(base.Node):
     def __apimfn__(self):
         return self.__api_mfn
 
-    def name(self):
+    def name(self, long=False):
         fdag = super(_Node, self).__getattribute__("_Node__fn_dag")
         if fdag is not None:
-            return fdag.partialPathName()
+            return fdag.partialPathName() if not long else fdag.fullPathName()
         fdg = super(_Node, self).__getattribute__("_Node__fn_dg")
         return fdg.name()
 
