@@ -198,7 +198,7 @@ class Attribute(base.Attr):
 
     def children(self):
         if not self.plug().isCompound:
-            raise RuntimeError(f"{self.name()} has no children")
+            raise RuntimeError("{} has no children".format(self.name()))
 
         return [Attribute(self.plug().child(x)) for x in range(self.plug().numChildren())]
 
@@ -214,7 +214,7 @@ class Attribute(base.Attr):
     def getEnums(self):
         attr = self.plug().attribute()
         if not attr.hasFn(OpenMaya.MFn.kEnumAttribute):
-            raise Exception(f"{self.name()} is not an enum attribute")
+            raise Exception("{} is not an enum attribute".format(self.name()))
 
         fn = OpenMaya.MFnEnumAttribute(attr)
         res = {}
