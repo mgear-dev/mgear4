@@ -4,6 +4,40 @@
 # GLOBAL
 #############################################
 import maya.api.OpenMaya as om
+import pymel.core as pm
+
+
+def is_selected_object_nurbs(obj=None):
+    """
+    Check if the currently selected object's transform has a NURBS shape.
+
+    Returns:
+        bool: True if the transform's shape is a NURBS, False otherwise.
+
+    Args:
+        obj (str or PyNode, optional): Object to check if is NURBS
+
+    """
+    if not obj:
+        # Get the current selection
+        selection = pm.selected()
+
+        if not selection:
+            raise ValueError("No object is selected.")
+
+        # Get the first item in the selection
+        obj = selection[0]
+    else:
+        if isinstance(obj, str):
+            obj = pm.PyNode(obj)
+
+    # Check if the selected object is a transform and has a shape
+    if obj.nodeType() == "transform" and obj.getShape():
+        # Check if the shape of the selected object is a NURBS
+        is_nurbs = isinstance(obj.getShape(), pm.nodetypes.NurbsSurface)
+        return is_nurbs
+    else:
+        return False
 
 
 def get_closest_uv_coord(surface_name, position):
@@ -31,7 +65,6 @@ def get_closest_uv_coord(surface_name, position):
     # Initialize closest distance and UV coordinates
     closest_distance = float("inf")
     closest_uv = (0.0, 0.0)
-
     # Sample the surface at regular intervals to find the closest UV
     num_samples = 100
     u_range = surface_fn.knotDomainInU

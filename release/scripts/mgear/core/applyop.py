@@ -18,6 +18,9 @@ from pymel.core import datatypes
 import maya.api.OpenMaya as om
 from .six import string_types
 
+from mgear.core import attribute
+from mgear.core import surface
+
 #############################################
 # BUILT IN NODES
 #############################################
@@ -829,7 +832,12 @@ def gear_inverseRotorder_op(out_obj, in_obj):
 
 
 def create_proximity_constraint(
-    shape, in_trans, existing_pin=None, mtx_connect=True, out_trans=None
+    shape,
+    in_trans,
+    existing_pin=None,
+    mtx_connect=True,
+    out_trans=None,
+    **kwargs
 ):
     """Create a proximity constraint between a shape and a transform.
 
@@ -841,13 +849,6 @@ def create_proximity_constraint(
     Returns:
         Tuple[PyNode, PyNode]: out_trans, pin
     """
-
-    def find_next_available_index(node, attribute):
-        """Find the next available index for a multi-attribute on a node."""
-        idx = 0
-        while node.attr(attribute)[idx].isConnected():
-            idx += 1
-        return idx
 
     # Convert shape to PyNode if necessary
     if isinstance(shape, str):
@@ -881,7 +882,7 @@ def create_proximity_constraint(
 
     if existing_pin:
         pin = existing_pin
-        idx = find_next_available_index(pin, "inputMatrix")
+        idx = attribute.find_next_available_index(pin, "inputMatrix")
     else:
         # Create a new proximity pin node
         pin = pm.createNode("proximityPin", n="{}_proximityPin".format(shape))
@@ -966,3 +967,79 @@ def create_proximity_constraints(shape, in_trans_list):
         out_trans_list.append(out_trans)
 
     return out_trans_list
+
+
+def create_uv_pin_constraint(
+    shape,
+    in_trans,
+    existing_pin=None,
+    out_trans=None,
+    **kwargs
+):
+    """Create a UV pin constraint between a shape and a transform.
+
+    Args:
+        shape (PyNode or str): Driver shape
+        in_trans (PyNode or str): in transform
+        existing_pin (PyNode, optional): Existing uvPin node to connect to. Defaults to None.
+        mtx_connect (bool, optional): Whether to connect the input matrix. Defaults to True.
+        out_trans (PyNode, optional): Existing out transform node to connect to. Defaults to None.
+
+    Returns:
+        Tuple[PyNode, PyNode]: out_trans, pin
+    """
+    # Convert shape to PyNode if necessary
+    if isinstance(shape, str):
+        shape = pm.PyNode(shape)
+    if isinstance(in_trans, str):
+        in_trans = pm.PyNode(in_trans)
+    # Try to get the original shape node
+    shape_orig_connections = shape.worldSpace.listConnections(d=True)
+    if not shape_orig_connections:
+        # If there's no original shape node, create one
+        dup = pm.duplicate(shape, n="{}OrigTrans".format(shape), rc=True)[0]
+        shape_orig = pm.listRelatives(dup, s=True)[0]
+        shape_orig.rename("{}Orig".format(shape))
+        pm.parent(shape_orig, shape, shape=True, add=True)
+        pm.delete(dup)
+        shape_orig.intermediateObject.set(1)
+    else:
+        shape_orig = shape_orig_connections[0]
+        # In some situations we get the transform instead of the shape.
+        # In that case we try to get the shape
+        try:
+            shape_orig = shape_orig.getShape()
+        except AttributeError:
+            pass
+        if not isinstance(shape_orig, pm.nt.NurbsSurface):
+            shape_orig = shape_orig.originalGeometry.listConnections(
+                d=True, sh=True
+            )[0]
+
+    if existing_pin:
+        pin = existing_pin
+        idx = attribute.find_next_available_index(pin, "outputMatrix")
+    else:
+        # Create a new UV pin node
+        pin = pm.createNode("uvPin", n="{}_uvPin".format(shape))
+        idx = 0
+
+        # Set the input connections for the UV pin
+        shape.worldSpace[0] >> pin.deformedGeometry
+        shape_orig.worldSpace[0] >> pin.originalGeometry
+
+    # Set UV coordinates to the closest point
+    position = in_trans.getTranslation(space="world")
+    closest_uv = surface.get_closest_uv_coord(shape.name(), position)
+    pin.coordinate[idx].coordinateU.set(closest_uv[0])
+    pin.coordinate[idx].coordinateV.set(closest_uv[1])
+
+    if not out_trans:
+        # Create the output transform
+        out_trans = pm.createNode(
+            "transform", n="{}_pinTrans{}".format(shape, idx)
+        )
+    # Set the input connections for the output transform
+    pin.outputMatrix[idx] >> out_trans.offsetParentMatrix
+
+    return out_trans, pin

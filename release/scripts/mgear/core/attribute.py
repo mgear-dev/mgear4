@@ -1518,6 +1518,23 @@ def get_next_available_index(attr):
                 return e
 
 
+def find_next_available_index(node, attribute):
+    """Find the next available index for a multi-attribute on a given node.
+    This function ins similar to get_next_available_index but with 2 args
+
+    Args:
+        node (PyNode): Node with multi-attribute.
+        attribute (str): Multi-attribute name.
+
+    Returns:
+        int: Next available index.
+    """
+    idx = 0
+    while node.attr(attribute)[idx].isConnected():
+        idx += 1
+    return idx
+
+
 def connect_message(source, attr):
     """
     Connects the 'message' attribute of one or more source nodes to a
