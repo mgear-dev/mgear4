@@ -939,6 +939,8 @@ class crankTool(MayaQWidgetDockableMixin, QtWidgets.QDialog):
                 pm.displayInfo("Evaluation mode remains as Parallel.")
                 return False
 
+        return True
+
     ###########################
     # Callback
     ###########################
