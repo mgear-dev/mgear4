@@ -9,6 +9,8 @@ from pymel.core import nodetypes
 
 from mgear.core import vector
 
+import maya.cmds as cmds
+
 import maya.OpenMaya as om
 import maya.OpenMayaUI as omui
 
@@ -981,3 +983,87 @@ def bake_local_to_offset_parent_matrix(node):
     node.setAttr("scale", (1, 1, 1))
     node.setAttr("rotate", (0, 0, 0))
     node.setAttr("translate", (0, 0, 0))
+
+
+def rotate_180(axis="Y", rotation_order="XYZ", objects=None):
+    """
+    Rotates the selected objects 180 degrees around the specified axis.
+
+    Args:
+        axis (str): The axis to rotate around ('X', 'Y', or 'Z').
+        rotation_order (str): The rotation order (default is 'XYZ').
+        objects (list, optional): List of objects str name
+
+    Raises:
+        ValueError: If the axis is not 'X', 'Y', or 'Z'.
+
+    Returns:
+        TYPE: Description
+    """
+    if axis not in ["X", "Y", "Z"]:
+        raise ValueError("Axis must be 'X', 'Y', or 'Z'")
+
+    rotation_order_map = {
+        "XYZ": om.MEulerRotation.kXYZ,
+        "YZX": om.MEulerRotation.kYZX,
+        "ZXY": om.MEulerRotation.kZXY,
+        "XZY": om.MEulerRotation.kXZY,
+        "YXZ": om.MEulerRotation.kYXZ,
+        "ZYX": om.MEulerRotation.kZYX,
+    }
+
+    if rotation_order not in rotation_order_map:
+        raise ValueError(
+            "Invalid rotation order. Must be one of 'XYZ', 'YZX', 'ZXY', 'XZY', 'YXZ', or 'ZYX'"
+        )
+
+    if not objects:
+        objects = cmds.ls(selection=True)
+    if not objects:
+        cmds.warning("No objects selected.")
+        return
+
+    for obj in objects:
+        current_rotation = cmds.xform(obj, query=True, rotation=True, ws=True)
+        current_rotation_order = cmds.xform(obj, query=True, rotateOrder=True)
+
+        # Create an MEulerRotation
+        euler_rotation = om.MEulerRotation(
+            om.MAngle(current_rotation[0], om.MAngle.kDegrees).asRadians(),
+            om.MAngle(current_rotation[1], om.MAngle.kDegrees).asRadians(),
+            om.MAngle(current_rotation[2], om.MAngle.kDegrees).asRadians(),
+            rotation_order_map[rotation_order],
+        )
+
+        # Convert the Euler rotation to a quaternion
+        quaternion = om.MQuaternion(euler_rotation.asQuaternion())
+
+        # Create a quaternion for the 180-degree rotation around the specified axis
+        if axis == "X":
+            rotation_axis = om.MVector(1, 0, 0)
+        elif axis == "Y":
+            rotation_axis = om.MVector(0, 1, 0)
+        elif axis == "Z":
+            rotation_axis = om.MVector(0, 0, 1)
+        rotation_quaternion = om.MQuaternion(
+            om.MAngle(180, om.MAngle.kDegrees).asRadians(), rotation_axis
+        )
+
+        # Combine the quaternions
+        new_quaternion = rotation_quaternion * quaternion
+
+        # Convert quaternion back to Euler rotation
+        new_euler_rotation = om.MEulerRotation(
+            new_quaternion.asEulerRotation()
+        )
+        new_rotation = [
+            om.MAngle(new_euler_rotation.x).asDegrees(),
+            om.MAngle(new_euler_rotation.y).asDegrees(),
+            om.MAngle(new_euler_rotation.z).asDegrees(),
+        ]
+
+        # Apply the new rotation
+        cmds.xform(obj, rotation=new_rotation, ws=True)
+
+        # Restore the original rotation order
+        cmds.xform(obj, rotateOrder=current_rotation_order)
