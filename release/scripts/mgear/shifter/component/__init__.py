@@ -2252,7 +2252,10 @@ class Main(object):
         self.build_data["Twist"] = []
         self.build_data["Squash"] = []
         self.build_data["Settings"] = self.settings
+        self.build_data["relatives"] = self.relatives
         self.build_data["jointRelatives"] = self.jointRelatives
+        self.build_data["controlRelatives"] = self.controlRelatives
+        self.build_data["aliasRelatives"] = self.aliasRelatives
         if self.guide.parentComponent:
             self.build_data["parent_fullName"] = self.guide.parentComponent.fullName
             self.build_data["parent_localName"] = self.guide.parentLocalName
