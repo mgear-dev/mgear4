@@ -305,6 +305,7 @@ class Main(object):
         guide_relative=None,
         data_contracts=None,
         preBind_relative=None,
+        neutral_rot=True,
     ):
         """Add joint as child of the active joint or under driver object.
 
@@ -357,6 +358,7 @@ class Main(object):
                 guide_relative=guide_relative,
                 data_contracts=data_contracts,
                 preBind_relative=preBind_relative,
+                neutral_rot=neutral_rot,
             )
 
     def _addJoint(
@@ -371,6 +373,7 @@ class Main(object):
         guide_relative=None,
         data_contracts=None,
         preBind_relative=None,
+        neutral_rot=True,
     ):
         """Add joint as child of the active joint or under driver object.
 
@@ -608,7 +611,7 @@ class Main(object):
                 # global scale. Confirm there is no conflicts
                 jnt.setAttr("segmentScaleCompensate", segComp)
 
-                if not keep_off:
+                if not keep_off and neutral_rot:
                     # setting the joint orient compensation in order to
                     # have clean rotation channels
                     jnt.setAttr("jointOrient", 0, 0, 0)
