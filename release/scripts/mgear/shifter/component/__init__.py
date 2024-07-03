@@ -2190,7 +2190,9 @@ class Main(object):
                         # each jnt creation
                         jpo["newActiveJnt"] = self.parent_relative_jnt
                     elif isinstance(jpo["newActiveJnt"], int):
-                        jpo["newActiveJnt"] = self.jointList[jpo["newActiveJnt"]]
+                        jpo["newActiveJnt"] = self.jointList[
+                            jpo["newActiveJnt"]
+                        ]
                     else:
                         try:
                             # here jpo["newActiveJnt"] is also the string name
@@ -2240,6 +2242,13 @@ class Main(object):
 
     def collect_build_data(self):
 
+        # helper function to convert the transforms obj to a str name
+        def store_relative_names(relative_dict):
+            result = {}
+            for key, relative in relative_dict.items():
+                result[key] = relative.name()
+            return result
+
         self.build_data["FullName"] = self.fullName
         self.build_data["Name"] = self.name
         self.build_data["Type"] = self.guide.type
@@ -2252,12 +2261,16 @@ class Main(object):
         self.build_data["Twist"] = []
         self.build_data["Squash"] = []
         self.build_data["Settings"] = self.settings
-        self.build_data["relatives"] = self.relatives
+        self.build_data["relatives"] = store_relative_names(self.relatives)
         self.build_data["jointRelatives"] = self.jointRelatives
-        self.build_data["controlRelatives"] = self.controlRelatives
+        self.build_data["controlRelatives"] = store_relative_names(
+            self.controlRelatives
+        )
         self.build_data["aliasRelatives"] = self.aliasRelatives
         if self.guide.parentComponent:
-            self.build_data["parent_fullName"] = self.guide.parentComponent.fullName
+            self.build_data[
+                "parent_fullName"
+            ] = self.guide.parentComponent.fullName
             self.build_data["parent_localName"] = self.guide.parentLocalName
         else:
             self.build_data["parent_fullName"] = None
