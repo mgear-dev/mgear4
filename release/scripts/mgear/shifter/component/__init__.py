@@ -630,6 +630,15 @@ class Main(object):
                     jnt.attr("jointOrientX").set(r[0])
                     jnt.attr("jointOrientY").set(r[1])
                     jnt.attr("jointOrientZ").set(r[2])
+                elif not neutral_rot:
+                    jnt.setAttr("jointOrient", 0, 0, 0)
+                    driven_m = pm.getAttr(jnt + ".parentInverseMatrix[0]")
+                    m = t * driven_m
+                    tm = datatypes.TransformationMatrix(m)
+                    r = datatypes.degrees(tm.getRotation())
+                    jnt.attr("rotateX").set(r[0])
+                    jnt.attr("rotateY").set(r[1])
+                    jnt.attr("rotateZ").set(r[2])
 
                 # set not keyable
                 attribute.setNotKeyableAttributes(jnt)
@@ -2246,7 +2255,10 @@ class Main(object):
         def store_relative_names(relative_dict):
             result = {}
             for key, relative in relative_dict.items():
-                result[key] = relative.name()
+                if isinstance(relative, pm.nodetypes.Transform):
+                    result[key] = relative.name()
+                else:
+                    result[key] = None
             return result
 
         self.build_data["FullName"] = self.fullName
