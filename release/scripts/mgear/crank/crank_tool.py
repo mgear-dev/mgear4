@@ -140,12 +140,12 @@ def create_blendshape_node(bsName, oSel, foc=False, useExsitingBS=False):
                 name="_".join([obj.name(), bsName, "blendShape_crank"]),
                 foc=foc,
             )[0]
-        if bs:
-            # this attr will tag new bs nodes or existing bs nodes
-            # as managed by crank
             attribute.addAttribute(
                 bs, CRANK_BS_TAG, "bool", False, keyable=False
             )
+        if bs:
+            # this attr will tag new bs nodes or existing bs nodes
+            # as managed by crank
             bs_list.append(bs)
 
     # if any of the objects is missing a blendshape node we will abort
@@ -384,7 +384,6 @@ def add_frame_sculpt(layer_node, anim=False, keyf=[1, 0, 0, 1]):
     while layer_node.hasAttr(frame_name):
         frame_name = "frame_{}_v{}".format(str(cframe), str(i))
         i += 1
-
     # create frame master channel
     master_chn = attribute.addAttribute(
         layer_node, frame_name, "float", value=1, minValue=0, maxValue=1
@@ -447,7 +446,7 @@ def add_frame_sculpt(layer_node, anim=False, keyf=[1, 0, 0, 1]):
 
     for obj, bsn in zip(objs, bs_node):
         dup = pm.duplicate(obj)[0]
-        bst_name = "_".join([obj.stripNamespace(), frame_name])
+        bst_name = "_".join([layer_node.stripNamespace(), obj.stripNamespace(), frame_name])
         pm.rename(dup, bst_name)
         indx = bsn.weight.getNumElements()
         pm.blendShape(
@@ -476,7 +475,7 @@ def edit_sculpt_frame():
     Returns:
         bool: If the edit is set successful
     """
-    if pm.channelBox(CHANNEL_BOX_NAME, exists=True):
+    if pm.channelBox(CHANNEL_BOX_NAME, exists=True) is True:
         attrs = pm.channelBox(CHANNEL_BOX_NAME, query=True, sma=True) or []
     else:
         attrs = attribute.getSelectedChannels()
@@ -535,7 +534,8 @@ def _set_channel_edit_target(chn, edit=True):
                 fade=True,
             )
         else:
-            a.node().inputTarget[a.index()].sculptTargetIndex.set(-1)
+            # a.node().inputTarget[a.index()].sculptTargetIndex.set(-1)
+            pm.sculptTarget(a.node(), e=True, t=-1)
             pm.mel.eval("updateBlendShapeEditHUD;")
             pm.inViewMessage(
                 amg="{}: Edit mode is OFF".format(chn.name()),
