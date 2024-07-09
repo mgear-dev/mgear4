@@ -42,6 +42,7 @@ TODO:
 ####################################
 
 CRANK_TAG = "_isCrankLayer"
+CRANK_BS_TAG = "_isCrankLayerBS"
 CRANK_RENDER_LAYER_NAME = "crankLayer_randomColor"
 CHANNEL_BOX_NAME = "Crank_Box"
 
@@ -50,11 +51,13 @@ CHANNEL_BOX_NAME = "Crank_Box"
 ####################################
 
 
-def create_layer(oSel):
+def create_layer(oSel, foc=False, useExsitingBS=False):
     """Create new crank layer for shot sculpting
 
     Args:
         oSel (Mesh list): Objects to be included in the layer
+        foc (bool, optional): Set the blendshape node in Front of the chain
+        useExsitingBS (bool, optional): If true will try to use existing blendshape
 
     Returns:
         dagNode: cranklayer node with all the layer data
@@ -80,42 +83,79 @@ def create_layer(oSel):
             text = pm.promptDialog(query=True, text=True)
             name = string.normalize(text)
 
-            layer_node = create_layer_node(name, oSel)
-            bs_list = create_blendshape_node(name, oSel)
-            for bs in bs_list:
-                layer_node.crank_layer_envelope >> bs.envelope
-                idx = attribute.get_next_available_index(
-                    layer_node.layer_blendshape_node
-                )
-                pm.connectAttr(
-                    bs.message, layer_node.layer_blendshape_node[idx]
-                )
-                bs.isHistoricallyInteresting.set(False)
-            pm.select(oSel)
+            bs_list = create_blendshape_node(
+                name, oSel, foc=foc, useExsitingBS=useExsitingBS
+            )
+            # avoid creating layer if there are not blendshapes
+            if bs_list:
+                layer_node = create_layer_node(name, oSel)
+                for bs in bs_list:
+                    layer_node.crank_layer_envelope >> bs.envelope
+                    idx = attribute.get_next_available_index(
+                        layer_node.layer_blendshape_node
+                    )
+                    pm.connectAttr(
+                        bs.message, layer_node.layer_blendshape_node[idx]
+                    )
+                    if not useExsitingBS:
+                        bs.isHistoricallyInteresting.set(False)
+                pm.select(oSel)
 
-            return layer_node
+                return layer_node
 
 
-def create_blendshape_node(bsName, oSel):
+def create_blendshape_node(bsName, oSel, foc=False, useExsitingBS=False):
     """Create the blendshape node for each object in the layer
 
     Args:
         bsName (str): The name prefix for the blendshape node
         oSel (Mesh list): The object to apply the blendshape node
+        foc (bool, optional): Set the blendshape node in Front of the chain
+        useExsitingBS (bool, optional): If true will try to use existing blendshape
 
     Returns:
         PyNode: The blendshape node list
     """
     bs_list = []
+    creation_abort = False
     for obj in oSel:
-        bs = pm.blendShape(
-            obj,
-            name="_".join([obj.name(), bsName, "blendShape_crank"]),
-            foc=False,
-        )[0]
-        bs_list.append(bs)
+        if useExsitingBS:
+            bs = None
+            bs_hist = pm.listHistory(obj.getShape(), type="blendShape")
+            for previous_bs in bs_hist:
+                if not previous_bs.hasAttr(CRANK_BS_TAG):
+                    bs = previous_bs
+                    break
+            if not bs:
+                pm.displayWarning(
+                    "Object: {} don't have any previous blendshape node to use or not managed by Crank. Layer creation aborted".format(
+                        obj.name()
+                    )
+                )
+                creation_abort = True
 
-    return bs_list
+        else:
+            bs = pm.blendShape(
+                obj,
+                name="_".join([obj.name(), bsName, "blendShape_crank"]),
+                foc=foc,
+            )[0]
+        if bs:
+            # this attr will tag new bs nodes or existing bs nodes
+            # as managed by crank
+            attribute.addAttribute(
+                bs, CRANK_BS_TAG, "bool", False, keyable=False
+            )
+            bs_list.append(bs)
+
+    # if any of the objects is missing a blendshape node we will abort
+    # the layer creation
+    # I do  the abort return here so we can get the complete print of warnings
+    # for all the objects
+    if creation_abort:
+        return None
+    else:
+        return bs_list
 
 
 def create_layer_node(name, affectedElements):
@@ -836,7 +876,9 @@ class crankTool(MayaQWidgetDockableMixin, QtWidgets.QDialog):
 
     def create_layer(self):
         """Create a new layer and update the window list"""
-        create_layer(pm.selected())
+        foc = self.crankUIWInst.foc_checkBox.isChecked()
+        useExistingBS = self.crankUIWInst.useExistingBS_checkBox.isChecked()
+        create_layer(pm.selected(), foc=foc, useExsitingBS=useExistingBS)
         self._refreshList()
 
     def add_frame_sculpt(self):

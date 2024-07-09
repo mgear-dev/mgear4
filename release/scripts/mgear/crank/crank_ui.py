@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'C:/datawork/repo/mgear4/release/scripts/mgear/crank/crank_ui.ui'
 #
-# Created: Tue Feb 20 09:34:46 2024
+# Created: Tue Jul  9 12:44:23 2024
 #      by: pyside2-uic  running on PySide2 2.0.0~alpha0
 #
 # WARNING! All changes made in this file will be lost!
@@ -12,7 +12,7 @@ from PySide2 import QtCore, QtGui, QtWidgets
 class Ui_Form(object):
     def setupUi(self, Form):
         Form.setObjectName("Form")
-        Form.resize(299, 590)
+        Form.resize(401, 691)
         self.gridLayout_4 = QtWidgets.QGridLayout(Form)
         self.gridLayout_4.setSpacing(0)
         self.gridLayout_4.setContentsMargins(5, 5, 5, 5)
@@ -49,6 +49,14 @@ class Ui_Form(object):
         self.layers_listView.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)
         self.layers_listView.setObjectName("layers_listView")
         self.gridLayout_2.addWidget(self.layers_listView, 2, 0, 1, 1)
+        self.foc_checkBox = QtWidgets.QCheckBox(self.groupBox)
+        self.foc_checkBox.setChecked(False)
+        self.foc_checkBox.setObjectName("foc_checkBox")
+        self.gridLayout_2.addWidget(self.foc_checkBox, 3, 0, 1, 1)
+        self.useExistingBS_checkBox = QtWidgets.QCheckBox(self.groupBox)
+        self.useExistingBS_checkBox.setChecked(False)
+        self.useExistingBS_checkBox.setObjectName("useExistingBS_checkBox")
+        self.gridLayout_2.addWidget(self.useExistingBS_checkBox, 4, 0, 1, 1)
         self.gridLayout_4.addWidget(self.groupBox, 0, 0, 1, 1)
         self.groupBox_2 = QtWidgets.QGroupBox(Form)
         self.groupBox_2.setObjectName("groupBox_2")
@@ -117,6 +125,7 @@ class Ui_Form(object):
         self.gridLayout_4.addWidget(self.groupBox_2, 1, 0, 1, 1)
 
         self.retranslateUi(Form)
+        QtCore.QObject.connect(self.useExistingBS_checkBox, QtCore.SIGNAL("clicked(bool)"), self.foc_checkBox.setDisabled)
         QtCore.QMetaObject.connectSlotsByName(Form)
 
     def retranslateUi(self, Form):
@@ -124,6 +133,10 @@ class Ui_Form(object):
         self.groupBox.setTitle(QtWidgets.QApplication.translate("Form", "Sculpt Layers", None, -1))
         self.createLayer_pushButton.setText(QtWidgets.QApplication.translate("Form", "Create Layer", None, -1))
         self.refresh_pushButton.setText(QtWidgets.QApplication.translate("Form", "Refresh", None, -1))
+        self.foc_checkBox.setToolTip(QtWidgets.QApplication.translate("Form", "<html><head/><body><p>Create a New BlendShape node in Front of Chain (FOC)</p></body></html>", None, -1))
+        self.foc_checkBox.setText(QtWidgets.QApplication.translate("Form", "New BS node in front of chain", None, -1))
+        self.useExistingBS_checkBox.setToolTip(QtWidgets.QApplication.translate("Form", "<html><head/><body><p>Crank will use only existing Blendshapes nodes that are <span style=\" font-weight:600;\">not already managed </span>with other Crank layer. <br/>If any suitable Blendshape node is found the tool will <span style=\" font-weight:600;\">NOT create</span> a new node for the given object and the layer creation will be aborted</p></body></html>", None, -1))
+        self.useExistingBS_checkBox.setText(QtWidgets.QApplication.translate("Form", "Use Only Existing BlendShape Node", None, -1))
         self.groupBox_2.setTitle(QtWidgets.QApplication.translate("Form", "Sculpt Frames", None, -1))
         self.label_4.setText(QtWidgets.QApplication.translate("Form", "Post Hold", None, -1))
         self.label.setText(QtWidgets.QApplication.translate("Form", "Ease In", None, -1))

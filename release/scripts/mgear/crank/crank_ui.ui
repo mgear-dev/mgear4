@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>299</width>
-    <height>590</height>
+    <width>401</width>
+    <height>691</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -103,6 +103,32 @@
         </property>
         <property name="selectionMode">
          <enum>QAbstractItemView::ExtendedSelection</enum>
+        </property>
+       </widget>
+      </item>
+      <item row="3" column="0">
+       <widget class="QCheckBox" name="foc_checkBox">
+        <property name="toolTip">
+         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Create a New BlendShape node in Front of Chain (FOC)&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+        </property>
+        <property name="text">
+         <string>New BS node in front of chain</string>
+        </property>
+        <property name="checked">
+         <bool>false</bool>
+        </property>
+       </widget>
+      </item>
+      <item row="4" column="0">
+       <widget class="QCheckBox" name="useExistingBS_checkBox">
+        <property name="toolTip">
+         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Crank will use only existing Blendshapes nodes that are &lt;span style=&quot; font-weight:600;&quot;&gt;not already managed &lt;/span&gt;with other Crank layer. &lt;br/&gt;If any suitable Blendshape node is found the tool will &lt;span style=&quot; font-weight:600;&quot;&gt;NOT create&lt;/span&gt; a new node for the given object and the layer creation will be aborted&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+        </property>
+        <property name="text">
+         <string>Use Only Existing BlendShape Node</string>
+        </property>
+        <property name="checked">
+         <bool>false</bool>
         </property>
        </widget>
       </item>
@@ -249,5 +275,22 @@
   </layout>
  </widget>
  <resources/>
- <connections/>
+ <connections>
+  <connection>
+   <sender>useExistingBS_checkBox</sender>
+   <signal>clicked(bool)</signal>
+   <receiver>foc_checkBox</receiver>
+   <slot>setDisabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>181</x>
+     <y>313</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>183</x>
+     <y>289</y>
+    </hint>
+   </hints>
+  </connection>
+ </connections>
 </ui>
