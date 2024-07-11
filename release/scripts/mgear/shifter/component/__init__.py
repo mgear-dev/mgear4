@@ -2350,6 +2350,13 @@ class Main(object):
         temp_dict_rotation["z"] = world_rotation.z
         trans_info["WorldRotation"] = temp_dict_rotation
 
+        world_matrix = obj.getMatrix(worldSpace=True)
+        tm = pm.datatypes.TransformationMatrix(world_matrix)
+        qw = tm.getRotationQuaternion()
+        trans_info["QuaternionWorldRotation"] = qw
+
+        trans_info["RotationOrder"] = obj.ro.get()
+
         return trans_info
 
     # =====================================================
