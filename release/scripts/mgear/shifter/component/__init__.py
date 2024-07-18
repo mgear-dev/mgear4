@@ -117,6 +117,9 @@ class Main(object):
         self.controlRelatives = {}
         self.aliasRelatives = {}  # alias names for pretty names on combo box
 
+        # in some situation we need to decouple the relative and the host UI
+        self.hostRelatives = {}
+
         # --------------------------------------------------
         # Joint positions init
         # jnt_pos is a list of lists [Joint position object + name +  optional
@@ -1178,7 +1181,19 @@ class Main(object):
 
     def getHost(self):
         """Get the host for the properties"""
-        self.uihost = self.rig.findRelative(self.settings["ui_host"])
+        comp_relative = self.rig.findComponent(self.settings["ui_host"])
+        if comp_relative and comp_relative.hostRelatives:
+            hostRelatives = comp_relative.hostRelatives
+            relative_name = self.rig.getRelativeName(self.settings["ui_host"])
+            if relative_name in hostRelatives.keys():
+                self.uihost = hostRelatives[relative_name]
+            else:
+                pm.displayWarning(
+                    "Host relative name {} not found".format(relative_name)
+                )
+                self.uihost = self.rig.findRelative(self.settings["ui_host"])
+        else:
+            self.uihost = self.rig.findRelative(self.settings["ui_host"])
 
     def set_ui_host_components_controls(self):
         """Set a list of all controls that are common to the ui host
