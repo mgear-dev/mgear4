@@ -980,9 +980,7 @@ def bake_local_to_offset_parent_matrix(node):
     node.setAttr("offsetParentMatrix", new_offset_matrix)
 
     # Reset local transform values to neutral
-    node.setAttr("scale", (1, 1, 1))
-    node.setAttr("rotate", (0, 0, 0))
-    node.setAttr("translate", (0, 0, 0))
+    resetTransform(node)
 
 
 def rotate_180(axis="Y", rotation_order="XYZ", objects=None):
