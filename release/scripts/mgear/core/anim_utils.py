@@ -905,6 +905,41 @@ def ikFkMatch_with_namespace(
         ikRot (None, str): optional. Name of the Ik Rotation control
         key (None, bool): optional. Whether we do an snap with animation
     """
+    # -----------------------------------------------
+    # NOTE: the following section is a workaround to match and reset the gimbal
+    # controls for legs and arms
+    # this workaround doesn't support custom naming.
+    gimbal_exist = False
+    try:
+        if "arm" in ikfk_attr or "leg" in ikfk_attr:
+
+            fks_gimbal = [pm.PyNode(x.replace("fk", "gimbal")) for x in fks]
+            ik_gimbal = pm.PyNode(ik.replace("ik", "gimbalIK"))
+
+            # store world transforms
+            fks_wtrans = [x.getMatrix(worldSpace=True) for x in fks_gimbal]
+            ik_wtrans = ik_gimbal.getMatrix(worldSpace=True)
+
+            # reset local transform
+            for x in fks_gimbal:
+                transform.resetTransform(x)
+            transform.resetTransform(ik_gimbal)
+
+            # apply transform to main control
+            for i, x in enumerate(fks):
+                pm.PyNode(x).setMatrix(fks_wtrans[i], worldSpace=True)
+            pm.PyNode(ik).setMatrix(ik_wtrans, worldSpace=True)
+
+            # keyframes
+            if key:
+                for x in fks_gimbal + [ik_gimbal]:
+                    pm.setKeyframe(x, time=(cmds.currentTime(query=True) - 1.0))
+            gimbal_exist = True
+    except:
+        pass
+
+    # end of workaround gimbal match
+    # -----------------------------------------------
 
     # returns a pymel node on the given name
     def _get_node(name):
@@ -1087,6 +1122,9 @@ def ikFkMatch_with_namespace(
             )
             for elem in _all_controls
         ]
+        if gimbal_exist:
+            for x in fks_gimbal + [ik_gimbal]:
+                pm.setKeyframe(x, time=(cmds.currentTime(query=True)))
 
 
 def ikFkMatch(model, ikfk_attr, ui_host, fks, ik, upv, ik_rot=None, key=None):

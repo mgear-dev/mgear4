@@ -117,6 +117,9 @@ class Main(object):
         self.controlRelatives = {}
         self.aliasRelatives = {}  # alias names for pretty names on combo box
 
+        # in some situation we need to decouple the relative and the host UI
+        self.hostRelatives = {}
+
         # --------------------------------------------------
         # Joint positions init
         # jnt_pos is a list of lists [Joint position object + name +  optional
@@ -305,6 +308,7 @@ class Main(object):
         guide_relative=None,
         data_contracts=None,
         preBind_relative=None,
+        neutral_rot=True,
     ):
         """Add joint as child of the active joint or under driver object.
 
@@ -357,6 +361,7 @@ class Main(object):
                 guide_relative=guide_relative,
                 data_contracts=data_contracts,
                 preBind_relative=preBind_relative,
+                neutral_rot=neutral_rot,
             )
 
     def _addJoint(
@@ -371,6 +376,7 @@ class Main(object):
         guide_relative=None,
         data_contracts=None,
         preBind_relative=None,
+        neutral_rot=True,
     ):
         """Add joint as child of the active joint or under driver object.
 
@@ -608,7 +614,7 @@ class Main(object):
                 # global scale. Confirm there is no conflicts
                 jnt.setAttr("segmentScaleCompensate", segComp)
 
-                if not keep_off:
+                if not keep_off and neutral_rot:
                     # setting the joint orient compensation in order to
                     # have clean rotation channels
                     jnt.setAttr("jointOrient", 0, 0, 0)
@@ -627,6 +633,15 @@ class Main(object):
                     jnt.attr("jointOrientX").set(r[0])
                     jnt.attr("jointOrientY").set(r[1])
                     jnt.attr("jointOrientZ").set(r[2])
+                elif not neutral_rot:
+                    jnt.setAttr("jointOrient", 0, 0, 0)
+                    driven_m = pm.getAttr(jnt + ".parentInverseMatrix[0]")
+                    m = t * driven_m
+                    tm = datatypes.TransformationMatrix(m)
+                    r = datatypes.degrees(tm.getRotation())
+                    jnt.attr("rotateX").set(r[0])
+                    jnt.attr("rotateY").set(r[1])
+                    jnt.attr("rotateZ").set(r[2])
 
                 # set not keyable
                 attribute.setNotKeyableAttributes(jnt)
@@ -1166,7 +1181,19 @@ class Main(object):
 
     def getHost(self):
         """Get the host for the properties"""
-        self.uihost = self.rig.findRelative(self.settings["ui_host"])
+        comp_relative = self.rig.findComponent(self.settings["ui_host"])
+        if comp_relative and comp_relative.hostRelatives:
+            hostRelatives = comp_relative.hostRelatives
+            relative_name = self.rig.getRelativeName(self.settings["ui_host"])
+            if relative_name in hostRelatives.keys():
+                self.uihost = hostRelatives[relative_name]
+            else:
+                pm.displayWarning(
+                    "Host relative name {} not found".format(relative_name)
+                )
+                self.uihost = self.rig.findRelative(self.settings["ui_host"])
+        else:
+            self.uihost = self.rig.findRelative(self.settings["ui_host"])
 
     def set_ui_host_components_controls(self):
         """Set a list of all controls that are common to the ui host
@@ -2187,7 +2214,9 @@ class Main(object):
                         # each jnt creation
                         jpo["newActiveJnt"] = self.parent_relative_jnt
                     elif isinstance(jpo["newActiveJnt"], int):
-                        jpo["newActiveJnt"] = self.jointList[jpo["newActiveJnt"]]
+                        jpo["newActiveJnt"] = self.jointList[
+                            jpo["newActiveJnt"]
+                        ]
                     else:
                         try:
                             # here jpo["newActiveJnt"] is also the string name
@@ -2237,6 +2266,16 @@ class Main(object):
 
     def collect_build_data(self):
 
+        # helper function to convert the transforms obj to a str name
+        def store_relative_names(relative_dict):
+            result = {}
+            for key, relative in relative_dict.items():
+                if isinstance(relative, pm.nodetypes.Transform):
+                    result[key] = relative.name()
+                else:
+                    result[key] = None
+            return result
+
         self.build_data["FullName"] = self.fullName
         self.build_data["Name"] = self.name
         self.build_data["Type"] = self.guide.type
@@ -2249,9 +2288,16 @@ class Main(object):
         self.build_data["Twist"] = []
         self.build_data["Squash"] = []
         self.build_data["Settings"] = self.settings
+        self.build_data["relatives"] = store_relative_names(self.relatives)
         self.build_data["jointRelatives"] = self.jointRelatives
+        self.build_data["controlRelatives"] = store_relative_names(
+            self.controlRelatives
+        )
+        self.build_data["aliasRelatives"] = self.aliasRelatives
         if self.guide.parentComponent:
-            self.build_data["parent_fullName"] = self.guide.parentComponent.fullName
+            self.build_data[
+                "parent_fullName"
+            ] = self.guide.parentComponent.fullName
             self.build_data["parent_localName"] = self.guide.parentLocalName
         else:
             self.build_data["parent_fullName"] = None
@@ -2318,6 +2364,13 @@ class Main(object):
         temp_dict_rotation["y"] = world_rotation.y
         temp_dict_rotation["z"] = world_rotation.z
         trans_info["WorldRotation"] = temp_dict_rotation
+
+        world_matrix = obj.getMatrix(worldSpace=True)
+        tm = pm.datatypes.TransformationMatrix(world_matrix)
+        qw = tm.getRotationQuaternion()
+        trans_info["QuaternionWorldRotation"] = qw
+
+        trans_info["RotationOrder"] = obj.ro.get()
 
         return trans_info
 

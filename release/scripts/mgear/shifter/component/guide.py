@@ -782,7 +782,7 @@ class ComponentGuide(guide.Main):
             i += 1
         return locs
 
-    def addBlade(self, name, parentPos, parentDir):
+    def addBlade(self, name, parentPos, parentDir, wUp=None):
         """Add a blade object to the guide.
 
         This mehod can initialize the object or draw it.
@@ -792,9 +792,10 @@ class ComponentGuide(guide.Main):
             name (str): Local name of the element.
             parentPos (dagNode): The parent of the element.
             parentDir (dagNode): The direction constraint of the element.
+            wUp (dagNode, optional): world up node. If None will be self.root
 
         Returns:
-            dagNode:  The created blade curve.
+            dagNode: The created blade curve.
 
         """
         if name not in self.blades.keys():
@@ -804,6 +805,9 @@ class ComponentGuide(guide.Main):
             offset = False
         else:
             offset = True
+
+        if not wUp:
+            wUp = self.root
 
         blade = icon.guideBladeIcon(
             parent=parentPos,
@@ -818,7 +822,7 @@ class ComponentGuide(guide.Main):
             axis="xy",
             wupType=2,
             wupVector=[0, 1, 0],
-            wupObject=self.root,
+            wupObject=wUp,
             maintainOffset=offset,
         )
         pnt_cns = pm.pointConstraint(parentPos, blade)

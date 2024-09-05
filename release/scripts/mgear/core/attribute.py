@@ -665,6 +665,10 @@ def setInvertMirror(node, invList=None):
 
     Arguments:
         node (dagNode): The object to set invert mirror Values
+        invList (list, optional): list of axis to invert ["tx", "tz"]
+
+    i.e: attribute.setInvertMirror(ctl_pyNode, invList=["tx", "tz"] )
+
 
     """
 
@@ -1528,6 +1532,23 @@ def get_next_available_index(attr):
         for e in range(ne):
             if not attr.attr(attr.elements()[e]).listConnections():
                 return e
+
+
+def find_next_available_index(node, attribute):
+    """Find the next available index for a multi-attribute on a given node.
+    This function ins similar to get_next_available_index but with 2 args
+
+    Args:
+        node (PyNode): Node with multi-attribute.
+        attribute (str): Multi-attribute name.
+
+    Returns:
+        int: Next available index.
+    """
+    idx = 0
+    while node.attr(attribute)[idx].isConnected():
+        idx += 1
+    return idx
 
 
 def connect_message(source, attr):
