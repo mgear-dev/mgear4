@@ -196,6 +196,9 @@ def _pymaya_cmd_wrap(func, wrap_object=True, scope=SCOPE_NODE):
         kwargs = _obj_to_name(kwargs)
 
         res = func(*args, **kwargs)
+        # filter if the function should not return as list
+        if func.__name__.endswith("Constraint"):
+            res = res[0] if res else None
 
         # TODO : is it correct?
         if func.__name__.startswith("list") and res is None:
