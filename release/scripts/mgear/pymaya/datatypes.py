@@ -51,6 +51,9 @@ class Vector(OpenMaya.MVector):
     def tolist(self):
         return [self.x, self.y, self.z]
 
+    def get(self):
+        return self.tolist()
+
     def rotateBy(self, *args):
         if args:
             if len(args) == 2 and isinstance(args[0], Vector):
