@@ -43,7 +43,9 @@ class Attribute(base.Attr):
         else:
             self.__plug = Attribute.__getPlug(attrname_or_mplug)
             if self.__plug is None:
-                raise RuntimeError("No such attribute '{}'".format(attrname_or_mplug))
+                raise RuntimeError(
+                    "No such attribute '{}'".format(attrname_or_mplug)
+                )
 
     def __hash__(self):
         return hash(self.name())
@@ -79,14 +81,21 @@ class Attribute(base.Attr):
         nfunc = None
 
         if obj.hasFn(OpenMaya.MFn.kDagNode):
-            nfunc = OpenMaya.MFnDagNode(OpenMaya.MDagPath.getAPathTo(obj)).partialPathName
+            nfunc = OpenMaya.MFnDagNode(
+                OpenMaya.MDagPath.getAPathTo(obj)
+            ).partialPathName
         else:
             nfunc = OpenMaya.MFnDependencyNode(obj).name
 
-        return "{}.{}".format(nfunc(), this_plug.partialName(False, False, False, False, False, True))
+        return "{}.{}".format(
+            nfunc(),
+            this_plug.partialName(False, False, False, False, False, True),
+        )
 
     def plugAttr(self, longName=False, fullPath=False):
-        return self.__plug.partialName(False, False, False, False, fullPath, longName)
+        return self.__plug.partialName(
+            False, False, False, False, fullPath, longName
+        )
 
     def attrName(self, longName=False, includeNode=False):
         if includeNode:
@@ -94,23 +103,37 @@ class Attribute(base.Attr):
             nfunc = None
 
             if obj.hasFn(OpenMaya.MFn.kDagNode):
-                nfunc = OpenMaya.MFnDagNode(OpenMaya.MDagPath.getAPathTo(obj)).partialPathName
+                nfunc = OpenMaya.MFnDagNode(
+                    OpenMaya.MDagPath.getAPathTo(obj)
+                ).partialPathName
             else:
                 nfunc = OpenMaya.MFnDependencyNode(obj).name
 
-            return "{}.{}".format(nfunc(), self.__plug.partialName(False, False, False, False, False, longName))
+            return "{}.{}".format(
+                nfunc(),
+                self.__plug.partialName(
+                    False, False, False, False, False, longName
+                ),
+            )
 
-        return self.__plug.partialName(False, False, False, False, False, longName)
+        return self.__plug.partialName(
+            False, False, False, False, False, longName
+        )
 
     def getAlias(self):
-        return OpenMaya.MFnDependencyNode(self.__plug.node()).plugsAlias(self.__plug)
+        return OpenMaya.MFnDependencyNode(self.__plug.node()).plugsAlias(
+            self.__plug
+        )
 
     def node(self):
         from . import node
+
         obj = self.__plug.node()
 
         if obj.hasFn(OpenMaya.MFn.kDagNode):
-            nfunc = OpenMaya.MFnDagNode(OpenMaya.MDagPath.getAPathTo(obj)).partialPathName
+            nfunc = OpenMaya.MFnDagNode(
+                OpenMaya.MDagPath.getAPathTo(obj)
+            ).partialPathName
         else:
             nfunc = OpenMaya.MFnDependencyNode(obj).name
 
@@ -123,7 +146,10 @@ class Attribute(base.Attr):
         cmds.deleteAttr(self.name())
 
     def connect(self, other, **kwargs):
-        return cmds.connectAttr(self.name(), other.name() if isinstance(other, Attribute) else other)
+        return cmds.connectAttr(
+            self.name(),
+            other.name() if isinstance(other, Attribute) else other,
+        )
 
     def disconnect(self, *args):
         return cmd.disconnectAttr(self.name(), *args)
@@ -157,27 +183,47 @@ class Attribute(base.Attr):
         return self.plug().isConnected
 
     def attr(self, name):
-        attr_cache = super(Attribute, self).__getattribute__("_Attribute__attrs")
+        attr_cache = super(Attribute, self).__getattribute__(
+            "_Attribute__attrs"
+        )
         if name in attr_cache:
             return attr_cache[name]
 
         this_plug = super(Attribute, self).__getattribute__("_Attribute__plug")
-        ln = this_plug.partialName(False, False, False, False, False, True).split(".")[-1]
-        sn = this_plug.partialName(False, False, False, False, False, False).split(".")[-1]
+        ln = this_plug.partialName(
+            False, False, False, False, False, True
+        ).split(".")[-1]
+        sn = this_plug.partialName(
+            False, False, False, False, False, False
+        ).split(".")[-1]
         res = re.match("{}\[([0-9])+\]".format(ln), name)
         if res:
-            return super(Attribute, self).__getattribute__("__getitem__")(int(res.group(1)))
+            return super(Attribute, self).__getattribute__("__getitem__")(
+                int(res.group(1))
+            )
         res = re.match("{}\[([0-9])+\]".format(sn), name)
         if res:
-            return super(Attribute, self).__getattribute__("__getitem__")(int(res.group(1)))
+            return super(Attribute, self).__getattribute__("__getitem__")(
+                int(res.group(1))
+            )
 
         if this_plug.isCompound:
             for ci in range(this_plug.numChildren()):
                 cp = this_plug.child(ci)
                 at = None
-                if name == cp.partialName(False, False, False, False, False, True).split(".")[-1]:
+                if (
+                    name
+                    == cp.partialName(
+                        False, False, False, False, False, True
+                    ).split(".")[-1]
+                ):
                     at = Attribute(cp)
-                elif name == cp.partialName(False, False, False, False, False, False).split(".")[-1]:
+                elif (
+                    name
+                    == cp.partialName(
+                        False, False, False, False, False, False
+                    ).split(".")[-1]
+                ):
                     at = Attribute(cp)
                 else:
                     continue
@@ -200,7 +246,10 @@ class Attribute(base.Attr):
         if not self.plug().isCompound:
             raise RuntimeError("{} has no children".format(self.name()))
 
-        return [Attribute(self.plug().child(x)) for x in range(self.plug().numChildren())]
+        return [
+            Attribute(self.plug().child(x))
+            for x in range(self.plug().numChildren())
+        ]
 
     def get(self, *args, **kwargs):
         return cmd.getAttr(self, *args, **kwargs)
@@ -229,13 +278,17 @@ class Attribute(base.Attr):
 
     def getMin(self):
         if cmd.attributeQuery(self.longName(), node=self.node(), mne=True):
-            return cmd.attributeQuery(self.longName(), node=self.node(), min=True)[0]
+            return cmd.attributeQuery(
+                self.longName(), node=self.node(), min=True
+            )[0]
         else:
             return None
 
     def getMax(self):
         if cmd.attributeQuery(self.longName(), node=self.node(), mxe=True):
-            return cmd.attributeQuery(self.longName(), node=self.node(), max=True)[0]
+            return cmd.attributeQuery(
+                self.longName(), node=self.node(), max=True
+            )[0]
         else:
             return None
 
@@ -243,4 +296,43 @@ class Attribute(base.Attr):
         return self.plug().partialName(False, False, False, False, False, True)
 
     def shortName(self):
-        return self.plug().partialName(False, False, False, False, False, False)
+        return self.plug().partialName(
+            False, False, False, False, False, False
+        )
+
+    def getNumElements(self):
+        """
+        Get the number of elements in an array (multi) attribute.
+
+        Returns:
+            int: Number of elements in the multi-attribute.
+        """
+        if not self.__plug.isArray:
+            raise TypeError(
+                "{} is not an array (multi) plug".format(self.name())
+            )
+
+        # Get the indices of existing array elements
+        indices = self.__plug.getExistingArrayAttributeIndices()
+        return len(indices)
+
+    def numConnectedElements(self):
+        """
+        Get the number of connected elements in a multi-attribute.
+
+        Returns:
+            int: Number of connected elements in the array attribute.
+        """
+        if not self.__plug.isArray:
+            raise TypeError(
+                "{} is not an array (multi) plug".format(self.name())
+            )
+
+        count = 0
+        # Iterate over existing indices and check if the element is connected
+        for index in self.__plug.getExistingArrayAttributeIndices():
+            element = self.__plug.elementByLogicalIndex(index)
+            if element.isConnected:
+                count += 1
+
+        return count
