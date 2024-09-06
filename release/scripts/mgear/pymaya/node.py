@@ -275,12 +275,12 @@ class _Node(base.Node):
 
     def __eq__(self, other):
         if isinstance(other, str):
-            other = _Node.__getObjectFromName(other)
+            other = _Node(other)
         return self.__obj == other.__obj
 
     def __ne__(self, other):
         if isinstance(other, str):
-            other = _Node.__getObjectFromName(other)
+            other = _Node(other)
         return self.__obj != other.__obj
 
     def object(self):
