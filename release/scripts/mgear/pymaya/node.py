@@ -24,14 +24,36 @@ def _getPivots(node, **kwargs):
 
 
 def _setTransformation(node, matrix):
+    """Sets the transformation of the node using the provided matrix.
+
+    Args:
+        node: The node whose transformation will be set.
+        matrix: Can be either an OpenMaya.MMatrix, OpenMaya.MTransformationMatrix,
+                or a list of lists representing a 4x4 transformation matrix.
+    """
+
+    # If the matrix is a list of lists, convert it to OpenMaya.MMatrix
+    if isinstance(matrix, list):
+        # Ensure it's a 4x4 matrix (list of 4 lists, each with 4 elements)
+        if len(matrix) == 4 and all(len(row) == 4 for row in matrix):
+            flat_matrix = [elem for row in matrix for elem in row]
+            m_matrix = OpenMaya.MMatrix(flat_matrix)
+            matrix = m_matrix
+        else:
+            raise ValueError("Matrix must be a 4x4 list of lists.")
+
+    # If the matrix is MMatrix, convert it to MTransformationMatrix
     if isinstance(matrix, OpenMaya.MMatrix):
         matrix = OpenMaya.MTransformationMatrix(matrix)
 
+    # Apply the transformation to the node
     OpenMaya.MFnTransform(node.dagPath()).setTransformation(matrix)
 
 
 def _getTransformation(node):
-    return datatypes.TransformationMatrix(OpenMaya.MFnTransform(node.dagPath()).transformationMatrix())
+    return datatypes.TransformationMatrix(
+        OpenMaya.MFnTransform(node.dagPath()).transformationMatrix()
+    )
 
 
 def _getShape(node, **kwargs):
@@ -62,7 +84,7 @@ def _getParent(node, generations=1):
             if generations >= spltlen:
                 return None
 
-            return BindNode("|" + "|".join(splt[:spltlen - generations]))
+            return BindNode("|" + "|".join(splt[: spltlen - generations]))
         else:
             if abs(generations) > spltlen:
                 return None
@@ -95,7 +117,9 @@ def _getMatrix(node, **kwargs):
 
 def _getTranslation(node, space="object"):
     space = util.to_mspace(space)
-    return datatypes.Vector(OpenMaya.MFnTransform(node.dagPath()).translation(space))
+    return datatypes.Vector(
+        OpenMaya.MFnTransform(node.dagPath()).translation(space)
+    )
 
 
 def _setTranslation(node, value, space="object", **kwargs):
@@ -110,7 +134,9 @@ def _setTranslation(node, value, space="object", **kwargs):
 
 def _getRotation(node, space="object", quaternion=False, **kwargs):
     space = util.to_mspace(space)
-    res = OpenMaya.MFnTransform(node.dagPath()).rotation(space=space, asQuaternion=True)
+    res = OpenMaya.MFnTransform(node.dagPath()).rotation(
+        space=space, asQuaternion=True
+    )
 
     if quaternion:
         return datatypes.Quaternion(res)
@@ -121,7 +147,9 @@ def _getRotation(node, space="object", quaternion=False, **kwargs):
 def _setRotation(node, rotation, space="object"):
     if isinstance(rotation, list):
         if len(rotation) == 3:
-            rotation = datatypes.EulerRotation(*[math.radians(x) for x in rotation])
+            rotation = datatypes.EulerRotation(
+                *[math.radians(x) for x in rotation]
+            )
         elif len(rotation) == 4:
             rotation = datatypes.Quaternion(*rotation)
 
@@ -185,10 +213,14 @@ class _Node(base.Node):
         else:
             self.__obj = _Node.__getObjectFromName(nodename_or_mobject)
             if self.__obj is None:
-                raise exception.MayaNodeError("No such node '{}'".format(nodename_or_mobject))
+                raise exception.MayaNodeError(
+                    "No such node '{}'".format(nodename_or_mobject)
+                )
 
         if not self.__obj.hasFn(OpenMaya.MFn.kDependencyNode):
-            raise exception.MayaNodeError("Not a dependency node '{}'".format(nodename_or_mobject))
+            raise exception.MayaNodeError(
+                "Not a dependency node '{}'".format(nodename_or_mobject)
+            )
 
         self.__fn_dg = OpenMaya.MFnDependencyNode(self.__obj)
         self.__api_mfn = self.__fn_dg
@@ -213,10 +245,10 @@ class _Node(base.Node):
                 self.getMatrix = partial(_getMatrix, self)
                 self.getTranslation = partial(_getTranslation, self)
                 self.setTranslation = partial(_setTranslation, self)
-                self.setRotation =  partial(_setRotation, self)
-                self.getRotation =  partial(_getRotation, self)
-                self.getScale =  partial(_getScale, self)
-                self.setScale =  partial(_setScale, self)
+                self.setRotation = partial(_setRotation, self)
+                self.getRotation = partial(_getRotation, self)
+                self.getScale = partial(_getScale, self)
+                self.setScale = partial(_setScale, self)
 
             self.__api_mfn = self.__fn_dag
         else:
@@ -242,9 +274,13 @@ class _Node(base.Node):
             raise
 
     def __eq__(self, other):
+        if isinstance(other, str):
+            other = _Node.__getObjectFromName(other)
         return self.__obj == other.__obj
 
     def __ne__(self, other):
+        if isinstance(other, str):
+            other = _Node.__getObjectFromName(other)
         return self.__obj != other.__obj
 
     def object(self):
@@ -285,7 +321,7 @@ class _Node(base.Node):
         if fdag is not None:
             return fdag.partialPathName()
         fdg = super(_Node, self).__getattribute__("_Node__fn_dg")
-        return fdg.name().split('|')[-1]
+        return fdg.name().split("|")[-1]
 
     def namespace(self, **kwargs):
         n = self.name()
@@ -306,7 +342,7 @@ class _Node(base.Node):
         attrname = name
         idre = RE_ATTR_INDEX.search(name)
         if idre:
-            attrname = name[:idre.start()]
+            attrname = name[: idre.start()]
             idx = int(idre.group(1))
 
         fn_dg = super(_Node, self).__getattribute__("_Node__fn_dg")
@@ -323,7 +359,9 @@ class _Node(base.Node):
                         pass
 
             if p is None:
-                raise exception.MayaAttributeError("No '{}' attr found".format(name))
+                raise exception.MayaAttributeError(
+                    "No '{}' attr found".format(name)
+                )
 
         at = attr.Attribute(p)
         if idx is not None:
@@ -404,6 +442,7 @@ class _NodeTypes(object):
             self.__types[typename] = cls
         else:
             clsname = "{}{}".format(typename[0].upper(), typename[1:])
+
             class _New(_Node):
                 def __repr__(self):
                     return "{}('{}')".format(clsname, self.name())
@@ -412,7 +451,9 @@ class _NodeTypes(object):
             self.__types[typename] = _New
 
     def getTypeClass(self, typename):
-        self_types = super(_NodeTypes, self).__getattribute__("_NodeTypes__types")
+        self_types = super(_NodeTypes, self).__getattribute__(
+            "_NodeTypes__types"
+        )
         if typename in self_types:
             return self_types[typename]
 
@@ -426,7 +467,9 @@ class _NodeTypes(object):
         try:
             return super(_NodeTypes, self).__getattribute__(name)
         except AttributeError:
-            tcls = super(_NodeTypes, self).__getattribute__("getTypeClass")("{}{}".format(name[0].lower(), name[1:]))
+            tcls = super(_NodeTypes, self).__getattribute__("getTypeClass")(
+                "{}{}".format(name[0].lower(), name[1:])
+            )
             if tcls:
                 return tcls
 
@@ -447,6 +490,7 @@ class SoftMod(_Node):
         # pymel returns str list
         return cmds.softMod(self.name(), g=True, q=True)
 
+
 nt.registerClass("softMod", cls=SoftMod)
 
 
@@ -456,6 +500,7 @@ class ObjectSet(_Node):
 
     def members(self):
         return cmd.sets(self, q=True) or []
+
 
 nt.registerClass("objectSet", cls=ObjectSet)
 
@@ -494,7 +539,11 @@ class NurbsCurve(_Node):
         return [x for x in self.__fn_curve.knots()]
 
     def getCVs(self, space="preTransform"):
-        return [datatypes.Point(x) for x in self.__fn_curve.cvPositions(util.to_mspace(space))]
+        return [
+            datatypes.Point(x)
+            for x in self.__fn_curve.cvPositions(util.to_mspace(space))
+        ]
+
 
 nt.registerClass("nurbsCurve", cls=NurbsCurve)
 
@@ -512,6 +561,7 @@ class SkinCluster(_Node):
     def __apimfn__(self):
         return self.__skn
 
+
 nt.registerClass("skinCluster", cls=SkinCluster)
 
 
@@ -527,6 +577,7 @@ class Mesh(_Node):
     def numFaces(self):
         return self.__fm.numPolygons
 
+
 nt.registerClass("mesh", cls=Mesh)
 
 
@@ -536,6 +587,7 @@ class Joint(_Node):
 
     def getRadius(self):
         return cmd.joint(self, q=True, radius=True)[0]
+
 
 nt.registerClass("joint", cls=Joint)
 
