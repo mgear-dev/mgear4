@@ -645,11 +645,17 @@ def setRotOrder(node, s="XYZ"):
 
     er = datatypes.EulerRotation(
         [
-            OpenMaya.MAngle(pm.getAttr(node + ".rx"), OpenMaya.MAngle.kDegrees).asRadians(),
-            OpenMaya.MAngle(pm.getAttr(node + ".ry"), OpenMaya.MAngle.kDegrees).asRadians(),
-            OpenMaya.MAngle(pm.getAttr(node + ".rz"), OpenMaya.MAngle.kDegrees).asRadians()
+            OpenMaya.MAngle(
+                pm.getAttr(node + ".rx"), OpenMaya.MAngle.kDegrees
+            ).asRadians(),
+            OpenMaya.MAngle(
+                pm.getAttr(node + ".ry"), OpenMaya.MAngle.kDegrees
+            ).asRadians(),
+            OpenMaya.MAngle(
+                pm.getAttr(node + ".rz"), OpenMaya.MAngle.kDegrees
+            ).asRadians(),
         ],
-        _to_rot_od(a[node.getAttr("ro")])
+        _to_rot_od(a[node.getAttr("ro")]),
     )
     er.reorderIt(_to_rot_od(s))
 
@@ -657,7 +663,12 @@ def setRotOrder(node, s="XYZ"):
         change_default_value(node.rotate_order, a.index(s))
 
     node.setAttr("ro", a.index(s))
-    node.setAttr("rotate", OpenMaya.MAngle(er.x).asDegrees(), OpenMaya.MAngle(er.y).asDegrees(), OpenMaya.MAngle(er.z).asDegrees())
+    node.setAttr(
+        "rotate",
+        OpenMaya.MAngle(er.x).asDegrees(),
+        OpenMaya.MAngle(er.y).asDegrees(),
+        OpenMaya.MAngle(er.z).asDegrees(),
+    )
 
 
 def setInvertMirror(node, invList=None):
@@ -1044,6 +1055,8 @@ class colorParamDef(ParamDef):
     def get_as_dict(self):
 
         self.param_dict["scriptName"] = self.scriptName
+        if isinstance(self.value, OpenMaya.MVector):
+            self.value = [self.value.x, self.value.y, self.value.z]
         self.param_dict["value"] = self.value
 
         return self.param_dict
