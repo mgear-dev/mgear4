@@ -360,7 +360,7 @@ def gear_matrix_cns(
         PyNode: The matrix constraint node
     """
     node = pm.createNode("mgear_matrixConstraint")
-    if isinstance(in_obj, pm.PyNode) and in_obj.type() == "matrix":
+    if isinstance(in_obj, pm.node._NodeTypes) and in_obj.type() == "matrix":
         pm.connectAttr(in_obj, node + ".driverMatrix", force=True)
     else:
         pm.connectAttr(

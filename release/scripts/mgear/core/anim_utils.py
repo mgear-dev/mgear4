@@ -1515,7 +1515,7 @@ def bindPose(model, *args):
     Args:
         model (TYPE): Description
     """
-    if isinstance(model, pm.PyNode):
+    if isinstance(model, pm.node._NodeTypes):
         model = bindPose
 
     nameSpace = getNamespace(model)
