@@ -517,24 +517,48 @@ class ObjectSet(_Node):
         Returns:
             ObjectSet: A new ObjectSet containing the union of the members.
         """
-        # Gather the members of the current set
-        members = set(self.members())
 
         # Loop through all other sets and gather their members
+        other_members = None
         for other_set in other_sets:
             if isinstance(other_set, ObjectSet):
-                members.update(other_set.members())
+                # Get the members of the other set
+                other_members = other_set.members()
+            elif isinstance(other_set, list):
+                other_members = other_set
+                # Add members to the current set
             else:
                 raise TypeError(
-                    "Expected ObjectSet, got {}".format(type(other_set))
+                    "Expected list or ObjectSet , got {}".format(type(other_set))
                 )
+            if other_members:
+                cmds.sets(other_members, addElement=self.name())
 
-        # Create a new set for the union
-        union_set_name = cmds.sets(name="unionSet", empty=True)
-        cmds.sets(list(members), forceElement=union_set_name)
+    def add(self, *items):
+        """
+        Add one or more objects to the set.
 
-        # Return the new ObjectSet
-        return ObjectSet(union_set_name)
+        Args:
+            *items: Objects to add to the set. Can be a mix of single objects
+                    and lists of objects.
+
+        Returns:
+            None
+        """
+        objects_to_add = []
+
+        # Loop through the provided items
+        for item in items:
+            if isinstance(item, list):
+                # If it's a list, extend the objects to add
+                objects_to_add.extend(item)
+            else:
+                # Otherwise, append the single object
+                objects_to_add.append(item)
+
+        if objects_to_add:
+            # Add objects to the set using cmds.sets
+            cmds.sets(objects_to_add, addElement=self.name())
 
 
 nt.registerClass("objectSet", cls=ObjectSet)
