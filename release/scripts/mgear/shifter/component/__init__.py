@@ -1093,17 +1093,20 @@ class Main(object):
         if versions.current() >= 201650:
             try:
                 oldTag = pm.PyNode(ctl.name() + "_tag")
+
                 if not oldTag.controllerObject.connections():
                     # NOTE:  The next line is comment out. Because this will
                     # happend alot since core does't clean
                     # controller tags after deleting the control Object of the
                     # tag. This have been log to Autodesk.
                     # If orphane tags are found, it will be clean in silence.
-                    # pm.displayWarning("Orphane Tag: %s  will be delete and
-                    # created new for: %s"%(oldTag.name(), ctl.name()))
+                    # pm.displayWarning(
+                    #     "Orphane Tag: %s  will be delete and created new for: %s"
+                    #     % (oldTag.name(), ctl.name())
+                    # )
                     pm.delete(oldTag)
 
-            except TypeError:
+            except:
                 pass
 
             self.add_controller_tag(ctl, tp)
