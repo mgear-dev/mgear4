@@ -499,7 +499,42 @@ class ObjectSet(_Node):
         super(ObjectSet, self).__init__(nodename_or_mobject)
 
     def members(self):
-        return cmd.sets(self, q=True) or []
+        """
+        Return the members of the set.
+
+        Returns:
+            list: A list of members in the set, or an empty list if no members exist.
+        """
+        return cmds.sets(self, q=True) or []
+
+    def union(self, *other_sets):
+        """
+        Perform a union of this set with other sets and return a new ObjectSet.
+
+        Args:
+            other_sets (ObjectSet): One or more ObjectSet instances to union with.
+
+        Returns:
+            ObjectSet: A new ObjectSet containing the union of the members.
+        """
+        # Gather the members of the current set
+        members = set(self.members())
+
+        # Loop through all other sets and gather their members
+        for other_set in other_sets:
+            if isinstance(other_set, ObjectSet):
+                members.update(other_set.members())
+            else:
+                raise TypeError(
+                    "Expected ObjectSet, got {}".format(type(other_set))
+                )
+
+        # Create a new set for the union
+        union_set_name = cmds.sets(name="unionSet", empty=True)
+        cmds.sets(list(members), forceElement=union_set_name)
+
+        # Return the new ObjectSet
+        return ObjectSet(union_set_name)
 
 
 nt.registerClass("objectSet", cls=ObjectSet)
