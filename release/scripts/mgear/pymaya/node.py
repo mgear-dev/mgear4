@@ -426,6 +426,37 @@ class _Node(base.Node):
     def split(self, word):
         return self.name().split(word)
 
+    def listHistory(self, **kwargs):
+        """Lists the history nodes of the current node, supports all kwargs f
+        rom cmds.listHistory.
+
+        Args:
+            **kwargs: Keyword arguments to be passed to cmds.listHistory().
+
+        Returns:
+            list: A list of instances representing the history nodes.
+        """
+        # Get the history nodes using cmds.listHistory() with the provided
+        # kwargs
+        history = cmds.listHistory(self.name(), **kwargs)
+        if not history:
+            return []
+
+        # Convert the nodes to their registered classes
+        node_types = (
+            _NodeTypes()
+        )  # Access the singleton instance of _NodeTypes
+        history_instances = []
+        for hist_node in history:
+            node_type = cmds.nodeType(hist_node)
+            node_class = node_types.getTypeClass(node_type)
+            if node_class:
+                history_instances.append(node_class(hist_node))
+            else:
+                history_instances.append(_Node(hist_node))  # Default class
+
+        return history_instances
+
 
 class _NodeTypes(object):
     __Instance = None
@@ -529,7 +560,9 @@ class ObjectSet(_Node):
                 # Add members to the current set
             else:
                 raise TypeError(
-                    "Expected list or ObjectSet , got {}".format(type(other_set))
+                    "Expected list or ObjectSet , got {}".format(
+                        type(other_set)
+                    )
                 )
             if other_members:
                 cmds.sets(other_members, addElement=self.name())
