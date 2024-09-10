@@ -1919,9 +1919,12 @@ class Main(object):
                 cns_node = pm.parentConstraint(
                     *ref, maintainOffset=True, st=st
                 )
-                cns_attr = pm.parentConstraint(
+                cns_attr_names = pm.parentConstraint(
                     cns_node, query=True, weightAliasList=True
                 )
+                cns_attr = []
+                for cname in cns_attr_names:
+                    cns_attr.append("{}.{}".format(cns_node, cname))
 
                 # ensure there is not offset generated with the constraint
                 # due to the precision rounding
@@ -2014,9 +2017,12 @@ class Main(object):
                     )
                 else:
                     cns_node = pm.parentConstraint(*ref, maintainOffset=True)
-                cns_attr = pm.parentConstraint(
+                cns_attr_names = pm.parentConstraint(
                     cns_node, query=True, weightAliasList=True
                 )
+                cns_attr = []
+                for cname in cns_attr_names:
+                    cns_attr.append("{}.{}".format(cns_node, cname))
 
                 # ensure there is not offset generated with the constraint
                 # due to the precision rounding
