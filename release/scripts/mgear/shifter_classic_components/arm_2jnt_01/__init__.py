@@ -661,7 +661,9 @@ class Component(component.Main):
 
         if self.settings["ikTR"]:
             # connect the control inputs
-            outEff_dm = o_node.listConnections(c=True)[-1][1]
+            # TODO: Compare the listConnections return with original Pymel
+            # outEff_dm = o_node.listConnections(c=True)[-1][1]
+            outEff_dm = o_node.listConnections(c=True)[-1]
 
             inAttr = self.ikRot_npo.attr("translate")
             outEff_dm.attr("outputTranslate") >> inAttr
