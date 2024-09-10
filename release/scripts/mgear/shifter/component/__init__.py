@@ -1744,9 +1744,12 @@ class Main(object):
 
                 ref.append(self.ik_cns)
                 cns_node = pm.orientConstraint(*ref, maintainOffset=True)
-                cns_attr = pm.orientConstraint(
+                cns_attr_names = pm.orientConstraint(
                     cns_node, query=True, weightAliasList=True
                 )
+                cns_attr = []
+                for cname in cns_attr_names:
+                    cns_attr.append("{}.{}".format(cns_node, cname))
 
                 for i, attr in enumerate(cns_attr):
                     pm.setAttr(attr, 1.0)
@@ -1794,9 +1797,12 @@ class Main(object):
                     ref_off.append(cns_off)
                 ref_off.append(self.ik_cns)
                 cns_node = pm.orientConstraint(*ref_off, maintainOffset=False)
-                cns_attr = pm.orientConstraint(
+                cns_attr_names = pm.orientConstraint(
                     cns_node, query=True, weightAliasList=True
                 )
+                cns_attr = []
+                for cname in cns_attr_names:
+                    cns_attr.append("{}.{}".format(cns_node, cname))
 
                 for i, attr in enumerate(cns_attr):
                     pm.setAttr(attr, 1.0)
@@ -2075,9 +2081,12 @@ class Main(object):
                 cns_node = pm.parentConstraint(
                     *ref, maintainOffset=True, skipTranslate=["x", "y", "z"]
                 )
-                cns_attr = pm.parentConstraint(
+                cns_attr_names = pm.parentConstraint(
                     cns_node, query=True, weightAliasList=True
                 )
+                cns_attr = []
+                for cname in cns_attr_names:
+                    cns_attr.append("{}.{}".format(cns_node, cname))
                 for i, attr in enumerate(cns_attr):
                     node_name = pm.createNode("condition")
                     pm.connectAttr(self.ref_att, node_name + ".firstTerm")
