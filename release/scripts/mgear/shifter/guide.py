@@ -723,23 +723,24 @@ class Rig(Main):
             node (dagNode): Object frome where start the search.
             branch (bool): If True search recursive all the children.
         """
+        # TODO: why mouth component is passing str node??
+        if not isinstance(node, str):
+            if node.hasAttr("comp_type"):
+                comp_type = node.getAttr("comp_type")
+                comp_guide = self.getComponentGuide(comp_type)
 
-        if node.hasAttr("comp_type"):
-            comp_type = node.getAttr("comp_type")
-            comp_guide = self.getComponentGuide(comp_type)
+                if comp_guide:
+                    comp_guide.setFromHierarchy(node)
+                    mgear.log(comp_guide.fullName + " (" + comp_type + ")")
+                    if not comp_guide.valid:
+                        self.valid = False
 
-            if comp_guide:
-                comp_guide.setFromHierarchy(node)
-                mgear.log(comp_guide.fullName + " (" + comp_type + ")")
-                if not comp_guide.valid:
-                    self.valid = False
+                    self.componentsIndex.append(comp_guide.fullName)
+                    self.components[comp_guide.fullName] = comp_guide
 
-                self.componentsIndex.append(comp_guide.fullName)
-                self.components[comp_guide.fullName] = comp_guide
-
-        if branch:
-            for child in node.getChildren(type="transform"):
-                self.findComponentRecursive(child)
+            if branch:
+                for child in node.getChildren(type="transform"):
+                    self.findComponentRecursive(child)
 
     def getComponentGuide(self, comp_type):
         """Get the componet guide python object
