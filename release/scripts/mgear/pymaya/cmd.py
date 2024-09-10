@@ -197,7 +197,8 @@ def _pymaya_cmd_wrap(func, wrap_object=True, scope=SCOPE_NODE):
 
         res = func(*args, **kwargs)
         # filter if the function should not return as list
-        if func.__name__.endswith("Constraint"):
+        # Constraints
+        if func.__name__.endswith("Constraint") and "query" not in kwargs.keys():
             res = res[0] if res else None
 
         # TODO : is it correct?
