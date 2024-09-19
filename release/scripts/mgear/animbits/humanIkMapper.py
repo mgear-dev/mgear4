@@ -123,21 +123,21 @@ class HumanIKMapper:
             return
         reference_bone = selection[-1]
 
-        pm.mel.HIKCharacterControlsTool()
+        cmds.HIKCharacterControlsTool()
 
         # creates a set with current HIKCharNodes, creates a new node and subtracts sets members to get new node
 
         tmp = set(pm.ls(type="HIKCharacterNode"))
-        pm.mel.hikCreateDefinition()
+        mel.eval("hikCreateDefinition;")
         hikChar = list(set(pm.ls(type="HIKCharacterNode")) - tmp)[0]
         hikChar.rename(cls.CHAR_NAME)
-        pm.mel.hikSetCurrentCharacter(hikChar)
+        mel.eval('hikSetCurrentCharacter("{}");'.format(hikChar))
 
         if reference_bone:
-            pm.mel.setCharacterObject(
+            cmds.setCharacterObject(
                 reference_bone,
                 hikChar,
-                pm.mel.hikGetNodeIdFromName("Reference"),
+                cmds.hikGetNodeIdFromName("Reference"),
                 0,
             )
 
@@ -145,7 +145,7 @@ class HumanIKMapper:
 
     @classmethod
     def is_initialized(cls):
-        return pm.mel.hikGetCurrentCharacter()
+        return cmds.hikGetCurrentCharacter()
 
     @classmethod
     @one_undo
@@ -175,7 +175,7 @@ class HumanIKMapper:
                     ]
                 )
 
-        hikChar = pm.mel.hikGetCurrentCharacter()
+        hikChar = cmds.hikGetCurrentCharacter()
         locked_ctrls = cls.get_locked_ctrls(ctrls)
         if locked_ctrls:
             if LockedCtrlsDialog(ctrls_list=locked_ctrls).exec_():
@@ -184,11 +184,11 @@ class HumanIKMapper:
                 return
 
         for bone, ctrl in zip(bones_list, ctrls):
-            pm.mel.setCharacterObject(
-                ctrl, hikChar, pm.mel.hikGetNodeIdFromName(bone), 0
+            cmds.setCharacterObject(
+                ctrl, hikChar, cmds.hikGetNodeIdFromName(bone), 0
             )
 
-        pm.evalDeferred("pm.mel.hikUpdateDefinitionUI()")
+        pm.evalDeferred("cmds.hikUpdateDefinitionUI()")
         return
 
     @classmethod
@@ -227,14 +227,15 @@ class HumanIKMapper:
         # clears current char config
         cls.char_config = {}
 
-        hik_count = pm.mel.hikGetNodeCount()
-        hikChar = pm.mel.hikGetCurrentCharacter()
+        hik_count = cmds.hikGetNodeCount()
+        hikChar = mel.eval("hikGetCurrentCharacter;")
 
         if not hikChar:
             return cls.char_config
         for i in range(hik_count):
-            bone_name = pm.mel.GetHIKNodeName(i)
-            bone_target = pm.mel.hikGetSkNode(hikChar, i)
+            bone_name = cmds.GetHIKNodeName(i)
+            # bone_target = cmds.hikGetSkNode(hikChar, i)
+            bone_target = mel.eval('hikGetSkNode("{}", {})'.format(hikChar, i))
 
             if bone_target:
                 cls.char_config[bone_name] = {"target": bone_target}
@@ -267,16 +268,16 @@ class HumanIKMapper:
         with open(file_path, "r") as fp:
             cls.char_config = json.load(fp)
 
-        hikChar = pm.mel.hikGetCurrentCharacter()
+        hikChar = cmds.hikGetCurrentCharacter()
 
         if not hikChar:
-            pm.mel.HIKCharacterControlsTool()
+            cmds.HIKCharacterControlsTool()
 
             tmp = set(pm.ls(type="HIKCharacterNode"))
-            pm.mel.hikCreateDefinition()
+            cmds.hikCreateDefinition()
             hikChar = list(set(pm.ls(type="HIKCharacterNode")) - tmp)[0]
             hikChar.rename(cls.CHAR_NAME)
-            pm.mel.hikSetCurrentCharacter(hikChar)
+            cmds.hikSetCurrentCharacter(hikChar)
 
         ctls = [
             pm.PyNode(cls.char_config[bone]["target"])
@@ -298,8 +299,8 @@ class HumanIKMapper:
                 return
 
         for bone in cls.char_config:
-            bone_id = pm.mel.hikGetNodeIdFromName(bone)
-            pm.mel.setCharacterObject(
+            bone_id = cmds.hikGetNodeIdFromName(bone)
+            cmds.setCharacterObject(
                 cls.char_config[bone]["target"], hikChar, bone_id, 0
             )
             if cls.char_config[bone]["sub_ik"]:
@@ -389,7 +390,7 @@ class HumanIKMapper:
     @classmethod
     @viewport_off
     def bake(cls):
-        current_ik_char = pm.mel.hikGetCurrentCharacter()
+        current_ik_char = cmds.hikGetCurrentCharacter()
         attrs_string = " ".join(cls.get_sub_ik_bake_attrs())
         sub_ik_ctls = [
             cls.char_config[bone]["sub_ik"]
@@ -418,7 +419,7 @@ class HumanIKMapper:
             current_ik_char, attrs_string, sub_ik_constraints_string
         )
 
-        pm.mel.eval(mel_cmd)
+        cmds.eval(mel_cmd)
         # cls.sub_iks_binding(False)
 
     @classmethod
@@ -443,8 +444,8 @@ class HumanIKMapper:
     @classmethod
     @one_undo
     def batch_bake(cls, file_list):
-        curr_character = pm.mel.hikGetCurrentCharacter()
-        # pm.mel.hikSetCurrentCharacter(hikChar)
+        curr_character = cmds.hikGetCurrentCharacter()
+        # cmds.hikSetCurrentCharacter(hikChar)
         existing_ik_humans = set(pm.ls(type="HIKCharacterNode"))
 
         HumanIKMapper.refresh_char_configuration()
@@ -487,7 +488,7 @@ class HumanIKMapper:
         pm.optionMenuGrp(
             "hikSourceList", edit=True, value=" {0}".format(ikhuman)
         )
-        pm.mel.hikUpdateCurrentSourceFromUI()
+        cmds.hikUpdateCurrentSourceFromUI()
 
         sub_ik_ctls = [
             cls.char_config[bone]["sub_ik"]
@@ -499,8 +500,8 @@ class HumanIKMapper:
         ]
         # print("sub ik ctls = {1}, \n subik constraints = {1}".format(sub_ik_ctls, sub_ik_constraints))
 
-        pm.mel.hikBakeCharacterPre(
-            "{0}".format(pm.mel.hikGetCurrentCharacter())
+        cmds.hikBakeCharacterPre(
+            "{0}".format(cmds.hikGetCurrentCharacter())
         )
         pm.select(HumanIKMapper.get_sub_ik_bake_attrs(), add=1)
         pm.bakeResults(
@@ -510,8 +511,8 @@ class HumanIKMapper:
             t=frame_range,
             sampleBy=1,
         )
-        pm.mel.hikBakeCharacterPost(
-            "{0}".format(pm.mel.hikGetCurrentCharacter())
+        cmds.hikBakeCharacterPost(
+            "{0}".format(cmds.hikGetCurrentCharacter())
         )
         if sub_ik_constraints:
             pm.delete(sub_ik_constraints)
