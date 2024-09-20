@@ -134,18 +134,18 @@ class HumanIKMapper:
         mel.eval('hikSetCurrentCharacter("{}");'.format(hikChar))
 
         if reference_bone:
-            cmds.setCharacterObject(
-                reference_bone,
-                hikChar,
-                cmds.hikGetNodeIdFromName("Reference"),
-                0,
+            node_id = cmds.hikGetNodeIdFromName("Reference")
+            mel.eval(
+                'setCharacterObject("{}", "{}", "{}", {});'.format(
+                    reference_bone, hikChar, node_id, 0
+                )
             )
 
         mel.eval("hikUpdateDefinitionUI();")
 
     @classmethod
     def is_initialized(cls):
-        return cmds.hikGetCurrentCharacter()
+        return mel.eval("hikGetCurrentCharacter;")
 
     @classmethod
     @one_undo
@@ -175,7 +175,7 @@ class HumanIKMapper:
                     ]
                 )
 
-        hikChar = cmds.hikGetCurrentCharacter()
+        hikChar = mel.eval("hikGetCurrentCharacter;")
         locked_ctrls = cls.get_locked_ctrls(ctrls)
         if locked_ctrls:
             if LockedCtrlsDialog(ctrls_list=locked_ctrls).exec_():
@@ -184,11 +184,16 @@ class HumanIKMapper:
                 return
 
         for bone, ctrl in zip(bones_list, ctrls):
-            cmds.setCharacterObject(
-                ctrl, hikChar, cmds.hikGetNodeIdFromName(bone), 0
+            node_id = cmds.hikGetNodeIdFromName(bone)
+            mel.eval(
+                'setCharacterObject("{}", "{}", "{}", {});'.format(
+                    ctrl, hikChar, node_id, 0
+                )
             )
 
-        pm.evalDeferred("cmds.hikUpdateDefinitionUI()")
+        pm.evalDeferred(
+            'from maya import mel; mel.eval("hikUpdateDefinitionUI();")'
+        )
         return
 
     @classmethod
@@ -268,7 +273,7 @@ class HumanIKMapper:
         with open(file_path, "r") as fp:
             cls.char_config = json.load(fp)
 
-        hikChar = cmds.hikGetCurrentCharacter()
+        hikChar = mel.eval("hikGetCurrentCharacter;")
 
         if not hikChar:
             cmds.HIKCharacterControlsTool()
@@ -300,8 +305,10 @@ class HumanIKMapper:
 
         for bone in cls.char_config:
             bone_id = cmds.hikGetNodeIdFromName(bone)
-            cmds.setCharacterObject(
-                cls.char_config[bone]["target"], hikChar, bone_id, 0
+            mel.eval(
+                'setCharacterObject("{}", "{}", "{}", {});'.format(
+                    cls.char_config[bone]["target"], hikChar, bone_id, 0
+                )
             )
             if cls.char_config[bone]["sub_ik"]:
                 cls.set_sub_ik(
@@ -390,7 +397,7 @@ class HumanIKMapper:
     @classmethod
     @viewport_off
     def bake(cls):
-        current_ik_char = cmds.hikGetCurrentCharacter()
+        current_ik_char = mel.eval("hikGetCurrentCharacter;")
         attrs_string = " ".join(cls.get_sub_ik_bake_attrs())
         sub_ik_ctls = [
             cls.char_config[bone]["sub_ik"]
@@ -404,7 +411,7 @@ class HumanIKMapper:
 
         mel_cmd = """
             string $currCharacter = hikGetCurrentCharacter();
-            
+
             if( $currCharacter != "" )
             {{
                 string $preBakeCmd =  "hikBakeCharacterPre( \\"{0}\\" ); ";
@@ -444,7 +451,7 @@ class HumanIKMapper:
     @classmethod
     @one_undo
     def batch_bake(cls, file_list):
-        curr_character = cmds.hikGetCurrentCharacter()
+        # curr_character = mel.eval("hikGetCurrentCharacter;") # Not used ?
         # cmds.hikSetCurrentCharacter(hikChar)
         existing_ik_humans = set(pm.ls(type="HIKCharacterNode"))
 
@@ -456,13 +463,15 @@ class HumanIKMapper:
             for bone in cls.char_config
             if cls.char_config[bone]["sub_ik"]
         ]
+        # print(sub_ik_ctls)
         sub_ik_constraints = [
             cmds.parentConstraint(ctl, query=True) for ctl in sub_ik_ctls
         ]
         print(sub_ik_constraints)
 
         for file in file_list:
-            ref_node = cmds.file(file, r=True, namespace=":", type="FBX")
+            # TODO test with references
+            # ref_node = cmds.file(file, r=True, namespace=":", type="FBX")
             file_ik_human = list(
                 set(pm.ls(type="HIKCharacterNode")) - existing_ik_humans
             )[0]
@@ -488,7 +497,7 @@ class HumanIKMapper:
         pm.optionMenuGrp(
             "hikSourceList", edit=True, value=" {0}".format(ikhuman)
         )
-        cmds.hikUpdateCurrentSourceFromUI()
+        mel.eval("hikUpdateCurrentSourceFromUI;")
 
         sub_ik_ctls = [
             cls.char_config[bone]["sub_ik"]
@@ -500,8 +509,10 @@ class HumanIKMapper:
         ]
         # print("sub ik ctls = {1}, \n subik constraints = {1}".format(sub_ik_ctls, sub_ik_constraints))
 
-        cmds.hikBakeCharacterPre(
-            "{0}".format(cmds.hikGetCurrentCharacter())
+        mel.eval(
+            'hikBakeCharacterPre("{}");'.format(
+                mel.eval("hikGetCurrentCharacter;")
+            )
         )
         pm.select(HumanIKMapper.get_sub_ik_bake_attrs(), add=1)
         pm.bakeResults(
@@ -511,8 +522,10 @@ class HumanIKMapper:
             t=frame_range,
             sampleBy=1,
         )
-        cmds.hikBakeCharacterPost(
-            "{0}".format(cmds.hikGetCurrentCharacter())
+        mel.eval(
+            'hikBakeCharacterPost("{}");'.format(
+                mel.eval("hikGetCurrentCharacter;")
+            )
         )
         if sub_ik_constraints:
             pm.delete(sub_ik_constraints)
