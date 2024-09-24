@@ -658,9 +658,12 @@ class Component(component.Main):
                 *ref, skipTranslate="none", maintainOffset=True
             )
 
-            cns_attr = pm.parentConstraint(
+            cns_attr_names = pm.parentConstraint(
                 cns_node, query=True, weightAliasList=True
             )
+            cns_attr = []
+            for cname in cns_attr_names:
+                cns_attr.append("{}.{}".format(cns_node, cname))
             self.head_cns.attr("tx").disconnect()
             self.head_cns.attr("ty").disconnect()
             self.head_cns.attr("tz").disconnect()
