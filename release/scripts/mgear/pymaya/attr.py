@@ -146,14 +146,12 @@ class Attribute(base.Attr):
         cmds.deleteAttr(self.name())
 
     def connect(self, other, **kwargs):
-        force = kwargs.get('f', False)
+        force = kwargs.get("f", False)
         return cmds.connectAttr(
             self.name(),
             other.name() if isinstance(other, Attribute) else other,
-            force=force
+            force=force,
         )
-
-
 
     def disconnect(self, *args):
         return cmd.disconnectAttr(self.name(), *args)

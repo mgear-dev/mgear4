@@ -388,8 +388,17 @@ class _Node(base.Node):
     def listAttr(self, **kwargs):
         return cmd.listAttr(**kwargs)
 
-    def listConnections(self, **kwargs):
+    def __listConnections(self, **kwargs):
+        """Encapsulates the cmd.listConnections call."""
         return cmd.listConnections(self, **kwargs)
+
+    def listConnections(self, **kwargs):
+        connections = self.__listConnections(**kwargs)
+
+        if kwargs.get("c", False) and isinstance(connections, list):
+            return list(zip(connections[::2], connections[1::2]))
+
+        return connections
 
     def listRelatives(self, **kwargs):
         return cmd.listRelatives(self, **kwargs)
