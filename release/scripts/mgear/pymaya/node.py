@@ -388,6 +388,8 @@ class _Node(base.Node):
     def listAttr(self, **kwargs):
         return cmd.listAttr(**kwargs)
 
+    # NOTE: encapsulation is neded to avoid lossing the types. Previosly it
+    # will incorrelty convert the items to a list of strings.
     def __listConnections(self, **kwargs):
         """Encapsulates the cmd.listConnections call."""
         return cmd.listConnections(self, **kwargs)
