@@ -36,7 +36,9 @@ GUIDE_UI_WINDOW_NAME = "guide_UI_window"
 GUIDE_DOCK_NAME = "Guide_Components"
 
 TYPE = "mgear_guide_root"
-DATA_COLLECTOR_EXT = ".scd"
+
+# gnx is for Gear Nexus (Serialized connected data)
+DATA_COLLECTOR_EXT = ".gnx"
 
 MGEAR_SHIFTER_CUSTOMSTEP_KEY = "MGEAR_SHIFTER_CUSTOMSTEP_PATH"
 
