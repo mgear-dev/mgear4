@@ -2281,6 +2281,12 @@ class Main(object):
         self.build_data["Type"] = self.guide.type
         self.build_data["Side"] = self.side
         self.build_data["Index"] = self.index
+
+        temp_dict = {}
+        for k in self.guide.tra.keys():
+            temp_dict[k] = self.guide.tra[k].get()
+        self.build_data["guideTransforms"] = temp_dict
+
         self.build_data["DataContracts"] = []
         self.build_data["Joints"] = []
         self.build_data["Controls"] = []
