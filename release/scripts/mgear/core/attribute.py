@@ -4,6 +4,7 @@
 # GLOBAL
 #############################################
 import collections
+import json
 import mgear
 import pymel.core as pm
 import maya.cmds as cmds
@@ -1216,6 +1217,23 @@ def smart_reset(*args):
 ##########################################################
 # GETTERS
 ##########################################################
+
+def get_guide_data_from_rig(*args):
+    """Get guide data from a selected or default rig root
+
+    Returns:
+        dict: a guide data
+    """
+    rigNode = pm.ls("rig")
+    if not rigNode or not rigNode[0].hasAttr("is_rig"):
+        mgear.log(
+            "Not rig root selected or found.\nSelect the rig root",
+            mgear.sev_error,
+        )
+        return
+    if rigNode[0].hasAttr("is_rig"):
+        guide_dict = rigNode[0].guide_data.get()
+        return json.loads(guide_dict)
 
 
 def get_channelBox():

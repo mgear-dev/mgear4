@@ -47,6 +47,107 @@ NO_MIRROR_ATTRIBUTES = ["isRig", "uiHost", "_ctl"]
 # util
 
 
+def getCtlRulePattern(guideData=None):
+    """Generates a regular expression pattern based on the control naming conventions
+    defined in the rig's guide data. The pattern can be used to validate and extract parts of a control's name.
+
+    Returns:
+    - str: A regex pattern corresponding to the rig's control naming convention.
+
+    Example:
+    Assuming the rig's naming rule is "{component}_{side}{index}_{extension}"
+    with "L", "R", and "C" as possible side values, and "_ctl" as the control extension,
+    the generated pattern might look something like:
+    "(?P<component>.*?)_(?P<side>L|R|C)(?P<index>\d*)_(?P<extension>_ctl)"
+    """
+    if not guideData:
+        guideData = attribute.get_guide_data_from_rig()
+    guideInfo = guideData["guide_root"]["param_values"]
+
+    # Extract relevant data
+    nameRule = guideInfo["ctl_name_rule"]
+    sides = (guideInfo["side_left_name"],
+             guideInfo["side_right_name"],
+             guideInfo["side_center_name"])
+    ctlExt = guideInfo["ctl_name_ext"]
+
+    patternDict = dict(component="(?P<component>.*?)",
+                       side="(?P<side>{})".format("|".join(sides)),
+                       index="(?P<index>\d*)",
+                       description="?(?P<description>.*?)?",
+                       extension="(?P<extension>{})".format(ctlExt))
+
+    return nameRule.format(**patternDict)
+
+
+def getSideLabelFromCtl(ctl):
+    """Extracts and returns the side label from a given control name based on the rig's naming convention.
+
+    Parameters:
+    - ctl (str): The name of the control from which the side label should be extracted.
+
+    Returns:
+    - str: The extracted side label (e.g., "L", "R", etc.). Returns "None" if no side label is found.
+
+    Example:
+        > getSideLabelFromCtl("arm_L_01_ctl")
+         "L"
+    """
+    matchResult = re.match(getCtlRulePattern(), ctl)
+    side = matchResult.group("side") if matchResult else "None"
+    return side
+
+
+def swapSideLabel(name, guideData=None):
+    """Swap the side label of a given control name, based on the rig's naming convention.
+
+    The function uses the guide data's naming patterns to identify the current side label
+    (e.g., "L", "R", etc.) in the provided name, and swaps it to the opposite side.
+    If the side is "center" or not recognized, the original name is returned.
+
+    Parameters:
+    - name (str): The name of the control.
+
+    Returns:
+    - str: The name with the swapped side label. If the side label can't be swapped,
+           the original name is returned.
+
+    Example:
+        swapSideLabel("arm_L_01_ctl")
+        "arm_R_01_ctl"
+    """
+    if not guideData:
+        guideData = attribute.get_guide_data_from_rig()
+    guideInfo = guideData["guide_root"]["param_values"]
+
+    sideInfo = {
+        "left": guideInfo["side_left_name"],
+        "right": guideInfo["side_right_name"],
+        "center": guideInfo["side_center_name"]
+    }
+
+    ctlPattern = re.compile(getCtlRulePattern())
+    matchResult = ctlPattern.search(name)
+    if not matchResult:
+        return
+
+    # Create a map to quickly determine the opposite side
+    swapSides = {
+        sideInfo["left"]: sideInfo["right"],
+        sideInfo["right"]: sideInfo["left"]
+    }
+
+    # Get the opposite side
+    currentSide = matchResult.group("side")
+    oppositeSide = swapSides.get(currentSide)
+    if not oppositeSide:  # If it's center or an unrecognized side
+        return name
+
+    # Replace the matched side with its opposite
+    swappedName = name[:matchResult.start("side")] + oppositeSide + name[matchResult.end("side"):]
+    return swappedName
+
+
 def isSideElement(name):
     """Returns is name(str) side element?
 
@@ -70,92 +171,6 @@ def isSideElement(name):
             return True
     else:
         return False
-
-
-def isSideNode(node):
-    """Returns is name(str) side element?
-
-    Arguments:
-        name (node): PyNode
-
-    Returns:
-        bool
-    """
-
-    if node.hasAttr("side_label"):
-        if node.side_label.get() in "LR":
-            return True
-        else:
-            return False
-
-    else:
-        return isSideElement(node.name())
-
-
-def swapSideLabel(name):
-    """Returns fliped name
-
-    Returns fliped name that replaced side label left to right or
-    right to left
-
-    Arguments:
-        name(str): Name to swap the side
-
-    Returns:
-        str
-    """
-
-    for part in name.split("_"):
-        if EXPR_LEFT_SIDE.match(part):
-            return EXPR_LEFT_SIDE.sub(r"R\1", name)
-        if EXPR_RIGHT_SIDE.match(part):
-            return EXPR_RIGHT_SIDE.sub(r"L\1", name)
-
-    else:
-        if "_L_" in name:
-            return name.replace("_L_", "_R_")
-        elif "_R_" in name:
-            return name.replace("_R_", "_L_")
-        else:
-            return name
-
-
-def swapSideLabelNode(node):
-    """Returns fliped name of a node
-
-    Returns fliped name that replaced side label left to right or
-    right to left
-
-    Arguments:
-        name(node): pyNode
-
-    Returns:
-        str
-    """
-
-    # first check default swapSideLabel. For defaul Shifter naming system
-    name = node.stripNamespace()
-    sw_name = swapSideLabel(name)
-    if name != sw_name:
-        return sw_name
-
-    # try to find the mirror using custom side labels
-    if node.hasAttr("side_label"):
-        side = node.side_label.get()
-        if side in "LR":
-            # custom side label
-            c_side = node.attr("{}_custom_side_label".format(side)).get()
-            # mirror side label
-            if side == "L":
-                cm_side = node.attr("R_custom_side_label").get()
-            elif side == "R":
-                cm_side = node.attr("L_custom_side_label").get()
-            return node.stripNamespace().replace(c_side, cm_side)
-        else:
-            return node.stripNamespace()
-
-    else:
-        return swapSideLabel(node.stripNamespace())
 
 
 def getClosestNode(node, nodesToQuery):
@@ -1246,20 +1261,21 @@ def spine_FKToIK(fkControls, ikControls, matchMatrix_dict=None):
 ##################################################
 
 
-def getMirrorTarget(nameSpace, node):
+def getMirrorTarget(nameSpace, node, guideData):
     """Find target control to apply mirroring.
 
     Args:
         nameSpace (str): Namespace
         node (PyNode): Node to mirror
+        guideData(dict): guideData on a rig node
 
     Returns:
         PyNode: Mirror target
     """
 
-    if isSideElement(node.name()):
+    if getSideLabelFromCtl(node.name()):
         nameParts = stripNamespace(node.name()).split("|")[-1]
-        nameParts = swapSideLabel(nameParts)
+        nameParts = swapSideLabel(nameParts, guideData)
         nameTarget = ":".join([nameSpace, nameParts])
         return getNode(nameTarget)
     else:
@@ -1272,7 +1288,7 @@ def mirrorPose(flip=False, nodes=None):
 
     Args:
         flip (bool, options): Set the function behaviour to flip
-        nodes (None,  [PyNode]): Controls to mirro/flip the pose
+        nodes (None,  [PyNode]): Controls to mirror/flip the pose
     """
     if nodes is None:
         nodes = pm.selected()
@@ -1282,16 +1298,16 @@ def mirrorPose(flip=False, nodes=None):
 
     pm.undoInfo(ock=1)
     try:
-        nameSpace = False
         nameSpace = getNamespace(nodes[0])
+        guideData = attribute.get_guide_data_from_rig()
 
         mirrorEntries = []
         for oSel in nodes:
-            target = getMirrorTarget(nameSpace, oSel)
+            target = getMirrorTarget(nameSpace, oSel, guideData)
             mirrorEntries.extend(calculateMirrorData(oSel, target))
 
             # To flip a pose, do mirroring both ways.
-            if target not in nodes and flip:
+            if flip and target not in nodes:
                 mirrorEntries.extend(calculateMirrorData(target, oSel))
 
         for dat in mirrorEntries:
@@ -1299,13 +1315,8 @@ def mirrorPose(flip=False, nodes=None):
 
     except Exception as e:
         pm.displayWarning("Flip/Mirror pose fail")
-        pm.displayWarning(
-            "If you are using Custom naming rules in controls. "
-            "It is possible that the name configuration makes hard to track "
-            "the correct object to mirror for {}".format(oSel.name())
-        )
-        import traceback
 
+        import traceback
         traceback.print_exc()
         print(e)
 
@@ -1354,45 +1365,29 @@ def calculateMirrorData(srcNode, targetNode, flip=False):
     Returns:
         [{"target": node, "attr": at, "val": flipVal}]
     """
+    def getInversionMultiplier(attrName, node):
+        """Get the inversion multiplier based on the attribute name."""
+        invCheckName = getInvertCheckButtonAttrName(attrName)
+        if not pm.attributeQuery(invCheckName, node=node, shortName=True, exists=True):
+            return 1
+        return -1 if node.attr(invCheckName).get() else 1
     results = []
 
     # mirror attribute of source
     for attrName in listAttrForMirror(srcNode):
-
-        # whether does attribute "invTx" exists when attrName is "tx"
-        invCheckName = getInvertCheckButtonAttrName(attrName)
-        if not pm.attributeQuery(
-            invCheckName, node=srcNode, shortName=True, exists=True
-        ):
-
-            # if not exists, straight
-            inv = 1
-
-        else:
-            # if exists, check its value
-            invAttr = srcNode.attr(invCheckName)
-            if invAttr.get():
-                inv = -1
-            else:
-                inv = 1
-
-        # if attr name is side specified, record inverted attr name
-        if isSideElement(attrName):
-            invAttrName = swapSideLabel(attrName)
-        else:
-            invAttrName = attrName
+        inv = getInversionMultiplier(attrName, srcNode)
 
         # if flip enabled record self also
         if flip:
             flipVal = targetNode.attr(attrName).get()
             results.append(
-                {"target": srcNode, "attr": invAttrName, "val": flipVal * inv}
+                {"target": srcNode, "attr": attrName, "val": flipVal * inv}
             )
 
         results.append(
             {
                 "target": targetNode,
-                "attr": invAttrName,
+                "attr": attrName,
                 "val": srcNode.attr(attrName).get() * inv,
             }
         )
