@@ -325,9 +325,9 @@ def get_ik_fk_controls_by_role(uiHost, attr_ctl_cnx):
                 role = c.ctl_role.get()
                 if "fk" in role:
                     fk_controls.append(c.stripNamespace())
-                elif role == "upv":
+                elif role in ["upv", "leg_pv", "arm_pv"]:
                     ik_controls["pole_vector"] = c.stripNamespace()
-                elif role == "ik":
+                elif role in ["ik", "wrist_ik", "ankle_ik"]:
                     ik_controls["ik_control"] = c.stripNamespace()
                 elif role == "ikRot":
                     ik_controls["ik_rot"] = c.stripNamespace()
@@ -889,6 +889,8 @@ def ikFkMatch_with_namespace(
     ik_rot=None,
     key=None,
     ik_controls=None,
+    ik_val=1.0,
+    fk_val=0.0,
 ):
     """Switch IK/FK with matching functionality
 
@@ -902,8 +904,14 @@ def ikFkMatch_with_namespace(
         fks ([str]): List of fk controls names
         ik (str): Ik control name
         upv (str): Up vector control name
-        ikRot (None, str): optional. Name of the Ik Rotation control
+        ik_rot (None, optional): Ik Rotation control if exist
         key (None, bool): optional. Whether we do an snap with animation
+        ik_controls (None, optional): Ik controls
+        ik_val (float, optional): Value that will define IK active
+        fk_val (float, optional): Value that will define FK active
+
+    Deleted Parameters:
+        ikRot (None, str): optional. Name of the Ik Rotation control
     """
     # -----------------------------------------------
     # NOTE: the following section is a workaround to match and reset the gimbal
@@ -1032,19 +1040,18 @@ def ikFkMatch_with_namespace(
         ]
 
     # if is IK then snap FK
-    if val == 1.0:
+    if val == ik_val:
 
         for target, ctl in zip(fk_targets, fk_ctrls):
             transform.matchWorldTransform(target, ctl)
-
-        o_attr.set(0.0)
+        pm.setAttr(o_attr, fk_val)
         # we match the foot FK after switch blend attr
         if foot_cnx:
             for i, c in enumerate(foot_fk):
                 c.setMatrix(foot_FK_matrix[i], worldSpace=True)
 
     # if is FK then sanp IK
-    elif val == 0.0:
+    elif val == fk_val:
         transform.matchWorldTransform(ik_target, ik_ctrl)
         if ik_rot:
             transform.matchWorldTransform(ik_rot_target, ik_rot_node)
@@ -1086,7 +1093,8 @@ def ikFkMatch_with_namespace(
             upv_ctrl.setTranslation(final_vector, space="world")
 
         # sets blend attribute new value
-        o_attr.set(1.0)
+        pm.setAttr(o_attr, ik_val)
+        # print(o_attr.get())
 
         # handle the upvector roll
         roll_att_name = ikfk_attr.replace("blend", "roll")
@@ -1125,6 +1133,7 @@ def ikFkMatch_with_namespace(
         if gimbal_exist:
             for x in fks_gimbal + [ik_gimbal]:
                 pm.setKeyframe(x, time=(cmds.currentTime(query=True)))
+    cmds.dgdirty(a=True)
 
 
 def ikFkMatch(model, ikfk_attr, ui_host, fks, ik, upv, ik_rot=None, key=None):
