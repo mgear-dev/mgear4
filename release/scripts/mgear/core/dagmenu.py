@@ -189,6 +189,8 @@ def __range_switch_callback(*args):
 
     switch_control = args[0].split("|")[-1]
     blend_attr = args[1]
+    # blend attriute extension _blend, _switch or other
+    # blend_attr_ext = args[2]
 
     # the gets root node for the given control
     # this assumes the rig is root is a root node.
@@ -202,7 +204,8 @@ def __range_switch_callback(*args):
 
     # ik_controls, fk_controls = _get_controls(switch_control, blend_attr)
     # search criteria to find all the components sharing the blend
-    criteria = blend_attr.replace("_blend", "") + "_id*_ctl_cnx"
+    # criteria = blend_attr.replace(blend_attr_ext, "") + "_id*_ctl_cnx"
+    criteria = "*_id*_ctl_cnx"
     component_ctl = (
         cmds.listAttr(switch_control, ud=True, string=criteria) or []
     )
@@ -291,39 +294,51 @@ def __switch_fkik_callback(*args):
     switch_control = args[0].split("|")[-1]
     keyframe = args[1]
     blend_attr = args[2]
+    # blend attr extension. _blend, _switch or other
+    blend_attr_ext = args[3]
 
     # gets namespace
     namespace = getNamespace(switch_control)
 
     # search criteria to find all the components sharing the blend
-    criteria = blend_attr.replace("_blend", "") + "_id*_ctl_cnx"
+    # criteria = blend_attr.replace(blend_attr_ext, "") + "_id*_ctl_cnx"
+    criteria = "*_id*_ctl_cnx"
     component_ctl = (
         cmds.listAttr(switch_control, ud=True, string=criteria) or []
     )
     blend_fullname = "{}.{}".format(switch_control, blend_attr)
+    if blend_attr_ext == "_blend":
+        ik_val = 1.0
+        fk_val = 0.0
+    else:
+        ik_val = False
+        fk_val = True
     for i, comp_ctl_list in enumerate(component_ctl):
-        # we need to need to set the original blend value for each ik/fk match
-        if i == 0:
-            init_val = cmds.getAttr(blend_fullname)
-        else:
-            cmds.setAttr(blend_fullname, init_val)
 
         ik_controls, fk_controls = get_ik_fk_controls_by_role(
             switch_control, comp_ctl_list
         )
-
-        # runs switch
-        ikFkMatch_with_namespace(
-            namespace=namespace,
-            ikfk_attr=blend_attr,
-            ui_host=switch_control,
-            fks=fk_controls,
-            ik=ik_controls["ik_control"],
-            upv=ik_controls["pole_vector"],
-            ik_rot=ik_controls["ik_rot"],
-            key=keyframe,
-            ik_controls=ik_controls,
-        )
+        init_val = None
+        if ik_controls["ik_control"] and fk_controls:
+            # we need to set the original blend value for each ik/fk match
+            if not init_val:
+                init_val = cmds.getAttr(blend_fullname)
+            else:
+                cmds.setAttr(blend_fullname, init_val)
+            # runs switch
+            ikFkMatch_with_namespace(
+                namespace=namespace,
+                ikfk_attr=blend_attr,
+                ui_host=switch_control,
+                fks=fk_controls,
+                ik=ik_controls["ik_control"],
+                upv=ik_controls["pole_vector"],
+                ik_rot=ik_controls["ik_rot"],
+                key=keyframe,
+                ik_controls=ik_controls,
+                ik_val=ik_val,
+                fk_val=fk_val,
+            )
 
 
 def __switch_parent_callback(*args):
@@ -769,7 +784,8 @@ def mgear_dagmenu_fill(parent_menu, current_control):
     child_controls.append(current_control)
     attrs = _get_switch_node_attrs(current_control, "_blend")
     attrs2 = _get_switch_node_attrs(current_control, "ref")
-    if attrs or attrs2:
+    attrs3 = _get_switch_node_attrs(current_control, "_switch")
+    if attrs or attrs2 or attrs3:
         ui_host = current_control
 
     else:
@@ -779,7 +795,8 @@ def mgear_dagmenu_fill(parent_menu, current_control):
             )[0]
             attrs = _get_switch_node_attrs(ui_host, "_blend")
             attrs2 = _get_switch_node_attrs(ui_host, "ref")
-            if not attrs and not attrs2:
+            attrs3 = _get_switch_node_attrs(ui_host, "_switch")
+            if not attrs and not attrs2 and not attrs3:
                 ui_host = None
         except ValueError:
             ui_host = None
@@ -799,37 +816,58 @@ def mgear_dagmenu_fill(parent_menu, current_control):
         # divider
         cmds.menuItem(parent=parent_menu, divider=True)
 
-    for attr in attrs:
-        # found attribute so get current state
-        current_state = cmds.getAttr("{}.{}".format(ui_host, attr))
-        states = {0: "Fk", 1: "Ik"}
+    def add_menu_items(attrs, attr_extension="_blend"):
+        for attr in attrs:
+            # found attribute so get current state
+            current_state = cmds.getAttr("{}.{}".format(ui_host, attr))
+            if attr_extension == "_blend":
+                states = {0: "Fk", 1: "Ik"}
+            else:
+                states = {0: "IK", 1: "Fk"}
 
-        rvs_state = states[int(not current_state)]
+            rvs_state = states[int(not current_state)]
 
-        cmds.menuItem(
-            parent=parent_menu,
-            label="Switch {} to {}".format(attr.split("_blend")[0], rvs_state),
-            command=partial(__switch_fkik_callback, ui_host, False, attr),
-            image="kinReroot.png",
-        )
+            cmds.menuItem(
+                parent=parent_menu,
+                label="Switch {} to {}".format(
+                    attr.split(attr_extension)[0], rvs_state
+                ),
+                command=partial(
+                    __switch_fkik_callback,
+                    ui_host,
+                    False,
+                    attr,
+                    attr_extension,
+                ),
+                image="kinReroot.png",
+            )
 
-        cmds.menuItem(
-            parent=parent_menu,
-            label="Switch {} to {} + Key".format(
-                attr.split("_blend")[0], rvs_state
-            ),
-            command=partial(__switch_fkik_callback, ui_host, True, attr),
-            image="character.svg",
-        )
+            cmds.menuItem(
+                parent=parent_menu,
+                label="Switch {} to {} + Key".format(
+                    attr.split(attr_extension)[0], rvs_state
+                ),
+                command=partial(
+                    __switch_fkik_callback, ui_host, True, attr, attr_extension
+                ),
+                image="character.svg",
+            )
 
-        cmds.menuItem(
-            parent=parent_menu,
-            label="Range switch",
-            command=partial(__range_switch_callback, ui_host, attr),
-        )
+            cmds.menuItem(
+                parent=parent_menu,
+                label="Range switch",
+                command=partial(
+                    __range_switch_callback, ui_host, attr, attr_extension
+                ),
+            )
 
-        # divider
-        cmds.menuItem(parent=parent_menu, divider=True)
+            # divider
+            cmds.menuItem(parent=parent_menu, divider=True)
+
+    if attrs:
+        add_menu_items(attrs)
+    if attrs3:
+        add_menu_items(attrs3, attr_extension="_switch")
 
     # select all function
     cmds.menuItem(
