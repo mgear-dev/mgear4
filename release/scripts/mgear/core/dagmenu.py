@@ -163,17 +163,25 @@ def _find_rig_root(node):
 def _get_switch_node_attrs(node, end_string):
     """
     returns list of attr names for given node that match the end_string arg and are not proxy attrs
+
     Args:
-        node: str
-    Returns: list of strings
+        node (TYPE): Description
+        end_string (str or list): list of string suffix to search in the attr
+
+    Returns:
+        Returns: list of strings
+
     """
     attrs = []
-    for attr in cmds.listAttr(node, userDefined=True, keyable=True) or []:
-        if not attr.lower().endswith(end_string) or cmds.addAttr(
-            "{}.{}".format(node, attr), query=True, usedAsProxy=True
-        ):
-            continue
-        attrs.append(attr)
+    if not isinstance(end_string, list):
+        end_string = [end_string]
+    for end_str in end_string:
+        for attr in cmds.listAttr(node, userDefined=True, keyable=True) or []:
+            if not attr.lower().endswith(end_str) or cmds.addAttr(
+                "{}.{}".format(node, attr), query=True, usedAsProxy=True
+            ):
+                continue
+            attrs.append(attr)
     return attrs
 
 
@@ -357,7 +365,6 @@ def __switch_parent_callback(*args):
     switch_attr = args[1]
     switch_idx = args[2]
     search_token = switch_attr.split("_")[-1].split("ref")[0].split("Ref")[0]
-    print(search_token)
     target_control = None
 
     # control_01 attr don't standard name ane need to be check
@@ -398,6 +405,15 @@ def __switch_parent_callback(*args):
             for ctl in uiHost.attr(comp_ctl_list).listConnections():
 
                 target_control_list.append(ctl.stripNamespace())
+
+    if search_token in ["follow"] and not target_control_list:
+        # in this case we asume that the control holds is own space
+        # switch attr. This attr is also expected to have simple name
+        # witout description to witch component belongs. This works only
+        # if the attr is on a control of the same component that is not a
+        # genearal uiHost for other components
+        target_control = uiHost.stripNamespace()
+        target_control_list.append(target_control)
 
     # gets root node for the given control
     namespace_value = args[0].split("|")[-1].split(":")
@@ -785,7 +801,8 @@ def mgear_dagmenu_fill(parent_menu, current_control):
     attrs = _get_switch_node_attrs(current_control, "_blend")
     attrs2 = _get_switch_node_attrs(current_control, "ref")
     attrs3 = _get_switch_node_attrs(current_control, "_switch")
-    if attrs or attrs2 or attrs3:
+    attrs4 = _get_switch_node_attrs(current_control, "follow")
+    if attrs or attrs2 or attrs3 or attrs4:
         ui_host = current_control
 
     else:
@@ -796,7 +813,8 @@ def mgear_dagmenu_fill(parent_menu, current_control):
             attrs = _get_switch_node_attrs(ui_host, "_blend")
             attrs2 = _get_switch_node_attrs(ui_host, "ref")
             attrs3 = _get_switch_node_attrs(ui_host, "_switch")
-            if not attrs and not attrs2 and not attrs3:
+            attrs4 = _get_switch_node_attrs(ui_host, "follow")
+            if not attrs and not attrs2 and not attrs3 and not attrs4:
                 ui_host = None
         except ValueError:
             ui_host = None
@@ -1019,7 +1037,7 @@ def mgear_dagmenu_fill(parent_menu, current_control):
 
     # handles constrains attributes (constrain switches)
     if ui_host:
-        for attr in _get_switch_node_attrs(ui_host, "ref"):
+        for attr in _get_switch_node_attrs(ui_host, ["ref", "follow"]):
 
             part, ctl = (
                 attr.split("_")[0],
