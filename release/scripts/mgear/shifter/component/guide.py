@@ -33,6 +33,8 @@ JOINT_NAME_DESCRIPTION = "jointNamesDescription"
 JOINT_NAME_DESCRIPTION_CUSTOM = JOINT_NAME_DESCRIPTION + "_custom"
 CTL_NAME_DESCRIPTION = "ctlNamesDescription"
 CTL_NAME_DESCRIPTION_CUSTOM = CTL_NAME_DESCRIPTION + "_custom"
+ALIAS_NAME_DESCRIPTION = "aliasNamesDescription"
+ALIAS_NAME_DESCRIPTION_CUSTOM = ALIAS_NAME_DESCRIPTION + "_custom"
 
 ##########################################################
 # COMPONENT GUIDE
@@ -83,6 +85,7 @@ class ComponentGuide(guide.Main):
     compatible = []
     joint_names_description = []
     ctl_names_description = []
+    alias_names_description = []
     ctl_grp = ""
 
     # ====================================================
@@ -189,6 +192,14 @@ class ComponentGuide(guide.Main):
             )
             self.pCtlNamesDescription_custom = self.addParam(
                 CTL_NAME_DESCRIPTION_CUSTOM, "string", str(self.ctl_names_description)
+            )
+
+        if self.alias_names_description:
+            self.pAliasNamesDescription = self.addParam(
+                ALIAS_NAME_DESCRIPTION, "string", str(self.alias_names_description)
+            )
+            self.pAliasNamesDescription_custom = self.addParam(
+                ALIAS_NAME_DESCRIPTION_CUSTOM, "string", str(self.alias_names_description)
             )
         self.pJointRotOffX = self.addParam(
             "joint_rot_offset_x", "double", 0.0, -360.0, 360.0
@@ -1199,6 +1210,23 @@ class CtlNameDescriptor(NameDescriptor):
         self.create_layouts()
 
 
+class AliasNameDescriptor(NameDescriptor):
+    def __init__(self, parent=None):
+        super(AliasNameDescriptor, self).__init__()
+
+        self.root = pm.selected()[0]
+        self.d_names = self.root.attr(ALIAS_NAME_DESCRIPTION).get()
+        self.d_names = ast.literal_eval(self.d_names)
+        self.descriptor_name_custom = ALIAS_NAME_DESCRIPTION_CUSTOM
+        self.d_custom_names = self.root.attr(self.descriptor_name_custom).get()
+        self.d_custom_names = ast.literal_eval(self.d_custom_names)
+
+        self.setWindowTitle("Space Alias Name Descriptor")
+
+        self.create_widgets()
+        self.create_layouts()
+
+
 class componentMainSettings(QtWidgets.QDialog, guide.helperSlots):
     valueChanged = QtCore.Signal(int)
 
@@ -1213,6 +1241,8 @@ class componentMainSettings(QtWidgets.QDialog, guide.helperSlots):
             self.jointNameDescriptor = jointNameDescriptor()
         if self.root.hasAttr(CTL_NAME_DESCRIPTION):
             self.CtlNameDescriptor = CtlNameDescriptor()
+        if self.root.hasAttr(ALIAS_NAME_DESCRIPTION):
+            self.AliasNameDescriptor = AliasNameDescriptor()
 
         self.create_controls()
         self.populate_controls()
@@ -1330,6 +1360,12 @@ class componentMainSettings(QtWidgets.QDialog, guide.helperSlots):
         if self.root.hasAttr(CTL_NAME_DESCRIPTION):
             self.tabs.insertTab(
                 ctl_tab, self.CtlNameDescriptor, "Ctl Description Names"
+            )
+            ctl_tab += 1
+        # alias names tab
+        if self.root.hasAttr(ALIAS_NAME_DESCRIPTION):
+            self.tabs.insertTab(
+                ctl_tab, self.AliasNameDescriptor, "Space Alias Description Names"
             )
 
     def refresh_controls(self):

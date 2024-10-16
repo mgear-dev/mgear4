@@ -1567,7 +1567,7 @@ class Main(object):
 
         return self.controlRelatives[name]
 
-    def get_alias_relation(self, name, comp_relative):
+    def get_alias_relation(self, name, comp_relative, fullName=True):
         """Return the relational name alias from guide to rig.
 
         If not alias name has been set, this function will return the original
@@ -1575,9 +1575,11 @@ class Main(object):
 
         Args:
             name (str): Local name of the guide object.
+            comp_relative (obj): relative component
+            fullName (bool, optional): if True will return the component name with alias
 
         Returns:
-            dagNode: The relational object.
+            str: Space alias name.
 
         """
         comp_name = self.rig.getComponentName(name)
@@ -1585,9 +1587,12 @@ class Main(object):
         if rel_name not in comp_relative.aliasRelatives.keys():
             return name
 
-        return "{}_{}".format(
-            comp_name, comp_relative.aliasRelatives[rel_name]
-        )
+        if fullName:
+            return "{}_{}".format(
+                comp_name, comp_relative.aliasRelatives[rel_name]
+            )
+        else:
+            return comp_relative.aliasRelatives[rel_name]
 
     def get_valid_ref_list(self, ref_list):
         """Returns the purged list of ref_list
@@ -1602,7 +1607,7 @@ class Main(object):
         """
         return self._get_valid_array_list(ref_list)[1]
 
-    def get_valid_alias_list(self, ref_list):
+    def get_valid_alias_list(self, ref_list, fullName=True):
         """Returns the alias list of valid components
 
         If the component doesn't exist will skip it
@@ -1613,9 +1618,9 @@ class Main(object):
         Returns:
             list: Alias names list
         """
-        return self._get_valid_array_list(ref_list)[0]
+        return self._get_valid_array_list(ref_list, fullName=fullName)[0]
 
-    def _get_valid_array_list(self, array_list):
+    def _get_valid_array_list(self, array_list, fullName=True):
         """Returns the alias list of valid components and the purged array_list
 
         If the component doesn't exist will skip it
@@ -1630,7 +1635,7 @@ class Main(object):
         for rn in array_list:
             comp_relative = self.rig.findComponent(rn)
             if comp_relative:
-                o_name = self.get_alias_relation(rn, comp_relative)
+                o_name = self.get_alias_relation(rn, comp_relative, fullName=fullName)
                 alias_list[0].append(o_name)
                 alias_list[1].append(rn)
             else:
