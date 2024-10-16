@@ -345,6 +345,7 @@ def gear_matrix_cns(
     rot_off=[0, 0, 0],
     rot_mult=[1, 1, 1],
     scl_mult=[1, 1, 1],
+    maintainRotOffset=True,
 ):
     """Create and connect matrix constraint node
 
@@ -387,13 +388,14 @@ def gear_matrix_cns(
             force=True,
         )
 
-        # calculate rest pose
-        # we use the  outputDriverOffsetMatrix to have in account the offset
-        # rotation when the rest pose is calculated
-        driver_m = om.MMatrix(pm.getAttr(node + ".outputDriverOffsetMatrix"))
-        driven_m = om.MMatrix(pm.getAttr(out_obj + ".parentInverseMatrix[0]"))
-        mult = driver_m * driven_m
-        pm.setAttr(node + ".drivenRestMatrix", mult, type="matrix")
+        if maintainRotOffset:
+            # calculate rotation rest pose
+            # we use the  outputDriverOffsetMatrix to have in account the offset
+            # rotation when the rest pose is calculated
+            driver_m = om.MMatrix(pm.getAttr(node + ".outputDriverOffsetMatrix"))
+            driven_m = om.MMatrix(pm.getAttr(out_obj + ".parentInverseMatrix[0]"))
+            mult = driver_m * driven_m
+            pm.setAttr(node + ".drivenRestMatrix", mult, type="matrix")
 
         # connect srt (scale, rotation, translation)
         if "t" in connect_srt:
