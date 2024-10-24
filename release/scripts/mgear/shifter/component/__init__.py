@@ -1852,6 +1852,7 @@ class Main(object):
         upVAttr=None,
         init_refNames=False,
         st=None,
+        sr=None,
     ):
         """Connect the cns_obj to a multiple object using parentConstraint.
 
@@ -1861,6 +1862,7 @@ class Main(object):
             upVAttr (bool): Set if the ref Array is for IK or Up vector
             init_refNames (bool, optional): Nice name for the references menu
             st (None, optional): skipTranslate
+            sr (None, optional): skipRotate
         """
         if refArray:
             # mtx = cns_obj.getMatrix(worldSpace=True)
@@ -1918,6 +1920,8 @@ class Main(object):
                 ref.append(cns_obj)
                 if not st:
                     st = "none"
+                if not sr:
+                    sr = "none"
                 cns_node = pm.parentConstraint(
                     *ref, maintainOffset=True, st=st
                 )
