@@ -250,7 +250,7 @@ class Main(object):
         self.compCtl = self.root.addAttr("compCtl", at="message", m=1)
 
         # joint --------------------------------
-        if self.options["joint_rig"] or self.options["joint_soup"]:
+        if self.options["joint_rig"]:
             self.component_jnt_org = self.rig.jnt_org
             # The initial assigment of the active jnt and the parent relative
             # jnt is the same, later will be updated base in the user options
