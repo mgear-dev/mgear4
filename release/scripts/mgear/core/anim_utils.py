@@ -941,7 +941,9 @@ def ikFkMatch_with_namespace(
             # keyframes
             if key:
                 for x in fks_gimbal + [ik_gimbal]:
-                    pm.setKeyframe(x, time=(cmds.currentTime(query=True) - 1.0))
+                    pm.setKeyframe(
+                        x, time=(cmds.currentTime(query=True) - 1.0)
+                    )
             gimbal_exist = True
     except:
         pass

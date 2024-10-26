@@ -85,12 +85,20 @@ def connect_joints_from_matrixConstraint():
 
 
 @mutils.one_undo
-def delete_rig_keep_joints():
-    # Should pop up confirmation dialog
-    button_pressed = QtWidgets.QMessageBox.question(
-        pyqt.maya_main_window(), "Warning", "Delete Rigs in the scene?"
-    )
-    if button_pressed == QtWidgets.QMessageBox.Yes:
+def delete_rig_keep_joints(confirmPop=True):
+    confirm = False
+    if confirmPop:
+        # Should pop up confirmation dialog
+        button_pressed = QtWidgets.QMessageBox.question(
+            pyqt.maya_main_window(), "Warning", "Delete Rigs in the scene?"
+        )
+        if button_pressed == QtWidgets.QMessageBox.Yes:
+            confirm = True
+
+    else:
+        pm.displayInfo("Cancelled")
+        return
+    if confirm:
         disconnect_joints()
         for rig_root in get_rig_root_from_set():
             rig_name = rig_root.name()
@@ -103,8 +111,6 @@ def delete_rig_keep_joints():
             pm.delete(rig_root)
 
             pm.displayInfo("{} deleted.".format(rig_name))
-    else:
-        pm.displayInfo("Cancelled")
 
 
 def get_deformers_sets():
