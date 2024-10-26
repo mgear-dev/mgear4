@@ -70,3 +70,15 @@ icons: ../../../../icons
 scripts: ../../../../scripts
 icons: ../../../../icons
 
++ MAYAVERSION:2025 PLATFORM:win64 mGear 4.0 ./platforms/2025/windows/x64
+scripts: ../../../../scripts
+icons: ../../../../icons
+
++ MAYAVERSION:2025 PLATFORM:linux mGear 4.0 ./platforms/2025/linux/x64
+scripts: ../../../../scripts
+icons: ../../../../icons
+
++ MAYAVERSION:2025 PLATFORM:mac   mGear 4.0 ./platforms/2025/osx/x64
+scripts: ../../../../scripts
+icons: ../../../../icons
+

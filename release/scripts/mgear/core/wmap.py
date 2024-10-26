@@ -3,7 +3,7 @@
 import json
 
 from maya import cmds
-import pymel.core as pm
+import mgear.pymaya as pm
 import maya.OpenMaya as OpenMaya
 from .six import string_types
 

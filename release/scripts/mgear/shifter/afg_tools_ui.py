@@ -28,7 +28,7 @@ import pprint
 import itertools
 
 # dcc
-import pymel.core as pm
+import mgear.pymaya as pm
 import maya.cmds as cmds
 
 # mgear

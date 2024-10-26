@@ -29,7 +29,7 @@ from mgear.anim_picker.handlers import (__EDIT_MODE__,
                                         __SELECTION__,
                                         python_handlers,
                                         maya_handlers)
-from six.moves import range
+from mgear.core.six.moves import range
 
 # constants -------------------------------------------------------------------
 SCRIPT_DOC_HEADER = \

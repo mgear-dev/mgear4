@@ -4,8 +4,8 @@ import json
 from mgear.core import pyqt
 
 
-import pymel.core as pm
-from pymel.core import datatypes
+import mgear.pymaya as pm
+from mgear.pymaya import datatypes
 from mgear.core import transform
 
 import mgear

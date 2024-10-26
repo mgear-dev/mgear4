@@ -1,7 +1,7 @@
 __author__ = "Justin Pedersen"
 __email__ = "Justin@tcgcape.co.za"
 
-import pymel.core as pm
+import mgear.pymaya as pm
 import mgear.rigbits.sdk_io as sdk_io
 import mgear.core.pickWalk as pickWalk
 

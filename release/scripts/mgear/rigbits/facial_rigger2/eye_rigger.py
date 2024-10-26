@@ -3,10 +3,10 @@ import traceback
 from six import string_types
 
 import mgear
-import pymel.core as pm
+import mgear.pymaya as pm
 from mgear.core import meshNavigation, curve, applyop, node, primitive, icon
 from mgear.core import transform, utils, attribute, skin, string
-from pymel.core import datatypes
+from mgear.pymaya import datatypes
 
 from mgear import rigbits
 

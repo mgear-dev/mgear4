@@ -8,7 +8,7 @@ from PySide2 import QtGui
 
 from functools import partial
 
-import pymel.core as pm
+import mgear.pymaya as pm
 
 from mgear.core import pyqt
 

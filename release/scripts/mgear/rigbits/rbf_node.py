@@ -29,7 +29,7 @@ import math
 
 # core
 import maya.cmds as mc
-import pymel.core as pm
+import mgear.pymaya as pm
 import maya.OpenMaya as OpenMaya
 
 # mgear

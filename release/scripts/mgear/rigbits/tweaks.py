@@ -1,7 +1,7 @@
 """Rigbits tweaks rig module"""
 
-import pymel.core as pm
-from pymel.core import datatypes
+import mgear.pymaya as pm
+from mgear.pymaya import datatypes
 from maya import cmds
 
 from mgear.core import skin, primitive, icon, transform, attribute

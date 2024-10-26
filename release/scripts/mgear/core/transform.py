@@ -2,10 +2,10 @@
 
 import math
 
-from pymel import util
-import pymel.core as pm
-from pymel.core import datatypes
-from pymel.core import nodetypes
+from mgear.pymaya import util
+import mgear.pymaya as pm
+from mgear.pymaya import datatypes
+from mgear.pymaya import nodetypes
 
 from mgear.core import vector
 

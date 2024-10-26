@@ -1,6 +1,6 @@
 import os
 
-import pymel.core as pm
+import mgear.pymaya as pm
 
 import mgear.core.attribute as att
 import mgear.core.transform as tra

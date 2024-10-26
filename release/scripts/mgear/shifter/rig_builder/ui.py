@@ -8,7 +8,7 @@ from mgear.core import pyqt, widgets
 from mgear.shifter.rig_builder import builder
 
 from functools import partial
-import pymel.core as pm
+import mgear.pymaya as pm
 
 
 class RigBuilderUI(

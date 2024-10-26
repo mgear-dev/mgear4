@@ -1,7 +1,7 @@
-import pymel.core as pm
+import mgear.pymaya as pm
 from mgear.core import meshNavigation, curve, applyop, primitive, icon
 from mgear.core import transform, attribute, skin, vector, pickWalk, utils
-from pymel.core import datatypes
+from mgear.pymaya import datatypes
 from six import string_types
 
 

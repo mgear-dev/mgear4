@@ -2,7 +2,7 @@
 import os
 import json
 import sys
-import pymel.core as pm
+import mgear.pymaya as pm
 from mgear import shifter
 from mgear.core import curve
 

@@ -7,8 +7,8 @@ from .six import PY2
 
 # Maya imports
 from maya import cmds
-import pymel.core as pm
-from pymel import versions
+import mgear.pymaya as pm
+from mgear.pymaya import versions
 
 # mGear imports
 import mgear
@@ -1526,7 +1526,7 @@ def bindPose(model, *args):
     Args:
         model (TYPE): Description
     """
-    if isinstance(model, pm.PyNode):
+    if isinstance(model, pm.node._NodeTypes):
         model = bindPose
 
     nameSpace = getNamespace(model)

@@ -2,7 +2,7 @@
 
 Helper tools to create layered controls rigs
 """
-import pymel.core as pm
+import mgear.pymaya as pm
 
 from mgear.core import node, primitive
 from mgear import rigbits

@@ -9,7 +9,7 @@ import os
 
 # dcc
 from maya import cmds
-import pymel.core as pm
+import mgear.pymaya as pm
 
 # anim picker
 import mgear.anim_picker
