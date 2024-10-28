@@ -1542,7 +1542,25 @@ class NamingRulesTab(QtWidgets.QDialog, naui.Ui_Form):
         self.setupUi(self)
 
 
-class GuideSettings(MayaQWidgetDockableMixin, QtWidgets.QDialog, HelperSlots):
+class GuideMainSettings(QtWidgets.QDialog, HelperSlots):
+    """
+    From Maya 2025 there is an issue with tripple ineritance on GuideSettings
+    class GuideSettings(MayaQWidgetDockableMixin, QtWidgets.QDialog, HelperSlots)
+
+    The source of the issue looks like is the HelperSlot. Maybe since is missing
+    __init__ method
+    This class is a workaround to pass first the QDialog and HelperSlot ineritance
+    with the correct MRO and avoid this error:
+        object.__init__() takes exactly one argument (the instance to initialize)
+
+    """
+
+    def __init__(self, parent=None):
+        super(GuideMainSettings, self).__init__()
+
+
+# class GuideSettings(MayaQWidgetDockableMixin, QtWidgets.QDialog, HelperSlots):
+class GuideSettings(MayaQWidgetDockableMixin, GuideMainSettings):
     greenBrush = QtGui.QColor(0, 160, 0)
     redBrush = QtGui.QColor(180, 0, 0)
     whiteBrush = QtGui.QColor(255, 255, 255)
@@ -1551,10 +1569,9 @@ class GuideSettings(MayaQWidgetDockableMixin, QtWidgets.QDialog, HelperSlots):
 
     def __init__(self, parent=None):
         self.toolName = TYPE
-        # Delete old instances of the componet settings window.
+        # # Delete old instances of the componet settings window.
         pyqt.deleteInstances(self, MayaQDockWidget)
-        # super(self.__class__, self).__init__(parent=parent)
-        super(guideSettings, self).__init__()
+        super(GuideSettings, self).__init__(parent=parent)
         # the inspectSettings function set the current selection to the
         # component root before open the settings dialog
         self.root = pm.selected()[0]
@@ -1886,7 +1903,9 @@ class GuideSettings(MayaQWidgetDockableMixin, QtWidgets.QDialog, HelperSlots):
             partial(self.updateCheck, tap.jointRig_checkBox, "joint_rig")
         )
         tap.jointWorldOri_checkBox.stateChanged.connect(
-            partial(self.updateCheck, tap.jointWorldOri_checkBox, "joint_worldOri")
+            partial(
+                self.updateCheck, tap.jointWorldOri_checkBox, "joint_worldOri"
+            )
         )
         tap.force_uniScale_checkBox.stateChanged.connect(
             partial(
