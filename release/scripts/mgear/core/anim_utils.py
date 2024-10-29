@@ -413,7 +413,7 @@ def listAttrForMirror(node):
     """
     # TODO: should "ro" be here?
     res = ["tx", "ty", "tz", "rx", "ry", "rz", "sx", "sy", "sz", "ro"]
-    res.extend(pm.listAttr(node, userDefined=True, shortNames=True))
+    res.extend(cmds.listAttr(node, userDefined=True, shortNames=True))
     res = list([x for x in res if not x.startswith("inv")])
     res = list(
         [x for x in res if node.attr(x).type() not in ["message", "string"]]
