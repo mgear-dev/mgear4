@@ -43,7 +43,9 @@ class Vector(OpenMaya.MVector):
 
         super(Vector, self).__init__(*args, **kwargs)
         for fn in Vector.WRAP_FUNCS:
-            setattr(self, fn, _warp_dt(super(Vector, self).__getattribute__(fn)))
+            setattr(
+                self, fn, _warp_dt(super(Vector, self).__getattribute__(fn))
+            )
 
     def __getitem__(self, item):
         return [self.x, self.y, self.z][item]
@@ -57,11 +59,21 @@ class Vector(OpenMaya.MVector):
     def rotateBy(self, *args):
         if args:
             if len(args) == 2 and isinstance(args[0], Vector):
-                return Vector(super(Vector, self).rotateBy(Quaternion(float(args[1]), args[0])))
+                return Vector(
+                    super(Vector, self).rotateBy(
+                        Quaternion(float(args[1]), args[0])
+                    )
+                )
             elif len(args) == 1 and isinstance(args[0], Matrix):
-                return Vector(super(Vector, self).rotateBy(TransformationMatrix(args[0]).rotation(True)))
+                return Vector(
+                    super(Vector, self).rotateBy(
+                        TransformationMatrix(args[0]).rotation(True)
+                    )
+                )
             else:
-                return Vector(super(Vector, self).rotateBy(EulerRotation(*args)))
+                return Vector(
+                    super(Vector, self).rotateBy(EulerRotation(*args))
+                )
         else:
             return self
 
@@ -77,7 +89,9 @@ class Point(OpenMaya.MPoint):
     def __init__(self, *args, **kwargs):
         super(Point, self).__init__(*args, **kwargs)
         for fn in Point.WRAP_FUNCS:
-            setattr(self, fn, _warp_dt(super(Point, self).__getattribute__(fn)))
+            setattr(
+                self, fn, _warp_dt(super(Point, self).__getattribute__(fn))
+            )
 
     def tolist(self):
         return [self.x, self.y, self.z]
@@ -96,17 +110,21 @@ class Matrix(OpenMaya.MMatrix):
 
     def __init__(self, *args, **kwargs):
         if len(args) == 16:
-            args = (args, )
+            args = (args,)
         super(Matrix, self).__init__(*args, **kwargs)
         for fn in Matrix.WRAP_FUNCS:
-            setattr(self, fn, _warp_dt(super(Matrix, self).__getattribute__(fn)))
+            setattr(
+                self, fn, _warp_dt(super(Matrix, self).__getattribute__(fn))
+            )
 
     def get(self):
         gt = super(Matrix, self).__getitem__
-        return ((gt(0), gt(1), gt(2), gt(3)),
-                (gt(4), gt(5), gt(6), gt(7)),
-                (gt(8), gt(9), gt(10), gt(11)),
-                (gt(12), gt(13), gt(14), gt(15)))
+        return (
+            (gt(0), gt(1), gt(2), gt(3)),
+            (gt(4), gt(5), gt(6), gt(7)),
+            (gt(8), gt(9), gt(10), gt(11)),
+            (gt(12), gt(13), gt(14), gt(15)),
+        )
 
     def __setitem__(self, index, value):
         if index < 0 or index > 3:
@@ -123,7 +141,12 @@ class Matrix(OpenMaya.MMatrix):
             raise Exception("list index out of range")
 
         gt = super(Matrix, self).__getitem__
-        return [gt(index * 4), gt(index * 4 + 1), gt(index * 4 + 2), gt(index * 4 + 3)]
+        return [
+            gt(index * 4),
+            gt(index * 4 + 1),
+            gt(index * 4 + 2),
+            gt(index * 4 + 3),
+        ]
 
     @property
     def translate(self):
@@ -132,7 +155,10 @@ class Matrix(OpenMaya.MMatrix):
 
 def _trnsfrommatrix_wrp(func, this):
     def wrapper(*args, **kwargs):
-        return getattr(OpenMaya.MTransformationMatrix(this), func)(*args, **kwargs)
+        return getattr(OpenMaya.MTransformationMatrix(this), func)(
+            *args, **kwargs
+        )
+
     return _warp_dt(wrapper)
 
 
@@ -154,7 +180,11 @@ class TransformationMatrix(Matrix):
             setattr(self, m, getattr(OpenMaya.MTransformationMatrix, m))
 
     def __repr__(self):
-        return super(TransformationMatrix, self).__repr__().replace("MMatrix", "TransformationMatrix")
+        return (
+            super(TransformationMatrix, self)
+            .__repr__()
+            .replace("MMatrix", "TransformationMatrix")
+        )
 
     def get(self):
         return self.asMatrix().get()
@@ -228,7 +258,11 @@ class BoundingBox(OpenMaya.MBoundingBox):
 
         super(BoundingBox, self).__init__(*nargs, **kwargs)
         for fn in BoundingBox.WRAP_FUNCS:
-            setattr(self, fn, _warp_dt(super(BoundingBox, self).__getattribute__(fn)))
+            setattr(
+                self,
+                fn,
+                _warp_dt(super(BoundingBox, self).__getattribute__(fn)),
+            )
 
     def __getitem__(self, index):
         if index == 0:
@@ -251,10 +285,16 @@ class Quaternion(OpenMaya.MQuaternion):
         super(Quaternion, self).__init__(*args, **kwargs)
 
         for fn in Quaternion.WRAP_FUNCS:
-            setattr(self, fn, _warp_dt(super(Quaternion, self).__getattribute__(fn)))
+            setattr(
+                self,
+                fn,
+                _warp_dt(super(Quaternion, self).__getattribute__(fn)),
+            )
 
     def scaleIt(self, scal):
-        return Quaternion(self.x * scal, self.y * scal, self.z * scal, self.w * scal)
+        return Quaternion(
+            self.x * scal, self.y * scal, self.z * scal, self.w * scal
+        )
 
 
 class EulerRotation(OpenMaya.MEulerRotation):
@@ -269,7 +309,21 @@ class EulerRotation(OpenMaya.MEulerRotation):
         super(EulerRotation, self).__init__(*args, **kwargs)
 
         for fn in EulerRotation.WRAP_FUNCS:
-            setattr(self, fn, _warp_dt(super(EulerRotation, self).__getattribute__(fn)))
+            setattr(
+                self,
+                fn,
+                _warp_dt(super(EulerRotation, self).__getattribute__(fn)),
+            )
 
 
-__all__ = ["Vector", "EulerRotation", "Matrix", "TransformationMatrix", "Quaternion", "degrees", "Point", "BoundingBox", "Space"]
+__all__ = [
+    "Vector",
+    "EulerRotation",
+    "Matrix",
+    "TransformationMatrix",
+    "Quaternion",
+    "degrees",
+    "Point",
+    "BoundingBox",
+    "Space",
+]
