@@ -301,6 +301,21 @@ def listHistory(*args, type=None, exactType=None, **kwargs):
         return _name_to_obj(res)
 
 
+def listConnections(*args, sourceFirst=False, **kwargs):
+    args = _obj_to_name(args)
+    kwargs = _obj_to_name(kwargs)
+
+    connections = cmds.listConnections(*args, **kwargs) or []
+    if sourceFirst:
+        res = [
+            (connections[i + 1], connections[i])
+            for i in range(0, len(connections), 2)
+        ]
+    else:
+        res = connections
+    return _name_to_obj(res)
+
+
 def keyframe(*args, **kwargs):
     args = _obj_to_name(args)
     kwargs = _obj_to_name(kwargs)
