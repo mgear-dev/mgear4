@@ -30,7 +30,7 @@ import math
 # core
 import maya.cmds as mc
 import mgear.pymaya as pm
-import maya.OpenMaya as OpenMaya
+import maya.api.OpenMaya as om
 
 # mgear
 from mgear.core import transform, attribute
@@ -223,48 +223,43 @@ def removeCompensateLocator(node):
 
 
 def decompMatrix(node, matrix):
-    '''
-    Decomposes a MMatrix in new api. Returns an list of
-    translation,rotation,scale in world space.
+    """
+    Decomposes an MMatrix using the new maya.api.OpenMaya API.
+    Returns a list of translation, rotation, and scale in world space.
 
     Args:
-        node (str): name of node to query rotate order
-        matrix (MMatrix): mmatrix to decompos
+        node (str): Name of the node to query the rotation order from.
+        matrix (om.MMatrix): MMatrix to decompose.
 
     Returns:
-        TYPE: Description
-    '''
-    # Rotate order of object
-    rotOrder = mc.getAttr("{}.rotateOrder".format(node))
+        list: A list containing the translation (x, y, z), rotation (x, y, z
+        in degrees), and scale (x, y, z) in world space.
+    """
+    # Retrieve the rotation order of the node
+    rot_order = mc.getAttr("{}.rotateOrder".format(node))
 
-    # Puts matrix into transformation matrix
-    mTransformMtx = OpenMaya.MTransformationMatrix(matrix)
+    # Convert the MMatrix to an MTransformationMatrix
+    m_transform_mtx = om.MTransformationMatrix(matrix)
 
-    # Translation Values
-    trans = mTransformMtx.getTranslation(OpenMaya.MSpace.kPostTransform)
+    # Get translation values in world space
+    translation = m_transform_mtx.translation(om.MSpace.kWorld)
 
-    # Euler rotation value in radians
-    eulerRot = mTransformMtx.eulerRotation()
+    # Get Euler rotation values in radians
+    euler_rot = m_transform_mtx.rotation()
 
-    # Reorder rotation order based on ctrl.
-    eulerRot.reorderIt(rotOrder)
+    # Reorder rotation to match the node's rotation order
+    euler_rot.reorder(rot_order)
 
-    radian = 180.0 / math.pi
+    # Convert rotations from radians to degrees
+    rotations = [math.degrees(euler_rot.x),
+                 math.degrees(euler_rot.y),
+                 math.degrees(euler_rot.z)]
 
-    rotations = [rot * radian for rot in [eulerRot.x, eulerRot.y, eulerRot.z]]
+    # Get scale values in world space
+    scale = m_transform_mtx.scale(om.MSpace.kWorld)
 
-    # Find world scale of our object.
-    # for scale we need to utilize MScriptUtil to deal with the native
-    # double pointers
-    scaleUtil = OpenMaya.MScriptUtil()
-    scaleUtil.createFromList([0, 0, 0], 3)
-    scaleVec = scaleUtil.asDoublePtr()
-    mTransformMtx.getScale(scaleVec, OpenMaya.MSpace.kPostTransform)
-    scale = [OpenMaya.MScriptUtil.getDoubleArrayItem(scaleVec, i)
-             for i in range(0, 3)]
-
-    # Return Values
-    return [trans.x, trans.y, trans.z], rotations, scale
+    # Return translation, rotation, and scale values
+    return [translation.x, translation.y, translation.z], rotations, scale
 
 
 def resetDrivenNodes(node):
@@ -304,7 +299,7 @@ def __getResultingMatrix(drivenNode, parentNode, absoluteWorld=True):
     nodeInverParMat = parentNode.getAttr("parentInverseMatrix")
     drivenMat = drivenNode.getMatrix(worldSpace=True)
     drivenMat_local = drivenNode.getMatrix(objectSpace=True)
-    defaultMat = OpenMaya.MMatrix()
+    defaultMat = om.MMatrix()
 
     if defaultMat.isEquivalent(drivenMat_local) and not absoluteWorld:
         totalMatrix = defaultMat

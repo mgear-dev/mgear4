@@ -117,7 +117,8 @@ class RBFWidget(MayaQWidgetDockableMixin, QtWidgets.QMainWindow):
         button.setMinimumSize(QtCore.QSize(*size))
         button.setStyleSheet(stylesheet)
         button.setToolTip(tooltip)
-        button.setIcon(pyqt.get_icon(icon, iconSize))
+        if icon and iconSize:
+            button.setIcon(pyqt.get_icon(icon, iconSize))
         return button
 
     @staticmethod

@@ -52,7 +52,7 @@ Attributes:
 Deleted Attributes:
     RBF_MODULES (dict): of supported rbf modules
 
-__author__ = "Rafael Villar, Joji Nishimura"
+__author__ = "Rafael Villar, Joji Nishimura", "Miquel Campos
 __email__ = "rav@ravrigs.com"
 __credits__ = ["Miquel Campos", "Ingo Clemens"]
 
@@ -66,16 +66,16 @@ from functools import partial
 import maya.cmds as mc
 import mgear.pymaya as pm
 import maya.OpenMaya as om
-import maya.OpenMayaUI as mui
+# import maya.OpenMayaUI as mui
 
 # mgear
-import mgear
-from mgear.core import pyqt
+# import mgear
+# from mgear.core import pyqt
 import mgear.core.string as mString
 from mgear.core import anim_utils
-from mgear.vendor.Qt import QtWidgets, QtCore, QtCompat, QtGui
-from maya.app.general.mayaMixin import MayaQWidgetDockableMixin
-from mgear.rigbits.six import PY2
+from mgear.vendor.Qt import QtWidgets, QtCore, QtCompat
+# from maya.app.general.mayaMixin import MayaQWidgetDockableMixin
+# from mgear.rigbits.six import PY2
 
 # rbf
 from mgear.rigbits import rbf_io
