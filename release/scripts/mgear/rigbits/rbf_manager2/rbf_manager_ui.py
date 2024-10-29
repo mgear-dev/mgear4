@@ -603,12 +603,13 @@ class RBFManagerUI(widget.RBFWidget):
         # Iterate through each tab in the widget
         for index in range(self.rbfTabWidget.count()):
             drivenWidget = self.rbfTabWidget.widget(index)
-            drivenNodeName = drivenWidget.property("drivenNode")
+            # drivenNodeName = drivenWidget.property("drivenNode")
 
             # Update table if the rbfNode's drivenNode matches the current tab's drivenNode
             for rbfNode in self.currentRBFSetupNodes:
                 drivenNodes = rbfNode.getDrivenNode()
-                if drivenNodes and drivenNodes[0] == drivenNodeName:
+                # if drivenNodes and drivenNodes[0] == drivenNodeName:
+                if drivenNodes:
                     weightInfo = rbfNode.getNodeInfo()
                     self.setDriverTable(rbfNode, weightInfo)
                     self.setDrivenTable(drivenWidget, rbfNode, weightInfo)

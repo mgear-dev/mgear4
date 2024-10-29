@@ -361,7 +361,7 @@ class RBFWidget(MayaQWidgetDockableMixin, QtWidgets.QMainWindow):
         }
         QTableCornerButton::section {
             background-color: #3a3b3b;
-            border: none; 
+            border: none;
         }
         """
         tableWidget = QtWidgets.QTableWidget()
