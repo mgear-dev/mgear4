@@ -6,6 +6,7 @@ from maya import mel as _mel
 from maya.api import OpenMaya
 import functools
 import inspect
+import pprint
 
 
 __all__ = []
@@ -350,16 +351,30 @@ def listConnections(*args, sourceFirst=False, **kwargs):
     kwargs = _obj_to_name(kwargs)
 
     if sourceFirst:
+        # first  list the source connections
         if 'source' not in kwargs or not kwargs['source']:
             kwargs['source'] = True
         if 'destination' not in kwargs or kwargs['destination']:
             kwargs['destination'] = False
 
         connections = cmds.listConnections(*args, **kwargs) or []
-        res = [
+        res_source = [
             (connections[i + 1], connections[i])
             for i in range(0, len(connections), 2)
         ]
+
+        # add the connections from the destination side
+        kwargs['source'] = False
+        kwargs['destination'] = True
+
+        connections = cmds.listConnections(*args, **kwargs) or []
+        res_destination = [
+            (connections[i], connections[i + 1])
+            for i in range(0, len(connections), 2)
+        ]
+
+        res = res_destination + res_source
+
     else:
         res = cmds.listConnections(*args, **kwargs) or []
     return _name_to_obj(res)
