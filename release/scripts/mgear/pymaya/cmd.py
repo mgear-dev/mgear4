@@ -349,14 +349,19 @@ def listConnections(*args, sourceFirst=False, **kwargs):
     args = _obj_to_name(args)
     kwargs = _obj_to_name(kwargs)
 
-    connections = cmds.listConnections(*args, **kwargs) or []
     if sourceFirst:
+        if 'source' not in kwargs or not kwargs['source']:
+            kwargs['source'] = True
+        if 'destination' not in kwargs or kwargs['destination']:
+            kwargs['destination'] = False
+
+        connections = cmds.listConnections(*args, **kwargs) or []
         res = [
             (connections[i + 1], connections[i])
             for i in range(0, len(connections), 2)
         ]
     else:
-        res = connections
+        res = cmds.listConnections(*args, **kwargs) or []
     return _name_to_obj(res)
 
 
