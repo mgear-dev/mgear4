@@ -20,7 +20,7 @@ class ChainGuideInitializer(QtWidgets.QDialog,
 
     def __init__(self, parent=None):
         self.toolName = "ChainGuideInitializer"
-        super(ChainGuideInitializer, self).__init__(parent=parent)
+        super(ChainGuideInitializer, self).__init__(parent)
         self.setupUi(self)
 
         self.sections_number = None
