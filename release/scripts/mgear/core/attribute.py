@@ -1140,7 +1140,7 @@ def set_default_value(node, attribute):
         node (str, PyNode): The object with the attribute to reset
         attribute (str): The attribute to reset
     """
-    if not isinstance(node, pm.PyNode):
+    if isinstance(node, string_types):
         node = pm.PyNode(node)
 
     defVal = get_default_value(node, attribute)
