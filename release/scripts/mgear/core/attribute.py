@@ -1166,7 +1166,7 @@ def set_default_value(node, attribute):
                 # node.attr(attribute).set(defVal)
         else:
             node.attr(attribute).set(defVal)
-    except RuntimeError:
+    except (RuntimeError, pm.MayaAttributeError):
         # print("Failed to reset: {}".format(attribute))
         pass
 
