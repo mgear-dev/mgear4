@@ -323,11 +323,11 @@ class _Node(base.Node):
         fdg = super(_Node, self).__getattribute__("_Node__fn_dg")
         return fdg.name().split("|")[-1]
 
-    def namespace(self, **kwargs):
-        n = self.name()
-        if ":" not in n:
-            return ""
-        return ":".join(n.split("|")[-1].split(":")[:-1]) + ":"
+    # def namespace(self, **kwargs):
+    #     n = self.name()
+    #     if ":" not in n:
+    #         return ""
+    #     return ":".join(n.split("|")[-1].split(":")[:-1]) + ":"
 
     def stripNamespace(self):
         return "|".join([x.split(":")[-1] for x in self.name().split("|")])
