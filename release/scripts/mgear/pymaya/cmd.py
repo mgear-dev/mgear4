@@ -223,6 +223,7 @@ def _name_to_obj(arg, scope=SCOPE_NODE, known_node=None):
 
 
 def _pymaya_cmd_wrap(func, wrap_object=True, scope=SCOPE_NODE):
+    @functools.wraps(func)
     def wrapper(*args, **kwargs):
         args = _obj_to_name(args)
         kwargs = _obj_to_name(kwargs)
