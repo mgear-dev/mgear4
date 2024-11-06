@@ -173,7 +173,8 @@ def extract_controls(*args):
             pm.parent(new, cGrp, a=True)
             pm.rename(new, x.name() + "_controlBuffer")
             toDel = new.getChildren(type="transform", fullPath=True)
-            pm.delete(toDel)
+            if toDel:
+                pm.delete(toDel)
             try:
                 for s in x.instObjGroups[0].listConnections(type="objectSet"):
                     pm.sets(s, remove=new)
