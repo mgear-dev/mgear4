@@ -370,6 +370,7 @@ def get_color(node):
     if shp:
         if shp.overrideRGBColors.get():
             color = shp.overrideColorRGB.get()
+            color = [color.x, color.y, color.z]
         else:
             color = shp.overrideColor.get()
 
