@@ -167,12 +167,12 @@ def extract_controls(*args):
                     + "_controlBuffer"
                 )
                 pm.delete(old)
-            except TypeError:
+            except (TypeError, RuntimeError):
                 pass
             new = pm.duplicate(x)[0]
             pm.parent(new, cGrp, a=True)
             pm.rename(new, x.name() + "_controlBuffer")
-            toDel = new.getChildren(type="transform")
+            toDel = new.getChildren(type="transform", fullPath=True)
             pm.delete(toDel)
             try:
                 for s in x.instObjGroups[0].listConnections(type="objectSet"):
