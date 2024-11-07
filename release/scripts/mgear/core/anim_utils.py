@@ -56,13 +56,21 @@ def isSideElement(name):
     Returns:
         bool
 
-    Deleted Parameters:
-        node: str
     """
+    # try first wiht side labels if is a node. This will fail with attrs
+    try:
+        if isinstance(name, str):
+            node = pm.PyNode(name)
+        if node.hasAttr("side_label"):
+            side = node.side_label.get()
+            if side in "LR":
+                return True
+    except pm.MayaNodeError:
+        pass
 
+    # old logic for back compatibility
     if "_L_" in name or "_R_" in name:
         return True
-
     nameParts = stripNamespace(name).split("|")[-1]
 
     for part in nameParts.split("_"):
@@ -132,6 +140,8 @@ def swapSideLabelNode(node):
     Returns:
         str
     """
+    if isinstance(node, str):
+        node = pm.PyNode(node)
 
     # first check default swapSideLabel. For defaul Shifter naming system
     name = node.stripNamespace()
@@ -1257,7 +1267,7 @@ def spine_FKToIK(fkControls, ikControls, matchMatrix_dict=None):
 ##################################################
 
 
-def getMirrorTarget(nameSpace, node):
+def getMirrorTarget(nameSpace=None, node=None):
     """Find target control to apply mirroring.
 
     Args:
@@ -1267,11 +1277,18 @@ def getMirrorTarget(nameSpace, node):
     Returns:
         PyNode: Mirror target
     """
+    if not node:
+        return
+    if isinstance(node, str):
+        node = pm.PyNode(node)
 
     if isSideElement(node.name()):
         nameParts = stripNamespace(node.name()).split("|")[-1]
-        nameParts = swapSideLabel(nameParts)
-        nameTarget = ":".join([nameSpace, nameParts])
+        nameParts = swapSideLabelNode(nameParts)
+        if nameSpace:
+            nameTarget = ":".join([nameSpace, nameParts])
+        else:
+            nameTarget = nameParts
         return getNode(nameTarget)
     else:
         # Center controls mirror onto self
@@ -1408,48 +1425,6 @@ def calculateMirrorData(srcNode, targetNode, flip=False):
             }
         )
     return results
-
-
-def calculateMirrorDataRBF(srcNode, targetNode):
-    """Calculate the mirror data
-
-    Args:
-        srcNode (str): The source Node
-        targetNode ([dict[str]]): Target node
-        flip (bool, optional): flip option
-
-    Returns:
-        [{"target": node, "attr": at, "val": flipVal}]
-    """
-    results = []
-
-    # mirror attribute of source
-    for attrName in listAttrForMirror(srcNode):
-
-        # Apply "Invert Mirror" check boxes
-        invCheckName = getInvertCheckButtonAttrName(attrName)
-        if not pm.attributeQuery(
-            invCheckName, node=srcNode, shortName=True, exists=True
-        ):
-            inv = -1
-        else:
-            inv = 1
-
-        # if attr name is side specified, record inverted attr name
-        if isSideElement(attrName):
-            invAttrName = swapSideLabel(attrName)
-        else:
-            invAttrName = attrName
-
-        results.append(
-            {
-                "target": targetNode,
-                "attr": invAttrName,
-                "val": srcNode.attr(attrName).get() * inv,
-            }
-        )
-    return results
-
 
 def mirrorPoseOld(flip=False, nodes=False):
     """Deprecated: Mirror pose
