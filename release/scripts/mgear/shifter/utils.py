@@ -1,4 +1,4 @@
-from pymel import core as pm
+from mgear import pymaya as pm
 
 
 def get_deformer_joint_grp(rigTopNode):

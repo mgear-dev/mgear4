@@ -4,8 +4,8 @@ import json
 from mgear.core import pyqt
 
 
-import pymel.core as pm
-from pymel.core import datatypes
+import mgear.pymaya as pm
+from mgear.pymaya import datatypes
 from mgear.core import transform
 
 import mgear
@@ -167,13 +167,14 @@ def extract_controls(*args):
                     + "_controlBuffer"
                 )
                 pm.delete(old)
-            except TypeError:
+            except (TypeError, RuntimeError):
                 pass
             new = pm.duplicate(x)[0]
             pm.parent(new, cGrp, a=True)
             pm.rename(new, x.name() + "_controlBuffer")
-            toDel = new.getChildren(type="transform")
-            pm.delete(toDel)
+            toDel = new.getChildren(type="transform", fullPath=True)
+            if toDel:
+                pm.delete(toDel)
             try:
                 for s in x.instObjGroups[0].listConnections(type="objectSet"):
                     pm.sets(s, remove=new)

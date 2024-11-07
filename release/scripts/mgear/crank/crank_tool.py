@@ -1,6 +1,6 @@
 import random
 
-import pymel.core as pm
+import mgear.pymaya as pm
 import maya.mel as mel
 import maya.cmds as cmds
 import maya.utils as utils

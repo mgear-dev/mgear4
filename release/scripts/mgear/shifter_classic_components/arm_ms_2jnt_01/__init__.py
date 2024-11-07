@@ -15,8 +15,8 @@
 # custom Upper limb 4 pt bezier o_node with input for rot interpolation
 
 
-import pymel.core as pm
-from pymel.core import datatypes
+import mgear.pymaya as pm
+from mgear.pymaya import datatypes
 
 from mgear.shifter import component
 

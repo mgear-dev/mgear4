@@ -1,4 +1,4 @@
-import pymel.core as pm
+import mgear.pymaya as pm
 import mgear
 
 from mgear.core import string
@@ -39,12 +39,8 @@ def install():
         ("Interpolated Transform", str_createInterpolateTransform),
         (None, connect_submenu),
         ("-----", None),
-        ("Spring", str_spring_UI),
-        ("Rope", str_rope_UI),
-        ("-----", None),
         ("Channel Wrangler", str_openChannelWrangler),
         ("-----", None),
-        ("Facial Rigger", str_facial_rigger),
         ("Eyelid Rigger 2.0", str_eye_rigger),
         ("-----", None),
         ("Proxy Geo", str_proxyGeo, "mgear_proxyGeo_to_next.svg"),
@@ -217,24 +213,9 @@ from mgear import rigbits
 rigbits.createInterpolateTransform()
 """
 
-str_spring_UI = """
-from mgear.rigbits import postSpring
-postSpring.spring_UI()
-"""
-
-str_rope_UI = """
-from mgear.rigbits import rope
-rope.rope_UI()
-"""
-
 str_openChannelWrangler = """
 from mgear.rigbits import channelWrangler
 channelWrangler.openChannelWrangler()
-"""
-
-str_facial_rigger = """
-from mgear.rigbits import facial_rigger
-facial_rigger.show()
 """
 
 str_proxyGeo = """

@@ -7,7 +7,7 @@ from PySide2 import QtUiTools
 from functools import partial
 
 # Maya ---------------
-import pymel.core as pm
+import mgear.pymaya as pm
 import maya.OpenMaya as om
 from maya.app.general.mayaMixin import MayaQWidgetDockableMixin
 

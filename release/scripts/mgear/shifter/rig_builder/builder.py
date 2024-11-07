@@ -4,7 +4,7 @@ import traceback
 
 import maya.api.OpenMaya as om
 import maya.cmds as cmds
-import pymel.core as pm
+import mgear.pymaya as pm
 
 from mgear.shifter import io
 from mgear.shifter import guide_manager

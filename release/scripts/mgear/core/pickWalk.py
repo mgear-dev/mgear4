@@ -2,7 +2,7 @@
 
 # Maya imports
 from maya import cmds
-import pymel.core as pm
+import mgear.pymaya as pm
 
 # mGear imports
 from mgear.core import string

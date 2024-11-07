@@ -4,7 +4,7 @@ import json
 from functools import partial
 
 import mgear.core.pyqt as gqt
-import pymel.core as pm
+import mgear.pymaya as pm
 from maya.app.general.mayaMixin import MayaQWidgetDockableMixin
 from mgear.vendor.Qt import QtCore, QtWidgets
 

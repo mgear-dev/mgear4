@@ -6,7 +6,7 @@
 
 import maya.api.OpenMaya as om2
 import maya.cmds as cmds
-import pymel.core as pm
+import mgear.pymaya as pm
 
 
 def is_selected_object_mesh(obj=None):

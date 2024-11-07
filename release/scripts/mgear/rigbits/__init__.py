@@ -1,6 +1,6 @@
-import pymel.core as pm
-from pymel.core import datatypes
-from pymel import util as pmu
+import mgear.pymaya as pm
+from mgear.pymaya import datatypes
+from mgear.pymaya import util as pmu
 
 
 import mgear
@@ -235,7 +235,7 @@ def alignToPointsLoop(points=None, loc=None, name=None, *args):
     if not points:
         oSel = pm.selected(fl=True)
 
-        checkType = "<class 'pymel.core.general.MeshVertex'>"
+        checkType = "<class 'mgear.pymaya.geometry.MeshVertex'>"
         if not oSel or len(oSel) < 3 or str(type(oSel[0])) != checkType:
             pm.displayWarning(
                 "We need to select a points loop, with at "

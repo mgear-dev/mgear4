@@ -1,6 +1,6 @@
 """Rigbits blendshapes utilities and tools"""
 
-import pymel.core as pm
+import mgear.pymaya as pm
 from mgear.core import deformer
 from .six import string_types
 

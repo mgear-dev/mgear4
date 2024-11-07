@@ -52,7 +52,7 @@ Attributes:
 Deleted Attributes:
     RBF_MODULES (dict): of supported rbf modules
 
-__author__ = "Rafael Villar, Joji Nishimura"
+__author__ = "Rafael Villar, Joji Nishimura", "Miquel Campos
 __email__ = "rav@ravrigs.com"
 __credits__ = ["Miquel Campos", "Ingo Clemens"]
 
@@ -64,19 +64,22 @@ from functools import partial
 
 # core
 import maya.cmds as mc
-import pymel.core as pm
+import mgear.pymaya as pm
 import maya.OpenMaya as om
-import maya.OpenMayaUI as mui
+
+# import maya.OpenMayaUI as mui
 
 # mgear
-import mgear
-from mgear.core import pyqt
+# import mgear
+# from mgear.core import pyqt
 import mgear.core.string as mString
 from mgear.core import anim_utils
 from mgear.core import attribute
-from mgear.vendor.Qt import QtWidgets, QtCore, QtCompat, QtGui
-from maya.app.general.mayaMixin import MayaQWidgetDockableMixin
-from mgear.rigbits.six import PY2
+from mgear.vendor.Qt import QtWidgets, QtCore, QtCompat
+
+# from maya.app.general.mayaMixin import MayaQWidgetDockableMixin
+# from mgear.rigbits.six import PY2
+
 
 # rbf
 from mgear.rigbits import rbf_io
@@ -131,10 +134,9 @@ def existing_rbf_setup(node):
     Returns:
         list: of the rbftype assiociated with the node
     """
-    connected_nodes = mc.listConnections(node,
-                                         destination=True,
-                                         shapes=True,
-                                         scn=True) or []
+    connected_nodes = (
+        mc.listConnections(node, destination=True, shapes=True, scn=True) or []
+    )
     connected_node_types = set(mc.nodeType(x) for x in connected_nodes)
     rbf_node_types = set(rbf_io.RBF_MODULES.keys())
     return list(connected_node_types.intersection(rbf_node_types))
@@ -167,12 +169,16 @@ def getEnvironModules():
     extraModulePath = os.environ.get(widget.MGEAR_EXTRA_ENVIRON, None)
     if extraModulePath is None or not os.path.exists(extraModulePath):
         return None
-    exModule = imp.load_source(widget.MGEAR_EXTRA_ENVIRON,
-                               os.path.abspath(extraModulePath))
+    exModule = imp.load_source(
+        widget.MGEAR_EXTRA_ENVIRON, os.path.abspath(extraModulePath)
+    )
     additionalFuncDict = getattr(exModule, widget.EXTRA_MODULE_DICT, None)
     if additionalFuncDict is None:
-        mc.warning("'{}' not found in {}".format(widget.EXTRA_MODULE_DICT,
-                                                 extraModulePath))
+        mc.warning(
+            "'{}' not found in {}".format(
+                widget.EXTRA_MODULE_DICT, extraModulePath
+            )
+        )
         print("No additional menu items added to {}".format(widget.TOOL_NAME))
     return additionalFuncDict
 
@@ -212,9 +218,11 @@ def show(dockable=True, newSceneCallBack=True, *args):
     RBF_UI.reevalluateAllNodes()
 
     # Check if we've saved a size previously and set it
-    if mc.optionVar(exists='RBF_UI_width') and mc.optionVar(exists='RBF_UI_height'):
-        saved_width = mc.optionVar(query='RBF_UI_width')
-        saved_height = mc.optionVar(query='RBF_UI_height')
+    if mc.optionVar(exists="RBF_UI_width") and mc.optionVar(
+        exists="RBF_UI_height"
+    ):
+        saved_width = mc.optionVar(query="RBF_UI_width")
+        saved_height = mc.optionVar(query="RBF_UI_height")
         RBF_UI.resize(saved_width, saved_height)
 
     # Show the UI.
@@ -223,13 +231,11 @@ def show(dockable=True, newSceneCallBack=True, *args):
 
 
 class RBFTables(widget.RBFWidget):
-
     def __init__(self):
         pass
 
 
 class RBFMenuFunction:
-
     def __init__(self, rbfInstance):
         self.rbfInstance = rbfInstance
 
@@ -239,21 +245,29 @@ class RBFMenuFunction:
         Args:
             setupName (None, optional): Description
         """
-        decision = widget.promptAcceptance(self.rbfInstance,
-                                           "Delete current Setup?",
-                                           "This will delete all RBF nodes in setup.")
-        if decision in [QtWidgets.QMessageBox.Discard,
-                        QtWidgets.QMessageBox.Cancel]:
+        decision = widget.promptAcceptance(
+            self.rbfInstance,
+            "Delete current Setup?",
+            "This will delete all RBF nodes in setup.",
+        )
+        if decision in [
+            QtWidgets.QMessageBox.Discard,
+            QtWidgets.QMessageBox.Cancel,
+        ]:
             return
 
         nodesToDelete = None
         if setupName is None:
             if not allSetup:
                 setupName, _ = self.rbfInstance.getSelectedSetup()
-                nodesToDelete = self.rbfInstance.allSetupsInfo.get(setupName, [])
+                nodesToDelete = self.rbfInstance.allSetupsInfo.get(
+                    setupName, []
+                )
             else:
                 nodesToDelete = list(self.rbfInstance.allSetupsInfo.values())
-                nodesToDelete = [item for sublist in nodesToDelete for item in sublist]
+                nodesToDelete = [
+                    item for sublist in nodesToDelete for item in sublist
+                ]
 
         for rbfNode in nodesToDelete:
             drivenNode = rbfNode.getDrivenNode()
@@ -289,8 +303,10 @@ class RBFMenuFunction:
         # TODO WHEN NEW RBF NODE TYPES ARE ADDED, THIS WILL NEED TO BE RETOOLED
         nodesToExport = []
         if allSetups:
-            [nodesToExport.extend(v) for k, v,
-             in self.rbfInstance.allSetupsInfo.items()]
+            [
+                nodesToExport.extend(v)
+                for k, v, in self.rbfInstance.allSetupsInfo.items()
+            ]
         else:
             nodesToExport = self.rbfInstance.currentRBFSetupNodes
 
@@ -351,8 +367,8 @@ class RBFManagerUI(widget.RBFWidget):
         height = self.height()
 
         # Save the size to Maya's optionVars
-        mc.optionVar(intValue=('RBF_UI_width', width))
-        mc.optionVar(intValue=('RBF_UI_height', height))
+        mc.optionVar(intValue=("RBF_UI_width", width))
+        mc.optionVar(intValue=("RBF_UI_height", height))
 
         self.deleteAssociatedWidgetsMaya(self.driverPoseTableWidget)
         self.deleteAssociatedWidgets(self.driverPoseTableWidget)
@@ -375,8 +391,7 @@ class RBFManagerUI(widget.RBFWidget):
             pass
 
     def removeSceneCallback(self):
-        """remove the callback associated witht he UI, quietly fail.
-        """
+        """remove the callback associated witht he UI, quietly fail."""
         try:
             om.MSceneMessage.removeCallback(self.callBackID)
         except Exception as e:
@@ -384,8 +399,7 @@ class RBFManagerUI(widget.RBFWidget):
             print(e)
 
     def newSceneCallBack(self):
-        """create a new scene callback to refresh the UI when scene changes.
-        """
+        """create a new scene callback to refresh the UI when scene changes."""
         callBackType = om.MSceneMessage.kSceneUpdate
         try:
             func = self.callBackFunc
@@ -430,11 +444,15 @@ class RBFManagerUI(widget.RBFWidget):
         Returns:
             n/a: n/a
         """
-        decision = widget.promptAcceptance(self,
-                                           "Are you sure you want to remove node?",
-                                           "This will delete the RBF & driven node.")
-        if decision in [QtWidgets.QMessageBox.Discard,
-                        QtWidgets.QMessageBox.Cancel]:
+        decision = widget.promptAcceptance(
+            self,
+            "Are you sure you want to remove node?",
+            "This will delete the RBF & driven node.",
+        )
+        if decision in [
+            QtWidgets.QMessageBox.Discard,
+            QtWidgets.QMessageBox.Cancel,
+        ]:
             return
         drivenWidget = self.rbfTabWidget.widget(drivenWidgetIndex)
         self.rbfTabWidget.removeTab(drivenWidgetIndex)
@@ -448,10 +466,12 @@ class RBFManagerUI(widget.RBFWidget):
         mc.delete(rbfNode.transformNode)
         self.currentRBFSetupNodes.remove(rbfNode)
         if self.rbfTabWidget.count() == 0:
-            self.refresh(rbfSelection=True,
-                         driverSelection=True,
-                         drivenSelection=True,
-                         currentRBFSetupNodes=True)
+            self.refresh(
+                rbfSelection=True,
+                driverSelection=True,
+                drivenSelection=True,
+                currentRBFSetupNodes=True,
+            )
         else:
             self.refreshAllTables()
 
@@ -495,23 +515,35 @@ class RBFManagerUI(widget.RBFWidget):
         rbfNode.setSetupName(setupName)
         rbfNode.setDriverControlAttr(driverControl)
         rbfNode.setDriverNode(driverNode, driverAttrs)
-        defaultVals = rbfNode.setDrivenNode(drivenNode, drivenAttrs, parent=parentNode)
+        defaultVals = rbfNode.setDrivenNode(
+            drivenNode, drivenAttrs, parent=parentNode
+        )
 
         # Check if there are any preexisting nodes in setup, if so copy pose index
         if self.currentRBFSetupNodes:
-            print("Syncing poses indices from  {} >> {}".format(self.currentRBFSetupNodes[0], rbfNode))
+            print(
+                "Syncing poses indices from  {} >> {}".format(
+                    self.currentRBFSetupNodes[0], rbfNode
+                )
+            )
             rbfNode.syncPoseIndices(self.currentRBFSetupNodes[0])
             self.addNewTab(rbfNode, drivenNode)
-            self.setAttributeDisplay(self.drivenAttributesWidget, drivenNode, drivenAttrs)
+            self.setAttributeDisplay(
+                self.drivenAttributesWidget, drivenNode, drivenAttrs
+            )
         else:
             if self.zeroedDefaults:
                 rbfNode.applyDefaultPose()
             else:
                 poseInputs = rbf_node.getMultipleAttrs(driverNode, driverAttrs)
-                rbfNode.addPose(poseInput=poseInputs, poseValue=defaultVals[1::2])
+                rbfNode.addPose(
+                    poseInput=poseInputs, poseValue=defaultVals[1::2]
+                )
 
             self.populateDriverInfo(rbfNode, rbfNode.getNodeInfo())
-            drivenWidget = self.populateDrivenInfo(rbfNode, rbfNode.getNodeInfo())
+            drivenWidget = self.populateDrivenInfo(
+                rbfNode, rbfNode.getNodeInfo()
+            )
 
             # Add the driven widget to the tab widget.
             drivenWidget.setProperty("drivenNode", drivenNode)
@@ -540,7 +572,7 @@ class RBFManagerUI(widget.RBFWidget):
             "drivenNode": None,
             "driverControl": None,
             "driverAttrs": None,
-            "drivenAttrs": None
+            "drivenAttrs": None,
         }
 
         # Ensure driverNode and drivenNode are provided
@@ -560,23 +592,27 @@ class RBFManagerUI(widget.RBFWidget):
         result["driverNode"] = driverNode
         result["drivenNode"] = drivenNode
         result["driverControl"] = driverControl
-        result["driverAttrs"] = [item.text().split(".")[1] for item in driverSelectedAttrItems]
-        result["drivenAttrs"] = [item.text().split(".")[1] for item in drivenSelectedAttrItems]
+        result["driverAttrs"] = [
+            item.text().split(".")[1] for item in driverSelectedAttrItems
+        ]
+        result["drivenAttrs"] = [
+            item.text().split(".")[1] for item in drivenSelectedAttrItems
+        ]
 
         return result
 
     def refreshAllTables(self):
-        """Refresh all tables on all the tabs with the latest information
-        """
+        """Refresh all tables on all the tabs with the latest information"""
         # Iterate through each tab in the widget
         for index in range(self.rbfTabWidget.count()):
             drivenWidget = self.rbfTabWidget.widget(index)
-            drivenNodeName = drivenWidget.property("drivenNode")
+            # drivenNodeName = drivenWidget.property("drivenNode")
 
             # Update table if the rbfNode's drivenNode matches the current tab's drivenNode
             for rbfNode in self.currentRBFSetupNodes:
                 drivenNodes = rbfNode.getDrivenNode()
-                if drivenNodes and drivenNodes[0] == drivenNodeName:
+                # if drivenNodes and drivenNodes[0] == drivenNodeName:
+                if drivenNodes:
                     weightInfo = rbfNode.getNodeInfo()
                     self.setDriverTable(rbfNode, weightInfo)
                     self.setDrivenTable(drivenWidget, rbfNode, weightInfo)
@@ -635,12 +671,18 @@ class RBFManagerUI(widget.RBFWidget):
             return
         driverNode = rbfNodes[0].getDriverNode()[0]
         driverAttrs = rbfNodes[0].getDriverNodeAttributes()
-        poseInputs = self.approximateAndRound(rbf_node.getMultipleAttrs(driverNode, driverAttrs))
+        poseInputs = self.approximateAndRound(
+            rbf_node.getMultipleAttrs(driverNode, driverAttrs)
+        )
         for rbfNode in rbfNodes:
-            poseValues = self.approximateAndRound(rbfNode.getPoseValues(resetDriven=True))
-            rbfNode.addPose(poseInput=poseInputs,
-                            poseValue=poseValues,
-                            posesIndex=drivenRow)
+            poseValues = self.approximateAndRound(
+                rbfNode.getPoseValues(resetDriven=True)
+            )
+            rbfNode.addPose(
+                poseInput=poseInputs,
+                poseValue=poseValues,
+                posesIndex=drivenRow,
+            )
             rbfNode.forceEvaluation()
         self.refreshAllTables()
 
@@ -661,9 +703,13 @@ class RBFManagerUI(widget.RBFWidget):
             return
         driverNode = rbfNodes[0].getDriverNode()[0]
         driverAttrs = rbfNodes[0].getDriverNodeAttributes()
-        poseInputs = self.approximateAndRound(rbf_node.getMultipleAttrs(driverNode, driverAttrs))
+        poseInputs = self.approximateAndRound(
+            rbf_node.getMultipleAttrs(driverNode, driverAttrs)
+        )
         nColumns = drivenTableWidget.columnCount()
-        entryWidgets = [drivenTableWidget.cellWidget(drivenRow, c) for c in range(nColumns)]
+        entryWidgets = [
+            drivenTableWidget.cellWidget(drivenRow, c) for c in range(nColumns)
+        ]
         newValues = [float(w.text()) for w in entryWidgets]
         rbfNode = getattr(drivenWidget, "rbfNode")
         rbfNodes = [rbfNode]
@@ -672,15 +718,14 @@ class RBFManagerUI(widget.RBFWidget):
             print("poseInputs: {}".format(poseInputs))
             print("New pose values: {}".format(newValues))
             print("poseIndex: {}".format(drivenRow))
-            rbfNode.addPose(poseInput=poseInputs,
-                            poseValue=newValues,
-                            posesIndex=drivenRow)
+            rbfNode.addPose(
+                poseInput=poseInputs, poseValue=newValues, posesIndex=drivenRow
+            )
             rbfNode.forceEvaluation()
         self.refreshAllTables()
 
     def updateAllFromTables(self):
-        """Update every pose for the RBF nodes based on the values from the tables.
-        """
+        """Update every pose for the RBF nodes based on the values from the tables."""
         rbfNodes = self.currentRBFSetupNodes
         if not rbfNodes:
             return
@@ -700,14 +745,17 @@ class RBFManagerUI(widget.RBFWidget):
 
             # Extract new pose values from the driven table widget
             nColumns = drivenTableWidget.columnCount()
-            entryWidgets = [drivenTableWidget.cellWidget(drivenRow, c) for c in range(nColumns)]
+            entryWidgets = [
+                drivenTableWidget.cellWidget(drivenRow, c)
+                for c in range(nColumns)
+            ]
             newValues = [float(widget.text()) for widget in entryWidgets]
 
             # Update the RBF node associated with the current widget/tab
             rbfNode = getattr(drivenWidget, "rbfNode")
-            rbfNode.addPose(poseInput=poseInputs,
-                            poseValue=newValues,
-                            posesIndex=drivenRow)
+            rbfNode.addPose(
+                poseInput=poseInputs, poseValue=newValues, posesIndex=drivenRow
+            )
             rbfNode.forceEvaluation()
 
         # Refresh tables after all updates
@@ -743,9 +791,13 @@ class RBFManagerUI(widget.RBFWidget):
             return
         driverNode = rbfNodes[0].getDriverNode()[0]
         driverAttrs = rbfNodes[0].getDriverNodeAttributes()
-        poseInputs = self.approximateAndRound(rbf_node.getMultipleAttrs(driverNode, driverAttrs))
+        poseInputs = self.approximateAndRound(
+            rbf_node.getMultipleAttrs(driverNode, driverAttrs)
+        )
         for rbfNode in rbfNodes:
-            poseValues = rbfNode.getPoseValues(resetDriven=True, absoluteWorld=self.absWorld)
+            poseValues = rbfNode.getPoseValues(
+                resetDriven=True, absoluteWorld=self.absWorld
+            )
             poseValues = self.approximateAndRound(poseValues)
             rbfNode.addPose(poseInput=poseInputs, poseValue=poseValues)
         self.refreshAllTables()
@@ -761,7 +813,9 @@ class RBFManagerUI(widget.RBFWidget):
         tmp_dict = rbf_node.getRbfSceneSetupsInfo(includeEmpty=includeEmpty)
         for setupName, nodes in tmp_dict.items():
             rbfNodes = [sortRBF(n) for n in nodes]
-            self.allSetupsInfo[setupName] = sorted(rbfNodes, key=lambda rbf: rbf.name)
+            self.allSetupsInfo[setupName] = sorted(
+                rbfNodes, key=lambda rbf: rbf.name
+            )
 
     def setNodeToField(self, lineEdit, multi=False):
         """take the currently selected node and set its name to the lineedit
@@ -814,8 +868,9 @@ class RBFManagerUI(widget.RBFWidget):
             listWidget.scrollToItem(scrollToItems[0])
 
     def setAttributeDisplay(self, attrListWidget, driverName, displayAttrs):
-        nodeAttrsToDisplay = ["{}.{}".format(driverName, attr)
-                              for attr in displayAttrs]
+        nodeAttrsToDisplay = [
+            "{}.{}".format(driverName, attr) for attr in displayAttrs
+        ]
         attrListWidget.clear()
         attrListWidget.addItems(sorted(nodeAttrsToDisplay))
         self.highlightListEntries(attrListWidget, displayAttrs)
@@ -837,12 +892,14 @@ class RBFManagerUI(widget.RBFWidget):
             if item.text() in itemTexts:
                 item.setSelected(True)
 
-    def updateAttributeDisplay(self,
-                               attrListWidget,
-                               driverNames,
-                               highlight=[],
-                               attrType="keyable",
-                               force=False):
+    def updateAttributeDisplay(
+        self,
+        attrListWidget,
+        driverNames,
+        highlight=[],
+        attrType="keyable",
+        force=False,
+    ):
         """update the provided listwidget with the attrs collected from the
         list of nodes provided
 
@@ -872,11 +929,15 @@ class RBFManagerUI(widget.RBFWidget):
 
         objName = attrListWidget.objectName()
         autoAttrs = {
-            "driverListWidget": self.driverAutoAttr, "drivenListWidget": self.drivenAutoAttr
+            "driverListWidget": self.driverAutoAttr,
+            "drivenListWidget": self.drivenAutoAttr,
         }
 
         if autoAttrs[objName]:
-            attrPlugs = ["{}.{}".format(driverNames[0], attr) for attr in autoAttrs[objName]]
+            attrPlugs = [
+                "{}.{}".format(driverNames[0], attr)
+                for attr in autoAttrs[objName]
+            ]
             self.setSelectedForAutoSelect(attrListWidget, attrPlugs)
 
         if highlight:
@@ -916,7 +977,9 @@ class RBFManagerUI(widget.RBFWidget):
             # Enumerate through each pose input for this RBF node
             for rowIndex, poseInput in enumerate(poses["poseInput"]):
                 for columnIndex, pValue in enumerate(poseInput):
-                    rbfAttrPlug = "{}.poses[{}].poseInput[{}]".format(rbfNode[0], rowIndex, columnIndex)
+                    rbfAttrPlug = "{}.poses[{}].poseInput[{}]".format(
+                        rbfNode[0], rowIndex, columnIndex
+                    )
 
                     # Create a control widget for this pose input attribute
                     widget.getControlAttrWidget(rbfAttrPlug, label="")
@@ -949,25 +1012,37 @@ class RBFManagerUI(widget.RBFWidget):
         if not poseInputs:
             return
 
-        verticalLabels = ["Pose {}".format(index) for index in range(len(poseInputs))]
+        verticalLabels = [
+            "Pose {}".format(index) for index in range(len(poseInputs))
+        ]
         self.driverPoseTableWidget.setVerticalHeaderLabels(verticalLabels)
 
         # Populate the table with widgets
         tmpWidgets, mayaUiItems = [], []
         for rowIndex, poseInput in enumerate(poses["poseInput"]):
             for columnIndex, _ in enumerate(poseInput):
-                rbfAttrPlug = "{}.poses[{}].poseInput[{}]".format(rbfNode, rowIndex, columnIndex)
-                attrEdit, mAttrField = widget.getControlAttrWidget(rbfAttrPlug, label="")
+                rbfAttrPlug = "{}.poses[{}].poseInput[{}]".format(
+                    rbfNode, rowIndex, columnIndex
+                )
+                attrEdit, mAttrField = widget.getControlAttrWidget(
+                    rbfAttrPlug, label=""
+                )
 
                 # Get the current width of the column after resizing to contents
                 self.driverPoseTableWidget.resizeColumnToContents(columnIndex)
-                currentWidth = self.driverPoseTableWidget.columnWidth(columnIndex)
+                currentWidth = self.driverPoseTableWidget.columnWidth(
+                    columnIndex
+                )
 
                 # Add some extra space (e.g., 10 pixels)
                 extraSpace = 20
-                self.driverPoseTableWidget.setColumnWidth(columnIndex, currentWidth + extraSpace)
+                self.driverPoseTableWidget.setColumnWidth(
+                    columnIndex, currentWidth + extraSpace
+                )
 
-                self.driverPoseTableWidget.setCellWidget(rowIndex, columnIndex, attrEdit)
+                self.driverPoseTableWidget.setCellWidget(
+                    rowIndex, columnIndex, attrEdit
+                )
                 attrEdit.returnPressed.connect(
                     partial(self.syncDriverTableCells, attrEdit, rbfAttrPlug)
                 )
@@ -1007,7 +1082,9 @@ class RBFManagerUI(widget.RBFWidget):
 
         self.driverLineEdit.setText(driverNode or "")
         self.controlLineEdit.setText(driverControl)
-        self.setAttributeDisplay(self.driverAttributesWidget, driverNode, driverAttrs)
+        self.setAttributeDisplay(
+            self.driverAttributesWidget, driverNode, driverAttrs
+        )
         self.setDriverTable(rbfNode, weightInfo)
 
     def populateDrivenInfo(self, rbfNode, weightInfo):
@@ -1027,7 +1104,11 @@ class RBFManagerUI(widget.RBFWidget):
         # Set Driven Node and Attributes
         drivenNode = weightInfo.get("drivenNode", [None])[0]
         self.drivenLineEdit.setText(drivenNode or "")
-        self.setAttributeDisplay(self.drivenAttributesWidget, drivenNode or "", weightInfo["drivenAttrs"])
+        self.setAttributeDisplay(
+            self.drivenAttributesWidget,
+            drivenNode or "",
+            weightInfo["drivenAttrs"],
+        )
 
         # Add the driven widget to the tab widget.
         drivenWidget.setProperty("drivenNode", drivenNode)
@@ -1076,23 +1157,37 @@ class RBFManagerUI(widget.RBFWidget):
 
         for rowIndex, poseInput in enumerate(poses["poseValue"]):
             for columnIndex, pValue in enumerate(poseInput):
-                rbfAttrPlug = "{}.poses[{}].poseValue[{}]".format(rbfNode, rowIndex, columnIndex)
-                attrEdit, mAttrFeild = widget.getControlAttrWidget(rbfAttrPlug, label="")
-                drivenWidget.tableWidget.setCellWidget(rowIndex, columnIndex, attrEdit)
+                rbfAttrPlug = "{}.poses[{}].poseValue[{}]".format(
+                    rbfNode, rowIndex, columnIndex
+                )
+                attrEdit, mAttrFeild = widget.getControlAttrWidget(
+                    rbfAttrPlug, label=""
+                )
+                drivenWidget.tableWidget.setCellWidget(
+                    rowIndex, columnIndex, attrEdit
+                )
 
                 # Get the current width of the column after resizing to contents
                 drivenWidget.tableWidget.resizeColumnToContents(columnIndex)
-                currentWidth = drivenWidget.tableWidget.columnWidth(columnIndex)
+                currentWidth = drivenWidget.tableWidget.columnWidth(
+                    columnIndex
+                )
 
                 # Add some extra space (e.g., 10 pixels)
                 extraSpace = 20
-                drivenWidget.tableWidget.setColumnWidth(columnIndex, currentWidth + extraSpace)
+                drivenWidget.tableWidget.setColumnWidth(
+                    columnIndex, currentWidth + extraSpace
+                )
 
                 # Adding QTableWidgetItem for the cell and setting the value
                 tableItem = QtWidgets.QTableWidgetItem()
-                tableItem.setFlags(tableItem.flags() | QtCore.Qt.ItemIsEditable)
+                tableItem.setFlags(
+                    tableItem.flags() | QtCore.Qt.ItemIsEditable
+                )
                 tableItem.setData(QtCore.Qt.DisplayRole, str(pValue))
-                drivenWidget.tableWidget.setItem(rowIndex, columnIndex, tableItem)
+                drivenWidget.tableWidget.setItem(
+                    rowIndex, columnIndex, tableItem
+                )
 
     def populateDrivenWidgetInfo(self, drivenWidget, weightInfo, rbfNode):
         """set the information from the weightInfo to the widgets child of
@@ -1138,7 +1233,7 @@ class RBFManagerUI(widget.RBFWidget):
             driverSelection=False,
             drivenSelection=True,
             currentRBFSetupNodes=False,
-            clearDrivenTab=False
+            clearDrivenTab=False,
         )
 
         self.setDrivenButton.blockSignals(False)
@@ -1173,10 +1268,12 @@ class RBFManagerUI(widget.RBFWidget):
         rbfSelection = str(self.rbf_cbox.currentText())
 
         # Refresh UI components
-        self.refresh(rbfSelection=False,
-                     driverSelection=True,
-                     drivenSelection=True,
-                     currentRBFSetupNodes=False)
+        self.refresh(
+            rbfSelection=False,
+            driverSelection=True,
+            drivenSelection=True,
+            currentRBFSetupNodes=False,
+        )
 
         # Handle 'New' selection case
         if rbfSelection.startswith("New "):
@@ -1201,17 +1298,21 @@ class RBFManagerUI(widget.RBFWidget):
             self.recreateDrivenTabs(self.allSetupsInfo[rbfSelection])
         except AttributeError:
             print("Forcing refresh on UI due to error.")
-            self.refresh(rbfSelection=True,
-                         driverSelection=True,
-                         drivenSelection=True,
-                         currentRBFSetupNodes=True)
+            self.refresh(
+                rbfSelection=True,
+                driverSelection=True,
+                drivenSelection=True,
+                currentRBFSetupNodes=True,
+            )
 
-    def attrListMenu(self,
-                     attributeListWidget,
-                     driverLineEdit,
-                     attributeListType,
-                     QPos,
-                     nodeToQuery=None):
+    def attrListMenu(
+        self,
+        attributeListWidget,
+        driverLineEdit,
+        attributeListType,
+        QPos,
+        nodeToQuery=None,
+    ):
         """right click menu for queie qlistwidget
 
         Args:
@@ -1230,34 +1331,49 @@ class RBFManagerUI(widget.RBFWidget):
         parentPosition = attributeListWidget.mapToGlobal(QtCore.QPoint(0, 0))
         menu_item_01 = self.attrMenu.addAction("Display Keyable")
         menu_item_01.setToolTip("Show Keyable Attributes")
-        menu_item_01.triggered.connect(partial(self.updateAttributeDisplay,
-                                               attributeListWidget,
-                                               nodeToQuery,
-                                               attrType="keyable",
-                                               force=True))
+        menu_item_01.triggered.connect(
+            partial(
+                self.updateAttributeDisplay,
+                attributeListWidget,
+                nodeToQuery,
+                attrType="keyable",
+                force=True,
+            )
+        )
         menu2Label = "Display ChannelBox (Non Keyable)"
         menu_item_02 = self.attrMenu.addAction(menu2Label)
         menu2tip = "Show attributes in ChannelBox that are not keyable."
         menu_item_02.setToolTip(menu2tip)
-        menu_item_02.triggered.connect(partial(self.updateAttributeDisplay,
-                                               attributeListWidget,
-                                               nodeToQuery,
-                                               attrType="cb",
-                                               force=True))
+        menu_item_02.triggered.connect(
+            partial(
+                self.updateAttributeDisplay,
+                attributeListWidget,
+                nodeToQuery,
+                attrType="cb",
+                force=True,
+            )
+        )
         menu_item_03 = self.attrMenu.addAction("Display All")
         menu_item_03.setToolTip("GIVE ME ALL!")
-        menu_item_03.triggered.connect(partial(self.updateAttributeDisplay,
-                                               attributeListWidget,
-                                               nodeToQuery,
-                                               attrType="all",
-                                               force=True))
+        menu_item_03.triggered.connect(
+            partial(
+                self.updateAttributeDisplay,
+                attributeListWidget,
+                nodeToQuery,
+                attrType="all",
+                force=True,
+            )
+        )
 
         self.attrMenu.addSeparator()
 
         menu_item_04 = self.attrMenu.addAction("Set attribute to auto select")
-        menu_item_04.setToolTip("Set your attribute to be automatically highlighted up in the next operations")
-        menu_item_04.triggered.connect(partial(self.setAttributeToAutoSelect,
-                                               attributeListWidget))
+        menu_item_04.setToolTip(
+            "Set your attribute to be automatically highlighted up in the next operations"
+        )
+        menu_item_04.triggered.connect(
+            partial(self.setAttributeToAutoSelect, attributeListWidget)
+        )
         self.attrMenu.move(parentPosition + QPos)
         self.attrMenu.show()
 
@@ -1273,7 +1389,9 @@ class RBFManagerUI(widget.RBFWidget):
         self.rbf_cbox.clear()
         self.updateAllSetupsInfo()
         allSetups = sorted(self.allSetupsInfo.keys())
-        newSetupOptions = ["New {} setup".format(rbf) for rbf in rbf_node.SUPPORTED_RBF_NODES]
+        newSetupOptions = [
+            "New {} setup".format(rbf) for rbf in rbf_node.SUPPORTED_RBF_NODES
+        ]
         self.rbf_cbox.addItems(newSetupOptions + allSetups)
 
         if setToSelection:
@@ -1284,8 +1402,7 @@ class RBFManagerUI(widget.RBFWidget):
         self.rbf_cbox.blockSignals(False)
 
     def clearDriverTabs(self):
-        """force deletion on tab widgets
-        """
+        """force deletion on tab widgets"""
         toRemove = []
         tabIndicies = self.driverPoseTableWidget.count()
         for index in range(tabIndicies):
@@ -1295,8 +1412,7 @@ class RBFManagerUI(widget.RBFWidget):
         [t.deleteLater() for t in toRemove]
 
     def clearDrivenTabs(self):
-        """force deletion on tab widgets
-        """
+        """force deletion on tab widgets"""
         toRemove = []
         tabIndicies = self.rbfTabWidget.count()
         for index in range(tabIndicies):
@@ -1305,13 +1421,15 @@ class RBFManagerUI(widget.RBFWidget):
         self.rbfTabWidget.clear()
         [t.deleteLater() for t in toRemove]
 
-    def refresh(self,
-                rbfSelection=True,
-                driverSelection=True,
-                drivenSelection=True,
-                currentRBFSetupNodes=True,
-                clearDrivenTab=True,
-                *args):
+    def refresh(
+        self,
+        rbfSelection=True,
+        driverSelection=True,
+        drivenSelection=True,
+        currentRBFSetupNodes=True,
+        clearDrivenTab=True,
+        *args
+    ):
         """Refreshes the UI
 
         Args:
@@ -1333,7 +1451,9 @@ class RBFManagerUI(widget.RBFWidget):
 
             self.driverPoseTableWidget.setRowCount(1)
             self.driverPoseTableWidget.setColumnCount(1)
-            self.driverPoseTableWidget.setHorizontalHeaderLabels(["Pose Value"])
+            self.driverPoseTableWidget.setHorizontalHeaderLabels(
+                ["Pose Value"]
+            )
             self.driverPoseTableWidget.setVerticalHeaderLabels(["Pose #0"])
 
         if drivenSelection:
@@ -1412,18 +1532,22 @@ class RBFManagerUI(widget.RBFWidget):
             textA = "Do you want to change the Control for setup?"
             textB = "This Control that will be used for recalling poses."
             decision = widget.promptAcceptance(self, textA, textB)
-            if decision in [QtWidgets.QMessageBox.Discard,
-                            QtWidgets.QMessageBox.Cancel]:
+            if decision in [
+                QtWidgets.QMessageBox.Discard,
+                QtWidgets.QMessageBox.Cancel,
+            ]:
                 return
             controlName = self.setNodeToField(lineEditWidget)
             self.setDriverControlOnSetup(controlName)
 
     def setDrivenInfo(self, tabIndex):
-        self.refresh(rbfSelection=False,
-                     driverSelection=False,
-                     drivenSelection=True,
-                     currentRBFSetupNodes=False,
-                     clearDrivenTab=False)
+        self.refresh(
+            rbfSelection=False,
+            driverSelection=False,
+            drivenSelection=True,
+            currentRBFSetupNodes=False,
+            clearDrivenTab=False,
+        )
 
         tabWidget = self.rbfTabWidget.widget(tabIndex)
         rbfNode = getattr(tabWidget, "rbfNode")
@@ -1432,7 +1556,11 @@ class RBFManagerUI(widget.RBFWidget):
         # Set Driven Node and Attributes
         drivenNode = weightInfo.get("drivenNode", [None])[0]
         self.drivenLineEdit.setText(drivenNode or "")
-        self.setAttributeDisplay(self.drivenAttributesWidget, drivenNode or "", weightInfo["drivenAttrs"])
+        self.setAttributeDisplay(
+            self.drivenAttributesWidget,
+            drivenNode or "",
+            weightInfo["drivenAttrs"],
+        )
 
         self.addPoseButton.setEnabled(True)
 
@@ -1470,14 +1598,26 @@ class RBFManagerUI(widget.RBFWidget):
             # connections -----------------------------------------------------
             mrConnections = []
             for pairs in weightInfo["connections"]:
-                mrConnections.append([mString.convertRLName(pairs[0]),
-                                      mString.convertRLName(pairs[1])])
+                mrConnections.append(
+                    [
+                        mString.convertRLName(pairs[0]),
+                        mString.convertRLName(pairs[1]),
+                    ]
+                )
 
             weightInfo["connections"] = mrConnections
-            weightInfo["drivenControlName"] = mString.convertRLName(weightInfo["drivenControlName"])
-            weightInfo["drivenNode"] = [mString.convertRLName(n) for n in weightInfo["drivenNode"]]
-            weightInfo["driverControl"] = mString.convertRLName(weightInfo["driverControl"])
-            weightInfo["driverNode"] = [mString.convertRLName(n) for n in weightInfo["driverNode"]]
+            weightInfo["drivenControlName"] = mString.convertRLName(
+                weightInfo["drivenControlName"]
+            )
+            weightInfo["drivenNode"] = [
+                mString.convertRLName(n) for n in weightInfo["drivenNode"]
+            ]
+            weightInfo["driverControl"] = mString.convertRLName(
+                weightInfo["driverControl"]
+            )
+            weightInfo["driverNode"] = [
+                mString.convertRLName(n) for n in weightInfo["driverNode"]
+            ]
 
             # setupName -------------------------------------------------------
             mrSetupName = mString.convertRLName(weightInfo["setupName"])
@@ -1513,7 +1653,10 @@ class RBFManagerUI(widget.RBFWidget):
             drivenControlNode = rbfNode.getConnectedRBFToggleNode()
             mrDrivenControlNode = mString.convertRLName(drivenControlNode)
             mrDrivenControlNode = pm.PyNode(mrDrivenControlNode)
-            setupTargetInfo_dict[pm.PyNode(drivenNode)] = [mrDrivenControlNode, mrRbfNode]
+            setupTargetInfo_dict[pm.PyNode(drivenNode)] = [
+                mrDrivenControlNode,
+                mrRbfNode,
+            ]
         return setupTargetInfo_dict
 
     def mirrorSetup(self):
@@ -1560,14 +1703,17 @@ class RBFManagerUI(widget.RBFWidget):
             for srcNode, dstValues in setupTargetInfo_dict.items():
                 mrData.extend(anim_utils.calculateMirrorData(srcNode,
                                                                 dstValues[0]))
+
             for entry in mrData:
                 anim_utils.applyMirror(nameSpace, entry)
             poseInputs = rbf_node.getMultipleAttrs(mrDriverNode, mrDriverAttrs)
             for mrRbfNode in mrRbfNodes:
                 poseValues = mrRbfNode.getPoseValues(resetDriven=False)
-                mrRbfNode.addPose(poseInput=poseInputs,
-                                  poseValue=poseValues,
-                                  posesIndex=index)
+                mrRbfNode.addPose(
+                    poseInput=poseInputs,
+                    poseValue=poseValues,
+                    posesIndex=index,
+                )
                 mrRbfNode.forceEvaluation()
         [v.setToggleRBFAttr(1) for v in mrRbfNodes]
         setupName, rbfType = self.getSelectedSetup()
@@ -1608,15 +1754,15 @@ class RBFManagerUI(widget.RBFWidget):
         parentPosition = self.rbfTabWidget.mapToGlobal(QtCore.QPoint(0, 0))
         menu_item_01 = tabMenu.addAction("Select {}".format(rbfNode))
         menu_item_01.triggered.connect(partial(mc.select, rbfNode))
-        partialObj_selWdgt = partial(self.rbfTabWidget.setCurrentWidget,
-                                     selWidget)
+        partialObj_selWdgt = partial(
+            self.rbfTabWidget.setCurrentWidget, selWidget
+        )
         menu_item_01.triggered.connect(partialObj_selWdgt)
         tabMenu.move(parentPosition + qPoint)
         tabMenu.show()
 
     def reevalluateAllNodes(self):
-        """for evaluation on all nodes in any setup. In case of manual editing
-        """
+        """for evaluation on all nodes in any setup. In case of manual editing"""
         for name, rbfNodes in self.allSetupsInfo.items():
             [rbfNode.forceEvaluation() for rbfNode in rbfNodes]
         print("All Nodes have been Re-evaluated")
@@ -1651,10 +1797,12 @@ class RBFManagerUI(widget.RBFWidget):
         self.driverLineEdit.clicked.connect(selectNode)
         self.controlLineEdit.clicked.connect(selectNode)
         self.drivenLineEdit.clicked.connect(selectNode)
-        self.driverLineEdit.textChanged.connect(partial(self.updateAttributeDisplay,
-                                                        self.driverAttributesWidget))
-        self.drivenLineEdit.textChanged.connect(partial(self.updateAttributeDisplay,
-                                                        self.drivenAttributesWidget))
+        self.driverLineEdit.textChanged.connect(
+            partial(self.updateAttributeDisplay, self.driverAttributesWidget)
+        )
+        self.drivenLineEdit.textChanged.connect(
+            partial(self.updateAttributeDisplay, self.drivenAttributesWidget)
+        )
 
         # Table Widget
         header = self.driverPoseTableWidget.verticalHeader()
@@ -1669,26 +1817,36 @@ class RBFManagerUI(widget.RBFWidget):
         self.editPoseButton.clicked.connect(self.editPose)
         self.editPoseValuesButton.clicked.connect(self.editPoseValues)
         self.deletePoseButton.clicked.connect(self.deletePose)
-        self.setControlButton.clicked.connect(partial(self.setSetupDriverControl, self.controlLineEdit))
-        self.setDriverButton.clicked.connect(partial(self.setNodeToField, self.driverLineEdit))
-        self.setDrivenButton.clicked.connect(partial(self.setNodeToField, self.drivenLineEdit, multi=True))
+        self.setControlButton.clicked.connect(
+            partial(self.setSetupDriverControl, self.controlLineEdit)
+        )
+        self.setDriverButton.clicked.connect(
+            partial(self.setNodeToField, self.driverLineEdit)
+        )
+        self.setDrivenButton.clicked.connect(
+            partial(self.setNodeToField, self.drivenLineEdit, multi=True)
+        )
         self.allButton.clicked.connect(self.setDriverControlLineEdit)
         self.addDrivenButton.clicked.connect(self.addNewDriven)
 
         # Custom Context Menus
         customMenu = self.driverAttributesWidget.customContextMenuRequested
         customMenu.connect(
-            partial(self.attrListMenu,
-                    self.driverAttributesWidget,
-                    self.driverLineEdit,
-                    "driver")
+            partial(
+                self.attrListMenu,
+                self.driverAttributesWidget,
+                self.driverLineEdit,
+                "driver",
+            )
         )
         customMenu = self.drivenAttributesWidget.customContextMenuRequested
         customMenu.connect(
-            partial(self.attrListMenu,
-                    self.drivenAttributesWidget,
-                    self.driverLineEdit,
-                    "driven")
+            partial(
+                self.attrListMenu,
+                self.drivenAttributesWidget,
+                self.driverLineEdit,
+                "driven",
+            )
         )
 
         # Tab Widget
@@ -1712,9 +1870,11 @@ class RBFManagerUI(widget.RBFWidget):
         splitter = QtWidgets.QSplitter()
 
         # Setup selector section
-        (rbfLayout,
-         self.rbf_cbox,
-         self.rbf_refreshButton) = self.createSetupSelectorWidget()
+        (
+            rbfLayout,
+            self.rbf_cbox,
+            self.rbf_refreshButton,
+        ) = self.createSetupSelectorWidget()
         self.rbf_cbox.setToolTip("List of available setups in the scene.")
         self.rbf_refreshButton.setToolTip("Refresh the UI")
 
@@ -1752,8 +1912,14 @@ class RBFManagerUI(widget.RBFWidget):
         file.addAction("Import RBFs", partial(self.menuFunc.importNodes))
         file.addAction("Export RBFs", self.menuFunc.exportNodes)
         file.addSeparator()
-        file.addAction("Delete Current Setup", partial(self.menuFunc.deleteSetup, allSetup=False))
-        file.addAction("Delete All Setup", partial(self.menuFunc.deleteSetup, allSetup=True))
+        file.addAction(
+            "Delete Current Setup",
+            partial(self.menuFunc.deleteSetup, allSetup=False),
+        )
+        file.addAction(
+            "Delete All Setup",
+            partial(self.menuFunc.deleteSetup, allSetup=True),
+        )
         # mirror --------------------------------------------------------------
         mirrorMenu = mainMenuBar.addMenu("Mirror")
         mirrorMenu1 = mirrorMenu.addAction("Mirror Setup", self.mirrorSetup)

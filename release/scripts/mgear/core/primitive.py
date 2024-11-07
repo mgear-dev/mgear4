@@ -1,7 +1,7 @@
 """Functions to create primitives (Non geometry)"""
 
-import pymel.core as pm
-import pymel.core.datatypes as datatypes
+import mgear.pymaya as pm
+import mgear.pymaya.datatypes as datatypes
 
 from mgear.core import transform
 

@@ -5,13 +5,13 @@ import sys
 
 import mgear
 import mgear.core.icon as ico
-import pymel.core as pm
+import mgear.pymaya as pm
 from maya.app.general.mayaMixin import MayaQWidgetDockableMixin
 from mgear import shifter
 from mgear.core import transform, node, attribute, applyop, pyqt, utils, curve
 from mgear.vendor.Qt import QtCore, QtWidgets
-from pymel import versions
-from pymel.core import datatypes
+from mgear.pymaya import versions
+from mgear.pymaya import datatypes
 
 from mgear.core import string
 from mgear.simpleRig import simpleRigUI as srUI

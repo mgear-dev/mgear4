@@ -1,9 +1,9 @@
 """Functions to create and connect nodes."""
 
 
-import pymel.core as pm
-from pymel import versions
-import pymel.core.datatypes as datatypes
+import mgear.pymaya as pm
+from mgear.pymaya import versions
+import mgear.pymaya.datatypes as datatypes
 from mgear.core import attribute
 
 from .six import PY2, string_types

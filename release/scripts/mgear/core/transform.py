@@ -2,10 +2,10 @@
 
 import math
 
-from pymel import util
-import pymel.core as pm
-from pymel.core import datatypes
-from pymel.core import nodetypes
+from mgear.pymaya import util
+import mgear.pymaya as pm
+from mgear.pymaya import datatypes
+from mgear.pymaya import nodetypes
 
 from mgear.core import vector
 
@@ -13,6 +13,8 @@ import maya.cmds as cmds
 
 import maya.OpenMaya as om
 import maya.OpenMayaUI as omui
+
+import maya.api.OpenMaya as om2
 
 #############################################
 # TRANSFORM
@@ -940,47 +942,54 @@ def bake_local_to_offset_parent_matrix(node):
     parent matrix, resetting the local values to neutral.
 
     Args:
-        node (str or pm.PyNode): The node to bake the local transforms for.
+        node (str): The name of the node to bake the local transforms for.
     """
-    if isinstance(node, str):
-        node = pm.PyNode(node)
+    if not cmds.objExists(node):
+        raise ValueError("Node does not exist: {}".format(node))
 
     # Get current local transform values
-    local_scale = node.getAttr("scale")
-    local_rotate = node.getAttr("rotate")
-    local_translate = node.getAttr("translate")
+    local_scale = cmds.getAttr("{}.scale".format(node))[0]
+    local_rotate = cmds.getAttr("{}.rotate".format(node))[0]
+    local_translate = cmds.getAttr("{}.translate".format(node))[0]
 
-    # Create transformation matrices
-    scale_matrix = pm.datatypes.Matrix()
-    rotate_matrix = pm.datatypes.EulerRotation(
-        local_rotate[0], local_rotate[1], local_rotate[2], unit="degrees"
-    ).asMatrix()
-    translate_matrix = pm.datatypes.Matrix()
+    # Create a transformation matrix and set scale, rotation, and translation
+    transform_matrix = om2.MTransformationMatrix()
 
-    # Set the scale values
-    scale_matrix[0, 0] = local_scale[0]
-    scale_matrix[1, 1] = local_scale[1]
-    scale_matrix[2, 2] = local_scale[2]
+    # Set the scale directly as a list, which is accepted by the new API
+    transform_matrix.setScale(local_scale, om2.MSpace.kTransform)
 
-    # Set the translation values
-    translate_matrix[3, 0] = local_translate[0]
-    translate_matrix[3, 1] = local_translate[1]
-    translate_matrix[3, 2] = local_translate[2]
+    # Set the rotation
+    rotation = om2.MEulerRotation(
+        om2.MAngle(local_rotate[0], om2.MAngle.kDegrees).asRadians(),
+        om2.MAngle(local_rotate[1], om2.MAngle.kDegrees).asRadians(),
+        om2.MAngle(local_rotate[2], om2.MAngle.kDegrees).asRadians(),
+    )
+    transform_matrix.setRotation(rotation)
 
-    # Combine the matrices
-    local_matrix = scale_matrix * rotate_matrix * translate_matrix
+    # Set the translation
+    translation = om2.MVector(local_translate)
+    transform_matrix.setTranslation(translation, om2.MSpace.kTransform)
+
+    # Convert the transformation matrix to MMatrix
+    local_matrix = transform_matrix.asMatrix()
 
     # Get current offset parent matrix
-    current_offset_matrix = node.getAttr("offsetParentMatrix")
+    current_offset_matrix = om2.MMatrix(
+        cmds.getAttr("{}.offsetParentMatrix".format(node))
+    )
 
     # Combine the current offset parent matrix with the local matrix
     new_offset_matrix = local_matrix * current_offset_matrix
 
     # Set the new offset parent matrix
-    node.setAttr("offsetParentMatrix", new_offset_matrix)
+    cmds.setAttr(
+        "{}.offsetParentMatrix".format(node), *new_offset_matrix, type="matrix"
+    )
 
     # Reset local transform values to neutral
-    resetTransform(node)
+    cmds.setAttr("{}.scale".format(node), 1, 1, 1, type="double3")
+    cmds.setAttr("{}.rotate".format(node), 0, 0, 0, type="double3")
+    cmds.setAttr("{}.translate".format(node), 0, 0, 0, type="double3")
 
 
 def rotate_180(axis="Y", rotation_order="XYZ", objects=None):
