@@ -65,7 +65,7 @@ def isSideElement(name):
             side = node.side_label.get()
             if side in "LR":
                 return True
-    except pm.MayaNodeError:
+    except (pm.MayaNodeError, RuntimeError):
         pass
 
     # old logic for back compatibility
