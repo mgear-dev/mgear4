@@ -1701,8 +1701,9 @@ class RBFManagerUI(widget.RBFWidget):
             anim_utils.mirrorPose(flip=False, nodes=[driverControl])
             mrData = []
             for srcNode, dstValues in setupTargetInfo_dict.items():
-                mrData.extend(anim_utils.calculateMirrorData(srcNode,
-                                                                dstValues[0]))
+                mrData.extend(
+                    anim_utils.calculateMirrorData(srcNode, dstValues[0])
+                )
 
             for entry in mrData:
                 anim_utils.applyMirror(nameSpace, entry)
@@ -1910,7 +1911,11 @@ class RBFManagerUI(widget.RBFWidget):
         menu1.setToolTip("Force all RBF nodes to re-revaluate.")
         file.addSeparator()
         file.addAction("Import RBFs", partial(self.menuFunc.importNodes))
-        file.addAction("Export RBFs", self.menuFunc.exportNodes)
+        file.addAction("Export ALL RBFs", self.menuFunc.exportNodes)
+        file.addAction(
+            "Export Current Setup RBFs",
+            partial(self.menuFunc.exportNodes, allSetups=False),
+        )
         file.addSeparator()
         file.addAction(
             "Delete Current Setup",
