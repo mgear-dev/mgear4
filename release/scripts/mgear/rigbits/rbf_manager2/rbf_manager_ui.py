@@ -73,6 +73,7 @@ import mgear
 from mgear.core import pyqt
 import mgear.core.string as mString
 from mgear.core import anim_utils
+from mgear.core import attribute
 from mgear.vendor.Qt import QtWidgets, QtCore, QtCompat, QtGui
 from maya.app.general.mayaMixin import MayaQWidgetDockableMixin
 from mgear.rigbits.six import PY2
@@ -208,6 +209,7 @@ def show(dockable=True, newSceneCallBack=True, *args):
     # Create the UI
     RBF_UI = RBFManagerUI(newSceneCallBack=newSceneCallBack)
     RBF_UI.initializePoseControlWidgets()
+    RBF_UI.reevalluateAllNodes()
 
     # Check if we've saved a size previously and set it
     if mc.optionVar(exists='RBF_UI_width') and mc.optionVar(exists='RBF_UI_height'):
@@ -1543,9 +1545,11 @@ class RBFManagerUI(widget.RBFWidget):
         driverControl = aRbfNode.getDriverControlAttr()
         driverControl = pm.PyNode(driverControl)
         # Sanity check: make sure mirror attributes are set up properly
+        driven_ctl = []
         for targetInfo in setupTargetInfo_dict.items():
             driven = targetInfo[0]
             ctrl = driven.name().replace("_driven", "_ctl")
+            driven_ctl.append(targetInfo[1][0])
             for attr in ["invTx", "invTy", "invTz", "invRx", "invRy", "invRz"]:
                 pm.setAttr(driven + "." + attr, pm.getAttr(ctrl + "." + attr))
         for index in range(poseIndices):
@@ -1554,7 +1558,7 @@ class RBFManagerUI(widget.RBFWidget):
             anim_utils.mirrorPose(flip=False, nodes=[driverControl])
             mrData = []
             for srcNode, dstValues in setupTargetInfo_dict.items():
-                mrData.extend(anim_utils.calculateMirrorDataRBF(srcNode,
+                mrData.extend(anim_utils.calculateMirrorData(srcNode,
                                                                 dstValues[0]))
             for entry in mrData:
                 anim_utils.applyMirror(nameSpace, entry)
@@ -1571,6 +1575,8 @@ class RBFManagerUI(widget.RBFWidget):
         for mrRbfNode in mrRbfNodes:
             rbf_node.resetDrivenNodes(str(mrRbfNode))
         pm.select(cl=True)
+        self.reevalluateAllNodes()
+        attribute.reset_SRT(driven_ctl)
 
     def hideMenuBar(self, x, y):
         """rules to hide/show the menubar when hide is enabled
