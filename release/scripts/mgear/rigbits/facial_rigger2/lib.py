@@ -1,5 +1,5 @@
 import json
-from six import string_types
+from mgear.core.six import string_types
 import mgear.pymaya
 
 from mgear.vendor.Qt import QtWidgets
