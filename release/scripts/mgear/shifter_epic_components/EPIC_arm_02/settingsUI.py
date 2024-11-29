@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'C:/datawork/repo/mgear4/release/scripts/mgear/shifter_epic_components/EPIC_arm_02/settingsUI.ui'
+# Form implementation generated from reading ui file 'C:/datawork/repo/mgear4/release/scripts/mgear/shifter_epic_components/EPIC_arm_02/settingsUI.ui',
+# licensing of 'C:/datawork/repo/mgear4/release/scripts/mgear/shifter_epic_components/EPIC_arm_02/settingsUI.ui' applies.
 #
-# Created: Fri Jan 12 15:22:01 2024
-#      by: pyside2-uic  running on PySide2 2.0.0~alpha0
+# Created: Fri Nov 29 10:25:46 2024
+#      by: pyside2-uic  running on PySide2 5.12.5
 #
 # WARNING! All changes made in this file will be lost!
 
@@ -90,6 +91,8 @@ class Ui_Form(object):
         self.mirrorMid_checkBox.setObjectName("mirrorMid_checkBox")
         self.verticalLayout.addWidget(self.mirrorMid_checkBox)
         self.useBlade_checkBox = QtWidgets.QCheckBox(self.groupBox)
+        self.useBlade_checkBox.setStatusTip("")
+        self.useBlade_checkBox.setWhatsThis("")
         self.useBlade_checkBox.setObjectName("useBlade_checkBox")
         self.verticalLayout.addWidget(self.useBlade_checkBox)
         self.TPoseRest_checkBox = QtWidgets.QCheckBox(self.groupBox)
@@ -226,10 +229,8 @@ class Ui_Form(object):
         self.mirrorMid_checkBox.setStatusTip(QtWidgets.QApplication.translate("Form", "This option set the axis of the mid CTL (elbow) and the up vector control to move in a mirror behaviour ", None, -1))
         self.mirrorMid_checkBox.setWhatsThis(QtWidgets.QApplication.translate("Form", "This option set the axis of the mid CTL (elbow) and the up vector control to move in a mirror behaviour ", None, -1))
         self.mirrorMid_checkBox.setText(QtWidgets.QApplication.translate("Form", "Mirror Mid Ctl and UPV  axis behaviour", None, -1))
-        self.useBlade_checkBox.setToolTip(QtWidgets.QApplication.translate("Form", "<html><head/><body><p>If checked, the Rest pose for  FK controls will be in T Pose</p></body></html>", None, -1))
-        self.useBlade_checkBox.setStatusTip(QtWidgets.QApplication.translate("Form", "This option set the axis of the mid CTL (elbow) and the up vector control to move in a mirror behaviour ", None, -1))
-        self.useBlade_checkBox.setWhatsThis(QtWidgets.QApplication.translate("Form", "This option set the axis of the mid CTL (elbow) and the up vector control to move in a mirror behaviour ", None, -1))
-        self.useBlade_checkBox.setText(QtWidgets.QApplication.translate("Form", "Use Wrist Blade", None, -1))
+        self.useBlade_checkBox.setToolTip(QtWidgets.QApplication.translate("Form", "<html><head/><body><p>If checked, will use a blade to control the wrist joint orientation. This doesn\'t affect the controls that are align with the arm plane.</p></body></html>", None, -1))
+        self.useBlade_checkBox.setText(QtWidgets.QApplication.translate("Form", "Use Wrist Blade to orient wrist joint", None, -1))
         self.TPoseRest_checkBox.setToolTip(QtWidgets.QApplication.translate("Form", "<html><head/><body><p>If checked, the Rest pose for controls will be in T Pose</p></body></html>", None, -1))
         self.TPoseRest_checkBox.setStatusTip(QtWidgets.QApplication.translate("Form", "This option set the axis of the mid CTL (elbow) and the up vector control to move in a mirror behaviour ", None, -1))
         self.TPoseRest_checkBox.setWhatsThis(QtWidgets.QApplication.translate("Form", "This option set the axis of the mid CTL (elbow) and the up vector control to move in a mirror behaviour ", None, -1))
