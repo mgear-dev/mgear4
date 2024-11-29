@@ -467,9 +467,7 @@ class Component(component.Main):
         pm.parent(self.root, self.parent_comp.ik_ctl)
         pm.parent(self.parent_comp.ik_ref, self.bk_ctl[-1])
         pm.parent(self.parent_comp.match_fk2, self.bk_ctl[-1])
-        pm.parentConstraint(
-            self.parent_comp.tws2_rot, self.fk_ref, maintainOffset=True
-        )
+        pm.parent(self.fk_ref, self.parent_comp.tws2_rot)
 
         # add message connections to parent component.
         # this connection will be used to track the ctl relation when IK/FK
