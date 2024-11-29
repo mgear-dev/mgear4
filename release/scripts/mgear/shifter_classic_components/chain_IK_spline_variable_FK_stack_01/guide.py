@@ -8,7 +8,7 @@ from maya.app.general.mayaMixin import MayaQWidgetDockableMixin
 from maya.app.general.mayaMixin import MayaQDockWidget
 
 from . import settingsUI as sui
-import mgear.pymaya as pm
+import pymel.core as pm
 from mgear import shifter
 
 

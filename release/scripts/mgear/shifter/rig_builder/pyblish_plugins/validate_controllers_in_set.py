@@ -1,5 +1,5 @@
 import pyblish.api
-import mgear.pymaya as pm
+import pymel.core as pm
 
 # from pyblish_shifter.actions import RepairAction
 # from pyblish_shifter.actions import SelectInvalidAction

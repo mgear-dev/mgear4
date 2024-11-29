@@ -15,12 +15,12 @@ import json
 import sys
 
 import mgear.animbits.softTweakWindowUI as stUI
-import mgear.pymaya as pm
+import pymel.core as pm
 from maya.app.general.mayaMixin import MayaQWidgetDockableMixin
 from mgear.core import pyqt, attribute, icon, node, primitive, applyop, skin
 from mgear.vendor.Qt import QtCore, QtWidgets, QtGui
-from mgear.pymaya import datatypes
-from mgear.pymaya import versions
+from pymel.core import datatypes
+from pymel import versions
 from maya import cmds
 
 from mgear.core import string

@@ -1,4 +1,4 @@
-import mgear.pymaya as pm
+import pymel.core as pm
 
 
 def is_deformer(node):

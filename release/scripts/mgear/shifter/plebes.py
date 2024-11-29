@@ -3,7 +3,7 @@ import re
 import json
 import tempfile
 from glob import glob
-import mgear.pymaya as pm
+import pymel.core as pm
 try:
     from mgear.shifter import io
     from mgear.shifter import guide_manager

@@ -31,7 +31,7 @@ from collections import OrderedDict
 
 import maya.cmds as cmds
 import maya.api.OpenMaya as om
-import mgear.pymaya as pm
+import pymel.core as pm
 
 from mgear.core import pyFBX as pfbx
 import mgear.shifter.game_tools_disconnect as gtDisc

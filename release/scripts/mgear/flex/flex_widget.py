@@ -7,8 +7,7 @@ Contains the Flex user interface
 """
 
 # imports
-from mgear.vendor.Qt import QtCore
-from mgear.vendor.Qt import QtWidgets
+from PySide2 import QtWidgets, QtCore
 from mgear.flex import logger
 from mgear.flex.colors import RED, GREEN, BLUE, YELLOW
 
@@ -103,13 +102,13 @@ class FlexDialog(QtWidgets.QDialog):
 
         # layout widgets
         main_vertical_layout = QtWidgets.QVBoxLayout()
-        main_vertical_layout.setContentsMargins(0, 0, 0, 0)
+        main_vertical_layout.setMargin(0)
         self.setLayout(main_vertical_layout)
 
         # frame
         model_frame = QtWidgets.QFrame()
         self.widgets_layout = QtWidgets.QVBoxLayout()
-        self.widgets_layout.setContentsMargins(0, 0, 0, 0)
+        self.widgets_layout.setMargin(0)
         self.widgets_layout.setSpacing(10)
         model_frame.setLayout(self.widgets_layout)
 

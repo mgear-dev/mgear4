@@ -6,7 +6,7 @@ Simple collection of QtColors
 """
 
 # imports
-from mgear.vendor.Qt import QtGui
+from PySide2 import QtGui
 
 
 # colors

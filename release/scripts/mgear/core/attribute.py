@@ -5,10 +5,9 @@
 #############################################
 import collections
 import mgear
-import mgear.pymaya as pm
+import pymel.core as pm
 import maya.cmds as cmds
-import mgear.pymaya.datatypes as datatypes
-from maya.api import OpenMaya
+import pymel.core.datatypes as datatypes
 from .six import string_types
 
 #############################################
@@ -609,21 +608,6 @@ def setNotKeyableAttributes(
             node.setAttr(attr_name, lock=False, keyable=False, cb=True)
 
 
-def _to_rot_od(ordstr):
-    if ordstr == "XYZ":
-        return OpenMaya.MEulerRotation.kXYZ
-    if ordstr == "YZX":
-        return OpenMaya.MEulerRotation.kYZX
-    elif ordstr == "ZXY":
-        return OpenMaya.MEulerRotation.kZXY
-    elif ordstr == "XZY":
-        return OpenMaya.MEulerRotation.kXZY
-    elif ordstr == "YXZ":
-        return OpenMaya.MEulerRotation.kYXZ
-    elif ordstr == "ZYX":
-        return OpenMaya.MEulerRotation.kZYX
-
-
 def setRotOrder(node, s="XYZ"):
     """Set the rotorder of the object.
 
@@ -645,30 +629,19 @@ def setRotOrder(node, s="XYZ"):
 
     er = datatypes.EulerRotation(
         [
-            OpenMaya.MAngle(
-                pm.getAttr(node + ".rx"), OpenMaya.MAngle.kDegrees
-            ).asRadians(),
-            OpenMaya.MAngle(
-                pm.getAttr(node + ".ry"), OpenMaya.MAngle.kDegrees
-            ).asRadians(),
-            OpenMaya.MAngle(
-                pm.getAttr(node + ".rz"), OpenMaya.MAngle.kDegrees
-            ).asRadians(),
+            pm.getAttr(node + ".rx"),
+            pm.getAttr(node + ".ry"),
+            pm.getAttr(node + ".rz"),
         ],
-        _to_rot_od(a[node.getAttr("ro")]),
+        unit="degrees",
     )
-    er.reorderIt(_to_rot_od(s))
+    er.reorderIt(s)
 
     if node.hasAttr("rotate_order"):
         change_default_value(node.rotate_order, a.index(s))
 
     node.setAttr("ro", a.index(s))
-    node.setAttr(
-        "rotate",
-        OpenMaya.MAngle(er.x).asDegrees(),
-        OpenMaya.MAngle(er.y).asDegrees(),
-        OpenMaya.MAngle(er.z).asDegrees(),
-    )
+    node.setAttr("rotate", er.x, er.y, er.z)
 
 
 def setInvertMirror(node, invList=None):
@@ -1055,8 +1028,6 @@ class colorParamDef(ParamDef):
     def get_as_dict(self):
 
         self.param_dict["scriptName"] = self.scriptName
-        if isinstance(self.value, OpenMaya.MVector):
-            self.value = [self.value.x, self.value.y, self.value.z]
         self.param_dict["value"] = self.value
 
         return self.param_dict
@@ -1140,7 +1111,7 @@ def set_default_value(node, attribute):
         node (str, PyNode): The object with the attribute to reset
         attribute (str): The attribute to reset
     """
-    if isinstance(node, string_types):
+    if not isinstance(node, pm.PyNode):
         node = pm.PyNode(node)
 
     defVal = get_default_value(node, attribute)
@@ -1166,7 +1137,7 @@ def set_default_value(node, attribute):
                 # node.attr(attribute).set(defVal)
         else:
             node.attr(attribute).set(defVal)
-    except (RuntimeError, pm.MayaAttributeError):
+    except RuntimeError:
         # print("Failed to reset: {}".format(attribute))
         pass
 

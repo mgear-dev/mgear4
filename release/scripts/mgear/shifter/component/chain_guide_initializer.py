@@ -1,4 +1,4 @@
-import mgear.pymaya as pm
+import pymel.core as pm
 
 from mgear.vendor.Qt import QtCore, QtWidgets
 
@@ -20,7 +20,7 @@ class ChainGuideInitializer(QtWidgets.QDialog,
 
     def __init__(self, parent=None):
         self.toolName = "ChainGuideInitializer"
-        super(ChainGuideInitializer, self).__init__(parent)
+        super(ChainGuideInitializer, self).__init__(parent=parent)
         self.setupUi(self)
 
         self.sections_number = None

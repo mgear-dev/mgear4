@@ -4,8 +4,8 @@ import mgear.menu
 from mgear.core import pyqt
 from mgear.core import skin
 from mgear.core import wmap
-import mgear.pymaya as pm
-from mgear.pymaya import versions
+import pymel.core as pm
+from pymel import versions
 
 
 def install_skinning_menu():

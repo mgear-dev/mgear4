@@ -9,7 +9,7 @@ import platform
 
 # dcc
 import maya.cmds as cmds
-from mgear.pymaya import versions
+from pymel import versions
 
 # mgear
 from mgear.vendor.Qt import QtGui

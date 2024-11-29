@@ -1,6 +1,6 @@
 import json
 
-import mgear.pymaya as pm
+import pymel.core as pm
 import math
 
 import mgear

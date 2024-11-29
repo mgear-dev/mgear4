@@ -1,4 +1,4 @@
-import mgear.pymaya as pm
+import pymel.core as pm
 
 
 def find_connected_proximity_pin_node(source_mesh):

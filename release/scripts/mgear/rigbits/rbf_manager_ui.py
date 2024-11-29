@@ -64,7 +64,7 @@ from functools import partial
 
 # core
 import maya.cmds as mc
-import mgear.pymaya as pm
+import pymel.core as pm
 import maya.OpenMaya as om
 import maya.OpenMayaUI as mui
 

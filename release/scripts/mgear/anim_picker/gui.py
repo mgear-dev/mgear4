@@ -11,7 +11,7 @@ from functools import partial
 
 # dcc
 from maya import cmds
-import mgear.pymaya as pm
+import pymel.core as pm
 
 from maya.app.general.mayaMixin import MayaQWidgetDockableMixin
 
@@ -24,7 +24,7 @@ from mgear.core import callbackManager
 
 from mgear.vendor.Qt import QtGui
 from mgear.vendor.Qt import QtCore
-# from mgear.vendor.Qt import QtOpenGL
+from mgear.vendor.Qt import QtOpenGL
 from mgear.vendor.Qt import QtCompat
 from mgear.vendor.Qt import QtWidgets
 
@@ -44,7 +44,7 @@ from .widgets import overlay_widgets
 
 from .handlers import __EDIT_MODE__
 from .handlers import __SELECTION__
-from mgear.core.six.moves import range
+from six.moves import range
 
 # constants -------------------------------------------------------------------
 try:
@@ -344,14 +344,14 @@ class GraphicViewWidget(QtWidgets.QGraphicsView):
         self.scale(1, -1)
 
         # Open GL render, to check...
-        # if basic.__USE_OPENGL__:
-        #     # make that view use OpenGL
-        #     gl_format = QtOpenGL.QGLFormat()
-        #     gl_format.setSampleBuffers(True)
-        #     gl_widget = QtOpenGL.QGLWidget(gl_format)
+        if basic.__USE_OPENGL__:
+            # make that view use OpenGL
+            gl_format = QtOpenGL.QGLFormat()
+            gl_format.setSampleBuffers(True)
+            gl_widget = QtOpenGL.QGLWidget(gl_format)
 
-        #     # use the GL widget for viewing
-        #     self.setViewport(gl_widget)
+            # use the GL widget for viewing
+            self.setViewport(gl_widget)
 
         self.setResizeAnchor(self.AnchorViewCenter)
 

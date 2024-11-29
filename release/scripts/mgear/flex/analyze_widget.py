@@ -8,9 +8,7 @@ Contains the Flex Analyze interface
 
 
 # imports
-from mgear.vendor.Qt import QtCore
-from mgear.vendor.Qt import QtWidgets
-from mgear.vendor.Qt import QtGui
+from PySide2 import QtWidgets, QtGui, QtCore
 
 from mgear.flex import logger
 from mgear.flex.colors import YELLOW
@@ -58,7 +56,7 @@ class FlexAnalyzeDialog(QtWidgets.QDialog):
 
         # creates layout
         layout = QtWidgets.QVBoxLayout()
-        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setMargin(0)
 
         # setup table
         self.setLayout(layout)
@@ -93,11 +91,11 @@ class FlexAnalyzeDialog(QtWidgets.QDialog):
         h_header.setPalette(YELLOW)
         h_header.setFixedHeight(21)
         h_header.setDefaultSectionSize(40)
-        h_header.setSectionResizeMode(QtWidgets.QHeaderView.Stretch)
-        h_header.setSectionResizeMode(2, QtWidgets.QHeaderView.Fixed)
-        h_header.setSectionResizeMode(3, QtWidgets.QHeaderView.Fixed)
-        h_header.setSectionResizeMode(4, QtWidgets.QHeaderView.Fixed)
-        h_header.setSectionResizeMode(5, QtWidgets.QHeaderView.Fixed)
+        h_header.setSectionResizeMode(h_header.Stretch)
+        h_header.setSectionResizeMode(2, h_header.Fixed)
+        h_header.setSectionResizeMode(3, h_header.Fixed)
+        h_header.setSectionResizeMode(4, h_header.Fixed)
+        h_header.setSectionResizeMode(5, h_header.Fixed)
         h_header.setSectionsClickable(False)
 
         # hides vertical header

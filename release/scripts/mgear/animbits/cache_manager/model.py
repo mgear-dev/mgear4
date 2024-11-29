@@ -1,8 +1,8 @@
 
 # imports
 import os
-from mgear.vendor.Qt import QtCore
-from mgear.vendor.Qt import QtGui
+from PySide2 import QtCore
+from PySide2 import QtGui
 from mgear.animbits.cache_manager.query import is_rig
 
 

@@ -3,8 +3,8 @@ import ast
 from mgear.shifter import component
 
 from mgear.core import attribute, transform, primitive
-from mgear.pymaya import datatypes
-import mgear.pymaya as pm
+from pymel.core import datatypes
+import pymel.core as pm
 
 #############################################
 # COMPONENT

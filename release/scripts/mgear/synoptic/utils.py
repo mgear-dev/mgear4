@@ -1,7 +1,7 @@
 import traceback
 
 
-import mgear.pymaya as pm
+import pymel.core as pm
 
 import mgear
 

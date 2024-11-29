@@ -2,7 +2,7 @@
 
 
 import maya.cmds as cmds
-import mgear.pymaya as pm
+import pymel.core as pm
 
 #############################################
 # DAG
@@ -34,7 +34,7 @@ def getShapes(node):
         list: The shapes of the node
 
     """
-    return node.listRelatives(shapes=True, fullPath=True)
+    return node.listRelatives(shapes=True)
 
 
 def findChild(node, name):
@@ -90,13 +90,13 @@ def __findChildren(node, name, firstOnly=False, partialName=False):
     if partialName:
         children = [item for item
                     in node.listRelatives(allDescendents=True,
-                                          type="transform", fullPath=True)
-                    if item.split("|")[-1].split("_")[-1] == name]
+                                          type="transform")
+                    if item.name().split("|")[-1].split("_")[-1] == name]
     else:
         children = [item for item
                     in node.listRelatives(allDescendents=True,
-                                          type="transform", fullPath=True)
-                    if item.split("|")[-1] == name]
+                                          type="transform")
+                    if item.name().split("|")[-1] == name]
     if not children:
         return False
     if firstOnly:
@@ -121,12 +121,12 @@ def __findChild(node, name):
     try:
         for item in cmds.listRelatives(node.name(),
                                        allDescendents=True,
-                                       type="transform", fullPath=True):
+                                       type="transform"):
             if item.split("|")[-1] == name:
                 return pm.PyNode(item)
     except pm.MayaNodeError:
         for item in node.listRelatives(allDescendents=True,
-                                       type="transform", fullPath=True):
+                                       type="transform"):
             if item.split("|")[-1] == name:
                 return item
 
@@ -185,8 +185,8 @@ def findComponentChildren(node, name, sideIndex):
     """
     children = []
     for item in node.listRelatives(allDescendents=True,
-                                   type="transform", fullPath=True):
-        checkName = item.split("|")[-1].split("_")
+                                   type="transform"):
+        checkName = item.name().split("|")[-1].split("_")
         if checkName[0] == name and checkName[1] == sideIndex:
             children.append(item)
 

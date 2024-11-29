@@ -7,7 +7,7 @@ import timeit
 from functools import wraps
 
 from maya import cmds
-import mgear.pymaya as pm
+import pymel.core as pm
 from maya import mel
 import maya.api.OpenMaya as OpenMaya
 from .six import string_types, PY2
@@ -34,7 +34,7 @@ def as_pynode(obj):
     if isinstance(obj, str) or isinstance(obj, string_types):
         obj = pm.PyNode(obj)
 
-    if not isinstance(obj, pm.node._NodeTypes):
+    if not isinstance(obj, pm.PyNode):
         raise TypeError(
             "{} is type {} not str, unicode or PyNode".format(
                 str(obj), type(obj)

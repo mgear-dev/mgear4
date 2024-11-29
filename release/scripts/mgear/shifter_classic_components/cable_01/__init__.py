@@ -1,8 +1,8 @@
 
 from mgear.shifter import component
 
-import mgear.pymaya as pm
-from mgear.pymaya import datatypes
+import pymel.core as pm
+from pymel.core import datatypes
 from mgear.core import attribute, transform, primitive, applyop
 from mgear.core import node, curve
 

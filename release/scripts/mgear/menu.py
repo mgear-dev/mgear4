@@ -1,5 +1,5 @@
 from maya import cmds
-import mgear.pymaya as pm
+import pymel.core as pm
 import mgear
 import os
 

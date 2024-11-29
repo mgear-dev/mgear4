@@ -3,8 +3,8 @@ Component UI Container 01 module
 """
 import math
 
-import mgear.pymaya as pm
-import mgear.pymaya.datatypes as dt
+import pymel.core as pm
+import pymel.core.datatypes as dt
 
 from mgear.shifter import component
 from mgear.core import attribute, primitive

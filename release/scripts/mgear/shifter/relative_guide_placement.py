@@ -31,7 +31,7 @@ import math
 
 # dcc
 import maya.cmds as mc
-import mgear.pymaya as pm
+import pymel.core as pm
 import maya.OpenMaya as om
 
 # mgear

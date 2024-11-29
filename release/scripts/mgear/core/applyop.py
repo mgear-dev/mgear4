@@ -12,8 +12,8 @@ Operators are any node that connected to other nodes creates a rig behaviour::
 #############################################
 # GLOBAL
 #############################################
-import mgear.pymaya as pm
-from mgear.pymaya import datatypes
+import pymel.core as pm
+from pymel.core import datatypes
 
 import maya.api.OpenMaya as om
 from .six import string_types
@@ -361,7 +361,7 @@ def gear_matrix_cns(
         PyNode: The matrix constraint node
     """
     node = pm.createNode("mgear_matrixConstraint")
-    if isinstance(in_obj, pm.node._NodeTypes) and in_obj.type() == "matrix":
+    if isinstance(in_obj, pm.PyNode) and in_obj.type() == "matrix":
         pm.connectAttr(in_obj, node + ".driverMatrix", force=True)
     else:
         pm.connectAttr(

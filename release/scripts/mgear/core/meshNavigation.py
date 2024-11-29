@@ -3,8 +3,8 @@
 #############################################
 # GLOBAL
 #############################################
-import mgear.pymaya as pm
-import mgear.pymaya.datatypes as datatypes
+import pymel.core as pm
+import pymel.core.datatypes as datatypes
 from maya import OpenMaya as om
 from . import utils
 

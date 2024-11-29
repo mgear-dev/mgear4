@@ -1,7 +1,7 @@
 """Component Squash 4 Sides 01 module"""
 
-import mgear.pymaya as pm
-from mgear.pymaya import datatypes
+import pymel.core as pm
+from pymel.core import datatypes
 
 from mgear.shifter import component
 

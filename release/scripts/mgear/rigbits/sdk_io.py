@@ -32,7 +32,7 @@ Attributes:
 import json
 import pprint
 
-import mgear.pymaya as pm
+import pymel.core as pm
 
 import mgear.core.utils as mUtils
 from .six import string_types

@@ -3,11 +3,11 @@ import os
 # from pprint import pprint
 
 # Pyside -------------
-from mgear.vendor.Qt import QtCompat
+from PySide2 import QtUiTools
 from functools import partial
 
 # Maya ---------------
-import mgear.pymaya as pm
+import pymel.core as pm
 import maya.OpenMaya as om
 from maya.app.general.mayaMixin import MayaQWidgetDockableMixin
 
@@ -76,7 +76,11 @@ class SDKManagerDialog(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         if not ui_path:
             ui_path = "{0}/SDK_manager.ui".format(os.path.dirname(__file__))
 
-        self.ui = QtCompat.loadUi(uifile=ui_path)
+        f = QtCore.QFile(ui_path)
+        f.open(QtCore.QFile.ReadOnly)
+
+        loader = QtUiTools.QUiLoader()
+        self.ui = loader.load(f, parentWidget=None)
 
     def create_menu_bar_actions(self):
         """

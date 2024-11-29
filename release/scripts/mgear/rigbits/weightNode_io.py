@@ -35,7 +35,7 @@ from .six import PY2
 
 # core
 import maya.cmds as mc
-import mgear.pymaya as pm
+import pymel.core as pm
 
 from mgear.core import plugin_utils
 

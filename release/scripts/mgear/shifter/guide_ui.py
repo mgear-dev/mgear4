@@ -7,8 +7,7 @@
 #
 # WARNING! All changes made in this file will be lost!
 
-import mgear.core.pyqt as gqt
-QtGui, QtCore, QtWidgets, wrapInstance = gqt.qt_import()
+from PySide2 import QtCore, QtGui, QtWidgets
 
 class Ui_Form(object):
     def setupUi(self, Form):

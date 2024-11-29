@@ -1,6 +1,6 @@
 """Rigbits rivet creator"""
 
-import mgear.pymaya as pm
+import pymel.core as pm
 
 
 class rivet():

@@ -1,4 +1,4 @@
-from mgear.pymaya import datatypes
+from pymel.core import datatypes
 
 from mgear.shifter import component
 

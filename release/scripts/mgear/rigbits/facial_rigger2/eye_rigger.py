@@ -1,24 +1,12 @@
 import json
 import traceback
-
-from mgear.core.six import string_types
+from six import string_types
 
 import mgear
-import mgear.pymaya as pm
-
-from mgear.core import meshNavigation
-from mgear.core import curve
-from mgear.core import applyop
-from mgear.core import node
-from mgear.core import primitive
-from mgear.core import icon
-from mgear.core import transform
-from mgear.core import utils
-from mgear.core import attribute
-from mgear.core import skin
-from mgear.core import string
-
-from mgear.pymaya import datatypes
+import pymel.core as pm
+from mgear.core import meshNavigation, curve, applyop, node, primitive, icon
+from mgear.core import transform, utils, attribute, skin, string
+from pymel.core import datatypes
 
 from mgear import rigbits
 

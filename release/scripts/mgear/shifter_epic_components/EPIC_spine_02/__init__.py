@@ -1,5 +1,5 @@
-import mgear.pymaya as pm
-from mgear.pymaya import datatypes
+import pymel.core as pm
+from pymel.core import datatypes
 
 import ast
 

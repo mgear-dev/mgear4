@@ -1,6 +1,5 @@
 from mgear.core import pyqt
-from mgear.vendor.Qt import QtCore, QtWidgets
-
+QtGui, QtCore, QtWidgets, wrapInstance = pyqt.qt_import()
 
 class Ui_Form(object):
     def setupUi(self, Form):

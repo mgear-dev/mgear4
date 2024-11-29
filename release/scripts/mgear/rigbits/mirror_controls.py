@@ -1,4 +1,4 @@
-import mgear.pymaya as pm
+import pymel.core as pm
 from maya.app.general.mayaMixin import MayaQWidgetDockableMixin
 
 import mgear
@@ -160,7 +160,7 @@ class MirrorControlsUi(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.mirror_button.clicked.connect(self.mirror_button_pressed)
 
     def mirror_button_pressed(self):
-        pm.undoInfo(openChunk=True)
+        pm.system.undoInfo(openChunk=True)
 
         # Store selection
         selection = pm.selected()
@@ -175,7 +175,7 @@ class MirrorControlsUi(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         # Restore selection
         pm.select(selection)
 
-        pm.undoInfo(closeChunk=True)
+        pm.system.undoInfo(closeChunk=True)
 
 
 def show(*args):

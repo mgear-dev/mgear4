@@ -1,7 +1,7 @@
 """Guide Control 01 module"""
 
 from functools import partial
-import mgear.pymaya as pm
+import pymel.core as pm
 
 from mgear.shifter.component import guide
 from mgear.core import transform, pyqt, attribute

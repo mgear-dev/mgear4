@@ -7,15 +7,15 @@ from functools import partial
 import maya.cmds as cmds
 
 # pyMel
-import mgear.pymaya as pm
-from mgear.pymaya import datatypes
+import pymel.core as pm
+from pymel.core import datatypes
 
 # mgear
 import mgear
 
 from mgear.core import string
 from mgear.core import node
-from mgear.pymaya import versions
+from pymel import versions
 
 from mgear.core import dag, vector, transform, applyop, attribute, icon, pyqt
 

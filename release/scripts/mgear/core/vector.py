@@ -4,7 +4,7 @@ import math
 
 import maya.OpenMaya as OpenMaya
 
-from mgear.pymaya import datatypes
+from pymel.core import datatypes
 
 
 #############################################
@@ -227,10 +227,10 @@ class Blade(object):
     def __init__(self, t=datatypes.Matrix()):
 
         self.transform = t
-        mdata = t.get()
-        d = [mdata[j][i]
-             for j in range(len(mdata))
-             for i in range(len(mdata[0]))]
+
+        d = [t.data[j][i]
+             for j in range(len(t.data))
+             for i in range(len(t.data[0]))]
 
         m = OpenMaya.MMatrix()
         OpenMaya.MScriptUtil.createMatrixFromList(d, m)

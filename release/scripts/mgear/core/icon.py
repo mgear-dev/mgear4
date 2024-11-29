@@ -3,10 +3,10 @@
 #############################################
 # GLOBAL
 #############################################
-import mgear.pymaya as pm
+import pymel.core as pm
 import maya.OpenMaya as om
-import mgear.pymaya.util as pmu
-from mgear.pymaya import datatypes
+import pymel.util as pmu
+from pymel.core import datatypes
 from mgear.core import curve, attribute
 
 import math

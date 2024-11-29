@@ -5,7 +5,7 @@ import os
 import re
 import math
 
-import mgear.pymaya as pm
+import pymel.core as pm
 
 from mgear.core import primitive
 from mgear.core import attribute
@@ -573,7 +573,9 @@ class GimmickJointIO(Gimmick):
 
     @staticmethod
     def getGimmickPath():
-        gimmickPath = os.path.join(pm.workspace(q=True, rd=True), 'data', 'gimmick')
+        workspace = pm.Workspace()
+        projectPath = workspace.getPath()
+        gimmickPath = os.path.join(projectPath, 'data', 'gimmick')
 
         if not os.path.exists(gimmickPath):
             os.makedirs(gimmickPath)

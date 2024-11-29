@@ -1,6 +1,6 @@
 import os
 
-import mgear.pymaya as pm
+import pymel.core as pm
 
 from maya.app.general.mayaMixin import MayaQDockWidget
 from maya.app.general.mayaMixin import MayaQWidgetDockableMixin

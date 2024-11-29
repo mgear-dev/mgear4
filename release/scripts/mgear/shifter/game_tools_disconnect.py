@@ -1,4 +1,4 @@
-import mgear.pymaya as pm
+import pymel.core as pm
 import maya.cmds as cmds
 import json
 import sys

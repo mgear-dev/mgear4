@@ -47,11 +47,9 @@ def fileDialog(startDir=None, mode=0):
         str: path selected by user
     """
     ext = RBF_FILE_EXTENSION
-    fPath = mc.fileDialog2(
-        fileMode=mode,
-        startingDirectory=startDir,
-        fileFilter="mGear RBF (*{})".format(ext),
-    )
+    fPath = mc.fileDialog2(fileMode=mode,
+                           startingDirectory=startDir,
+                           fileFilter="mGear RBF (*{})".format(ext))
     if fPath is not None:
         fPath = fPath[0]
     return fPath

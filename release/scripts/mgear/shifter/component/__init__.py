@@ -8,9 +8,9 @@ Shifter component rig class.
 import re
 
 # pymel
-import mgear.pymaya as pm
-from mgear.pymaya import datatypes
-from mgear.pymaya import versions
+import pymel.core as pm
+from pymel.core import datatypes
+from pymel import versions
 
 # mgear
 import mgear
@@ -1093,20 +1093,17 @@ class Main(object):
         if versions.current() >= 201650:
             try:
                 oldTag = pm.PyNode(ctl.name() + "_tag")
-
                 if not oldTag.controllerObject.connections():
                     # NOTE:  The next line is comment out. Because this will
                     # happend alot since core does't clean
                     # controller tags after deleting the control Object of the
                     # tag. This have been log to Autodesk.
                     # If orphane tags are found, it will be clean in silence.
-                    # pm.displayWarning(
-                    #     "Orphane Tag: %s  will be delete and created new for: %s"
-                    #     % (oldTag.name(), ctl.name())
-                    # )
+                    # pm.displayWarning("Orphane Tag: %s  will be delete and
+                    # created new for: %s"%(oldTag.name(), ctl.name()))
                     pm.delete(oldTag)
 
-            except:
+            except TypeError:
                 pass
 
             self.add_controller_tag(ctl, tp)
@@ -1749,12 +1746,9 @@ class Main(object):
 
                 ref.append(self.ik_cns)
                 cns_node = pm.orientConstraint(*ref, maintainOffset=True)
-                cns_attr_names = pm.orientConstraint(
+                cns_attr = pm.orientConstraint(
                     cns_node, query=True, weightAliasList=True
                 )
-                cns_attr = []
-                for cname in cns_attr_names:
-                    cns_attr.append("{}.{}".format(cns_node, cname))
 
                 for i, attr in enumerate(cns_attr):
                     pm.setAttr(attr, 1.0)
@@ -1802,12 +1796,9 @@ class Main(object):
                     ref_off.append(cns_off)
                 ref_off.append(self.ik_cns)
                 cns_node = pm.orientConstraint(*ref_off, maintainOffset=False)
-                cns_attr_names = pm.orientConstraint(
+                cns_attr = pm.orientConstraint(
                     cns_node, query=True, weightAliasList=True
                 )
-                cns_attr = []
-                for cname in cns_attr_names:
-                    cns_attr.append("{}.{}".format(cns_node, cname))
 
                 for i, attr in enumerate(cns_attr):
                     pm.setAttr(attr, 1.0)
@@ -1934,12 +1925,9 @@ class Main(object):
                 cns_node = pm.parentConstraint(
                     *ref, maintainOffset=True, st=st
                 )
-                cns_attr_names = pm.parentConstraint(
+                cns_attr = pm.parentConstraint(
                     cns_node, query=True, weightAliasList=True
                 )
-                cns_attr = []
-                for cname in cns_attr_names:
-                    cns_attr.append("{}.{}".format(cns_node, cname))
 
                 # ensure there is not offset generated with the constraint
                 # due to the precision rounding
@@ -2032,12 +2020,9 @@ class Main(object):
                     )
                 else:
                     cns_node = pm.parentConstraint(*ref, maintainOffset=True)
-                cns_attr_names = pm.parentConstraint(
+                cns_attr = pm.parentConstraint(
                     cns_node, query=True, weightAliasList=True
                 )
-                cns_attr = []
-                for cname in cns_attr_names:
-                    cns_attr.append("{}.{}".format(cns_node, cname))
 
                 # ensure there is not offset generated with the constraint
                 # due to the precision rounding
@@ -2090,12 +2075,9 @@ class Main(object):
                 cns_node = pm.parentConstraint(
                     *ref, maintainOffset=True, skipTranslate=["x", "y", "z"]
                 )
-                cns_attr_names = pm.parentConstraint(
+                cns_attr = pm.parentConstraint(
                     cns_node, query=True, weightAliasList=True
                 )
-                cns_attr = []
-                for cname in cns_attr_names:
-                    cns_attr.append("{}.{}".format(cns_node, cname))
                 for i, attr in enumerate(cns_attr):
                     node_name = pm.createNode("condition")
                     pm.connectAttr(self.ref_att, node_name + ".firstTerm")
