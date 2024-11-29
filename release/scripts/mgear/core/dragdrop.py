@@ -10,7 +10,7 @@ from functools import partial
 # Maya imports
 from maya import mel
 from maya import cmds
-import pymel.core as pm
+import mgear.pymaya as pm
 
 # mGear
 import mgear

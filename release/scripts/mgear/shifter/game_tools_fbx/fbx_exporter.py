@@ -5,7 +5,7 @@ import timeit
 from functools import partial
 
 import maya.cmds as cmds
-import pymel.core as pm
+import mgear.pymaya as pm
 from maya.app.general.mayaMixin import MayaQWidgetDockableMixin
 
 from mgear.vendor.Qt import QtWidgets, QtCore

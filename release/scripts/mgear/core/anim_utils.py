@@ -7,8 +7,8 @@ from .six import PY2
 
 # Maya imports
 from maya import cmds
-import pymel.core as pm
-from pymel import versions
+import mgear.pymaya as pm
+from mgear.pymaya import versions
 
 # mGear imports
 import mgear
@@ -65,7 +65,7 @@ def isSideElement(name):
             side = node.side_label.get()
             if side in "LR":
                 return True
-    except pm.MayaNodeError:
+    except (pm.MayaNodeError, RuntimeError):
         pass
 
     # old logic for back compatibility
@@ -423,7 +423,7 @@ def listAttrForMirror(node):
     """
     # TODO: should "ro" be here?
     res = ["tx", "ty", "tz", "rx", "ry", "rz", "sx", "sy", "sz", "ro"]
-    res.extend(pm.listAttr(node, userDefined=True, shortNames=True))
+    res.extend(cmds.listAttr(node, userDefined=True, shortNames=True))
     res = list([x for x in res if not x.startswith("inv")])
     res = list(
         [x for x in res if node.attr(x).type() not in ["message", "string"]]
@@ -1501,7 +1501,7 @@ def bindPose(model, *args):
     Args:
         model (TYPE): Description
     """
-    if isinstance(model, pm.PyNode):
+    if isinstance(model, pm.node._NodeTypes):
         model = bindPose
 
     nameSpace = getNamespace(model)

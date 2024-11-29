@@ -13,11 +13,12 @@ import traceback
 
 import maya.cmds as cmds
 import maya.api.OpenMaya as OpenMaya
-import pymel.core as pm
+import mgear.pymaya as pm
 
 from mgear.vendor.Qt import QtWidgets
 
 from mgear.core import utils as mUtils
+from mgear.core import attribute
 
 from mgear.uegear import log, tag, bridge, io, ioutils
 from mgear.uegear import utils as ueUtils
@@ -580,8 +581,10 @@ def update_selected_transforms():
 
     old_rotation_orders = list()
     for selected_node in selected_nodes:
-        old_rotation_orders.append(selected_node.getRotationOrder())
-        selected_node.setRotationOrder("XZY", True)
+        old_rotation_orders.append(selected_node.rotateOrder.getEnums()[selected_node.rotateOrder.get()].upper())
+        attribute.setRotOrder(selected_node, s="XYZ")
+        # old_rotation_orders.append(selected_node.getRotationOrder())
+        # selected_node.setRotationOrder("XZY", True)
     try:
         objects = cmds.ls(sl=True, sn=True)
         for obj in objects:
@@ -607,7 +610,8 @@ def update_selected_transforms():
             )
     finally:
         for i, selected_node in enumerate(selected_nodes):
-            selected_node.setRotationOrder(old_rotation_orders[i], True)
+            attribute.setRotOrder(selected_node, s=old_rotation_orders[i])
+            # selected_node.setRotationOrder(old_rotation_orders[i], True)
 
 
 # NOT IMPLEMENTED
