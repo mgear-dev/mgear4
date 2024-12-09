@@ -1584,8 +1584,8 @@ def connect_message(source, attr):
         idx = get_next_available_index(attr)
         attr_name = "{}[{}]".format(attr, idx)
 
-        src_str = str(src) if isinstance(src, pm.PyNode) else src
-        attr_str = str(attr) if isinstance(attr, pm.PyNode) else attr
+        src_str = src if isinstance(src, str) else str(src)
+        attr_str = attr if isinstance(attr, str) else str(attr)
 
         source_attr_type = pm.attributeQuery(
             "message", node=src_str.split(".")[0], attributeType=True
