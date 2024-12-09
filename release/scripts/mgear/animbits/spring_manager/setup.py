@@ -496,7 +496,7 @@ def store_preset(nodes, filePath=None):
     preset_dic = {}
     preset_dic["nodes"] = [node.name() for node in nodes]
     preset_dic["namespaces"] = list(
-        {node.namespace(root=True) for node in nodes}
+        {node.namespace() for node in nodes}
     )
     preset_dic["configs"] = {}
 
@@ -541,7 +541,7 @@ def apply_preset(preset_file_path, namespace_cb):
     replace_namespace = False
     # check if selection namespace matches with preset namespace
     if check_for_remap:
-        selection_namespace = selection[-1].namespace(root=True)
+        selection_namespace = selection[-1].namespace()
         if selection_namespace != preset_namespace:
             if namespace_cb(preset_namespace, selection_namespace):
                 replace_namespace = True
@@ -564,7 +564,7 @@ def apply_preset(preset_file_path, namespace_cb):
         result = create_spring(node=node, config=config)
         if result is not False:
             affected_nodes.append(result[1])
-
+    pm.select(cl=True)
     return affected_nodes
 
 
@@ -583,7 +583,7 @@ def get_preset_targets(preset_file_path, namespace_cb=None):
 
             # check if selection namespace matches with preset namespace
             if check_for_remap:
-                selection_namespace = selection[-1].namespace(root=True)
+                selection_namespace = selection[-1].namespace()
                 if selection_namespace != preset_namespace:
                     if namespace_cb(preset_namespace, selection_namespace):
                         replace_namespace = True
