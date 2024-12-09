@@ -575,7 +575,9 @@ def get_preset_targets(preset_file_path, namespace_cb=None):
         if namespace_cb:
             # if there's only one namespace, check if user wants to apply to all nodes with the same name
             selection = pm.ls(sl=1)
-            check_for_remap = len(preset_dic["namespaces"]) == 1 and len(selection) > 0
+            check_for_remap = (
+                len(preset_dic["namespaces"]) == 1 and len(selection) > 0
+            )
             preset_namespace = preset_dic["namespaces"][0]
             selection_namespace = ""
 
@@ -640,20 +642,26 @@ def bake(nodes=None):
     # Filter nodes and determine attributes to bake
     nodes_to_bake = []
     for node in nodes:
-        has_spring = node.hasAttr("springTotalIntensity") and \
-            node.attr("springTotalIntensity").get() > 0
+        has_spring = (
+            node.hasAttr("springTotalIntensity")
+            and node.attr("springTotalIntensity").get() > 0
+        )
 
         if has_spring:
             # Check individual spring attributes
-            if node.hasAttr("springTranslationalIntensity") and \
-                    node.attr("springTranslationalIntensity").get() > 0:
+            if (
+                node.hasAttr("springTranslationalIntensity")
+                and node.attr("springTranslationalIntensity").get() > 0
+            ):
                 if "translateX" not in attributes_to_bake:
                     attributes_to_bake.extend(
                         ["translateX", "translateY", "translateZ"]
                     )
 
-            if node.hasAttr("springRotationalIntensity") and \
-                    node.attr("springRotationalIntensity").get() > 0:
+            if (
+                node.hasAttr("springRotationalIntensity")
+                and node.attr("springRotationalIntensity").get() > 0
+            ):
                 if "rotateX" not in attributes_to_bake:
                     attributes_to_bake.extend(
                         ["rotateX", "rotateY", "rotateZ"]
@@ -698,64 +706,6 @@ def bake(nodes=None):
         print("Failed to bake filtered nodes: {}".format(e))
         pm.select(cl=True)
         return False
-
-
-# def bake(nodes=None):
-#     """
-#     Bakes the animation of all selected objects within the current time range
-#     using specific settings.
-
-#     Returns:
-#         bool: True if successful, False otherwise.
-#     """
-#     # Get the current time range
-#     start_time = pm.playbackOptions(query=True, minTime=True)
-#     end_time = pm.playbackOptions(query=True, maxTime=True)
-
-#     pm.currentTime(start_time)
-
-#     if not nodes:
-#         # Get selected objects
-#         nodes = pm.selected()
-
-#     # Check if any objects are selected
-#     if not nodes:
-#         print("No objects selected.")
-#         return False
-
-#     # Define the attributes to bake
-#     attributes_to_bake = [
-#         "translateX", "translateY", "translateZ",
-#         "rotateX", "rotateY", "rotateZ"
-#     ]
-
-#     # Perform the bake operation with explicit settings
-#     try:
-#         pm.bakeResults(
-#             nodes,
-#             time=(start_time, end_time),
-#             attribute=attributes_to_bake,
-#             simulation=True,
-#             sampleBy=1,
-#             oversamplingRate=1,
-#             disableImplicitControl=True,
-#             preserveOutsideKeys=True,
-#             sparseAnimCurveBake=False,
-#             removeBakedAttributeFromLayer=False,
-#             removeBakedAnimFromLayer=False,
-#             bakeOnOverrideLayer=False,
-#             minimizeRotation=True,
-#             controlPoints=False,
-#             shape=True,
-#         )
-#         delete_spring_setup(nodes, transfer_animation=False)
-#         for node in nodes:
-#             remove_settings_attr(node)
-#         print("Successfully baked selected objects.")
-#         return True
-#     except Exception as e:
-#         print("Failed to bake selected objects: {}".format(e))
-#         return False
 
 
 @one_undo
