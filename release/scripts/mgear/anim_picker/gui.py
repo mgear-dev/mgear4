@@ -391,7 +391,7 @@ class GraphicViewWidget(QtWidgets.QGraphicsView):
         self.item_selected = False
         self.__move_prompt = False
         QtWidgets.QGraphicsView.mousePressEvent(self, event)
-        if event.buttons() == QtCore.Qt.LeftButton:
+        if event.buttons() == QtCore.Qt.MouseButton.LeftButton:
             self.scene_mouse_origin = self.mapToScene(event.pos())
             # Get current viewport transformation
             transform = self.viewportTransform()
@@ -424,18 +424,18 @@ class GraphicViewWidget(QtWidgets.QGraphicsView):
                     self.scene().clear_picker_selection()
                     cmds.select(cl=True)
 
-        elif event.buttons() == QtCore.Qt.MidButton:
-            self.setDragMode(self.ScrollHandDrag)
+        elif event.buttons() == QtCore.Qt.MouseButton.MiddleButton:
+            self.setDragMode(QtWidgets.QGraphicsView.ScrollHandDrag)
             self.pan_active = True
             self.scene_mouse_origin = self.mapToScene(event.pos())
 
         # zoom support added for the mouse, for those pen/tablet users
         elif (
-            event.buttons() == QtCore.Qt.RightButton
+            event.buttons() == QtCore.Qt.MouseButton.RightButton
             and event.modifiers() == QtCore.Qt.AltModifier
         ):
             self.zoom_active = True
-            self.setDragMode(self.ScrollHandDrag)
+            self.setDragMode(QtWidgets.QGraphicsView.ScrollHandDrag)
             self.scene_mouse_origin = self.mapToGlobal(event.pos())
             cursor_pos = QtGui.QVector2D(
                 self.mapToGlobal(self.scene_mouse_origin)
@@ -451,13 +451,13 @@ class GraphicViewWidget(QtWidgets.QGraphicsView):
     def mouseMoveEvent(self, event):
         result = QtWidgets.QGraphicsView.mouseMoveEvent(self, event)
 
-        if event.buttons() == QtCore.Qt.LeftButton and not self.item_selected:
+        if event.buttons() == QtCore.Qt.MouseButton.LeftButton and not self.item_selected:
             self.drag_active = True
 
         # undo ---------------------------------------------------------------
         if (
             __EDIT_MODE__.get()
-            and event.buttons() == QtCore.Qt.LeftButton
+            and event.buttons() == QtCore.Qt.MouseButton.LeftButton
             and self.item_selected
         ):
             # confirm undo move chunck, a picker has been moved
@@ -492,7 +492,7 @@ class GraphicViewWidget(QtWidgets.QGraphicsView):
         result = QtWidgets.QGraphicsView.mouseReleaseEvent(self, event)
         if (
             not self.drag_active
-            and event.button() == QtCore.Qt.LeftButton
+            and event.button() == QtCore.Qt.MouseButton.LeftButton
             and not self.modified_select
         ):
             self.modified_select = False
@@ -538,7 +538,7 @@ class GraphicViewWidget(QtWidgets.QGraphicsView):
         # undo ----------------------------------------------------------------
 
         # Area selection
-        if self.drag_active and event.button() == QtCore.Qt.LeftButton:
+        if self.drag_active and event.button() == QtCore.Qt.MouseButton.LeftButton:
             scene_drag_end = self.mapToScene(event.pos())
 
             sel_area = QtCore.QRectF(self.scene_mouse_origin, scene_drag_end)
@@ -567,7 +567,7 @@ class GraphicViewWidget(QtWidgets.QGraphicsView):
                     picker_widgets.select_picker_controls(picker_items, event)
 
         # Middle mouse view panning
-        if self.pan_active and event.button() == QtCore.Qt.MidButton:
+        if self.pan_active and event.button() == QtCore.Qt.MouseButton.MiddleButton:
             current_center = self.get_center_pos()
             scene_drag_end = self.mapToScene(event.pos())
 
@@ -579,7 +579,7 @@ class GraphicViewWidget(QtWidgets.QGraphicsView):
             self.setDragMode(QtWidgets.QGraphicsView.RubberBandDrag)
 
         # zoom support added for the mouse, for those pen/tablet users
-        if self.zoom_active and event.button() == QtCore.Qt.RightButton:
+        if self.zoom_active and event.button() == QtCore.Qt.MouseButton.RightButton:
             self.zoom_active = False
             self.setDragMode(QtWidgets.QGraphicsView.RubberBandDrag)
 
@@ -597,7 +597,7 @@ class GraphicViewWidget(QtWidgets.QGraphicsView):
 
         # Define zoom factor
         factor = 1.1
-        if event.delta() < 0:
+        if event.angleDelta().y() < 0:
             factor = 0.9
 
         # Apply zoom
