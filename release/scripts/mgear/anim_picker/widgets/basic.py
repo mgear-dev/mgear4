@@ -193,7 +193,7 @@ class CallbackListWidget(QtWidgets.QListWidget):
         self.itemDoubleClicked.connect(self.double_click_event)
 
         # Set selection mode to multi
-        self.setSelectionMode(self.ExtendedSelection)
+        self.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)
 
     def double_click_event(self, item):
         if not self.callback:

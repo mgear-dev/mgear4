@@ -1637,7 +1637,7 @@ class Polygon(DefaultPolygon):
             return
 
         # Paint center cross
-        painter.setRenderHints(QtGui.QPainter.HighQualityAntialiasing, False)
+        painter.setRenderHints(QtGui.QPainter.Antialiasing, False)
         painter.setPen(QtGui.QColor(0, 0, 0, 180))
         painter.drawLine(-5, 0, 5, 0)
         painter.drawLine(0, 5, 0, -5)
@@ -1776,8 +1776,8 @@ class PickerItem(DefaultPolygon):
 
         # Make item movable
         if __EDIT_MODE__.get():
-            self.setFlag(self.ItemIsMovable)
-            self.setFlag(self.ItemSendsScenePositionChanges)
+            self.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable)
+            self.setFlag(QtWidgets.QGraphicsItem.ItemSendsScenePositionChanges)
 
         # Default vars
         self.namespace = namespace
