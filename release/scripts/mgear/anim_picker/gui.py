@@ -352,12 +352,12 @@ class GraphicViewWidget(QtWidgets.QGraphicsView):
         #     # use the GL widget for viewing
         #     self.setViewport(gl_widget)
 
-        self.setResizeAnchor(self.AnchorViewCenter)
+        self.setResizeAnchor(QtWidgets.QGraphicsView.AnchorViewCenter)
 
         # TODO
         # Set selection mode
         self.setRubberBandSelectionMode(QtCore.Qt.IntersectsItemBoundingRect)
-        self.setDragMode(self.RubberBandDrag)
+        self.setDragMode(QtWidgets.QGraphicsView.RubberBandDrag)
         self.scene_mouse_origin = QtCore.QPointF()
         self.drag_active = False
         self.pan_active = False
@@ -576,12 +576,12 @@ class GraphicViewWidget(QtWidgets.QGraphicsView):
             )
             self.centerOn(new_center)
             self.pan_active = False
-            self.setDragMode(self.RubberBandDrag)
+            self.setDragMode(QtWidgets.QGraphicsView.RubberBandDrag)
 
         # zoom support added for the mouse, for those pen/tablet users
         if self.zoom_active and event.button() == QtCore.Qt.RightButton:
             self.zoom_active = False
-            self.setDragMode(self.RubberBandDrag)
+            self.setDragMode(QtWidgets.QGraphicsView.RubberBandDrag)
 
         self.drag_active = False
         return result

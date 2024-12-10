@@ -46,12 +46,12 @@ class OverlayWidget(QtWidgets.QWidget):
 
     def set_default_background_color(self):
         palette = self.parent().palette()
-        color = palette.color(palette.Background)
+        color = palette.color(QtGui.QPalette.Window)
         self.set_overlay_background(color)
 
     def set_overlay_background(self, color=QtGui.QColor(20, 20, 20, 90)):
         palette = QtGui.QPalette(self.parent().palette())
-        palette.setColor(palette.Background, color)
+        palette.setColor(QtGui.QPalette.Window, color)
         self.setPalette(palette)
         self.setAutoFillBackground(True)
 

@@ -1359,7 +1359,7 @@ class DefaultPolygon(QtWidgets.QGraphicsObject):
     def itemChange(self, change, value):
         """itemChange update behavior"""
         # Catch position update
-        if change == self.ItemPositionChange:
+        if change == QtWidgets.QGraphicsItem.ItemPositionChange:
             # Force scene update to prevent "ghosts"
             # (ghost happen when the previous polygon is out of
             # the new bounding rect when updating)
@@ -1399,9 +1399,9 @@ class PointHandle(DefaultPolygon):
         DefaultPolygon.__init__(self, parent)
 
         # Make movable
-        self.setFlag(self.ItemIsMovable)
-        self.setFlag(self.ItemSendsScenePositionChanges)
-        self.setFlag(self.ItemIgnoresTransformations)
+        self.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable)
+        self.setFlag(QtWidgets.QGraphicsItem.ItemSendsScenePositionChanges)
+        self.setFlag(QtWidgets.QGraphicsItem.ItemIgnoresTransformations)
 
         # Set values
         self.setPos(x, y)
@@ -1672,7 +1672,7 @@ class PointHandleIndex(QtWidgets.QGraphicsSimpleTextItem):
         self.set_size()
         self.set_color(PointHandleIndex.__DEFAULT_COLOR__)
         self.setPos(QtCore.QPointF(-9, -14))
-        self.setFlag(self.ItemIgnoresTransformations)
+        self.setFlag(QtWidgets.QGraphicsItem.ItemIgnoresTransformations)
 
         # Hide by default
         self.setVisible(False)
