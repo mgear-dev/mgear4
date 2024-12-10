@@ -274,7 +274,7 @@ class Attribute(base.Attr):
         for el in cmds.attributeQuery(splt[-1], n=splt[0], le=True):
             for ev in el.split(":"):
                 ev = ev.split("=")[0]
-                res[fn.fieldValue(ev)] = ev
+                res[ev] = fn.fieldValue(ev)
 
         return res
 
