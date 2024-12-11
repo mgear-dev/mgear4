@@ -1514,10 +1514,21 @@ class GraphicViewWidget(QtWidgets.QGraphicsView):
         data_node = self.main_window.get_current_data_node()
         if not (data_node and data_node.exists()):
             return True
+        data = self.main_window.get_character_data()
+        # update original data to avoid deletion of the non edited tabs
+        # Create a lookup dictionary for fast matching
+        new_data_lookup = {d["name"]: d for d in new_data["tabs"] if "name" in d}
+
+        # Replace the matching dictionaries in data
+        updated_data = {"tabs": []}
+        updated_data["tabs"] = [
+            new_data_lookup.get(d.get("name"), d) if "name" in d else d
+            for d in data["tabs"]
+        ]
         data_node = pm.PyNode(str(data_node))
         data_node.picker_datas.set(lock=False)
         data_node.picker_datas.set(
-            json.dumps(new_data).replace("true", "True")
+            json.dumps(updated_data).replace("true", "True")
         )
         data_node.picker_datas.set(lock=True)
 
