@@ -451,7 +451,10 @@ class GraphicViewWidget(QtWidgets.QGraphicsView):
     def mouseMoveEvent(self, event):
         result = QtWidgets.QGraphicsView.mouseMoveEvent(self, event)
 
-        if event.buttons() == QtCore.Qt.MouseButton.LeftButton and not self.item_selected:
+        if (
+            event.buttons() == QtCore.Qt.MouseButton.LeftButton
+            and not self.item_selected
+        ):
             self.drag_active = True
 
         # undo ---------------------------------------------------------------
@@ -538,7 +541,10 @@ class GraphicViewWidget(QtWidgets.QGraphicsView):
         # undo ----------------------------------------------------------------
 
         # Area selection
-        if self.drag_active and event.button() == QtCore.Qt.MouseButton.LeftButton:
+        if (
+            self.drag_active
+            and event.button() == QtCore.Qt.MouseButton.LeftButton
+        ):
             scene_drag_end = self.mapToScene(event.pos())
 
             sel_area = QtCore.QRectF(self.scene_mouse_origin, scene_drag_end)
@@ -567,7 +573,10 @@ class GraphicViewWidget(QtWidgets.QGraphicsView):
                     picker_widgets.select_picker_controls(picker_items, event)
 
         # Middle mouse view panning
-        if self.pan_active and event.button() == QtCore.Qt.MouseButton.MiddleButton:
+        if (
+            self.pan_active
+            and event.button() == QtCore.Qt.MouseButton.MiddleButton
+        ):
             current_center = self.get_center_pos()
             scene_drag_end = self.mapToScene(event.pos())
 
@@ -579,7 +588,10 @@ class GraphicViewWidget(QtWidgets.QGraphicsView):
             self.setDragMode(QtWidgets.QGraphicsView.RubberBandDrag)
 
         # zoom support added for the mouse, for those pen/tablet users
-        if self.zoom_active and event.button() == QtCore.Qt.MouseButton.RightButton:
+        if (
+            self.zoom_active
+            and event.button() == QtCore.Qt.MouseButton.RightButton
+        ):
             self.zoom_active = False
             self.setDragMode(QtWidgets.QGraphicsView.RubberBandDrag)
 
@@ -1541,6 +1553,14 @@ class ContextMenuTabWidget(QtWidgets.QTabWidget):
         remove_action.triggered.connect(self.remove_tab_event)
         menu.addAction(remove_action)
 
+        move_forward_action = QtWidgets.QAction("Move Tab >>>", None)
+        move_forward_action.triggered.connect(self.move_forward_tab_event)
+        menu.addAction(move_forward_action)
+
+        move_back_action = QtWidgets.QAction("Move Tab <<<", None)
+        move_back_action.triggered.connect(self.move_back_tab_event)
+        menu.addAction(move_back_action)
+
         # Open context menu under mouse
         menu.exec_(self.mapToGlobal(event.pos()))
 
@@ -1551,6 +1571,18 @@ class ContextMenuTabWidget(QtWidgets.QTabWidget):
             if not isinstance(widget, GraphicViewWidget):
                 continue
             widget.fit_scene_content()
+
+    def move_back_tab_event(self):
+        current_index = self.currentIndex()
+        if current_index > 0:
+            self.tabBar().moveTab(current_index, current_index - 1)
+            self.setCurrentIndex(current_index - 1)
+
+    def move_forward_tab_event(self):
+        current_index = self.currentIndex()
+        if current_index < self.count() - 1:
+            self.tabBar().moveTab(current_index, current_index + 1)
+            self.setCurrentIndex(current_index + 1)
 
     def rename_event(self):
         """Will open dialog to rename tab"""
