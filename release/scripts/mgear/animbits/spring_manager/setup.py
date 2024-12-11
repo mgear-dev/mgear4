@@ -8,6 +8,7 @@ from mgear.core import attribute
 from mgear.core import transform
 from mgear.core import primitive
 from mgear.core import applyop
+from mgear.core import icon
 from mgear.core import node as cNode
 from mgear import rigbits
 from mgear.core.utils import one_undo, viewport_off
@@ -25,6 +26,7 @@ SPRING_ATTRS = [
     "springConfig",
     "springTranslation",
     "springRotation",
+    "springDirectionVis",
 ]
 
 SPRING_PRESET_EXTENSION = ".spg"
@@ -134,6 +136,12 @@ def create_settings_attr(node, config):
         minValue=0,
         maxValue=1,
     )
+
+    # direction visibility Attr
+    attr_name = "springDirectionVis"
+    attribute.addAttribute(node, attr_name, "bool", True)
+    node.setAttr(attr_name, channelBox=channelBox, keyable=keyable)
+
     # add message attr to node
     node.addAttr("springSetupMembers", at="message", m=True)
 
@@ -356,12 +364,32 @@ def create_spring(node=None, config=None):
         ],
     )
 
+    # add direction visual arrow
+
+    arrow = icon.direction_arrow(
+        axis=config["direction"],
+        name=get_name("sprg_arrowDirection"),
+        parent_name=driver.name()
+    )
+    transform.resetTransform(arrow)
+    arrow.attr("overrideEnabled").set(1)
+    arrow.attr("overrideDisplayType").set(1)
+    # connect arrow scale
+    pm.connectAttr(node.attr(SPRING_ATTRS[1]), arrow.sx)
+    pm.connectAttr(node.attr(SPRING_ATTRS[1]), arrow.sy)
+    pm.connectAttr(node.attr(SPRING_ATTRS[1]), arrow.sz)
+    # connect arrow vis
+    for shp in arrow.getShapes():
+        pm.connectAttr(node.springDirectionVis, shp.visibility)
+
     # move animation curvers
     move_animation_curves(node, root)
 
     # connect driver to node
     cns = applyop.parentCns(driver, node, maintain_offset=False)
     cns.isHistoricallyInteresting.set(False)
+
+    pm.select(cl=True)
 
     return driver, node
 
@@ -399,6 +427,7 @@ def init_config(node, direction, scale):
         "springRotationalIntensity": 1,
         "springRotationalDamping": 0.5,
         "springRotationalStiffness": 0.5,
+        "springDirectionVis": True,
     }
     return config
 
@@ -496,9 +525,7 @@ def get_config(node):
 def store_preset(nodes, filePath=None):
     preset_dic = {}
     preset_dic["nodes"] = [node.name() for node in nodes]
-    preset_dic["namespaces"] = list(
-        {node.namespace(root=True) for node in nodes}
-    )
+    preset_dic["namespaces"] = list({node.namespace() for node in nodes})
     preset_dic["configs"] = {}
 
     for node in nodes:
@@ -542,7 +569,7 @@ def apply_preset(preset_file_path, namespace_cb):
     replace_namespace = False
     # check if selection namespace matches with preset namespace
     if check_for_remap:
-        selection_namespace = selection[-1].namespace(root=True)
+        selection_namespace = selection[-1].namespace()
         if selection_namespace != preset_namespace:
             if namespace_cb(preset_namespace, selection_namespace):
                 replace_namespace = True
@@ -565,7 +592,7 @@ def apply_preset(preset_file_path, namespace_cb):
         result = create_spring(node=node, config=config)
         if result is not False:
             affected_nodes.append(result[1])
-
+    pm.select(cl=True)
     return affected_nodes
 
 
@@ -582,7 +609,7 @@ def get_preset_targets(preset_file_path, namespace_cb=None):
 
             # check if selection namespace matches with preset namespace
             if check_for_remap:
-                selection_namespace = selection[-1].namespace(root=True)
+                selection_namespace = selection[-1].namespace()
                 if selection_namespace != preset_namespace:
                     if namespace_cb(preset_namespace, selection_namespace):
                         replace_namespace = True

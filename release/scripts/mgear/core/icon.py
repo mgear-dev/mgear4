@@ -4,6 +4,7 @@
 # GLOBAL
 #############################################
 import pymel.core as pm
+from maya import cmds
 import maya.OpenMaya as om
 import pymel.util as pmu
 from pymel.core import datatypes
@@ -18,12 +19,14 @@ import mgear
 #############################################
 
 
-def create(parent=None,
-           name="icon",
-           m=datatypes.Matrix(),
-           color=[0, 0, 0],
-           icon="cube",
-           **kwargs):
+def create(
+    parent=None,
+    name="icon",
+    m=datatypes.Matrix(),
+    color=[0, 0, 0],
+    icon="cube",
+    **kwargs
+):
     """Icon master function
 
     **Create icon master function.**
@@ -59,128 +62,120 @@ def create(parent=None,
         kwargs["degree"] = 3
 
     if icon == "cube":
-        ctl = cube(parent,
-                   name,
-                   kwargs["w"],
-                   kwargs["h"],
-                   kwargs["d"],
-                   color,
-                   m,
-                   kwargs["po"],
-                   kwargs["ro"])
+        ctl = cube(
+            parent,
+            name,
+            kwargs["w"],
+            kwargs["h"],
+            kwargs["d"],
+            color,
+            m,
+            kwargs["po"],
+            kwargs["ro"],
+        )
     elif icon == "pyramid":
-        ctl = pyramid(parent,
-                      name,
-                      kwargs["w"],
-                      kwargs["h"],
-                      kwargs["d"],
-                      color,
-                      m,
-                      kwargs["po"],
-                      kwargs["ro"])
+        ctl = pyramid(
+            parent,
+            name,
+            kwargs["w"],
+            kwargs["h"],
+            kwargs["d"],
+            color,
+            m,
+            kwargs["po"],
+            kwargs["ro"],
+        )
     elif icon == "square":
-        ctl = square(parent,
-                     name,
-                     kwargs["w"],
-                     kwargs["d"],
-                     color,
-                     m,
-                     kwargs["po"],
-                     kwargs["ro"])
+        ctl = square(
+            parent,
+            name,
+            kwargs["w"],
+            kwargs["d"],
+            color,
+            m,
+            kwargs["po"],
+            kwargs["ro"],
+        )
     elif icon == "flower":
-        ctl = flower(parent,
-                     name,
-                     kwargs["w"],
-                     color,
-                     m,
-                     kwargs["po"],
-                     kwargs["ro"],
-                     kwargs["degree"])
+        ctl = flower(
+            parent,
+            name,
+            kwargs["w"],
+            color,
+            m,
+            kwargs["po"],
+            kwargs["ro"],
+            kwargs["degree"],
+        )
     elif icon == "circle":
-        ctl = circle(parent,
-                     name,
-                     kwargs["w"],
-                     color,
-                     m,
-                     kwargs["po"],
-                     kwargs["ro"],
-                     kwargs["degree"])
+        ctl = circle(
+            parent,
+            name,
+            kwargs["w"],
+            color,
+            m,
+            kwargs["po"],
+            kwargs["ro"],
+            kwargs["degree"],
+        )
     elif icon == "cylinder":
-        ctl = cylinder(parent,
-                       name,
-                       kwargs["w"],
-                       kwargs["h"],
-                       color,
-                       m,
-                       kwargs["po"],
-                       kwargs["ro"],
-                       kwargs["degree"])
+        ctl = cylinder(
+            parent,
+            name,
+            kwargs["w"],
+            kwargs["h"],
+            color,
+            m,
+            kwargs["po"],
+            kwargs["ro"],
+            kwargs["degree"],
+        )
     elif icon == "compas":
-        ctl = compas(parent,
-                     name,
-                     kwargs["w"],
-                     color,
-                     m,
-                     kwargs["po"],
-                     kwargs["ro"],
-                     kwargs["degree"])
+        ctl = compas(
+            parent,
+            name,
+            kwargs["w"],
+            color,
+            m,
+            kwargs["po"],
+            kwargs["ro"],
+            kwargs["degree"],
+        )
     elif icon == "diamond":
-        ctl = diamond(parent,
-                      name,
-                      kwargs["w"],
-                      color,
-                      m,
-                      kwargs["po"],
-                      kwargs["ro"])
+        ctl = diamond(
+            parent, name, kwargs["w"], color, m, kwargs["po"], kwargs["ro"]
+        )
     elif icon == "cubewithpeak":
-        ctl = cubewithpeak(parent,
-                           name,
-                           kwargs["w"],
-                           color,
-                           m,
-                           kwargs["po"],
-                           kwargs["ro"])
+        ctl = cubewithpeak(
+            parent, name, kwargs["w"], color, m, kwargs["po"], kwargs["ro"]
+        )
     elif icon == "sphere":
-        ctl = sphere(parent,
-                     name,
-                     kwargs["w"],
-                     color,
-                     m,
-                     kwargs["po"],
-                     kwargs["ro"],
-                     kwargs["degree"])
+        ctl = sphere(
+            parent,
+            name,
+            kwargs["w"],
+            color,
+            m,
+            kwargs["po"],
+            kwargs["ro"],
+            kwargs["degree"],
+        )
     elif icon == "arrow":
-        ctl = arrow(parent,
-                    name,
-                    kwargs["w"],
-                    color,
-                    m,
-                    kwargs["po"],
-                    kwargs["ro"])
+        ctl = arrow(
+            parent, name, kwargs["w"], color, m, kwargs["po"], kwargs["ro"]
+        )
     elif icon == "crossarrow":
-        ctl = crossarrow(parent,
-                         name,
-                         kwargs["w"],
-                         color,
-                         m,
-                         kwargs["po"],
-                         kwargs["ro"])
+        ctl = crossarrow(
+            parent, name, kwargs["w"], color, m, kwargs["po"], kwargs["ro"]
+        )
     elif icon == "cross":
-        ctl = cross(parent,
-                    name,
-                    kwargs["w"],
-                    color,
-                    m,
-                    kwargs["po"],
-                    kwargs["ro"])
+        ctl = cross(
+            parent, name, kwargs["w"], color, m, kwargs["po"], kwargs["ro"]
+        )
     elif icon == "null":
-        ctl = null(parent,
-                   name,
-                   kwargs["w"],
-                   color,
-                   m,
-                   kwargs["po"],
-                   kwargs["ro"])
+        ctl = null(
+            parent, name, kwargs["w"], color, m, kwargs["po"], kwargs["ro"]
+        )
 
     else:
         mgear.log("invalid type of ico", mgear.sev_error)
@@ -189,15 +184,17 @@ def create(parent=None,
     return ctl
 
 
-def cube(parent=None,
-         name="cube",
-         width=1,
-         height=1,
-         depth=1,
-         color=[0, 0, 0],
-         m=datatypes.Matrix(),
-         pos_offset=None,
-         rot_offset=None):
+def cube(
+    parent=None,
+    name="cube",
+    width=1,
+    height=1,
+    depth=1,
+    color=[0, 0, 0],
+    m=datatypes.Matrix(),
+    pos_offset=None,
+    rot_offset=None,
+):
     """Create a curve with a CUBE shape.
 
     Arguments:
@@ -230,12 +227,26 @@ def cube(parent=None,
     NpN = datatypes.Vector(lenX * -1, lenY, lenZ * -1)
     NNN = datatypes.Vector(lenX * -1, lenY * -1, lenZ * -1)
 
-    v_array = [ppp, ppN, NpN, NNN, NNp, Npp, NpN, Npp, ppp, pNp, NNp, pNp, pNN,
-               ppN, pNN, NNN]
+    v_array = [
+        ppp,
+        ppN,
+        NpN,
+        NNN,
+        NNp,
+        Npp,
+        NpN,
+        Npp,
+        ppp,
+        pNp,
+        NNp,
+        pNp,
+        pNN,
+        ppN,
+        pNN,
+        NNN,
+    ]
 
-    points = getPointArrayWithOffset(v_array,
-                                     pos_offset,
-                                     rot_offset)
+    points = getPointArrayWithOffset(v_array, pos_offset, rot_offset)
 
     node = curve.addCurve(parent, name, points, False, 1, m)
 
@@ -244,15 +255,17 @@ def cube(parent=None,
     return node
 
 
-def pyramid(parent=None,
-            name="pyramid",
-            width=1,
-            height=1,
-            depth=1,
-            color=[0, 0, 0],
-            m=datatypes.Matrix(),
-            pos_offset=None,
-            rot_offset=None):
+def pyramid(
+    parent=None,
+    name="pyramid",
+    width=1,
+    height=1,
+    depth=1,
+    color=[0, 0, 0],
+    m=datatypes.Matrix(),
+    pos_offset=None,
+    rot_offset=None,
+):
     """Create a curve with a PYRAMIDE shape.
 
     Arguments:
@@ -294,14 +307,16 @@ def pyramid(parent=None,
     return node
 
 
-def square(parent=None,
-           name="square",
-           width=1,
-           depth=1,
-           color=[0, 0, 0],
-           m=datatypes.Matrix(),
-           pos_offset=None,
-           rot_offset=None):
+def square(
+    parent=None,
+    name="square",
+    width=1,
+    depth=1,
+    color=[0, 0, 0],
+    m=datatypes.Matrix(),
+    pos_offset=None,
+    rot_offset=None,
+):
     """Create a curve with a SQUARE shape.
 
     Arguments:
@@ -337,14 +352,16 @@ def square(parent=None,
     return node
 
 
-def flower(parent=None,
-           name="flower",
-           width=1,
-           color=[0, 0, 0],
-           m=datatypes.Matrix(),
-           pos_offset=None,
-           rot_offset=None,
-           degree=3):
+def flower(
+    parent=None,
+    name="flower",
+    width=1,
+    color=[0, 0, 0],
+    m=datatypes.Matrix(),
+    pos_offset=None,
+    rot_offset=None,
+    degree=3,
+):
     """Create a curve with a FLOWER shape.
 
     Arguments:
@@ -365,16 +382,17 @@ def flower(parent=None,
     dlen = width
 
     v0 = datatypes.Vector(0, -dlen, 0)
-    v1 = datatypes.Vector(-dlen * .4, dlen * .4, 0)
+    v1 = datatypes.Vector(-dlen * 0.4, dlen * 0.4, 0)
     v2 = datatypes.Vector(dlen, 0, 0)
-    v3 = datatypes.Vector(-dlen * .4, -dlen * .4, 0)
+    v3 = datatypes.Vector(-dlen * 0.4, -dlen * 0.4, 0)
     v4 = datatypes.Vector(0, dlen, 0)
-    v5 = datatypes.Vector(dlen * .4, -dlen * .4, 0)
+    v5 = datatypes.Vector(dlen * 0.4, -dlen * 0.4, 0)
     v6 = datatypes.Vector(-dlen, 0, 0)
-    v7 = datatypes.Vector(dlen * .4, dlen * .4, 0)
+    v7 = datatypes.Vector(dlen * 0.4, dlen * 0.4, 0)
 
     points = getPointArrayWithOffset(
-        [v0, v1, v2, v3, v4, v5, v6, v7], pos_offset, rot_offset)
+        [v0, v1, v2, v3, v4, v5, v6, v7], pos_offset, rot_offset
+    )
 
     node = curve.addCurve(parent, name, points, True, degree, m)
 
@@ -383,14 +401,16 @@ def flower(parent=None,
     return node
 
 
-def circle(parent=None,
-           name="circle",
-           width=1,
-           color=[0, 0, 0],
-           m=datatypes.Matrix(),
-           pos_offset=None,
-           rot_offset=None,
-           degree=3):
+def circle(
+    parent=None,
+    name="circle",
+    width=1,
+    color=[0, 0, 0],
+    m=datatypes.Matrix(),
+    pos_offset=None,
+    rot_offset=None,
+    degree=3,
+):
     """Create a curve with a CIRCLE shape.
 
     Arguments:
@@ -411,16 +431,17 @@ def circle(parent=None,
     dlen = width * 0.5
 
     v0 = datatypes.Vector(0, 0, -dlen * 1.108)
-    v1 = datatypes.Vector(dlen * .78, 0, -dlen * .78)
+    v1 = datatypes.Vector(dlen * 0.78, 0, -dlen * 0.78)
     v2 = datatypes.Vector(dlen * 1.108, 0, 0)
-    v3 = datatypes.Vector(dlen * .78, 0, dlen * .78)
+    v3 = datatypes.Vector(dlen * 0.78, 0, dlen * 0.78)
     v4 = datatypes.Vector(0, 0, dlen * 1.108)
-    v5 = datatypes.Vector(-dlen * .78, 0, dlen * .78)
+    v5 = datatypes.Vector(-dlen * 0.78, 0, dlen * 0.78)
     v6 = datatypes.Vector(-dlen * 1.108, 0, 0)
-    v7 = datatypes.Vector(-dlen * .78, 0, -dlen * .78)
+    v7 = datatypes.Vector(-dlen * 0.78, 0, -dlen * 0.78)
 
     points = getPointArrayWithOffset(
-        [v0, v1, v2, v3, v4, v5, v6, v7], pos_offset, rot_offset)
+        [v0, v1, v2, v3, v4, v5, v6, v7], pos_offset, rot_offset
+    )
 
     node = curve.addCurve(parent, name, points, True, degree, m)
 
@@ -429,15 +450,17 @@ def circle(parent=None,
     return node
 
 
-def cylinder(parent=None,
-             name="cylinder",
-             width=1,
-             heigth=1,
-             color=[0, 0, 0],
-             m=datatypes.Matrix(),
-             pos_offset=None,
-             rot_offset=None,
-             degree=3):
+def cylinder(
+    parent=None,
+    name="cylinder",
+    width=1,
+    heigth=1,
+    color=[0, 0, 0],
+    m=datatypes.Matrix(),
+    pos_offset=None,
+    rot_offset=None,
+    degree=3,
+):
     """Create a curve with a CYLINDER shape.
 
     Arguments:
@@ -456,8 +479,8 @@ def cylinder(parent=None,
         dagNode: The newly created icon.
 
     """
-    dlen = width * .5
-    dhei = heigth * .5
+    dlen = width * 0.5
+    dhei = heigth * 0.5
 
     if degree == 3:
         offsetMult = 1
@@ -466,23 +489,23 @@ def cylinder(parent=None,
 
     # upper circle
     v0 = datatypes.Vector(0, dhei, -dlen * 1.108)
-    v1 = datatypes.Vector(dlen * .78, dhei, -dlen * .78)
+    v1 = datatypes.Vector(dlen * 0.78, dhei, -dlen * 0.78)
     v2 = datatypes.Vector(dlen * 1.108, dhei, 0)
-    v3 = datatypes.Vector(dlen * .78, dhei, dlen * .78)
+    v3 = datatypes.Vector(dlen * 0.78, dhei, dlen * 0.78)
     v4 = datatypes.Vector(0, dhei, dlen * 1.108)
-    v5 = datatypes.Vector(-dlen * .78, dhei, dlen * .78)
+    v5 = datatypes.Vector(-dlen * 0.78, dhei, dlen * 0.78)
     v6 = datatypes.Vector(-dlen * 1.108, dhei, 0)
-    v7 = datatypes.Vector(-dlen * .78, dhei, -dlen * .78)
+    v7 = datatypes.Vector(-dlen * 0.78, dhei, -dlen * 0.78)
 
     # lower circle
     v8 = datatypes.Vector(0, -dhei, -dlen * 1.108)
-    v9 = datatypes.Vector(dlen * .78, -dhei, -dlen * .78)
+    v9 = datatypes.Vector(dlen * 0.78, -dhei, -dlen * 0.78)
     v10 = datatypes.Vector(dlen * 1.108, -dhei, 0)
-    v11 = datatypes.Vector(dlen * .78, -dhei, dlen * .78)
+    v11 = datatypes.Vector(dlen * 0.78, -dhei, dlen * 0.78)
     v12 = datatypes.Vector(0, -dhei, dlen * 1.108)
-    v13 = datatypes.Vector(-dlen * .78, -dhei, dlen * .78)
+    v13 = datatypes.Vector(-dlen * 0.78, -dhei, dlen * 0.78)
     v14 = datatypes.Vector(-dlen * 1.108, -dhei, 0)
-    v15 = datatypes.Vector(-dlen * .78, -dhei, -dlen * .78)
+    v15 = datatypes.Vector(-dlen * 0.78, -dhei, -dlen * 0.78)
 
     # curves
     v16 = datatypes.Vector(0, dhei, -dlen * offsetMult)
@@ -492,15 +515,17 @@ def cylinder(parent=None,
 
     v20 = datatypes.Vector(dlen * offsetMult, dhei, 0)
     v21 = datatypes.Vector(dlen * offsetMult, -dhei, 0)
-    v22 = datatypes.Vector(-dlen * offsetMult, - dhei, 0)
+    v22 = datatypes.Vector(-dlen * offsetMult, -dhei, 0)
     v23 = datatypes.Vector(-dlen * offsetMult, dhei, 0)
 
     points = getPointArrayWithOffset(
-        [v0, v1, v2, v3, v4, v5, v6, v7], pos_offset, rot_offset)
+        [v0, v1, v2, v3, v4, v5, v6, v7], pos_offset, rot_offset
+    )
     node = curve.addCurve(parent, name, points, True, degree, m)
 
     points = getPointArrayWithOffset(
-        [v8, v9, v10, v11, v12, v13, v14, v15], pos_offset, rot_offset)
+        [v8, v9, v10, v11, v12, v13, v14, v15], pos_offset, rot_offset
+    )
     crv_0 = curve.addCurve(parent, node + "_0crv", points, True, degree, m)
 
     points = getPointArrayWithOffset([v16, v17], pos_offset, rot_offset)
@@ -525,14 +550,16 @@ def cylinder(parent=None,
     return node
 
 
-def compas(parent=None,
-           name="compas",
-           width=1,
-           color=[0, 0, 0],
-           m=datatypes.Matrix(),
-           pos_offset=None,
-           rot_offset=None,
-           degree=3):
+def compas(
+    parent=None,
+    name="compas",
+    width=1,
+    color=[0, 0, 0],
+    m=datatypes.Matrix(),
+    pos_offset=None,
+    rot_offset=None,
+    degree=3,
+):
     """Create a curve with a COMPAS shape.
 
     Arguments:
@@ -559,7 +586,7 @@ def compas(parent=None,
 
     for i in range(division):
         if i == division / 2:
-            w = datatypes.Vector(v.x, v.y, v.z - dlen * .4)
+            w = datatypes.Vector(v.x, v.y, v.z - dlen * 0.4)
         else:
             w = datatypes.Vector(v.x, v.y, v.z)
         point_pos.append(w)
@@ -573,13 +600,15 @@ def compas(parent=None,
     return node
 
 
-def diamond(parent=None,
-            name="diamond",
-            width=1,
-            color=[0, 0, 0],
-            m=datatypes.Matrix(),
-            pos_offset=None,
-            rot_offset=None):
+def diamond(
+    parent=None,
+    name="diamond",
+    width=1,
+    color=[0, 0, 0],
+    m=datatypes.Matrix(),
+    pos_offset=None,
+    rot_offset=None,
+):
     """Create a curve with a DIAMOND shape.
 
     Arguments:
@@ -608,8 +637,24 @@ def diamond(parent=None,
     NN = datatypes.Vector(dlen * -1, 0, dlen * -1)
     bottom = (0, -dlen, 0)
 
-    v_array = [pp, top, pN, pp, Np, top, NN, Np, NN, pN, bottom, NN, bottom,
-               Np, bottom, pp]
+    v_array = [
+        pp,
+        top,
+        pN,
+        pp,
+        Np,
+        top,
+        NN,
+        Np,
+        NN,
+        pN,
+        bottom,
+        NN,
+        bottom,
+        Np,
+        bottom,
+        pp,
+    ]
 
     points = getPointArrayWithOffset(v_array, pos_offset, rot_offset)
 
@@ -620,13 +665,15 @@ def diamond(parent=None,
     return node
 
 
-def cubewithpeak(parent=None,
-                 name="cubewithpeak",
-                 width=1,
-                 color=[0, 0, 0],
-                 m=datatypes.Matrix(),
-                 pos_offset=None,
-                 rot_offset=None):
+def cubewithpeak(
+    parent=None,
+    name="cubewithpeak",
+    width=1,
+    color=[0, 0, 0],
+    m=datatypes.Matrix(),
+    pos_offset=None,
+    rot_offset=None,
+):
     """Create a curve with a CUBE WITH PEAK shape.
 
     Arguments:
@@ -656,8 +703,31 @@ def cubewithpeak(parent=None,
     NpN = datatypes.Vector(dlen * -1, dlen, dlen * -1)
     NNN = datatypes.Vector(dlen * -1, 0, dlen * -1)
 
-    v_array = [peak, ppp, ppN, peak, NpN, ppN, NpN, peak, Npp, NpN, NNN, NNp,
-               Npp, NpN, Npp, ppp, pNp, NNp, pNp, pNN, ppN, pNN, NNN]
+    v_array = [
+        peak,
+        ppp,
+        ppN,
+        peak,
+        NpN,
+        ppN,
+        NpN,
+        peak,
+        Npp,
+        NpN,
+        NNN,
+        NNp,
+        Npp,
+        NpN,
+        Npp,
+        ppp,
+        pNp,
+        NNp,
+        pNp,
+        pNN,
+        ppN,
+        pNN,
+        NNN,
+    ]
 
     points = getPointArrayWithOffset(v_array, pos_offset, rot_offset)
 
@@ -668,14 +738,16 @@ def cubewithpeak(parent=None,
     return node
 
 
-def sphere(parent=None,
-           name="sphere",
-           width=1,
-           color=[0, 0, 0],
-           m=datatypes.Matrix(),
-           pos_offset=None,
-           rot_offset=None,
-           degree=3):
+def sphere(
+    parent=None,
+    name="sphere",
+    width=1,
+    color=[0, 0, 0],
+    m=datatypes.Matrix(),
+    pos_offset=None,
+    rot_offset=None,
+    degree=3,
+):
     """Create a curve with a SPHERE shape.
 
     Arguments:
@@ -693,21 +765,22 @@ def sphere(parent=None,
         dagNode: The newly created icon.
 
     """
-    dlen = width * .5
+    dlen = width * 0.5
 
     v0 = datatypes.Vector(0, 0, -dlen * 1.108)
-    v1 = datatypes.Vector(dlen * .78, 0, -dlen * .78)
+    v1 = datatypes.Vector(dlen * 0.78, 0, -dlen * 0.78)
     v2 = datatypes.Vector(dlen * 1.108, 0, 0)
-    v3 = datatypes.Vector(dlen * .78, 0, dlen * .78)
+    v3 = datatypes.Vector(dlen * 0.78, 0, dlen * 0.78)
     v4 = datatypes.Vector(0, 0, dlen * 1.108)
-    v5 = datatypes.Vector(-dlen * .78, 0, dlen * .78)
+    v5 = datatypes.Vector(-dlen * 0.78, 0, dlen * 0.78)
     v6 = datatypes.Vector(-dlen * 1.108, 0, 0)
-    v7 = datatypes.Vector(-dlen * .78, 0, -dlen * .78)
+    v7 = datatypes.Vector(-dlen * 0.78, 0, -dlen * 0.78)
 
     ro = datatypes.Vector([1.5708, 0, 0])
 
     points = getPointArrayWithOffset(
-        [v0, v1, v2, v3, v4, v5, v6, v7], pos_offset, rot_offset)
+        [v0, v1, v2, v3, v4, v5, v6, v7], pos_offset, rot_offset
+    )
     node = curve.addCurve(parent, name, points, True, degree, m)
 
     if rot_offset:
@@ -715,7 +788,8 @@ def sphere(parent=None,
     else:
         rot_offset = ro
     points = getPointArrayWithOffset(
-        [v0, v1, v2, v3, v4, v5, v6, v7], pos_offset, rot_offset)
+        [v0, v1, v2, v3, v4, v5, v6, v7], pos_offset, rot_offset
+    )
     crv_0 = curve.addCurve(parent, node + "_0crv", points, True, degree, m)
 
     ro = datatypes.Vector([1.5708, 0, 1.5708])
@@ -724,7 +798,8 @@ def sphere(parent=None,
     else:
         rot_offset = ro
     points = getPointArrayWithOffset(
-        [v0, v1, v2, v3, v4, v5, v6, v7], pos_offset, rot_offset + ro + ro)
+        [v0, v1, v2, v3, v4, v5, v6, v7], pos_offset, rot_offset + ro + ro
+    )
 
     crv_1 = curve.addCurve(parent, node + "_1crv", points, True, degree, m)
 
@@ -738,13 +813,15 @@ def sphere(parent=None,
     return node
 
 
-def arrow(parent=None,
-          name="arrow",
-          width=1,
-          color=[0, 0, 0],
-          m=datatypes.Matrix(),
-          pos_offset=None,
-          rot_offset=None):
+def arrow(
+    parent=None,
+    name="arrow",
+    width=1,
+    color=[0, 0, 0],
+    m=datatypes.Matrix(),
+    pos_offset=None,
+    rot_offset=None,
+):
     """Create a curve with a ARROW shape.
 
     Arguments:
@@ -773,7 +850,8 @@ def arrow(parent=None,
     v6 = datatypes.Vector(0, -0.3 * dlen, -dlen)
 
     points = getPointArrayWithOffset(
-        [v0, v1, v2, v3, v4, v5, v6], pos_offset, rot_offset)
+        [v0, v1, v2, v3, v4, v5, v6], pos_offset, rot_offset
+    )
 
     node = curve.addCurve(parent, name, points, True, 1, m)
 
@@ -782,13 +860,15 @@ def arrow(parent=None,
     return node
 
 
-def crossarrow(parent=None,
-               name="crossArrow",
-               width=1,
-               color=[0, 0, 0],
-               m=datatypes.Matrix(),
-               pos_offset=None,
-               rot_offset=None):
+def crossarrow(
+    parent=None,
+    name="crossArrow",
+    width=1,
+    color=[0, 0, 0],
+    m=datatypes.Matrix(),
+    pos_offset=None,
+    rot_offset=None,
+):
     """Create a curve with a CROSS ARROW shape.
 
     Arguments:
@@ -833,8 +913,32 @@ def crossarrow(parent=None,
     v22 = datatypes.Vector(0.6 * dlen, 0, 0.4 * dlen)
     v23 = datatypes.Vector(0.6 * dlen, 0, 0.2 * dlen)
 
-    v_array = [v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14,
-               v15, v16, v17, v18, v19, v20, v21, v22, v23]
+    v_array = [
+        v0,
+        v1,
+        v2,
+        v3,
+        v4,
+        v5,
+        v6,
+        v7,
+        v8,
+        v9,
+        v10,
+        v11,
+        v12,
+        v13,
+        v14,
+        v15,
+        v16,
+        v17,
+        v18,
+        v19,
+        v20,
+        v21,
+        v22,
+        v23,
+    ]
     points = getPointArrayWithOffset(v_array, pos_offset, rot_offset)
 
     node = curve.addCurve(parent, name, points, True, 1, m)
@@ -844,13 +948,15 @@ def crossarrow(parent=None,
     return node
 
 
-def cross(parent=None,
-          name="cross",
-          width=1,
-          color=[0, 0, 0],
-          m=datatypes.Matrix(),
-          pos_offset=None,
-          rot_offset=None):
+def cross(
+    parent=None,
+    name="cross",
+    width=1,
+    color=[0, 0, 0],
+    m=datatypes.Matrix(),
+    pos_offset=None,
+    rot_offset=None,
+):
     """Create a curve with a CROSS shape.
 
     Arguments:
@@ -869,7 +975,7 @@ def cross(parent=None,
 
     """
     width = width * 0.35
-    offset1 = width * .5
+    offset1 = width * 0.5
     offset2 = width * 1.5
 
     v0 = datatypes.Vector(width, offset2, 0)
@@ -891,7 +997,8 @@ def cross(parent=None,
     points = getPointArrayWithOffset(
         [v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11],
         pos_offset,
-        rot_offset)
+        rot_offset,
+    )
 
     node = curve.addCurve(parent, name, points, True, 1, m)
 
@@ -900,13 +1007,15 @@ def cross(parent=None,
     return node
 
 
-def null(parent=None,
-         name="null",
-         width=1,
-         color=[0, 0, 0],
-         m=datatypes.Matrix(),
-         pos_offset=None,
-         rot_offset=None):
+def null(
+    parent=None,
+    name="null",
+    width=1,
+    color=[0, 0, 0],
+    m=datatypes.Matrix(),
+    pos_offset=None,
+    rot_offset=None,
+):
     """Create a curve with a NULL shape.
 
     Arguments:
@@ -924,7 +1033,7 @@ def null(parent=None,
         dagNode: The newly created icon.
 
     """
-    dlen = width * .5
+    dlen = width * 0.5
 
     v0 = datatypes.Vector(dlen, 0, 0)
     v1 = datatypes.Vector(-dlen, 0, 0)
@@ -952,13 +1061,15 @@ def null(parent=None,
     return node
 
 
-def axis(parent=None,
-         name="axis",
-         width=1,
-         color=[0, 0, 0],
-         m=datatypes.Matrix(),
-         pos_offset=None,
-         rot_offset=None):
+def axis(
+    parent=None,
+    name="axis",
+    width=1,
+    color=[0, 0, 0],
+    m=datatypes.Matrix(),
+    pos_offset=None,
+    rot_offset=None,
+):
     """Create a curve with a AXIS shape.
 
     Arguments:
@@ -976,7 +1087,7 @@ def axis(parent=None,
         dagNode: The newly created icon.
 
     """
-    dlen = width * .5
+    dlen = width * 0.5
 
     v0 = datatypes.Vector(0, 0, 0)
     v1 = datatypes.Vector(dlen, 0, 0)
@@ -1027,18 +1138,87 @@ def connection_display_curve(name, centers=[], degree=1):
 
     return crv
 
+
+def direction_arrow(
+    axis="z", length=1, name="direction_arrow", parent_name=None
+):
+    """
+    Creates a curve shaped like an arrow, aligned with a specified axis and length.
+
+    Args:
+        parent_name (str): The name of the parent object. The arrow is created
+            relative to its local axis.
+        axis (str): The axis for the arrow direction ('x', 'y', 'z', '-x', '-y', '-z').
+        length (float): The length of the arrow.
+
+    Returns:
+        str: The name of the created arrow curve.
+    """
+    # Validate axis input
+    valid_axes = ["x", "y", "z", "-x", "-y", "-z"]
+    if axis not in valid_axes:
+        raise ValueError(
+            "Invalid axis '{}'. Must be one of: {}".format(axis, valid_axes)
+        )
+
+    # Define arrow points in local space
+    size_ratio = 0.9
+    tip = [0, 0, length]
+    base1 = [-0.1 * length, 0, size_ratio * length]
+    base2 = [0.1 * length, 0, size_ratio * length]
+    base3 = [-0.05 * length, 0, size_ratio * length]
+    base4 = [0.05 * length, 0, size_ratio * length]
+    shaft_start = [0, 0, 0]
+    shaft_end = [0, 0, size_ratio * length]
+
+    # Assemble the arrow shape
+    points = [
+        shaft_start,
+        shaft_end,
+        base4,
+        base2,
+        tip,
+        base1,
+        base3,
+        shaft_end,
+    ]
+
+    # Transform points to match the axis
+    for i in range(len(points)):
+        if axis == "x":
+            points[i] = [points[i][2], points[i][1], points[i][0]]
+        elif axis == "-x":
+            points[i] = [-points[i][2], points[i][1], points[i][0]]
+        elif axis == "y":
+            points[i] = [points[i][0], points[i][2], points[i][1]]
+        elif axis == "-y":
+            points[i] = [points[i][0], -points[i][2], points[i][1]]
+        elif axis == "-z":
+            points[i] = [points[i][0], points[i][1], -points[i][2]]
+
+    # Create the curve
+    arrow_curve = cmds.curve(p=points, d=1, n=name)
+
+    if parent_name:
+        cmds.parent(arrow_curve, parent_name)
+
+    return pm.PyNode(arrow_curve)
+
+
 ##########################################################
 # Guide Icons
 ##########################################################
 
 
-def guideRootIcon(parent=None,
-                  name="root",
-                  width=.5,
-                  color=[0, 0, 0],
-                  m=datatypes.Matrix(),
-                  pos_offset=None,
-                  rot_offset=None):
+def guideRootIcon(
+    parent=None,
+    name="root",
+    width=0.5,
+    color=[0, 0, 0],
+    m=datatypes.Matrix(),
+    pos_offset=None,
+    rot_offset=None,
+):
     """Create a curve with a ROOT GUIDE shape.
 
     Note:
@@ -1061,15 +1241,17 @@ def guideRootIcon(parent=None,
     """
     rootIco = null(parent, name, width, color, m, pos_offset, rot_offset)
     cubeWidth = width / 2.0
-    cubeIco = cube(parent,
-                   name,
-                   cubeWidth,
-                   cubeWidth,
-                   cubeWidth,
-                   color,
-                   m,
-                   pos_offset,
-                   rot_offset)
+    cubeIco = cube(
+        parent,
+        name,
+        cubeWidth,
+        cubeWidth,
+        cubeWidth,
+        color,
+        m,
+        pos_offset,
+        rot_offset,
+    )
 
     for shp in cubeIco.listRelatives(shapes=True):
         rootIco.addChild(shp, add=True, shape=True)
@@ -1084,13 +1266,15 @@ def guideRootIcon(parent=None,
     return rootIco
 
 
-def guideRootIcon2D(parent=None,
-                    name="root",
-                    width=.5,
-                    color=[0, 0, 0],
-                    m=datatypes.Matrix(),
-                    pos_offset=None,
-                    rot_offset=None):
+def guideRootIcon2D(
+    parent=None,
+    name="root",
+    width=0.5,
+    color=[0, 0, 0],
+    m=datatypes.Matrix(),
+    pos_offset=None,
+    rot_offset=None,
+):
     """Create a curve with a 2D ROOT GUIDE shape.
 
     Note:
@@ -1119,14 +1303,16 @@ def guideRootIcon2D(parent=None,
         rot_offset_orig.rotateBy(rot_offset)
 
     squareWidth = width / 2.0
-    squareIco = square(parent,
-                       name,
-                       squareWidth,
-                       squareWidth,
-                       color,
-                       m,
-                       pos_offset,
-                       rot_offset_orig)
+    squareIco = square(
+        parent,
+        name,
+        squareWidth,
+        squareWidth,
+        color,
+        m,
+        pos_offset,
+        rot_offset_orig,
+    )
 
     for shp in squareIco.listRelatives(shapes=True):
         rootIco.addChild(shp, add=True, shape=True)
@@ -1141,13 +1327,15 @@ def guideRootIcon2D(parent=None,
     return rootIco
 
 
-def guideLocatorIcon(parent=None,
-                     name="locator",
-                     width=.5,
-                     color=[0, 0, 0],
-                     m=datatypes.Matrix(),
-                     pos_offset=None,
-                     rot_offset=None):
+def guideLocatorIcon(
+    parent=None,
+    name="locator",
+    width=0.5,
+    color=[0, 0, 0],
+    m=datatypes.Matrix(),
+    pos_offset=None,
+    rot_offset=None,
+):
     """Create a curve with a LOCATOR GUIDE shape.
 
     Note:
@@ -1171,7 +1359,8 @@ def guideLocatorIcon(parent=None,
     spheWidth = width / 2.0
 
     sphereIco = sphere(
-        parent, name, spheWidth, color, m, pos_offset, rot_offset, degree=3)
+        parent, name, spheWidth, color, m, pos_offset, rot_offset, degree=3
+    )
 
     for shp in sphereIco.listRelatives(shapes=True):
         rootIco.addChild(shp, add=True, shape=True)
@@ -1186,13 +1375,15 @@ def guideLocatorIcon(parent=None,
     return rootIco
 
 
-def guideBladeIcon(parent=None,
-                   name="blade",
-                   lenX=1.0,
-                   color=[0, 0, 0],
-                   m=datatypes.Matrix(),
-                   pos_offset=None,
-                   rot_offset=None):
+def guideBladeIcon(
+    parent=None,
+    name="blade",
+    lenX=1.0,
+    color=[0, 0, 0],
+    m=datatypes.Matrix(),
+    pos_offset=None,
+    rot_offset=None,
+):
     """Create a curve with a BLADE GUIDE shape.
 
     Note:
@@ -1220,23 +1411,37 @@ def guideBladeIcon(parent=None,
     v4 = datatypes.Vector(0, lenX / 2, 0)
 
     points = getPointArrayWithOffset(
-        [v0, v1, v2, v3, v4], pos_offset, rot_offset)
+        [v0, v1, v2, v3, v4], pos_offset, rot_offset
+    )
 
     bladeIco = curve.addCurve(parent, name, points, True, 1, m)
 
     setcolor(bladeIco, color)
 
     attribute.setNotKeyableAttributes(bladeIco)
-    attribute.unlockAttribute(bladeIco, attributes=["tx", "ty", "tz",
-                                                    "rx", "ry", "rz",
-                                                    "sx", "sy", "sz",
-                                                    "v", "ro"])
+    attribute.unlockAttribute(
+        bladeIco,
+        attributes=[
+            "tx",
+            "ty",
+            "tz",
+            "rx",
+            "ry",
+            "rz",
+            "sx",
+            "sy",
+            "sz",
+            "v",
+            "ro",
+        ],
+    )
     # bladeIco.scale.set(1, 1, 1)
     # Set the control shapes isHistoricallyInteresting
     for oShape in bladeIco.getShapes():
         oShape.isHistoricallyInteresting.set(False)
 
     return bladeIco
+
 
 ##########################################################
 # MISC
@@ -1265,10 +1470,14 @@ def getPointArrayWithOffset(point_pos, pos_offset=None, rot_offset=None):
     for v in point_pos:
         if rot_offset:
             mv = om.MVector(v.x, v.y, v.z)
-            mv = mv.rotateBy(om.MEulerRotation(rot_offset.x,
-                                               rot_offset.y,
-                                               rot_offset.z,
-                                               om.MEulerRotation.kXYZ))
+            mv = mv.rotateBy(
+                om.MEulerRotation(
+                    rot_offset.x,
+                    rot_offset.y,
+                    rot_offset.z,
+                    om.MEulerRotation.kXYZ,
+                )
+            )
             v = datatypes.Vector(mv.x, mv.y, mv.z)
         if pos_offset:
             v = v + pos_offset
