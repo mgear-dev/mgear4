@@ -1502,7 +1502,7 @@ class GraphicViewWidget(QtWidgets.QGraphicsView):
         data_node = self.main_window.get_current_data_node()
         if not (data_node and data_node.exists()):
             return True
-        data_node = pm.PyNode(data_node)
+        data_node = pm.PyNode(str(data_node))
         data_node.picker_datas.set(lock=False)
         data_node.picker_datas.set(
             json.dumps(new_data).replace("true", "True")
