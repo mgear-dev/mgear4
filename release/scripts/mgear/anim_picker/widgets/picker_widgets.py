@@ -2394,8 +2394,8 @@ class PickerItem(DefaultPolygon):
             old_color.blue(),
             old_color.green(),
             old_color.red(),
-            alpha=old_color.alpha(),
         )
+        new_color.setAlpha(old_color.alpha())
         self.set_color(new_color)
 
     def duplicate_selected(self, *args, **kwargs):
