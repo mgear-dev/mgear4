@@ -45,7 +45,7 @@ def _convert_path_token(file_path):
         str: file path with updated token to path
     """
     path_token = "[{}]".format(ANIM_PICKER_VAR)
-    if path_token in file_path:
+    if file_path and path_token in file_path:
         if os.environ.get(ANIM_PICKER_VAR, ""):
             file_path = file_path.replace(
                 path_token, os.environ.get(ANIM_PICKER_VAR, "")

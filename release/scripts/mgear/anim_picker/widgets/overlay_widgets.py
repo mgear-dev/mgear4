@@ -212,9 +212,19 @@ class SaveOverlayWidget(OverlayWidget):
 
         # Write data to node
         self.data_node.set_data(data)
+        # in pyside2 True or False value was implicit, but pyside6 need compare
+        # this lambda functions will fix compatibility
+        self.to_node = (
+            lambda: self.node_option_cb.checkState()
+            == QtCore.Qt.CheckState.Checked
+        )
+        self.to_file = (
+            lambda: self.file_option_cb.checkState()
+            == QtCore.Qt.CheckState.Checked
+        )
         self.data_node.write_data(
-            to_node=self.node_option_cb.checkState(),
-            to_file=self.file_option_cb.checkState(),
+            to_node=self.to_node(),
+            to_file=self.to_file(),
             file_path=self._get_file_path(),
         )
 
