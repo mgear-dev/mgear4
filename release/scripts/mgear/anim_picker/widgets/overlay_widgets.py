@@ -13,6 +13,7 @@ import maya.cmds as cmds
 from mgear.vendor.Qt import QtGui
 from mgear.vendor.Qt import QtCore
 from mgear.vendor.Qt import QtWidgets
+from mgear.core import string
 
 # debugging
 # from PySide2 import QtGui
@@ -176,12 +177,19 @@ class SaveOverlayWidget(OverlayWidget):
             return
         global _LAST_USED_DIRECTORY
         _LAST_USED_DIRECTORY = os.path.dirname(file_path)
-        self.file_path_le.setText(file_path)
+        self.file_path_le.setText(
+            file_handlers.replace_path_with_token(file_path)
+        )
 
     def select_file_dialog(self):
         """Get file dialog window starting in default folder"""
         picker_msg = "Picker Datas (*.pkr)"
-        path_module = _LAST_USED_DIRECTORY or basic.get_module_path()
+        if os.environ.get(file_handlers.ANIM_PICKER_VAR, ""):
+            path_module = string.normalize_path(
+                os.environ.get(file_handlers.ANIM_PICKER_VAR, "")
+            )
+        else:
+            path_module = _LAST_USED_DIRECTORY or basic.get_module_path()
         file_path = QtWidgets.QFileDialog.getSaveFileName(
             self, "Choose file", path_module, picker_msg
         )
@@ -198,6 +206,7 @@ class SaveOverlayWidget(OverlayWidget):
     def _get_file_path(self):
         """Return line edit file path"""
         file_path = self.file_path_le.text()
+
         if file_path:
             return str(file_path)
         return None

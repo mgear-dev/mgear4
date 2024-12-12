@@ -227,7 +227,7 @@ class DataNode(object):
 
         # Write data to file
         if to_file:
-            file_handlers.write_data_file(file_path=file_path, data=data)
+            file_handlers.write_data_file(file_path, data=data)
             self._set_str_attr(self.__FILE_ATTR__, value=file_path)
 
         # Write data to node attribute
@@ -251,7 +251,9 @@ class DataNode(object):
         file_path = self.get_file_path()
         if not file_path:
             return
-        if not os.path.exists(file_path):
+        if not os.path.exists(
+            file_handlers.replace_token_with_path(file_path)
+        ):
             return
 
         return file_handlers.read_data_file(file_path)
