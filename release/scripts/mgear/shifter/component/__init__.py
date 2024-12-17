@@ -1638,7 +1638,9 @@ class Main(object):
         for rn in array_list:
             comp_relative = self.rig.findComponent(rn)
             if comp_relative:
-                o_name = self.get_alias_relation(rn, comp_relative, fullName=fullName)
+                o_name = self.get_alias_relation(
+                    rn, comp_relative, fullName=fullName
+                )
                 alias_list[0].append(o_name)
                 alias_list[1].append(rn)
             else:
@@ -2125,7 +2127,7 @@ class Main(object):
 
         """
         # get parent component joint
-        if self.settings["useIndex"]:
+        if self.settings["useIndex"] and self.parent_comp.jointList:
             try:
                 self.active_jnt = self.parent_comp.jointList[
                     self.settings["parentJointIndex"]
@@ -2137,6 +2139,14 @@ class Main(object):
                     % (self.fullName, str(self.settings["parentJointIndex"]))
                 )
         else:
+
+            # Inform the user that useIndex ins not possible to use
+            if self.settings["useIndex"] and not self.parent_comp.jointList:
+                pm.displayWarning(
+                    "Parent Component doesn't have joints."
+                    " Using last active_jnt. Index parenting omitted"
+                )
+
             parent_name = "none"
             if self.guide.parentComponent is not None:
                 parent_name = self.guide.parentComponent.getName(
