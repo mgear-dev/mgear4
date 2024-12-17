@@ -115,7 +115,7 @@ def getSDKDestination(animNodeOutputPlug):
     Returns:
         list: name of the node, and attr
     """
-    connectionTypes = [SDK_UTILITY_TYPE[0], "transform"]
+    connectionTypes = [SDK_UTILITY_TYPE[0], "transform", "blendShape", "shape"]
     targetDrivenAttr = pm.listConnections(
         animNodeOutputPlug,
         source=False,
@@ -124,14 +124,24 @@ def getSDKDestination(animNodeOutputPlug):
         type=connectionTypes,
         scn=True,
     )
-    if pm.nodeType(targetDrivenAttr[0].nodeName()) == "blendWeighted":
+    if (
+        targetDrivenAttr
+        and pm.nodeType(targetDrivenAttr[0].nodeName()) == "blendWeighted"
+    ):
         blendNodeOutAttr = targetDrivenAttr[0].node().attr("output")
         targetDrivenAttr = pm.listConnections(
-            blendNodeOutAttr, destination=True, plugs=True, scn=True
+            blendNodeOutAttr,
+            destination=True,
+            plugs=True,
+            scn=True,
+            shapes=True,
         )
 
-    drivenNode, drivenAttr = targetDrivenAttr[0].split(".")
-    return drivenNode, drivenAttr
+        drivenNode, drivenAttr = targetDrivenAttr[0].split(".")
+        return drivenNode, drivenAttr
+
+    else:
+        return None, None
 
 
 def getMultiDriverSDKs(driven, sourceDriverFilter=None):
@@ -249,9 +259,9 @@ def getSDKInfo(animNode):
     itt_list = pm.keyTangent(animNode, itt=True, q=True)
     ott_list = pm.keyTangent(animNode, ott=True, q=True)
     # maya doesnt return value if there is only one key frame set.
-    if itt_list == None:
+    if itt_list is None:
         itt_list = ["linear"]
-    if ott_list == None:
+    if ott_list is None:
         ott_list = ["linear"]
 
     for index in range(0, numberOfKeys):
@@ -502,7 +512,7 @@ def getBlendNodes(attrPlug):
         pm.connectAttr(existingAnimNode.attr("output"), destPlug, f=True)
     if pm.nodeType(blendNode[0]) in SDK_UTILITY_TYPE:
         blendNode = blendNode[0]
-    if type(blendNode) == list:
+    if isinstance(blendNode, list):
         blendNode = blendNode[0]
     numOfInputs = len(blendNode.getAttr("input"))
     destPlug = "{0}.input[{1}]".format(blendNode.name(), numOfInputs)
