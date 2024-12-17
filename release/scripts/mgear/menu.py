@@ -157,10 +157,6 @@ def install_main_menu():
     import mgear.anim_picker.menu
     mgear.anim_picker.menu.install()
 
-    # Install Synoptic Menu
-    import mgear.synoptic.menu
-    mgear.synoptic.menu.install()
-
     # Install Flex Menu
     import mgear.flex.menu
     mgear.flex.menu.install()

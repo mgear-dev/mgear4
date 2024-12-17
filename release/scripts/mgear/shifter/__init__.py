@@ -35,9 +35,6 @@ if not pm.pluginInfo("matrixNodes", q=True, loaded=True):
 
 COMPONENT_PATH = os.path.join(os.path.dirname(__file__), "component")
 TEMPLATE_PATH = os.path.join(COMPONENT_PATH, "templates")
-SYNOPTIC_PATH = os.path.abspath(
-    os.path.join(os.path.dirname(__file__), os.pardir, "synoptic", "tabs")
-)
 
 SHIFTER_COMPONENT_ENV_KEY = "MGEAR_SHIFTER_COMPONENT_PATH"
 
@@ -417,9 +414,6 @@ class Rig(object):
         )
         self.gearVersion_att = attribute.addAttribute(
             self.model, "gear_version", "string", mgear.getVersion()
-        )
-        self.synoptic_att = attribute.addAttribute(
-            self.model, "synoptic", "string", str(self.options["synoptic"])
         )
         self.comments_att = attribute.addAttribute(
             self.model, "comments", "string", str(self.options["comments"])

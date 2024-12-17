@@ -408,7 +408,6 @@ class Rig(Main):
         self.pJointRig = self.addParam("force_uniScale", "bool", True)
         self.pJointConnect = self.addParam("connect_joints", "bool", True)
         self.pJointSSC = self.addParam("force_SSC", "bool", False)
-        self.pSynoptic = self.addParam("synoptic", "string", "")
 
         self.pDoPreCustomStep = self.addParam("doPreCustomStep", "bool", False)
         self.pDoPostCustomStep = self.addParam(
@@ -1698,10 +1697,6 @@ class GuideSettings(MayaQWidgetDockableMixin, GuideMainSettings):
         )
         # self.populateCheck(
         #     self.guideSettingsTab.force_SSC_joints_checkBox, "force_SSC")
-        self.populateAvailableSynopticTabs()
-
-        for item in self.root.attr("synoptic").get().split(","):
-            self.guideSettingsTab.rigTabs_listWidget.addItem(item)
 
         tap = self.guideSettingsTab
 
@@ -1921,24 +1916,6 @@ class GuideSettings(MayaQWidgetDockableMixin, GuideMainSettings):
         #     partial(self.updateCheck,
         #             tap.force_SSC_joints_checkBox,
         #             "force_SSC"))
-        tap.addTab_pushButton.clicked.connect(
-            partial(
-                self.moveFromListWidget2ListWidget,
-                tap.available_listWidget,
-                tap.rigTabs_listWidget,
-                tap.rigTabs_listWidget,
-                "synoptic",
-            )
-        )
-        tap.removeTab_pushButton.clicked.connect(
-            partial(
-                self.moveFromListWidget2ListWidget,
-                tap.rigTabs_listWidget,
-                tap.available_listWidget,
-                tap.rigTabs_listWidget,
-                "synoptic",
-            )
-        )
         tap.loadSkinPath_pushButton.clicked.connect(self.skinLoad)
         tap.dataCollectorPath_pushButton.clicked.connect(
             self.data_collector_path
@@ -1946,7 +1923,6 @@ class GuideSettings(MayaQWidgetDockableMixin, GuideMainSettings):
         tap.dataCollectorPathEmbbeded_pushButton.clicked.connect(
             self.data_collector_pathEmbbeded
         )
-        tap.rigTabs_listWidget.installEventFilter(self)
 
         # colors connections
         index_widgets = (
@@ -2232,9 +2208,7 @@ class GuideSettings(MayaQWidgetDockableMixin, GuideMainSettings):
 
     def eventFilter(self, sender, event):
         if event.type() == QtCore.QEvent.ChildRemoved:
-            if sender == self.guideSettingsTab.rigTabs_listWidget:
-                self.updateListAttr(sender, "synoptic")
-            elif sender == self.customStepTab.preCustomStep_listWidget:
+            if sender == self.customStepTab.preCustomStep_listWidget:
                 self.updateListAttr(sender, "preCustomStep")
             elif sender == self.customStepTab.postCustomStep_listWidget:
                 self.updateListAttr(sender, "postCustomStep")
@@ -2368,31 +2342,31 @@ class GuideSettings(MayaQWidgetDockableMixin, GuideMainSettings):
         self.root.attr("ctl_name_ext").set(naming.DEFAULT_CTL_EXT_NAME)
         self.root.attr("joint_name_ext").set(naming.DEFAULT_JOINT_EXT_NAME)
 
-    def populateAvailableSynopticTabs(self):
+    # def populateAvailableSynopticTabs(self):
 
-        import mgear.shifter as shifter
+    #     import mgear.shifter as shifter
 
-        defPath = os.environ.get("MGEAR_SYNOPTIC_PATH", None)
-        if not defPath or not os.path.isdir(defPath):
-            defPath = shifter.SYNOPTIC_PATH
+    #     defPath = os.environ.get("MGEAR_SYNOPTIC_PATH", None)
+    #     if not defPath or not os.path.isdir(defPath):
+    #         defPath = shifter.SYNOPTIC_PATH
 
-        # Sanity check for folder existence.
-        if not os.path.isdir(defPath):
-            return
+    #     # Sanity check for folder existence.
+    #     if not os.path.isdir(defPath):
+    #         return
 
-        tabsDirectories = [
-            name
-            for name in os.listdir(defPath)
-            if os.path.isdir(os.path.join(defPath, name))
-        ]
-        # Quick clean the first empty item
-        if tabsDirectories and not tabsDirectories[0]:
-            self.guideSettingsTab.available_listWidget.takeItem(0)
+    #     tabsDirectories = [
+    #         name
+    #         for name in os.listdir(defPath)
+    #         if os.path.isdir(os.path.join(defPath, name))
+    #     ]
+    #     # Quick clean the first empty item
+    #     if tabsDirectories and not tabsDirectories[0]:
+    #         self.guideSettingsTab.available_listWidget.takeItem(0)
 
-        itemsList = self.root.attr("synoptic").get().split(",")
-        for tab in sorted(tabsDirectories):
-            if tab not in itemsList:
-                self.guideSettingsTab.available_listWidget.addItem(tab)
+    #     itemsList = self.root.attr("synoptic").get().split(",")
+    #     for tab in sorted(tabsDirectories):
+    #         if tab not in itemsList:
+    #             self.guideSettingsTab.available_listWidget.addItem(tab)
 
     def skinLoad(self, *args):
         startDir = self.root.attr("skin").get()
