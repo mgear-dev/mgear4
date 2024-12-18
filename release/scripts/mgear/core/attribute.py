@@ -1607,6 +1607,71 @@ def connect_message(source, attr):
         pm.connectAttr("{}.message".format(src_str), attr_name)
 
 
+def resolve_alias_attr(full_attr_name):
+    """
+    Resolves the real name of an attribute if it is an alias.
+
+    Args:
+        full_attr_name (str): The fully qualified alias attribute name (e.g., "blendShape1.pCube1").
+
+    Returns:
+        str: The real attribute name if it's an alias, or the original name if not.
+    """
+    # Split the full attribute into node and alias attribute
+    if "." not in full_attr_name:
+        raise ValueError(
+            "Input must be a fully qualified attribute (e.g., 'node.attr')"
+        )
+
+    node, alias_attr = full_attr_name.split(".", 1)
+
+    # Get all aliases for the node
+    aliases = cmds.aliasAttr(node, query=True) or []
+
+    # aliases is a flat list: [alias1, realAttr1, alias2, realAttr2, ...]
+    alias_dict = dict(zip(aliases[::2], aliases[1::2]))
+
+    # Check if the alias_attr is in the alias list
+    if alias_attr in alias_dict:
+        real_attr = "{}.{}".format(node, alias_dict[alias_attr])
+        return real_attr  # Return the fully qualified real attribute name
+    else:
+        return full_attr_name  # Not an alias, return as is
+
+
+def get_alias_for_attr(full_attr_name):
+    """
+    Gets the alias name for a real attribute, if it exists.
+
+    Args:
+        full_attr_name (str): The fully qualified real attribute name
+            (e.g., "blendShape1.weight[0]").
+
+    Returns:
+        str: The alias name if it exists, or the original name if no alias exists.
+    """
+    # Split the full attribute into node and real attribute
+    if "." not in full_attr_name:
+        raise ValueError(
+            "Input must be a fully qualified attribute (e.g., 'node.attr')"
+        )
+
+    node, real_attr = full_attr_name.split(".", 1)
+
+    # Get all aliases for the node
+    aliases = cmds.aliasAttr(node, query=True) or []
+
+    # aliases is a flat list: [alias1, realAttr1, alias2, realAttr2, ...]
+    alias_dict = dict(zip(aliases[1::2], aliases[::2]))  # Reverse mapping
+
+    # Check if the real_attr is in the alias dictionary
+    if real_attr in alias_dict:
+        alias_attr = "{}.{}".format(node, alias_dict[real_attr])
+        return alias_attr  # Return the fully qualified alias name
+    else:
+        return full_attr_name  # No alias exists, return as is
+
+
 ##########################################################
 # Utility Channels
 ##########################################################

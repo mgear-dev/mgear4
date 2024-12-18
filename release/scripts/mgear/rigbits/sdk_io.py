@@ -33,6 +33,7 @@ import json
 import pprint
 
 import mgear.pymaya as pm
+from mgear.core import attribute
 
 import mgear.core.utils as mUtils
 from .six import string_types
@@ -116,17 +117,30 @@ def getSDKDestination(animNodeOutputPlug):
         list: name of the node, and attr
     """
     connectionTypes = [SDK_UTILITY_TYPE[0], "transform", "blendShape", "shape"]
-    targetDrivenAttr = pm.listConnections(
-        animNodeOutputPlug,
-        source=False,
-        destination=True,
-        plugs=True,
-        type=connectionTypes,
-        scn=True,
-    )
+    targetDrivenAttr = []
+    for cType in connectionTypes:
+        targetTypeDrivenAttr = pm.listConnections(
+            animNodeOutputPlug,
+            source=False,
+            destination=True,
+            plugs=True,
+            type=cType,
+            scn=True,
+        )
+        if targetTypeDrivenAttr and cType == "blendShape":
+            # NOTE: we assume is only index 0
+            # need to resolve the alias attr name before process the SDK
+            targetTypeDrivenAttr = [
+                pm.PyNode(
+                    attribute.resolve_alias_attr(targetTypeDrivenAttr[0])
+                )
+            ]
+
+        targetDrivenAttr.extend(targetTypeDrivenAttr)
     if (
         targetDrivenAttr
-        and pm.nodeType(targetDrivenAttr[0].nodeName()) == "blendWeighted"
+        and pm.nodeType(pm.PyNode(targetDrivenAttr[0]).nodeName())
+        == "blendWeighted"
     ):
         blendNodeOutAttr = targetDrivenAttr[0].node().attr("output")
         targetDrivenAttr = pm.listConnections(
@@ -136,12 +150,8 @@ def getSDKDestination(animNodeOutputPlug):
             scn=True,
             shapes=True,
         )
-
-        drivenNode, drivenAttr = targetDrivenAttr[0].split(".")
-        return drivenNode, drivenAttr
-
-    else:
-        return None, None
+    drivenNode, drivenAttr = targetDrivenAttr[0].split(".")
+    return drivenNode, drivenAttr
 
 
 def getMultiDriverSDKs(driven, sourceDriverFilter=None):
@@ -267,7 +277,7 @@ def getSDKInfo(animNode):
     for index in range(0, numberOfKeys):
         value = pm.getAttr("{0}.keyTimeValue[{1}]".format(animNode, index))
         absoluteValue = pm.keyframe(
-            animNode, q=True, valueChange=True, index=index
+            animNode, q=True, valueChange=True, index=(index,)
         )[0]
         keyData = [value[0], absoluteValue, itt_list[index], ott_list[index]]
         sdkKey_Info.append(keyData)
@@ -276,7 +286,6 @@ def getSDKInfo(animNode):
     sdkInfo_dict["preInfinity"] = animNode.getAttr("preInfinity")
     sdkInfo_dict["postInfinity"] = animNode.getAttr("postInfinity")
     sdkInfo_dict["weightedTangents"] = animNode.getAttr("weightedTangents")
-
     animNodeInputPlug = "{0}.input".format(animNode.nodeName())
     sourceDriverAttr = pm.listConnections(
         animNodeInputPlug, source=True, plugs=True, scn=True
@@ -528,8 +537,16 @@ def createSDKFromDict(sdkInfo_dict):
     Returns:
         PyNode: created sdk node
     """
+    # resolve the alias name just in case is a blendshape
+    sdkAttrName = "{0}.{1}".format(
+        sdkInfo_dict["drivenNode"],
+        sdkInfo_dict["drivenAttr"],
+    )
+    sdkAttrAliasName = attribute.get_alias_for_attr(sdkAttrName).split(".")[1]
+
     sdkName = "{0}_{1}".format(
-        sdkInfo_dict["drivenNode"], sdkInfo_dict["drivenAttr"]
+        sdkInfo_dict["drivenNode"],
+        sdkAttrAliasName,
     )
     sdkNode = pm.createNode(sdkInfo_dict["type"], name=sdkName, ss=True)
     pm.connectAttr(
@@ -568,7 +585,9 @@ def createSDKFromDict(sdkInfo_dict):
     sdkNode.setAttr("preInfinity", sdkInfo_dict["preInfinity"])
     sdkNode.setAttr("postInfinity", sdkInfo_dict["postInfinity"])
     pm.keyTangent(sdkNode)
-    sdkNode.setWeighted(sdkInfo_dict["weightedTangents"])
+    pm.keyTangent(
+        sdkNode, edit=True, weightedTangents=sdkInfo_dict["weightedTangents"]
+    )
 
     return sdkNode
 

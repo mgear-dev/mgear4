@@ -308,6 +308,9 @@ class _Node(base.Node):
         fdg = super(_Node, self).__getattribute__("_Node__fn_dg")
         return fdg.name()
 
+    def nodeName(self):
+        return self.name()
+
     def longName(self):
         fdag = super(_Node, self).__getattribute__("_Node__fn_dag")
         if fdag is not None:
