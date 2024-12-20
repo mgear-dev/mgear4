@@ -237,9 +237,25 @@ def _pymaya_cmd_wrap(func, wrap_object=True, scope=SCOPE_NODE):
         ):
             res = res[0] if res else None
 
-        # TODO : is it correct?
+        # Convert None to empty list for list commands
+        # NOTE : is it correct?
         if func.__name__.startswith("list") and res is None:
             res = []
+
+        # # NOTE: we can't use a general unwrapping since the return should be
+        # # a list depending of the command, for example pm.deformer
+        # # New general unwrapping of single-element lists
+        # elif (
+        #     not func.__name__.startswith("list")
+        #     and isinstance(res, list)
+        #     and len(res) == 1
+        # ):
+        #     # Unwrap the single-item list into just the object
+
+        #     print(
+        #         f" {func.__name__}: unwrap single item list: {str(res)}, to {str(res[0])}"
+        #     )
+        #     res = res[0]
 
         if wrap_object:
             known_node = None
@@ -353,10 +369,10 @@ def listConnections(*args, sourceFirst=False, **kwargs):
 
     if sourceFirst:
         # first  list the source connections
-        if 'source' not in kwargs or not kwargs['source']:
-            kwargs['source'] = True
-        if 'destination' not in kwargs or kwargs['destination']:
-            kwargs['destination'] = False
+        if "source" not in kwargs or not kwargs["source"]:
+            kwargs["source"] = True
+        if "destination" not in kwargs or kwargs["destination"]:
+            kwargs["destination"] = False
 
         connections = cmds.listConnections(*args, **kwargs) or []
         res_source = [
@@ -365,8 +381,8 @@ def listConnections(*args, sourceFirst=False, **kwargs):
         ]
 
         # add the connections from the destination side
-        kwargs['source'] = False
-        kwargs['destination'] = True
+        kwargs["source"] = False
+        kwargs["destination"] = True
 
         connections = cmds.listConnections(*args, **kwargs) or []
         res_destination = [

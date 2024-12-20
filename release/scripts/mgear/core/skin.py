@@ -17,6 +17,7 @@ import pickle as pickle
 import mgear.pymaya as pm
 from maya import cmds
 import maya.OpenMaya as OpenMaya
+import maya.OpenMayaAnim as OpenMayaAnim
 from .six import string_types
 from mgear.vendor.Qt import QtWidgets
 from mgear.vendor.Qt import QtCore
@@ -31,6 +32,28 @@ PACK_EXT = ".gSkinPack"
 ######################################
 # Skin getters
 ######################################
+
+
+def get_skin_cluster_fn(skin_cluster_name):
+    """Retrieve the MFnSkinCluster from a skin cluster name.
+
+    Args:
+        skin_cluster_name (str): The name of the skin cluster.
+
+    Returns:
+        OpenMaya.MFnSkinCluster: The function set for the skin cluster.
+    """
+    selection = OpenMaya.MSelectionList()
+    selection.add(
+        skin_cluster_name
+    )  # Add the skin cluster to the selection list
+    mobject = OpenMaya.MObject()
+    selection.getDependNode(
+        0, mobject
+    )  # Retrieve the MObject for the skin cluster
+
+    # Create the function set for the skin cluster
+    return OpenMayaAnim.MFnSkinCluster(mobject)
 
 
 def getSkinCluster(obj, first_SC=False):
@@ -127,7 +150,9 @@ def getGeometryComponents(skinCls):
     # Brute force to try the old method using deformerSet. If fail will try
     # to use Maya 2022 compoent tag expression
     try:
-        fnSet = OpenMaya.MFnSet(skinCls.__apimfn__().deformerSet())
+        fnSet = OpenMaya.MFnSet(
+            get_skin_cluster_fn(skinCls.name()).deformerSet()
+        )
         members = OpenMaya.MSelectionList()
         fnSet.getMembers(members, False)
         dagPath = OpenMaya.MDagPath()
@@ -154,7 +179,9 @@ def getCurrentWeights(skinCls, dagPath, components):
     util = OpenMaya.MScriptUtil()
     util.createFromInt(0)
     pUInt = util.asUintPtr()
-    skinCls.__apimfn__().getWeights(dagPath, components, weights, pUInt)
+    get_skin_cluster_fn(skinCls.name()).getWeights(
+        dagPath, components, weights, pUInt
+    )
     return weights
 
 
@@ -167,7 +194,9 @@ def collectInfluenceWeights(skinCls, dagPath, components, dataDic):
     weights = getCurrentWeights(skinCls, dagPath, components)
 
     influencePaths = OpenMaya.MDagPathArray()
-    numInfluences = skinCls.__apimfn__().influenceObjects(influencePaths)
+    numInfluences = get_skin_cluster_fn(skinCls.name()).influenceObjects(
+        influencePaths
+    )
     numComponentsPerInfluence = int(weights.length() / numInfluences)
     for ii in range(influencePaths.length()):
         influenceName = influencePaths[ii].partialPathName()
@@ -187,7 +216,9 @@ def collectInfluenceWeights(skinCls, dagPath, components, dataDic):
 
 def collectBlendWeights(skinCls, dagPath, components, dataDic):
     weights = OpenMaya.MDoubleArray()
-    skinCls.__apimfn__().getBlendWeights(dagPath, components, weights)
+    get_skin_cluster_fn(skinCls.name()).getBlendWeights(
+        dagPath, components, weights
+    )
     # round the weights down. This should be safe on Dual Quat blends
     # because it is not normalized. And 6 should be more than accurate enough.
     dataDic["blendWeights"] = {
@@ -366,7 +397,9 @@ def setInfluenceWeights(skinCls, dagPath, components, dataDic, compressed):
     unusedImports = []
     weights = getCurrentWeights(skinCls, dagPath, components)
     influencePaths = OpenMaya.MDagPathArray()
-    numInfluences = skinCls.__apimfn__().influenceObjects(influencePaths)
+    numInfluences = get_skin_cluster_fn(skinCls.name()).influenceObjects(
+        influencePaths
+    )
     numComponentsPerInfluence = int(weights.length() / numInfluences)
 
     for importedInfluence, wtValues in dataDic["weights"].items():
@@ -394,7 +427,7 @@ def setInfluenceWeights(skinCls, dagPath, components, dataDic, compressed):
     influenceIndices = OpenMaya.MIntArray(numInfluences)
     for ii in range(numInfluences):
         influenceIndices.set(ii, ii)
-    skinCls.__apimfn__().setWeights(
+    get_skin_cluster_fn(skinCls.name()).setWeights(
         dagPath, components, influenceIndices, weights, False
     )
 
@@ -415,7 +448,9 @@ def setBlendWeights(skinCls, dagPath, components, dataDic, compressed):
         for ii, w in enumerate(dataDic["blendWeights"]):
             blendWeights.set(w, ii)
 
-    skinCls.__apimfn__().setBlendWeights(dagPath, components, blendWeights)
+    get_skin_cluster_fn(skinCls.name()).setBlendWeights(
+        dagPath, components, blendWeights
+    )
 
 
 def setData(skinCls, dataDic, compressed):
@@ -557,6 +592,10 @@ def importSkin(filePath=None, *args):
                         "following joints: " + str(notFound)
                     )
                     continue
+
+            if isinstance(skinCluster, list):
+                skinCluster = skinCluster[0]
+
             if skinCluster:
                 setData(skinCluster, data, compressed)
                 print("Imported skin for: {}".format(objName))
@@ -624,7 +663,7 @@ def skinCopy(sourceMesh=None, targetMesh=None, *args, **kwargs):
                 skinName = targetMesh.name() + "_skinCluster"
             skinCluster = pm.skinCluster(
                 oDef, targetMesh, tsb=True, nw=1, n=skinName
-            )
+            )[0]
             pm.copySkinWeights(
                 sourceSkin=ss.stripNamespace(),
                 destinationSkin=skinCluster.name(),
