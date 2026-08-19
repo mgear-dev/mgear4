@@ -8,10 +8,14 @@ are pure geometry with no Qt or Maya dependency, so they are unit-testable
 standalone (the same pattern as ``overlay`` and ``mirror``); the Maya point
 extraction lives in ``handlers.maya_handlers.get_shape_points``.
 
-Plane mapping (Maya is Y-up):
+Plane mapping (Maya is Y-up; the picker scene is also Y-up):
     front -> world (x, y)
     side  -> world (z, y)
-    top   -> world (x, z)
+    top   -> world (x, -z)
+
+The top plane negates Z so the trace reads like Maya's top view, where +Z
+points down the screen; without it the silhouette comes out vertically
+inverted (front-of-rig at the top instead of the bottom).
 """
 
 
@@ -38,7 +42,9 @@ def project_to_plane(points, plane):
         if plane == PLANE_SIDE:
             result.append((z, y))
         elif plane == PLANE_TOP:
-            result.append((x, z))
+            # Negate Z so the trace matches Maya's top view (where +Z points
+            # down the screen) under the picker's Y-up scene.
+            result.append((x, -z))
         else:  # front (default)
             result.append((x, y))
     return result
