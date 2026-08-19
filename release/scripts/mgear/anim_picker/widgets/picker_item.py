@@ -939,8 +939,20 @@ class PickerItem(DefaultPolygon):
             self.widget_scripts = widget_binding.default_scripts(
                 self.widget_type
             )
+        self._seed_checkbox_default()
         self.refresh_widget_state()
         self.update()
+
+    def _seed_checkbox_default(self):
+        """Seed a checkbox's displayed state from its configured default.
+
+        Applied on load / type change / binding edit -- not on the
+        selection-change refresh -- so a bound attribute (read in
+        ``refresh_widget_state``) still overrides it with the live value while a
+        script-only checkbox keeps whatever state the user last toggled.
+        """
+        if self.widget_type == widget_binding.WIDGET_CHECKBOX:
+            self.widget_graphic.checked = bool((self.binding or {}).get("default"))
 
     def get_binding(self):
         """Return the widget's binding dict (attribute(s) + range)."""
@@ -949,6 +961,7 @@ class PickerItem(DefaultPolygon):
     def set_binding(self, binding):
         """Set the widget's binding dict and refresh the displayed value."""
         self.binding = dict(binding) if binding else {}
+        self._seed_checkbox_default()
         self.refresh_widget_state()
 
     def get_widget_scripts(self):

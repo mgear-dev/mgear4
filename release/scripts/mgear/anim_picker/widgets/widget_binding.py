@@ -17,11 +17,14 @@ The item stores two additive dictionaries alongside its ``widget`` type:
          "attr_x": "node.tx", "min_x": -1.0, "max_x": 1.0,     # 2D X
          "attr_y": "node.ty", "min_y": -1.0, "max_y": 1.0,     # 2D Y
          "orientation": "horizontal", "recenter": False,
+         "default": False,                                     # checkbox only
          "visibility_group": "", "visibility_invert": False}   # checkbox only
 
-    A checkbox with a ``visibility_group`` is a group controller: toggling it
-    shows / hides every item tagged with that group (``visibility_invert``
-    flips the polarity). Both keys are optional, ignored by the other widgets.
+    A checkbox's ``default`` is its initial checked state on picker load; a
+    bound attribute (if any) overrides it with the live value. A checkbox with
+    a ``visibility_group`` is a group controller: toggling it shows / hides
+    every item tagged with that group (``visibility_invert`` flips the
+    polarity). All three keys are optional, ignored by the other widgets.
 
 ``scripts``
     Optional per-state scripts run in addition to (or instead of) the
@@ -138,6 +141,7 @@ def default_binding():
         "max_y": 1.0,
         "orientation": ORIENT_HORIZONTAL,
         "recenter": False,
+        "default": False,
         "visibility_group": "",
         "visibility_invert": False,
     }

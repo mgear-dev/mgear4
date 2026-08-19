@@ -129,6 +129,7 @@ class ItemEditPanel(QtWidgets.QWidget):
         self.widget_min_y_sb = None
         self.widget_max_y_sb = None
         self.widget_recenter_cb = None
+        self.widget_default_cb = None
         self.widget_group_combo = None
         self.widget_invert_cb = None
         self._wx_attr_row = None
@@ -628,12 +629,22 @@ class ItemEditPanel(QtWidgets.QWidget):
         attr_form.addRow("Attribute", self.widget_attr_field)
         section.addWidget(self._wx_attr_row)
 
-        # Checkbox on / off scripts.
+        # Checkbox default state + on / off scripts.
         self._wx_checkbox_box = QtWidgets.QWidget()
-        cb_row = QtWidgets.QHBoxLayout(self._wx_checkbox_box)
-        cb_row.setContentsMargins(0, 0, 0, 0)
+        cb_layout = QtWidgets.QVBoxLayout(self._wx_checkbox_box)
+        cb_layout.setContentsMargins(0, 0, 0, 0)
+        self.widget_default_cb = QtWidgets.QCheckBox("Default on")
+        self.widget_default_cb.setToolTip(
+            "Initial checked state on picker load. A bound attribute, if set, "
+            "overrides this with its live value."
+        )
+        self.widget_default_cb.clicked.connect(self._apply_binding)
+        self._fields.append(self.widget_default_cb)
+        cb_layout.addWidget(self.widget_default_cb)
+        cb_row = QtWidgets.QHBoxLayout()
         cb_row.addWidget(self._widget_script_button("On Script...", "on"))
         cb_row.addWidget(self._widget_script_button("Off Script...", "off"))
+        cb_layout.addLayout(cb_row)
         section.addWidget(self._wx_checkbox_box)
 
         # Checkbox: master-toggle a named item group's visibility.
@@ -1072,6 +1083,7 @@ class ItemEditPanel(QtWidgets.QWidget):
         self.widget_min_y_sb.setValue(binding.get("min_y", -1.0))
         self.widget_max_y_sb.setValue(binding.get("max_y", 1.0))
         self.widget_recenter_cb.setChecked(bool(binding.get("recenter")))
+        self.widget_default_cb.setChecked(bool(binding.get("default")))
         self._fill_group_combo(
             self.widget_group_combo, binding.get("visibility_group", "")
         )
@@ -1647,6 +1659,7 @@ class ItemEditPanel(QtWidgets.QWidget):
             "min_y": self.widget_min_y_sb.value(),
             "max_y": self.widget_max_y_sb.value(),
             "recenter": self.widget_recenter_cb.isChecked(),
+            "default": self.widget_default_cb.isChecked(),
             "visibility_group": str(
                 self.widget_group_combo.currentText()
             ).strip(),
