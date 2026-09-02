@@ -43,6 +43,14 @@ from mgear.anim_picker.handlers import maya_handlers
 from mgear.anim_picker.handlers import widget_handlers
 
 
+# Skip the load-time init (__INIT__) pass for action scripts larger than
+# this. Init scripts (e.g. space-switch label setup) are inherently tiny;
+# a multi-KB script is always an action body with an embedded payload that
+# does nothing at init, so compiling it just to open the picker is wasted
+# work. Such scripts still compile once on first click (and are cached).
+ACTION_INIT_MAX_CHARS = 2000
+
+
 def select_picker_controls(picker_items, event, modifiers=None):
     if __EDIT_MODE__.get():
         return
@@ -1597,6 +1605,18 @@ class PickerItem(DefaultPolygon):
     def get_custom_action_script(self):
         return self.custom_action_script
 
+    def _run_action_init(self):
+        """Run the action script's load-time init (``__INIT__``) pass.
+
+        Large scripts are skipped so a big embedded literal is never
+        compiled just to open the picker (see ``ACTION_INIT_MAX_CHARS``);
+        they still compile once on first click.
+        """
+        script = self.get_custom_action_script() or ""
+        if len(script) > ACTION_INIT_MAX_CHARS:
+            return
+        python_handlers.safe_code_exec(script, env=self.get_init_env())
+
     # =========================================================================
     # Controls handling ---
     def get_namespace(self):
@@ -1825,9 +1845,7 @@ class PickerItem(DefaultPolygon):
         if model.action_mode:
             self.set_custom_action_mode(True)
             self.set_custom_action_script(model.action_script)
-            python_handlers.safe_code_exec(
-                self.get_custom_action_script(), env=self.get_init_env()
-            )
+            self._run_action_init()
 
         # Set controls
         if "controls" in data:
