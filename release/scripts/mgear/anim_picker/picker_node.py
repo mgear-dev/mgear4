@@ -1,5 +1,6 @@
 # python
 import os
+import ast
 import json
 
 # dcc
@@ -243,14 +244,50 @@ class DataNode(object):
         if attr_data:
             try:
                 data = json.loads(attr_data)
-            except (ValueError, TypeError) as exc:
-                mgear.log(
-                    "anim_picker: could not parse picker data on '{}' as "
-                    "JSON, ignoring legacy data ({})".format(self.name, exc),
-                    mgear.sev_warning,
-                )
-                data = {}
+            except (ValueError, TypeError):
+                # Pre-2.0 embedded pickers stored a stringified Python
+                # literal; fall back to migrating it in memory on open.
+                data = self._read_legacy_node_data(attr_data)
 
+        return data
+
+    def _read_legacy_node_data(self, attr_data):
+        """Parse pre-2.0 embedded picker data (a Python-literal string).
+
+        Older anim_picker stored the node's picker data as a stringified
+        Python literal read back with ``eval()``. Version 2.0 switched to
+        JSON, so such data no longer parses as JSON. This migrates it in
+        memory on open (never rewriting the node, so it also works on
+        referenced rigs) using ``ast.literal_eval``, which evaluates only
+        literals and runs no code -- keeping the "no arbitrary code
+        execution on load" guarantee that motivated the JSON switch.
+
+        Args:
+            attr_data (str): The raw string stored on the data node.
+
+        Returns:
+            dict: The migrated picker data, or an empty dict if the string
+            could not be parsed as a Python literal.
+        """
+        try:
+            data = ast.literal_eval(attr_data)
+        except (ValueError, SyntaxError, TypeError) as exc:
+            mgear.log(
+                "anim_picker: could not parse picker data on '{}' as JSON "
+                "or legacy Python literal, ignoring it ({})".format(
+                    self.name, exc
+                ),
+                mgear.sev_warning,
+            )
+            return {}
+
+        if not isinstance(data, dict):
+            return {}
+
+        mgear.log(
+            "anim_picker: migrated legacy embedded picker data on '{}' "
+            "in memory (re-export to store it as JSON)".format(self.name)
+        )
         return data
 
     def read_data_from_file(self):
