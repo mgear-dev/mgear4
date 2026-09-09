@@ -317,6 +317,7 @@ def create_proximity_wrap(
     weights_path=None,
     weights_filename=None,
     smoothInfluences=0,
+    wrapMode=1,
 
 ):
     """
@@ -328,6 +329,7 @@ def create_proximity_wrap(
         deformer_name: Optional name for the deformer. If None, generates from first target geo.
         weights_path: Optional path to the weights file directory
         weights_filename: Optional filename for the weights (defaults to deformer_name + ".json")
+        wrapMode : Optional set change the wrap mode of the defromer default Surface "1"
 
     Returns:
         The renamed deformer node name
@@ -373,6 +375,8 @@ def create_proximity_wrap(
         )
 
     cmds.setAttr(f"{deformer_name}.smoothInfluences", smoothInfluences)
+
+    cmds.setAttr(f"{deformer_name}.wrapMode", wrapMode)
 
     return deformer_name
 
