@@ -3,6 +3,7 @@
 Extracted from gui.py during the Phase 2 decomposition.
 """
 
+import json
 from functools import partial
 
 from maya import cmds
@@ -114,6 +115,19 @@ class MainDockWindow(QtWidgets.QWidget):
         # Opacity restored when the toggle re-activates passthrough from an
         # opaque window (so it visibly engages without touching the slider).
         self._last_passthrough_opacity = 70
+
+        # Autosave: prompts (never background-saves) on an interval when the
+        # picker has unsaved changes. Configured from the Save overlay.
+        self._autosave_timer = QtCore.QTimer(self)
+        self._autosave_timer.setSingleShot(False)
+        self._autosave_timer.timeout.connect(self._autosave_prompt)
+        # Guards re-prompting once a save-on-close prompt has been resolved.
+        self._closing = False
+        # Normalized snapshot of the picker data as last loaded / saved. Change
+        # detection compares against this (UI-serialized vs UI-serialized) so it
+        # is not fooled by node-vs-UI structural differences. None until a
+        # character is loaded.
+        self._saved_data_snapshot = None
 
         __EDIT_MODE__.set_init(edit)
         self.is_dockable = dockable
@@ -1202,10 +1216,29 @@ class MainDockWindow(QtWidgets.QWidget):
         self.close()
 
     def closeEvent(self, evnt):
+        # Prompt to save when closing with unsaved changes, reusing the same
+        # Save overlay. Defer the real close until the user resolves the prompt.
+        if not self._closing and self.has_unsaved_changes():
+            evnt.ignore()
+            self.save_widget.show_prompt(
+                on_finished=self._on_close_prompt_finished,
+                message="Unsaved changes: save the picker before closing?",
+            )
+            return
+        self.close()
+
+    def _on_close_prompt_finished(self, outcome):
+        """Resolve a save-on-close prompt: close unless the user cancelled"""
+        if outcome == "cancel":
+            return
+        # "saved" or "discard": proceed to close for real
+        self._closing = True
         self.close()
 
     def close(self):
         """Overwriting close event to close child windows too"""
+        # Stop autosave prompts
+        self._autosave_timer.stop()
         # Delete script jobs
         self.cb_manager.removeAllManagedCB()
         # Close childs
@@ -1249,6 +1282,9 @@ class MainDockWindow(QtWidgets.QWidget):
 
         # Add script jobs
         self.add_callback()
+
+        # Start autosave prompting if enabled in settings
+        self.apply_autosave_settings()
 
     def resizeEvent(self, event):
         """Resize about overlay on resize event"""
@@ -1406,6 +1442,70 @@ class MainDockWindow(QtWidgets.QWidget):
 
     # =========================================================================
     # Data ---
+    def _normalized_picker_data(self, data):
+        """Return a stable string form of picker data for change comparison"""
+        try:
+            return json.dumps(data, sort_keys=True)
+        except (TypeError, ValueError):
+            return repr(data)
+
+    def capture_saved_state(self):
+        """Snapshot the current picker data as the 'saved' baseline"""
+        self._saved_data_snapshot = self._normalized_picker_data(
+            self.get_character_data()
+        )
+
+    def on_picker_saved(self):
+        """Refresh the saved baseline and restart the autosave countdown"""
+        self.capture_saved_state()
+        self.apply_autosave_settings()
+
+    def has_unsaved_changes(self):
+        """Return True if picker data differs from the last loaded/saved state"""
+        data_node = self.get_current_data_node()
+        if not (data_node and data_node.exists()):
+            return False
+        # No baseline yet (nothing loaded) means nothing to lose
+        if self._saved_data_snapshot is None:
+            return False
+        current = self._normalized_picker_data(self.get_character_data())
+        return current != self._saved_data_snapshot
+
+    def apply_autosave_settings(self):
+        """(Re)start or stop the autosave timer from persisted settings"""
+        save_widget = getattr(self, "save_widget", None)
+        if save_widget is None:
+            return
+
+        self._autosave_timer.stop()
+        if save_widget.get_autosave_enabled():
+            interval_ms = save_widget.get_autosave_interval() * 60 * 1000
+            self._autosave_timer.start(interval_ms)
+
+    def _autosave_prompt(self):
+        """Prompt (never background-save) when autosave fires with changes"""
+        # Respect the same guards as a manual save
+        if not __EDIT_MODE__.get():
+            return
+
+        data_node = self.get_current_data_node()
+        if not (data_node and data_node.exists()):
+            return
+        if data_node.is_referenced():
+            return
+
+        # Don't stack a prompt on top of an already-visible overlay
+        if any(overlay.isVisible() for overlay in self.overlays):
+            return
+
+        # Only prompt when there are actually unsaved changes
+        if not self.has_unsaved_changes():
+            return
+
+        self.save_widget.show(
+            message="Autosave reminder: you have unsaved picker changes."
+        )
+
     def check_for_data_change(self):
         """
         Check if data changed
@@ -1478,6 +1578,10 @@ class MainDockWindow(QtWidgets.QWidget):
 
         # Update selection states
         self.selection_change_event()
+
+        # Record the freshly loaded state as the "saved" baseline for change
+        # detection (autosave / save-on-close prompts).
+        self.capture_saved_state()
 
     def save_character(self):
         """Save data to current selected data_node"""

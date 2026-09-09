@@ -19,6 +19,28 @@ from mgear.anim_picker.handlers import file_handlers
 # constants -------------------------------------------------------------------
 _LAST_USED_DIRECTORY = None
 
+# Autosave preference keys (stored in QSettings("mgear", "anim_picker"))
+AUTOSAVE_ENABLED_KEY = "autosave_enabled"
+AUTOSAVE_INTERVAL_KEY = "autosave_interval"
+AUTOSAVE_DEFAULT_INTERVAL = 10
+
+
+def _settings_bool(settings, key, default=False):
+    """Read a boolean from QSettings, coercing string-stored values.
+
+    Args:
+        settings (QtCore.QSettings): The settings store to read from.
+        key (str): The setting key.
+        default (bool, optional): Value returned when the key is missing.
+
+    Returns:
+        bool: The stored boolean value.
+    """
+    value = settings.value(key, default)
+    if isinstance(value, str):
+        return value.lower() in ("1", "true", "yes")
+    return bool(value)
+
 
 class OverlayWidget(QtWidgets.QWidget):
     """
@@ -61,6 +83,15 @@ class SaveOverlayWidget(OverlayWidget):
     def setup(self):
         OverlayWidget.setup(self)
 
+        # Context message shown above the options when the overlay is opened as
+        # a prompt (autosave reminder / unsaved changes on close). Hidden for a
+        # normal manual save.
+        self.header_label = QtWidgets.QLabel()
+        self.header_label.setWordWrap(True)
+        self.header_label.setStyleSheet("font-weight: bold; color: #f0c040;")
+        self.header_label.hide()
+        self.layout.addWidget(self.header_label)
+
         # Add options group box
         group_box = QtWidgets.QGroupBox()
         group_box.setTitle("Save options")
@@ -70,6 +101,7 @@ class SaveOverlayWidget(OverlayWidget):
         # Add options
         self.add_node_save_options()
         self.add_file_save_options()
+        self.add_autosave_options()
 
         # Add action buttons
         self.add_confirmation_buttons()
@@ -84,6 +116,11 @@ class SaveOverlayWidget(OverlayWidget):
         self.layout.addItem(spacer)
 
         self.data_node = None
+
+        # Callback fired after the user resolves the overlay when it is shown
+        # as a prompt (autosave / save-on-close). Receives the outcome string
+        # ("saved", "discard" or "cancel"). None during normal manual save.
+        self._on_finished = None
 
     def add_node_save_options(self):
         """Save data to node option"""
@@ -110,6 +147,82 @@ class SaveOverlayWidget(OverlayWidget):
 
         self.option_layout.addLayout(file_layout)
 
+    def add_autosave_options(self):
+        """Add autosave enable + interval options"""
+        autosave_layout = QtWidgets.QHBoxLayout()
+
+        self.autosave_cb = QtWidgets.QCheckBox()
+        self.autosave_cb.setText("Enable autosave")
+        self.autosave_cb.setToolTip(
+            "Periodically prompt to save the picker "
+            "(never saves in background)"
+        )
+        autosave_layout.addWidget(self.autosave_cb)
+
+        self.autosave_interval_sb = QtWidgets.QSpinBox()
+        self.autosave_interval_sb.setMinimum(1)
+        self.autosave_interval_sb.setMaximum(240)
+        self.autosave_interval_sb.setValue(AUTOSAVE_DEFAULT_INTERVAL)
+        self.autosave_interval_sb.setSuffix(" min")
+        autosave_layout.addWidget(self.autosave_interval_sb)
+
+        self.option_layout.addLayout(autosave_layout)
+
+        # Persist and re-apply the timer whenever the settings change
+        self.autosave_cb.stateChanged.connect(
+            self._autosave_settings_changed
+        )
+        self.autosave_interval_sb.valueChanged.connect(
+            self._autosave_settings_changed
+        )
+
+    def _autosave_settings(self):
+        """Return the QSettings store for anim picker preferences"""
+        return QtCore.QSettings("mgear", "anim_picker")
+
+    def get_autosave_enabled(self):
+        """Return the persisted autosave enabled state"""
+        return _settings_bool(
+            self._autosave_settings(), AUTOSAVE_ENABLED_KEY, False
+        )
+
+    def get_autosave_interval(self):
+        """Return the persisted autosave interval in minutes"""
+        settings = self._autosave_settings()
+        try:
+            interval = int(
+                settings.value(
+                    AUTOSAVE_INTERVAL_KEY, AUTOSAVE_DEFAULT_INTERVAL
+                )
+            )
+        except (TypeError, ValueError):
+            interval = AUTOSAVE_DEFAULT_INTERVAL
+        return max(1, interval)
+
+    def _load_autosave_settings(self):
+        """Restore the autosave controls from persisted preferences"""
+        self.autosave_cb.blockSignals(True)
+        self.autosave_interval_sb.blockSignals(True)
+        self.autosave_cb.setChecked(self.get_autosave_enabled())
+        self.autosave_interval_sb.setValue(self.get_autosave_interval())
+        self.autosave_cb.blockSignals(False)
+        self.autosave_interval_sb.blockSignals(False)
+
+    def _autosave_settings_changed(self, *args):
+        """Persist autosave settings and (re)start the parent timer"""
+        settings = self._autosave_settings()
+        settings.setValue(
+            AUTOSAVE_ENABLED_KEY, self.autosave_cb.isChecked()
+        )
+        settings.setValue(
+            AUTOSAVE_INTERVAL_KEY, self.autosave_interval_sb.value()
+        )
+        apply_settings = getattr(
+            self.parent(), "apply_autosave_settings", None
+        )
+        if callable(apply_settings):
+            apply_settings()
+
     def add_confirmation_buttons(self):
         """Add save confirmation buttons to overlay"""
         btn_layout = QtWidgets.QHBoxLayout()
@@ -126,6 +239,13 @@ class SaveOverlayWidget(OverlayWidget):
         close_btn.setText("Cancel")
         btn_layout.addWidget(close_btn)
 
+        # Only shown when the overlay is opened as a prompt (save-on-close), so
+        # the user can close without saving. Hidden during normal manual save.
+        self.discard_btn = basic.CallbackButton(callback=self.discard_event)
+        self.discard_btn.setText("Don't Save")
+        self.discard_btn.hide()
+        btn_layout.addWidget(self.discard_btn)
+
         save_btn = basic.CallbackButton(callback=self.save_event)
         save_btn.setText("Save")
         btn_layout.addWidget(save_btn)
@@ -140,8 +260,41 @@ class SaveOverlayWidget(OverlayWidget):
 
         self.layout.addLayout(btn_layout)
 
-    def show(self):
-        """Update fields for current data node on show"""
+    def _set_message(self, message):
+        """Show or clear the context header message"""
+        if message:
+            self.header_label.setText(message)
+            self.header_label.show()
+        else:
+            self.header_label.clear()
+            self.header_label.hide()
+
+    def show(self, message=None):
+        """Update fields for current data node on show (manual/autosave).
+
+        Args:
+            message (str, optional): Context header shown above the options
+                (e.g. an autosave reminder). Cleared when not provided.
+        """
+        self._on_finished = None
+        self.discard_btn.hide()
+        self._set_message(message)
+        self.update_fields()
+        OverlayWidget.show(self)
+
+    def show_prompt(self, on_finished=None, message=None):
+        """Show the overlay as a save prompt (save-on-close).
+
+        Args:
+            on_finished (callable, optional): Called with the outcome string
+                ("saved", "discard" or "cancel") once the user resolves the
+                overlay. When provided, a "Don't Save" button is shown so the
+                user can dismiss without saving.
+            message (str, optional): Context header shown above the options.
+        """
+        self._on_finished = on_finished
+        self.discard_btn.setVisible(on_finished is not None)
+        self._set_message(message)
         self.update_fields()
         OverlayWidget.show(self)
 
@@ -157,6 +310,18 @@ class SaveOverlayWidget(OverlayWidget):
         self.file_path_le.setText(current_file_path or "")
         if current_file_path:
             self.file_option_cb.setCheckState(QtCore.Qt.Checked)
+
+        # Restore autosave preferences
+        self._load_autosave_settings()
+
+    def _finish(self, outcome):
+        """Hide the overlay and fire the pending prompt callback once"""
+        self.hide()
+        callback = self._on_finished
+        self._on_finished = None
+        self.discard_btn.hide()
+        if callback:
+            callback(outcome)
 
     def select_file_event(self):
         """Open save dialog window to select file path"""
@@ -225,12 +390,21 @@ class SaveOverlayWidget(OverlayWidget):
             file_path=self._get_file_path(),
         )
 
-        # Hide overlay
-        self.hide()
+        # Refresh the saved baseline and restart the autosave countdown
+        on_saved = getattr(self.parent(), "on_picker_saved", None)
+        if callable(on_saved):
+            on_saved()
+
+        # Hide overlay and notify any pending prompt
+        self._finish("saved")
+
+    def discard_event(self):
+        """Dismiss the prompt without saving (close-without-save)"""
+        self._finish("discard")
 
     def cancel_event(self):
-        """Cancel save"""
-        self.hide()
+        """Cancel save (keep the window open)"""
+        self._finish("cancel")
 
 
 class AboutOverlayWidget(OverlayWidget):

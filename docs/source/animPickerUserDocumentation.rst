@@ -209,10 +209,40 @@ layers...**:
 * While the dialog is open you can edit layers **directly on the canvas** too:
   click (or Shift-click / marquee) a layer to select it, then drag to move it
   or pull its handles to scale it.
+* **Hover** a layer in the list to see its **resolved image path** as a tooltip,
+  and **right-click** it for **Reveal in Folder** (opens the OS file browser
+  with the image selected) and **Copy Resolved Path**.
 
 **Remove all backgrounds** (canvas right-click) clears every layer at once.
 There is no size cap on the artwork — the canvas grows to span the layers and
 the buttons, so pan and zoom always reach all of it.
+
+
+Where background images are loaded from
++++++++++++++++++++++++++++++++++++++++
+
+Each layer stores the **image path** it was added from, and that path is used
+first. If the stored path no longer exists (for example the picker was moved to
+another machine or shared with a team), the picker **falls back to searching
+next to the ``.pkr`` file**: it looks for an image with the **same file name**
+in the folder that holds the ``.pkr`` the picker was loaded from.
+
+The relative folder searched is controlled by the ``ANIM_PICKER_RELATIVE_IMAGES``
+environment variable, resolved **relative to the ``.pkr`` file**:
+
+- Unset (the default) or ``""`` — look in the **same folder** as the ``.pkr``.
+- ``"../images"`` — look in a sibling ``images`` folder next to the ``.pkr``.
+- ``"../../images"`` — and so on for other layouts.
+
+If neither the stored path nor the fallback resolves, the layer is skipped and a
+warning is logged.
+
+.. note::
+
+    The fallback only applies when the picker was **loaded from a ``.pkr``
+    file** (that load records the source file location). A picker that lives
+    only on a scene node, with no external ``.pkr``, has no folder to search, so
+    keep those image paths valid or re-point them.
 
 
 Building items
@@ -434,5 +464,69 @@ share it with a team.
 
     **mGear 5.x note:** picker data is stored as clean JSON. A picker that
     lived **only** on a scene node in a much older version (with no ``.pkr``
-    file) is not auto-migrated and should be re-exported once; ``.pkr`` files
-    and file-backed pickers are unaffected.
+    file) is auto-migrated and but should be saved once to make the updated
+    data permanent.
+
+
+Save options
+------------
+
+The **Save** window offers two destinations, and you can use either or both:
+
+- **Save data to node** — writes the picker into the ``PICKER_DATAS`` node so it
+  travels with the Maya scene.
+- **Save data to file** — writes an external ``.pkr`` file. Use **Select File**
+  to choose the path.
+
+
+Portable file paths (``ANIM_PICKER_PATH``)
+------------------------------------------
+
+Set the ``ANIM_PICKER_PATH`` environment variable to a base folder to store
+``.pkr`` paths **relative to that folder** instead of as absolute paths — handy
+for sharing pickers across machines or between team members whose projects live
+in different locations.
+
+When ``ANIM_PICKER_PATH`` is set:
+
+- The **Select File** dialog opens in that folder by default.
+- When you pick a file **inside** that folder, the stored path replaces the base
+  folder with the token ``[ANIM_PICKER_PATH]`` (for example
+  ``[ANIM_PICKER_PATH]/characters/hero.pkr``).
+- When the picker loads, the token is expanded back to the current value of
+  ``ANIM_PICKER_PATH``, so the same file resolves correctly on any machine where
+  the variable points at the equivalent folder.
+
+If the variable is not set, or the file lives outside that folder, the full
+absolute path is stored as usual.
+
+
+Autosave
+--------
+
+The **Save** window also holds the autosave settings:
+
+- **Enable autosave** — turns autosave on or off.
+- **Interval (min)** — how often, in minutes, autosave checks your work.
+
+These settings are remembered between sessions.
+
+Autosave **never saves in the background**. Instead, when the interval elapses
+and the picker has unsaved changes, it pops the same **Save** window with a clear
+*"Autosave reminder"* message, so you stay in control of when and where the data
+is written (node, file, or both). If there are no changes since the last save,
+no reminder appears.
+
+.. note::
+
+    Autosave only prompts while the picker is in **edit mode**. It is skipped in
+    animation mode and on referenced picker nodes, where saving is not allowed.
+
+
+Prompt to save on close
+-----------------------
+
+If you close the picker window with unsaved changes, the same **Save** window
+appears first so you don't lose work. Choose **Save** to save and close,
+**Don't Save** to close without saving, or **Cancel** to keep the window open.
+Closing with no unsaved changes does not prompt.

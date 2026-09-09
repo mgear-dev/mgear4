@@ -1548,6 +1548,29 @@ class GraphicViewWidget(QtWidgets.QGraphicsView):
         else:
             return path
 
+    def get_resolved_layer_path(self, layer):
+        """Return the on-disk path a background layer resolves to.
+
+        Applies the same fallback search used when loading the image (see
+        apply_background_fallback_logic) without decoding the image, so callers
+        can reveal or copy the real file location.
+
+        Args:
+            layer (BackgroundLayer): layer to resolve.
+
+        Returns:
+            str: resolved absolute path, or None if the layer has no path.
+        """
+        if not layer.path:
+            return None
+        path = os.path.abspath(r"{}".format(layer.path))
+        try:
+            return self.apply_background_fallback_logic(path)
+        except (AttributeError, RuntimeError):
+            # No current data node to source the .pkr folder from; the stored
+            # absolute path is the best we can resolve.
+            return path
+
     def _load_layer_image(self, layer):
         """Resolve a layer's path and decode its (vertically mirrored) image.
 

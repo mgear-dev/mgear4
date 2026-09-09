@@ -4,6 +4,7 @@
 import datetime
 import getpass
 import os
+import subprocess
 import sys
 import timeit
 from functools import wraps
@@ -430,6 +431,53 @@ def get_os():
     :rtype: str
     """
     return cmds.about(os=True)
+
+
+def reveal_in_file_browser(path):
+    """Open the OS file browser with the given path selected.
+
+    Falls back to opening the containing folder when the exact path can not be
+    selected (or does not exist). Works on Windows, macOS and Linux.
+
+    Args:
+        path (str): File or folder path to reveal.
+
+    Returns:
+        bool: True if a file browser was launched, False otherwise.
+    """
+    if not path:
+        return False
+
+    norm_path = os.path.normpath(path)
+    if os.path.isdir(norm_path):
+        folder = norm_path
+    else:
+        folder = os.path.dirname(norm_path)
+
+    try:
+        if sys.platform == "win32":
+            if os.path.exists(norm_path):
+                subprocess.Popen(["explorer", "/select,", norm_path])
+            elif os.path.isdir(folder):
+                subprocess.Popen(["explorer", folder])
+            else:
+                return False
+        elif sys.platform == "darwin":
+            if os.path.exists(norm_path):
+                subprocess.Popen(["open", "-R", norm_path])
+            elif os.path.isdir(folder):
+                subprocess.Popen(["open", folder])
+            else:
+                return False
+        else:
+            # Linux / other: no universal "select", open the folder instead
+            if not os.path.isdir(folder):
+                return False
+            subprocess.Popen(["xdg-open", folder])
+    except OSError:
+        return False
+
+    return True
 
 
 def get_maya_path():

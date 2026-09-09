@@ -11,6 +11,7 @@ from mgear.vendor.Qt import QtWidgets
 
 # module
 from mgear.core import pyqt
+from mgear.core import utils
 from mgear.anim_picker.handlers import __EDIT_MODE__
 
 # =============================================================================
@@ -437,6 +438,7 @@ class BackgroundOptionsDialog(QtWidgets.QDialog):
         self.layer_list.setSelectionMode(
             QtWidgets.QAbstractItemView.ExtendedSelection
         )
+        self.layer_list.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
         self.add_button = QtWidgets.QPushButton("Add Layer")
         self.remove_button = QtWidgets.QPushButton("Remove Layer")
         self.up_button = QtWidgets.QPushButton("Move Up")
@@ -492,6 +494,9 @@ class BackgroundOptionsDialog(QtWidgets.QDialog):
         self.layer_list.itemSelectionChanged.connect(
             self.on_list_selection_changed
         )
+        self.layer_list.customContextMenuRequested.connect(
+            self.show_layer_context_menu
+        )
         self.aspect_button.clicked.connect(self.toggle_aspect_value)
         self.pos_x_box.editingFinished.connect(self.apply_position)
         self.pos_y_box.editingFinished.connect(self.apply_position)
@@ -510,6 +515,35 @@ class BackgroundOptionsDialog(QtWidgets.QDialog):
         """Return the sorted list of selected layer rows."""
         return sorted({idx.row() for idx in self.layer_list.selectedIndexes()})
 
+    def _resolved_layer_path(self, row):
+        """Return the resolved on-disk path for the layer at row (or None)."""
+        view = self.gfx_view()
+        layers = view.get_background_layers() if view else []
+        if not (0 <= row < len(layers)):
+            return None
+        return view.get_resolved_layer_path(layers[row].layer)
+
+    def show_layer_context_menu(self, pos):
+        """Right-click menu on a layer: reveal / copy its resolved path."""
+        item = self.layer_list.itemAt(pos)
+        if item is None:
+            return
+
+        resolved = self._resolved_layer_path(self.layer_list.row(item))
+
+        menu = QtWidgets.QMenu(self.layer_list)
+        reveal_action = menu.addAction("Reveal in Folder")
+        copy_action = menu.addAction("Copy Resolved Path")
+        if not resolved:
+            reveal_action.setEnabled(False)
+            copy_action.setEnabled(False)
+
+        action = menu.exec_(self.layer_list.mapToGlobal(pos))
+        if action == reveal_action:
+            utils.reveal_in_file_browser(resolved)
+        elif action == copy_action:
+            QtWidgets.QApplication.clipboard().setText(resolved)
+
     def refresh_layer_list(self):
         """Rebuild the layer list from the view, preserving the selection."""
         view = self.gfx_view()
@@ -520,7 +554,11 @@ class BackgroundOptionsDialog(QtWidgets.QDialog):
         self.layer_list.clear()
         for loaded in layers:
             name = os.path.basename(loaded.layer.path or "layer")
-            self.layer_list.addItem(name)
+            item = QtWidgets.QListWidgetItem(name)
+            resolved = view.get_resolved_layer_path(loaded.layer)
+            if resolved:
+                item.setToolTip(resolved)
+            self.layer_list.addItem(item)
         # Select inside the guard so currentRowChanged is suppressed; the
         # explicit populate_fields() below then runs exactly once.
         if layers:

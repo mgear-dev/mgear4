@@ -4,6 +4,12 @@ Release Log
 
 5.3.5
 ------
+**Enhancements**
+	* Anim Picker: Autosave — the Save window gains an "Enable autosave" toggle and a minutes interval; on each interval, and when closing the picker with unsaved changes, it pops the same Save dialog as a clearly labeled "Autosave reminder" so you confirm where to write (node / file), never saving in the background; the settings persist via user preferences and unsaved-change detection now compares against a reliable load / save baseline instead of the node-vs-UI mismatch that always reported changes
+	* Anim Picker: Background layers — right-click a layer for "Reveal in Folder" and "Copy Resolved Path", and hover a layer to see its resolved on-disk image path as a tooltip; all three use the same ``.pkr``-relative fallback search as image loading
+	* Core: Add a reusable ``mgear.core.utils.reveal_in_file_browser`` helper that opens the OS file browser with a given path selected, falling back to the containing folder (Windows / macOS / Linux)
+	* Docs: Anim Picker: Document portable ``.pkr`` paths via the ``ANIM_PICKER_PATH`` token, the background-image same-folder fallback and ``ANIM_PICKER_RELATIVE_IMAGES``, and the new autosave and background-layer path actions
+
 **Bug Fix**
 	* Anim Picker: SVG (vector) items now show a hover highlight like other buttons
 
