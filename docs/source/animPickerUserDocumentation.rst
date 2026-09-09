@@ -133,7 +133,8 @@ The top of the strip holds the canvas tools:
 * **Select** and **Transform:** switch between selecting items and showing the
   move / scale / rotate manipulator to transform them on the canvas.
 * **Add item:** drop a new default button on the canvas.
-* **Add background image:** add an image layer behind the items.
+* **Import SVG:** load an ``.svg`` file as a vector-shape item (or drag one
+  onto the canvas).
 * **Shape library:** open the shape picker (see `Shapes`_).
 * **Duplicate** and **Mirror:** copy the selection, or mirror it across the
   symmetry axis (with an optional name search / replace so the copies target
@@ -182,6 +183,36 @@ The **Drag to add** section lets you drag ready-made items onto the canvas:
 interactive **widgets** (checkbox, slider, 2D slider), a plain **button**, and
 a **backdrop**. Drop one where you want it, then configure it in the Item
 Editor.
+
+
+Background layers
+-----------------
+
+.. image:: images/animpicker/background_layer.png
+    :align: center
+    :scale: 60%
+
+Each tab can carry a **composite background** — an ordered stack of image
+layers drawn **back-to-front** behind the items (a body chart, a face map, a
+logo…). Backgrounds are **per tab**, so every page can have its own artwork.
+
+Add a layer by right-clicking the canvas and choosing **Add background
+layer**. To manage the stack, right-click the canvas and open **Background
+layers...**:
+
+* The **layer list** shows every layer on the current tab. **Add Layer** /
+  **Remove Layer** add or drop one, and **Move Up** / **Move Down** reorder the
+  stack — the top of the list is the **back-most** layer, so *Move Down* brings
+  a layer forward and *Move Up* sends it back.
+* **X / Y** position the selected layer and **Width / Height** size it, with
+  **Maintain Aspect Ratio** to keep its proportions locked.
+* While the dialog is open you can edit layers **directly on the canvas** too:
+  click (or Shift-click / marquee) a layer to select it, then drag to move it
+  or pull its handles to scale it.
+
+**Remove all backgrounds** (canvas right-click) clears every layer at once.
+There is no size cap on the artwork — the canvas grows to span the layers and
+the buttons, so pan and zoom always reach all of it.
 
 
 Building items
