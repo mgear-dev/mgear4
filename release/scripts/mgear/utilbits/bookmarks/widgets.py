@@ -149,6 +149,7 @@ class ChipButton(QtWidgets.QPushButton):
     """
 
     chip_clicked = QtCore.Signal(object)
+    secondary_action_requested = QtCore.Signal(object)
     rename_requested = QtCore.Signal(object)
     color_change_requested = QtCore.Signal(object)
     add_items_requested = QtCore.Signal(object)
@@ -303,6 +304,13 @@ class ChipButton(QtWidgets.QPushButton):
         """
         menu = QtWidgets.QMenu(self)
 
+        # Secondary action: the other type's action on this bookmark's items.
+        if self.bookmark["type"] == core.BOOKMARK_ISOLATE:
+            secondary_action = menu.addAction("Select Items")
+        else:
+            secondary_action = menu.addAction("Isolate Selection")
+        menu.addSeparator()
+
         rename_action = menu.addAction("Rename")
         color_action = menu.addAction("Change Color")
         menu.addSeparator()
@@ -323,7 +331,9 @@ class ChipButton(QtWidgets.QPushButton):
 
         action = menu.exec_(event.globalPos())
 
-        if action == rename_action:
+        if action == secondary_action:
+            self.secondary_action_requested.emit(self.bookmark)
+        elif action == rename_action:
             self.rename_requested.emit(self.bookmark)
         elif action == color_action:
             self.color_change_requested.emit(self.bookmark)

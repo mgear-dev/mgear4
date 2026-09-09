@@ -303,12 +303,18 @@ def resolve_bookmark_items(bookmark):
     resolved = []
     ambiguous = []
     missing = []
+    # Resolve each distinct object once and reuse the result for every item
+    # on it. Component-heavy bookmarks (hundreds of ``ns:mesh.f[N]`` faces on
+    # a single mesh) then cost one ``cmds.ls`` instead of one per item.
+    lookup = {}
     for item in items:
         if "." in item and "[" in item:
             obj, comp = item.split(".", 1)
         else:
             obj, comp = item, None
-        matches = cmds.ls(obj, long=True) or []
+        if obj not in lookup:
+            lookup[obj] = cmds.ls(obj, long=True) or []
+        matches = lookup[obj]
         if not matches:
             missing.append(item)
             continue
@@ -439,24 +445,18 @@ def toggle_isolate(bookmark):
     if is_isolated:
         mel.eval("enableIsolateSelect {} {}".format(panel, 0))
     else:
-        # Store current selection to restore for object-only bookmarks
+        # Isolate builds its object set from the selection, so select the
+        # items to capture them (objects and components alike), then restore
+        # whatever the user had selected -- clicking an isolate bookmark
+        # should not change the current selection.
         prev_sel = cmds.ls(selection=True, long=True) or []
-
-        # Select bookmark items, then isolate with addSelectedObjects
-        # This handles both objects and components natively
         cmds.select(valid, replace=True)
         mel.eval("enableIsolateSelect {} {}".format(panel, 1))
         cmds.isolateSelect(panel, addSelectedObjects=True)
-
-        # For object-only bookmarks, restore previous selection
-        has_components = any(
-            "." in item and "[" in item for item in valid
-        )
-        if not has_components:
-            if prev_sel:
-                cmds.select(prev_sel, replace=True)
-            else:
-                cmds.select(clear=True)
+        if prev_sel:
+            cmds.select(prev_sel, replace=True)
+        else:
+            cmds.select(clear=True)
 
 
 def _get_active_model_panel():

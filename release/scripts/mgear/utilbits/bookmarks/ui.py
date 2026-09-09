@@ -252,6 +252,7 @@ class BookmarksUI(
             chip (ChipButton): The chip to connect.
         """
         chip.chip_clicked.connect(self._on_chip_clicked)
+        chip.secondary_action_requested.connect(self._on_secondary_action)
         chip.rename_requested.connect(self._on_rename)
         chip.color_change_requested.connect(self._on_change_color)
         chip.add_items_requested.connect(self._on_add_items)
@@ -446,6 +447,24 @@ class BookmarksUI(
             finally:
                 cmds.undoInfo(closeChunk=True)
         elif bookmark["type"] == core.BOOKMARK_ISOLATE:
+            core.toggle_isolate(bookmark)
+
+    def _on_secondary_action(self, bookmark):
+        """Run the bookmark's secondary action (the other type's action).
+
+        Isolate bookmarks select their items; selection bookmarks isolate
+        their items. Both operate on the bookmark's own stored items.
+
+        Args:
+            bookmark (dict): The bookmark whose menu item was triggered.
+        """
+        if bookmark["type"] == core.BOOKMARK_ISOLATE:
+            cmds.undoInfo(openChunk=True)
+            try:
+                core.recall_selection(bookmark, mode="replace")
+            finally:
+                cmds.undoInfo(closeChunk=True)
+        else:
             core.toggle_isolate(bookmark)
 
     # ---------------------------------------------------------
