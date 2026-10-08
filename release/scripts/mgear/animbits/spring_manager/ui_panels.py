@@ -1,18 +1,21 @@
 """Per-solver panels of the Spring Manager window.
 
 Backends stay Qt free. Each backend can register here a create panel,
-shown in the Create section, and a solver panel, shown in the Solver
-section when the backend is the current solver.
+shown in the Create section, a solver panel, shown in the Solver section,
+and extra section panels (e.g. Colliders), each in its own section. They
+are shown when the backend is the current solver.
 
 Panels are QWidgets with a ``createRequested(dict)`` signal (create
 panels) and a ``refresh()`` method called when the scene changes.
 """
 
+import re
 from functools import partial
 
 from maya import cmds
 
 from mgear.core import anim_utils
+from mgear.core import attribute
 from mgear.core import pyqt
 from mgear.core import utils
 from mgear.core import widgets
@@ -22,6 +25,10 @@ from mgear.vendor.Qt import QtGui
 from mgear.vendor.Qt import QtWidgets
 
 from . import chain
+from . import colliders
+from . import constants
+from . import fit
+from . import registry
 from . import solver
 from .backends import bone_dynamics
 from .backends import classic
@@ -29,10 +36,14 @@ from .backends import get_backend
 
 CREATE_PANELS = {}
 SOLVER_PANELS = {}
+# backend name: [(section title, panel class), ...]
+SECTION_PANELS = {}
 # backend name: builder(menu, springs, refresh) adding spring menu actions
 SPRING_MENUS = {}
 
 WARNING_COLOR = QtGui.QColor(230, 160, 60)
+COLLIDERS_HEIGHT_KEY = constants.SETTINGS_PREFIX + "colliders_height"
+ASSIGN_HEIGHT_KEY = constants.SETTINGS_PREFIX + "assign_height"
 WARNING_STYLE = "color: rgb(230, 160, 60);"
 
 
@@ -56,6 +67,21 @@ def register_spring_menu(backend_name, builder):
             updates the window after an edit.
     """
     SPRING_MENUS[backend_name] = builder
+
+
+def register_section_panel(backend_name, title, panel_class):
+    """Register an extra section panel of a backend.
+
+    The panel gets the ``springs_fn`` and ``all_springs_fn`` attributes,
+    like solver panels, and its ``refresh()`` is called when the scene
+    changes.
+
+    Args:
+        backend_name (str): Backend name.
+        title (str): Section title.
+        panel_class (type): QWidget subclass with ``refresh()``.
+    """
+    SECTION_PANELS.setdefault(backend_name, []).append((title, panel_class))
 
 
 def register_solver_panel(backend_name, panel_class):
@@ -311,6 +337,11 @@ class BoneDynamicsSolverPanel(QtWidgets.QWidget):
         self.iterations_spin.setRange(0, 10)
         self.iterations_spin.setKeyboardTracking(False)
         self.iterations_spin.setToolTip("Collision iterations, 0 turns collisions off")
+        self.pick_ground_btn = QtWidgets.QPushButton("Pick")
+        self.pick_ground_btn.setToolTip(
+            "Set the ground height from the lowest point of the selected "
+            "objects or vertices"
+        )
 
         self.wind_combo = QtWidgets.QComboBox()
         self.create_wind_btn = QtWidgets.QPushButton("Create Wind")
@@ -325,6 +356,7 @@ class BoneDynamicsSolverPanel(QtWidgets.QWidget):
         ground_layout = QtWidgets.QHBoxLayout()
         ground_layout.addWidget(self.ground_cb)
         ground_layout.addWidget(self.ground_spin, 1)
+        ground_layout.addWidget(self.pick_ground_btn)
         wind_layout = QtWidgets.QHBoxLayout()
         wind_layout.addWidget(self.wind_combo, 1)
         wind_layout.addWidget(self.connect_wind_btn)
@@ -354,6 +386,7 @@ class BoneDynamicsSolverPanel(QtWidgets.QWidget):
         self.ground_cb.valueCommitted.connect(partial(self._set, solver.GROUND_ENABLE))
         self.ground_spin.valueChanged.connect(partial(self._set, solver.GROUND_HEIGHT))
         self.iterations_spin.valueChanged.connect(partial(self._set, solver.ITERATIONS))
+        self.pick_ground_btn.clicked.connect(self._pick_ground)
         self.create_wind_btn.clicked.connect(self._create_wind)
         self.connect_wind_btn.clicked.connect(self._connect_wind)
         self.disconnect_wind_btn.clicked.connect(self._disconnect_wind)
@@ -401,6 +434,11 @@ class BoneDynamicsSolverPanel(QtWidgets.QWidget):
     def _set(self, attr, value):
         with utils.undo_chunk("springManagerSolver"):
             solver.set_value(attr, value)
+
+    def _pick_ground(self):
+        if solver.pick_ground_height() is None:
+            cmds.warning("Select the ground objects or vertices")
+        self.refresh()
 
     def _fix_playback(self):
         anim_utils.set_play_every_frame(True)
@@ -476,3 +514,500 @@ def _bone_dynamics_menu(menu, springs, refresh):
 
 
 register_spring_menu(bone_dynamics.BACKEND, _bone_dynamics_menu)
+
+
+# -----------------------------------------------------------------------------
+# Colliders
+# -----------------------------------------------------------------------------
+
+FIT_METHOD_LABELS = (
+    (fit.AUTO, "Auto"),
+    (fit.SKIN, "Skin Weights"),
+    (fit.RAYCAST, "Ray Cast"),
+)
+COLLIDER_ROLE = QtCore.Qt.UserRole + 1
+
+
+def _matcher(text):
+    """Return a case-insensitive wildcard test for a filter text.
+
+    Args:
+        text (str): Filter text, ``*`` and ``?`` wildcards.
+
+    Returns:
+        callable: ``match(name)`` returning True, always for an empty text.
+    """
+    text = text.strip()
+    if not text:
+        return lambda name: True
+    pattern = re.compile(pyqt.wildcard_to_regex(text), re.IGNORECASE)
+    return lambda name: bool(pattern.search(name))
+
+
+def _is_mesh(node):
+    return bool(cmds.listRelatives(node, shapes=True, type="mesh", noIntermediate=True))
+
+
+def _selected_meshes():
+    """Return the selected mesh transforms, in selection order."""
+    return [
+        node
+        for node in cmds.ls(selection=True, long=True, transforms=True)
+        if _is_mesh(node)
+    ]
+
+
+class BoneDynamicsCollidersPanel(QtWidgets.QWidget):
+    """Create, fit, mirror and assign Bone Dynamics colliders.
+
+    Attributes:
+        springs_fn (callable): Returns the springs selected in the window.
+        all_springs_fn (callable): Returns every spring of the window.
+    """
+
+    def __init__(self, parent=None):
+        super(BoneDynamicsCollidersPanel, self).__init__(parent)
+        self.springs_fn = None
+        self.all_springs_fn = None
+        self._backend = get_backend(bone_dynamics.BACKEND)
+        self._springs = []
+        self._colliders = []
+        # settings key: (widget, default), saved by the window
+        self.user_settings = {}
+
+        # create
+        self.create_buttons = {}
+        for kind_type, label, tooltip in (
+            (colliders.SPHERE, "Sphere", "Sphere on the selected joint or control"),
+            (colliders.CAPSULE, "Capsule", "Capsule on the selected joint or control"),
+            (colliders.PLANE, "Plane", "Infinite plane (its XZ plane collides)"),
+            (
+                colliders.MESH,
+                "Mesh",
+                "Experimental: collide with the selected mesh. Slow on dense "
+                "meshes: a proxy is recommended",
+            ),
+        ):
+            button = QtWidgets.QPushButton(label)
+            button.setToolTip(tooltip)
+            self.create_buttons[kind_type] = button
+        self.proxy_cb = QtWidgets.QCheckBox("Proxy")
+        self.proxy_cb.setChecked(True)
+        self.proxy_cb.setToolTip(
+            "Mesh colliders use a reduced, soft-edged copy following the mesh"
+        )
+        self.reduce_spin = QtWidgets.QSpinBox()
+        self.reduce_spin.setRange(0, 99)
+        self.reduce_spin.setValue(int(colliders.PROXY_REDUCE))
+        self.reduce_spin.setSuffix(" %")
+        self.reduce_spin.setToolTip("Faces removed from the proxy")
+
+        # fit: the mesh from the field, or the last selected mesh
+        self.fit_mesh_le = QtWidgets.QLineEdit()
+        self.fit_mesh_le.setPlaceholderText("Last selected mesh")
+        self.fit_mesh_le.setClearButtonEnabled(True)
+        self.fit_mesh_le.setToolTip(
+            "Mesh measured by the fit tools. Empty: the last selected mesh"
+        )
+        self.fit_mesh_btn = QtWidgets.QPushButton("<")
+        self.fit_mesh_btn.setToolTip("Use the selected mesh")
+        self.fit_capsules_btn = QtWidgets.QPushButton("Fit Capsules")
+        self.fit_capsules_btn.setToolTip(
+            "Body colliders: select the joints or controls of one or more "
+            "chains (spine, arms...). A capsule per bone, and a sphere at "
+            "each chain end with End Spheres"
+        )
+        self.fit_sphere_btn = QtWidgets.QPushButton("Fit Sphere")
+        self.fit_sphere_btn.setToolTip(
+            "Select vertices (and optionally the driver), or a joint or "
+            "control to fit the mesh around"
+        )
+        self.fit_radius_btn = QtWidgets.QPushButton("Fit Bone Radius")
+        self.fit_radius_btn.setToolTip(
+            "Chain volume: sets Root Radius, Tip Radius and Bone As Capsule "
+            "of the springs selected in the list (or by their controls) "
+            "from the mesh thickness"
+        )
+        self.method_combo = QtWidgets.QComboBox()
+        for method, label in FIT_METHOD_LABELS:
+            self.method_combo.addItem(label, method)
+        self.method_combo.setToolTip(
+            "Skin Weights: vertices weighted to each joint. Ray Cast: any "
+            "mesh. Auto: Skin Weights when the mesh is skinned to the joints"
+        )
+        self.padding_spin = QtWidgets.QDoubleSpinBox()
+        self.padding_spin.setRange(0.1, 5.0)
+        self.padding_spin.setSingleStep(0.05)
+        self.padding_spin.setValue(1.0)
+        self.padding_spin.setToolTip("Radius multiplier: 1.1 = 10% bigger")
+        self.percentile_spin = QtWidgets.QDoubleSpinBox()
+        self.percentile_spin.setRange(1, 100)
+        self.percentile_spin.setDecimals(0)
+        self.percentile_spin.setValue(75)
+        self.percentile_spin.setToolTip(
+            "Skin Weights: percentile of the vertex distances used as radius. "
+            "100 encloses every vertex, 50 is the median"
+        )
+        self.min_radius_spin = QtWidgets.QDoubleSpinBox()
+        self.min_radius_spin.setRange(0.0, 1000.0)
+        self.min_radius_spin.setValue(0.1)
+        self.min_radius_spin.setToolTip("Smallest radius")
+        self.end_spheres_cb = QtWidgets.QCheckBox("End Spheres")
+        self.end_spheres_cb.setChecked(True)
+        self.end_spheres_cb.setToolTip(
+            "Fit Capsules also adds a sphere at each chain end (head, hands)"
+        )
+
+        # list and assignment table
+        self.collider_list = QtWidgets.QListWidget()
+        self.collider_list.setSelectionMode(
+            QtWidgets.QAbstractItemView.ExtendedSelection
+        )
+        self.collider_list.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
+        self.collider_filter_le = QtWidgets.QLineEdit()
+        self.collider_filter_le.setPlaceholderText("Filter colliders (* wildcard)")
+        self.collider_filter_le.setClearButtonEnabled(True)
+        self.collider_filter_le.setToolTip(
+            "Filters the colliders list and the table columns"
+        )
+        self.collider_grip = widgets.HeightGrip(
+            self.collider_list, minimum=pyqt.dpi_scale(40)
+        )
+        self.collider_grip.set_target_height(pyqt.dpi_scale(90))
+        self.collider_list.setToolTip("Right-click for actions")
+        self.table = QtWidgets.QTableWidget()
+        self.table.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)
+        self.spring_filter_le = QtWidgets.QLineEdit()
+        self.spring_filter_le.setPlaceholderText("Filter springs (* wildcard)")
+        self.spring_filter_le.setClearButtonEnabled(True)
+        self.spring_filter_le.setToolTip("Filters the table rows")
+        self.table_grip = widgets.HeightGrip(self.table, minimum=pyqt.dpi_scale(60))
+        self.table_grip.set_target_height(pyqt.dpi_scale(140))
+        self.user_settings = {
+            COLLIDERS_HEIGHT_KEY: (self.collider_grip, pyqt.dpi_scale(90)),
+            ASSIGN_HEIGHT_KEY: (self.table_grip, pyqt.dpi_scale(140)),
+        }
+        self.table.setToolTip("Check a cell to assign the collider to the spring")
+        self.assign_btn = QtWidgets.QPushButton("Assign")
+        self.assign_btn.setToolTip("Assign the colliders of the selected cells")
+        self.unassign_btn = QtWidgets.QPushButton("Unassign")
+        self.unassign_btn.setToolTip("Unassign the colliders of the selected cells")
+        self.assign_all_btn = QtWidgets.QPushButton("Assign All")
+        self.assign_all_btn.setToolTip("Assign every collider to every spring")
+
+        create_layout = QtWidgets.QHBoxLayout()
+        for button in self.create_buttons.values():
+            create_layout.addWidget(button)
+        mesh_layout = QtWidgets.QHBoxLayout()
+        mesh_layout.addWidget(QtWidgets.QLabel("Mesh:"))
+        mesh_layout.addWidget(self.proxy_cb)
+        mesh_layout.addWidget(QtWidgets.QLabel("Reduce"))
+        mesh_layout.addWidget(self.reduce_spin)
+        mesh_layout.addStretch()
+        fit_mesh_layout = QtWidgets.QHBoxLayout()
+        fit_mesh_layout.addWidget(QtWidgets.QLabel("Fit mesh"))
+        fit_mesh_layout.addWidget(self.fit_mesh_le, 1)
+        fit_mesh_layout.addWidget(self.fit_mesh_btn)
+        fit_layout = QtWidgets.QHBoxLayout()
+        fit_layout.addWidget(self.fit_capsules_btn)
+        fit_layout.addWidget(self.fit_sphere_btn)
+        fit_layout.addWidget(self.fit_radius_btn)
+        options = QtWidgets.QGridLayout()
+        options.addWidget(QtWidgets.QLabel("Method"), 0, 0)
+        options.addWidget(self.method_combo, 0, 1)
+        options.addWidget(QtWidgets.QLabel("Padding"), 0, 2)
+        options.addWidget(self.padding_spin, 0, 3)
+        options.addWidget(QtWidgets.QLabel("Percentile"), 1, 0)
+        options.addWidget(self.percentile_spin, 1, 1)
+        options.addWidget(QtWidgets.QLabel("Min Radius"), 1, 2)
+        options.addWidget(self.min_radius_spin, 1, 3)
+        options.addWidget(self.end_spheres_cb, 2, 0, 1, 2)
+        assign_layout = QtWidgets.QHBoxLayout()
+        assign_layout.addWidget(self.assign_btn)
+        assign_layout.addWidget(self.unassign_btn)
+        assign_layout.addWidget(self.assign_all_btn)
+        layout = QtWidgets.QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.addLayout(create_layout)
+        layout.addLayout(mesh_layout)
+        layout.addLayout(fit_mesh_layout)
+        layout.addLayout(fit_layout)
+        layout.addLayout(options)
+        layout.addWidget(self.collider_filter_le)
+        layout.addWidget(self.collider_list)
+        layout.addWidget(self.collider_grip)
+        layout.addWidget(self.spring_filter_le)
+        layout.addWidget(self.table)
+        layout.addWidget(self.table_grip)
+        layout.addLayout(assign_layout)
+
+        for kind_type, button in self.create_buttons.items():
+            button.clicked.connect(partial(self._create, kind_type))
+        self.fit_mesh_btn.clicked.connect(self._pick_fit_mesh)
+        self.fit_capsules_btn.clicked.connect(self._fit_capsules)
+        self.fit_sphere_btn.clicked.connect(self._fit_sphere)
+        self.fit_radius_btn.clicked.connect(self._fit_radius)
+        self.collider_list.customContextMenuRequested.connect(self._list_menu)
+        self.collider_filter_le.textChanged.connect(self.apply_filters)
+        self.spring_filter_le.textChanged.connect(self.apply_filters)
+        self.table.itemChanged.connect(self._on_item_changed)
+        self.assign_btn.clicked.connect(partial(self._assign_selected, True))
+        self.unassign_btn.clicked.connect(partial(self._assign_selected, False))
+        self.assign_all_btn.clicked.connect(self._assign_all)
+
+    # data ---------------------------------------------------------------------
+
+    def fit_options(self):
+        """Return the fit options of the panel.
+
+        Returns:
+            fit.FitOptions: The options.
+        """
+        return fit.FitOptions(
+            method=self.method_combo.currentData(),
+            padding=self.padding_spin.value(),
+            percentile=self.percentile_spin.value(),
+            min_radius=self.min_radius_spin.value(),
+            end_spheres=self.end_spheres_cb.isChecked(),
+        )
+
+    def refresh(self):
+        """Rebuild the colliders list and the assignment table."""
+        springs = self.all_springs_fn() if self.all_springs_fn else []
+        self._springs = [
+            spring
+            for spring in springs
+            if spring.backend == bone_dynamics.BACKEND and spring.exists()
+        ]
+        self._colliders = colliders.list_colliders()
+        selected = {
+            item.data(COLLIDER_ROLE) for item in self.collider_list.selectedItems()
+        }
+        with pyqt.block_signals(self.collider_list):
+            self.collider_list.clear()
+            for network in self._colliders:
+                item = QtWidgets.QListWidgetItem(
+                    "{}  ({})".format(
+                        colliders.label(network), colliders.collider_type(network)
+                    )
+                )
+                item.setData(COLLIDER_ROLE, network)
+                driver = colliders.driver(network)
+                item.setToolTip("Driver: {}".format(driver) if driver else "World")
+                self.collider_list.addItem(item)
+                item.setSelected(network in selected)
+        with pyqt.block_signals(self.table):
+            self.table.clear()
+            self.table.setRowCount(len(self._springs))
+            self.table.setColumnCount(len(self._colliders))
+            self.table.setVerticalHeaderLabels(
+                [spring.label for spring in self._springs]
+            )
+            self.table.setHorizontalHeaderLabels(
+                [colliders.label(network) for network in self._colliders]
+            )
+            # network names: no spring records per cell
+            assigned = {
+                network: set(
+                    attribute.get_message_inputs(network, constants.ASSIGNED_ATTR)
+                )
+                for network in self._colliders
+            }
+            for row, spring in enumerate(self._springs):
+                for column, network in enumerate(self._colliders):
+                    item = QtWidgets.QTableWidgetItem()
+                    item.setFlags(
+                        QtCore.Qt.ItemIsUserCheckable
+                        | QtCore.Qt.ItemIsEnabled
+                        | QtCore.Qt.ItemIsSelectable
+                    )
+                    item.setCheckState(
+                        QtCore.Qt.Checked
+                        if spring.node in assigned[network]
+                        else QtCore.Qt.Unchecked
+                    )
+                    self.table.setItem(row, column, item)
+            self.table.resizeColumnsToContents()
+        self.apply_filters()
+
+    def apply_filters(self, *args):
+        """Hide the colliders and springs not matching the filter fields."""
+        colliders_match = _matcher(self.collider_filter_le.text())
+        for row in range(self.collider_list.count()):
+            item = self.collider_list.item(row)
+            item.setHidden(not colliders_match(item.text()))
+        for column, network in enumerate(self._colliders):
+            self.table.setColumnHidden(
+                column, not colliders_match(colliders.label(network))
+            )
+        springs_match = _matcher(self.spring_filter_le.text())
+        for row, spring in enumerate(self._springs):
+            self.table.setRowHidden(row, not springs_match(spring.label))
+
+    def selected_colliders(self):
+        """Return the colliders selected in the list."""
+        return [item.data(COLLIDER_ROLE) for item in self.collider_list.selectedItems()]
+
+    # actions ------------------------------------------------------------------
+
+    def _run(self, function, *args):
+        """Run an action, showing errors as warnings, then refresh."""
+        try:
+            return function(*args)
+        except (RuntimeError, ValueError) as error:
+            cmds.warning(str(error))
+        finally:
+            self.refresh()
+
+    def _create(self, kind_type):
+        if kind_type == colliders.MESH:
+            meshes = _selected_meshes()
+            if not meshes:
+                cmds.warning("Select a mesh")
+                return
+            for mesh in meshes:
+                self._run(
+                    colliders.create_mesh,
+                    mesh,
+                    self.proxy_cb.isChecked(),
+                    float(self.reduce_spin.value()),
+                )
+            return
+        selection = cmds.ls(selection=True, long=True, transforms=True)
+        self._run(colliders.create, kind_type, selection[0] if selection else None)
+
+    def _pick_fit_mesh(self):
+        meshes = _selected_meshes()
+        if meshes:
+            self.fit_mesh_le.setText(cmds.ls(meshes[-1])[0])
+        else:
+            cmds.warning("Select a mesh")
+
+    def fit_inputs(self):
+        """Return the fit mesh and the selected target nodes.
+
+        The mesh is the Fit mesh field, or the last selected mesh. The
+        targets are the selected transforms that are not meshes (joints,
+        controls), in selection order. Bone Dynamics spring controls are
+        replaced by their sim joints, hidden in the scene.
+
+        Returns:
+            tuple: ``(mesh or None, [target long names])``.
+        """
+        selection = cmds.ls(selection=True, long=True, transforms=True)
+        mesh = self.fit_mesh_le.text().strip()
+        if mesh and not cmds.objExists(mesh):
+            cmds.warning("Fit mesh {} not found".format(mesh))
+            mesh = ""
+        if not mesh:
+            meshes = [node for node in selection if _is_mesh(node)]
+            mesh = meshes[-1] if meshes else None
+        targets = [
+            self._backend.sim_joint(node) or node
+            for node in selection
+            if not _is_mesh(node)
+        ]
+        return mesh, targets
+
+    def _fit_capsules(self):
+        mesh, targets = self.fit_inputs()
+        if not mesh or not targets:
+            cmds.warning("Set the Fit mesh and select the joints or controls")
+            return
+        self._run(fit.fit_capsules, mesh, targets, self.fit_options())
+
+    def _fit_sphere(self):
+        components = cmds.filterExpand(selectionMask=(31, 32, 34)) or []
+        mesh, targets = self.fit_inputs()
+        if components:
+            self._run(
+                fit.fit_sphere,
+                None,
+                targets[0] if targets else None,
+                components,
+                self.fit_options(),
+            )
+            return
+        if not mesh or not targets:
+            cmds.warning("Select vertices, or set the Fit mesh and select a joint")
+            return
+        self._run(fit.fit_sphere, mesh, targets[0], None, self.fit_options())
+
+    def _fit_radius(self):
+        mesh, targets = self.fit_inputs()
+        springs = self.springs_fn() if self.springs_fn else []
+        springs = springs or registry.springs_from_nodes(targets)
+        springs = [
+            spring
+            for spring in springs
+            if spring.backend == bone_dynamics.BACKEND and spring.exists()
+        ]
+        if not springs or not mesh:
+            cmds.warning(
+                "Select springs in the list (or their controls) and set the " "Fit mesh"
+            )
+            return
+        self._run(fit.fit_bone_radius, self._backend, springs, mesh, self.fit_options())
+
+    def _list_menu(self, position):
+        networks = self.selected_colliders()
+        if not networks:
+            return
+        menu = QtWidgets.QMenu(self)
+        menu.addAction("Select Collider").triggered.connect(
+            lambda: cmds.select(
+                [colliders.collider_transform(network) for network in networks]
+            )
+        )
+        drivers = [colliders.driver(network) for network in networks]
+        select_driver = menu.addAction("Select Driver")
+        select_driver.setEnabled(any(drivers))
+        select_driver.triggered.connect(
+            lambda: cmds.select([driver for driver in drivers if driver])
+        )
+        menu.addSeparator()
+        menu.addAction("Mirror").triggered.connect(
+            lambda: self._run(colliders.mirror, networks)
+        )
+        menu.addSeparator()
+        menu.addAction("Delete").triggered.connect(
+            lambda: self._run(colliders.delete, networks)
+        )
+        menu.exec_(self.collider_list.mapToGlobal(position))
+
+    def _set_assigned(self, cells, assigned):
+        """Assign or unassign colliders for (row, column) cells, one undo."""
+        with utils.undo_chunk("springManagerAssignColliders"):
+            for row, column in cells:
+                spring = self._springs[row]
+                network = self._colliders[column]
+                if assigned:
+                    registry.assign(network, [spring])
+                else:
+                    registry.unassign(network, [spring])
+        self.refresh()
+
+    def _on_item_changed(self, item):
+        self._set_assigned(
+            [(item.row(), item.column())], item.checkState() == QtCore.Qt.Checked
+        )
+
+    def _assign_selected(self, assigned):
+        cells = [(item.row(), item.column()) for item in self.table.selectedItems()]
+        if not cells:
+            cmds.warning("Select cells of the assignment table")
+            return
+        self._set_assigned(cells, assigned)
+
+    def _assign_all(self):
+        self._set_assigned(
+            [
+                (row, column)
+                for row in range(len(self._springs))
+                for column in range(len(self._colliders))
+            ],
+            True,
+        )
+
+
+register_section_panel(bone_dynamics.BACKEND, "Colliders", BoneDynamicsCollidersPanel)

@@ -609,15 +609,16 @@ Parameters (on the root control, keyable):
 * **Root Motion Cancel** - How much of the root motion is cancelled.
 * **Pose Blend** - Used by the Blend target mode.
 * **Elastic Function** - Advanced: 0 linear, 1 quadratic, 2 cubic.
+* **Root Radius**, **Tip Radius**, **Bone As Capsule**, **Mesh Cutoff** - The bone collision volume, see `Collision`_.
 
 Solver section (shared by every Bone Dynamics spring of the scene):
 
-* **Enabled**, **Start frame** (the simulation resets at this frame), **Gravity** (follows the scene up axis and units), **Ground** collision and height, **Iterations** (collision accuracy).
+* **Enabled**, **Start frame** (the simulation resets at this frame), **Gravity** (follows the scene up axis and units), **Ground** collision and height (**Pick** sets it from the lowest selected point), **Iterations** (collision accuracy, 0 turns collisions off).
 * **Wind** - **Create Wind** makes a wind controller: rotate it to set the direction and key its **strength** (default 100; strong elasticity needs more). **Connect** / **Disconnect** link it to the selected springs.
 * **Visualizer On / Off** - For the selected springs, or all of them.
 * A banner offers to fix the playback when it is not set to play every frame.
 
-Presets: rig presets save the chains, options and values, and the solver settings. **Presets > Apply Solver Settings** chooses whether applying a rig preset also changes the scene solver. The Factory library includes values presets for chains: **Chain Hair**, **Chain Tail**, **Chain Cloth Strip** and **Chain Antenna**.
+Presets: rig presets save the chains, options and values, the solver settings and the colliders of the springs. **Presets > Apply Solver Settings** and **Presets > Apply Colliders** choose whether applying a rig preset also changes the scene solver and creates its colliders. The Factory library includes values presets for chains: **Chain Hair**, **Chain Tail**, **Chain Cloth Strip** and **Chain Antenna**.
 
 Caveats:
 
@@ -626,6 +627,32 @@ Caveats:
 * The plug-in assumes centimeters and the Y-up gravity by default; the Spring Manager sets the gravity from the scene settings.
 * Twist is not simulated: it follows the target pose.
 * The plug-in uses unregistered node IDs (0x7b0xx). They could clash with in-house plug-ins using the same range.
+
+Collision
+~~~~~~~~~
+
+Colliders keep the chains out of the body: hair out of the head and shoulders, skirts out of the legs. They are shared scene objects: one collider can be assigned to many springs, and deleting a spring keeps its colliders. Colliders live under ``spring_colliders_grp`` and follow their *driver* (a joint or control) through a constraint, so the rig is not modified. Move, rotate or resize the collider itself to adjust it; the changes reach the springs live.
+
+The **Colliders** section (Bone Dynamics only):
+
+* **Sphere**, **Capsule**, **Plane** - Create a collider on the selected joint or control, or in world space. Capsules lie along their local Y axis; planes collide with their XZ plane (tilted ground, walls).
+* **Mesh** (experimental) - Collide with the selected mesh. With **Proxy** (recommended), a reduced copy with soft edges follows the mesh through a proximity wrap; the mesh itself is not modified. Mesh collision is slow on dense meshes: a warning shows above 2000 faces.
+* **Fit mesh** - The mesh the fit tools measure. Pick it once with **<**, then the selection only names the targets. Empty: the last selected mesh is used.
+* **Fit Capsules** - Body colliders: select the joints or controls of one or more chains (spine, neck, arms, legs): one capsule per bone, sized to the mesh. With **End Spheres**, each chain end (head, hands, feet) also gets a sphere. On a spring's controls, the last bone gets a capsule to the chain tip instead, matching the bone volume. Controls are measured by ray casting. Selecting the control of a Bone Dynamics spring uses its simulated joint (hidden in the scene), as if you selected the joint. Colliders on a spring's own joints also set the collision volume of their bone, section by section: the volume other chains collide against is the volume the chain collides with. Resize a capsule to adjust its section. They are never assigned to their own chain.
+* **Fit Sphere** - Select vertices (and optionally the driver), or a joint or control to fit the mesh around.
+* **Fit Bone Radius** - For the springs selected in the list (or by their controls), with the Fit mesh set to their mesh (hair cards, a tail): sets the spring **Root Radius** and **Tip Radius** from the mesh thickness, and turns **Bone As Capsule** on. This fits the chain's own volume; **Fit Capsules** builds the body colliders the chains bounce off.
+* Fit options: **Method** (**Skin Weights** uses the vertices weighted to each joint, **Ray Cast** works on any mesh, **Auto** uses skin weights when the mesh is skinned to the joints), **Padding** (radius multiplier), **Percentile** (with skin weights: 100 encloses every vertex, 75 ignores the outliers), **Min Radius**.
+* Colliders list - Filter it with the field above it (``*`` wildcard), and drag the bar under it to resize it. Right-click to select colliders or their drivers, **Mirror** them to the other side (by the ``L``/``R`` naming; mesh colliders are not mirrored) or **Delete** them.
+* Assignment table - One row per spring, one column per collider: check a cell to assign the collider to the spring. The colliders filter also filters the columns, the springs filter above the table filters the rows; drag the bar under it to resize it. **Assign** / **Unassign** act on the selected cells, **Assign All** assigns every collider to every spring.
+
+Bone volume (spring parameters): **Root Radius** and **Tip Radius** are the chain thickness at its root and tip, blended linearly along the chain: quick and good for regular shapes. For complex shapes, fit capsules on the spring controls: each section then uses its own capsule radii, and goes back to the gradient when its capsule is deleted. Each bone collides as a sphere at its end, or as a capsule along the whole bone with **Bone As Capsule** (sphere and capsule colliders only). **Mesh Cutoff** limits the mesh collider search distance.
+
+Tips:
+
+* Start with capsules on the body and a sphere on the head: they are fast and stable. Use mesh colliders only where the shape matters.
+* **Iterations** (Solver section) sets the collision accuracy: raise it when chains still pass through colliders, 0 turns collisions off.
+* **Angle Limit** wins over collisions.
+* Chains don't collide with each other: neighbouring strands of a skirt can cross.
 
 Bake/Clear Spring Nodes
 =======================

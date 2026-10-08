@@ -4,78 +4,9 @@ import sys
 
 import pytest
 
-
-@pytest.fixture
-def scene(run_with_maya_standalone, setup_path):
-    """New scene, playback from 1 to 30."""
-    from maya import cmds
-
-    cmds.file(new=True, force=True)
-    cmds.playbackOptions(minTime=1, maxTime=30)
-    return cmds
-
-
-@pytest.fixture
-def bdn(scene):
-    """The Bone Dynamics backend, skipped without the plug-in."""
-    from mgear.animbits.spring_manager.backends import get_backend
-
-    backend = get_backend("bone_dynamics")
-    if not backend.is_available():
-        pytest.skip("boneDynamicsNode plug-in not available")
-    return backend
-
-
-def _ctl(cmds, name, parent, position):
-    npo = cmds.createNode("transform", name=name + "_npo", parent=parent)
-    cmds.setAttr(npo + ".translate", *position)
-    control = cmds.circle(name=name + "_ctl", constructionHistory=False)[0]
-    control = cmds.parent(control, npo, relative=True)[0]
-    return cmds.ls(control, long=True)[0]
-
-
-def _rig(cmds, namespace=""):
-    """Root with a 3 control tail; the rig moves in X from frame 1 to 10."""
-    prefix = namespace + ":" if namespace else ""
-    if namespace and not cmds.namespace(exists=namespace):
-        cmds.namespace(add=namespace)
-    rig = cmds.createNode("transform", name=prefix + "rig")
-    controls = [_ctl(cmds, prefix + "tail0", rig, (0, 10, 0))]
-    for index in (1, 2):
-        controls.append(_ctl(cmds, prefix + "tail%d" % index, controls[-1], (3, 0, 0)))
-    cmds.setKeyframe(rig, attribute="tx", time=1, value=0)
-    cmds.setKeyframe(rig, attribute="tx", time=10, value=20)
-    cmds.setKeyframe(controls[1], attribute="rz", time=1, value=0)
-    cmds.setKeyframe(controls[1], attribute="rz", time=10, value=30)
-    return rig, controls
-
-
-def _skirt(cmds):
-    rig = cmds.createNode("transform", name="rig")
-    root = _ctl(cmds, "root", rig, (0, 10, 0))
-    branches = []
-    for name, direction in (("l", (2, 0, 0)), ("r", (-2, 0, 0))):
-        first = _ctl(cmds, name + "0", root, direction)
-        branches.append([first, _ctl(cmds, name + "1", first, direction)])
-    cmds.setKeyframe(root, attribute="ry", time=1, value=0)
-    cmds.setKeyframe(root, attribute="ry", time=10, value=40)
-    return root, branches
-
-
-def _simulate(cmds, nodes, frames, query="translation"):
-    """Step frames in order, reading the nodes (springs compute when read).
-
-    Returns:
-        dict: ``{frame: [world translation or matrix per node]}``.
-    """
-    out = {}
-    for frame in frames:
-        cmds.currentTime(frame)
-        out[frame] = [
-            cmds.xform(node, query=True, worldSpace=True, **{query: True})
-            for node in nodes
-        ]
-    return out
+from spring_helpers import build_skirt
+from spring_helpers import build_tail_rig
+from spring_helpers import simulate
 
 
 def _flat(sampled):
@@ -92,12 +23,12 @@ def test_proxy_follows_animation_at_zero_intensity(scene):
     from mgear.animbits.spring_manager import proxy
 
     cmds = scene
-    root, branches = _skirt(cmds)
+    root, branches = build_skirt(cmds)
     cmds.setKeyframe(branches[1][1], attribute="tx", time=1, value=0)
     cmds.setKeyframe(branches[1][1], attribute="tx", time=10, value=1)
     controls = [root] + [control for branch in branches for control in branch]
     frames = (1, 5, 10)
-    before = _flat(_simulate(cmds, controls, frames, "matrix"))
+    before = _flat(simulate(cmds, controls, frames, "matrix"))
 
     holder = cmds.createNode("transform", name="holder")
     cmds.addAttr(holder, longName="intensity", defaultValue=0)
@@ -105,7 +36,7 @@ def test_proxy_follows_animation_at_zero_intensity(scene):
     tree = chain.build_tree(root, proxy.control_children)
     assert [node.name for node in tree.walk()][:2] == [root, branches[0][0]]
     rig = proxy.build(tree, "skirt", holder + ".intensity", holder + ".pose")
-    after = _flat(_simulate(cmds, controls, frames, "matrix"))
+    after = _flat(simulate(cmds, controls, frames, "matrix"))
     assert after == pytest.approx(before, abs=1e-4)
     # proxy joints: clean orients, xyz, no rotate
     for joint in list(rig["sim"].values()) + list(rig["target"].values()):
@@ -119,7 +50,7 @@ def test_branch_policy_drivers(scene):
     from mgear.animbits.spring_manager import proxy
 
     cmds = scene
-    root, _ = _skirt(cmds)
+    root, _ = build_skirt(cmds)
     holder = cmds.createNode("transform", name="holder")
     cmds.addAttr(holder, longName="intensity", defaultValue=1)
     cmds.addAttr(holder, longName="pose", defaultValue=0)
@@ -182,20 +113,20 @@ def test_bdn_create_simulate_delete(bdn):
     from mgear.animbits.spring_manager import bake
     from mgear.animbits.spring_manager import registry
 
-    rig, controls = _rig(cmds)
+    rig, controls = build_tail_rig(cmds)
     frames = list(range(1, 11))
-    animated = _simulate(cmds, controls, frames)
+    animated = simulate(cmds, controls, frames)
     springs = bdn.create([controls[0]], {"springGravity": 1.0})
     assert len(springs) == 1
     assert len(cmds.ls(type="boneDynamicsNode")) == 3
-    simulated = _simulate(cmds, controls, frames)
+    simulated = simulate(cmds, controls, frames)
     # the root follows the animation, the tail lags and droops
     assert simulated[10][0] == pytest.approx(animated[10][0], abs=1e-3)
     assert simulated[10][2][1] < animated[10][2][1] - 0.1
 
     # zero intensity: back to the animation
     bdn.set_params(springs, {"springTotalIntensity": 0.0})
-    simulated = _simulate(cmds, controls, frames)
+    simulated = simulate(cmds, controls, frames)
     assert _flat({10: simulated[10]}) == pytest.approx(
         _flat({10: animated[10]}), abs=1e-3
     )
@@ -213,7 +144,7 @@ def test_bdn_create_simulate_delete(bdn):
 def test_bdn_ramps(bdn):
     from maya import cmds
 
-    _, controls = _rig(cmds)
+    _, controls = build_tail_rig(cmds)
     bdn.create([controls[0]], {"springDamping": 0.2, "springDampingTip": 2.0})
     nodes = sorted(cmds.ls(type="boneDynamicsNode"))
     damping = sorted(cmds.getAttr(node + ".damping") for node in nodes)
@@ -226,7 +157,7 @@ def test_bdn_bake_preroll_and_layer(bdn):
     from mgear.animbits.spring_manager import bake
     from mgear.animbits.spring_manager import solver
 
-    _, controls = _rig(cmds)
+    _, controls = build_tail_rig(cmds)
     springs = bdn.create([controls[0]], {"springGravity": 1.0})
     assert bake.bake(springs, start=1, end=20, preroll=5, destination_layer="sim")
     assert solver.get_start_frame() == 1
@@ -239,7 +170,7 @@ def test_bdn_bake_preroll_and_layer(bdn):
 def test_bdn_target_modes(bdn):
     from maya import cmds
 
-    _, controls = _rig(cmds)
+    _, controls = build_tail_rig(cmds)
     spring = bdn.create([controls[0]])[0]
     targets = [
         joint
@@ -274,7 +205,7 @@ def test_bdn_split_wind_visualizer(bdn):
     from mgear.animbits.spring_manager import bake
     from mgear.animbits.spring_manager import registry
 
-    root, _ = _skirt(cmds)
+    root, _ = build_skirt(cmds)
     springs = bdn.create([root], options={"split": True, "visualizer": True})
     assert len(springs) == 2
     visualizers = cmds.ls(type="boneDynamicsVisualizer", long=True)
@@ -309,7 +240,7 @@ def test_bdn_rig_preset_round_trip(bdn, tmp_path):
     from mgear.animbits.spring_manager import presets
     from mgear.animbits.spring_manager import registry
 
-    _, controls = _rig(cmds, "chr")
+    _, controls = build_tail_rig(cmds, "chr")
     springs = bdn.create(
         [controls[0]],
         {"springElasticity": 77.0},
@@ -322,7 +253,7 @@ def test_bdn_rig_preset_round_trip(bdn, tmp_path):
     assert entry["options"]["tree"]["name"] == "tail0_ctl"
     assert "bone_dynamics" in preset["solver"]
 
-    _rig(cmds, "chr2")
+    build_tail_rig(cmds, "chr2")
     created, missing = presets.apply_by_name(presets.read(path), "chr2:")
     assert missing == []
     assert len(created) == 1

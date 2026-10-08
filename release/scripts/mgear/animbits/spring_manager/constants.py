@@ -125,6 +125,10 @@ KIND_SPRING = "spring"
 KIND_SOLVER = "solver"
 KIND_WIND = "wind"
 KIND_COLLIDER = "collider"
+# shared networks list the springs they are assigned to; a spring has at
+# most one shared node of an exclusive kind
+ASSIGNED_ATTR = "assignedSprings"
+EXCLUSIVE_KINDS = (KIND_WIND,)
 
 # Presets ----------------------------------------------------------------
 PRESET_VERSION = 2

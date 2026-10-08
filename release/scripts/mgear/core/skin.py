@@ -19,6 +19,7 @@ from maya import cmds
 import maya.OpenMaya as OpenMaya
 import maya.OpenMayaAnim as OpenMayaAnim
 import maya.api.OpenMaya as om2
+import maya.api.OpenMayaAnim as oma2
 
 string_types = str
 from mgear.vendor.Qt import QtWidgets
@@ -2955,3 +2956,58 @@ class SkinClusterSelector(
 
 def openSkinClusterSelector(*args):
     return pyqt.showDialog(SkinClusterSelector, dockable=True)
+
+
+def get_dominant_influence_vertices(
+    mesh, influences=None, threshold=0.5, vertices=None
+):
+    """Return the vertices of a skinned mesh grouped by dominant influence.
+
+    A vertex belongs to the influence with its largest weight, when that
+    weight is at least ``threshold``.
+
+    Args:
+        mesh (str): Skinned mesh transform or shape.
+        influences (list, optional): Influence names to return, all of the
+            skin cluster influences when None.
+        threshold (float, optional): Minimum dominant weight.
+        vertices (list, optional): Vertex indices to read, all when None.
+
+    Returns:
+        dict: ``{influence: [vertex index, ...]}``, keyed by the given
+        names (long names when ``influences`` is None). Empty when the
+        mesh has no skin cluster.
+    """
+    from mgear.core import mesh as mesh_utils
+
+    skin_clusters = cmds.ls(cmds.listHistory(mesh) or [], type="skinCluster")
+    if not skin_clusters:
+        return {}
+    selection = om2.MSelectionList()
+    selection.add(skin_clusters[0])
+    fn = oma2.MFnSkinCluster(selection.getDependNode(0))
+    mesh_fn = mesh_utils.get_mesh_fn(mesh)
+    indices = list(vertices) if vertices is not None else range(mesh_fn.numVertices)
+    component_fn = om2.MFnSingleIndexedComponent()
+    components = component_fn.create(om2.MFn.kMeshVertComponent)
+    component_fn.addElements(list(indices))
+    weights, count = fn.getWeights(mesh_fn.dagPath(), components)
+    weights = list(weights)
+    paths = [path.fullPathName() for path in fn.influenceObjects()]
+
+    if influences is None:
+        names = {path: path for path in paths}
+    else:
+        names = {}
+        for name in influences:
+            long_names = cmds.ls(name, long=True)
+            if long_names:
+                names[long_names[0]] = name
+    result = {name: [] for name in names.values()}
+    columns = range(count)
+    for row, vertex in enumerate(indices):
+        offset = row * count
+        best = max(columns, key=lambda column: weights[offset + column])
+        if weights[offset + best] >= threshold and paths[best] in names:
+            result[names[paths[best]]].append(vertex)
+    return result

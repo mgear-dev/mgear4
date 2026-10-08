@@ -29,6 +29,7 @@ def test_straight_chain(chain):
         (("bone", "c"), ("tip", "c")),
     ]
     assert [s.ratio for s in sections] == pytest.approx([0.0, 1 / 3.0, 2 / 3.0])
+    assert [s.end_ratio for s in sections] == pytest.approx([1 / 3.0, 2 / 3.0, 1.0])
     assert drivers == {"a": [("bone", "a")], "b": [("bone", "b")], "c": [("bone", "c")]}
     assert joints[1].parent == ("bone", "a")
     assert joints[2].aim == "tip"

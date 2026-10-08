@@ -8,6 +8,7 @@ spring.
 
 from maya import cmds
 
+from mgear.core import mesh
 from mgear.core import utils
 
 from . import constants
@@ -196,6 +197,26 @@ def set_settings(settings, node=None):
         )
     if "gravity" in settings:
         cmds.setAttr(_plug(node, GRAVITY), *settings["gravity"])
+
+
+def pick_ground_height(nodes=None):
+    """Set the solver ground height from the lowest selected point.
+
+    Args:
+        nodes (list, optional): Objects or components, the selection when
+            None.
+
+    Returns:
+        float: The ground height, or None when nothing is selected.
+    """
+    height = mesh.get_lowest_point(
+        nodes if nodes is not None else cmds.ls(selection=True, long=True),
+        2 if utils.get_up_vector()[2] else 1,
+    )
+    if height is not None:
+        with utils.undo_chunk("springManagerPickGround"):
+            set_value(GROUND_HEIGHT, height)
+    return height
 
 
 def get_start_frame(node=None):

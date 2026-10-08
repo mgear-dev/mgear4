@@ -236,6 +236,53 @@ class SpringBackend(object):
         self.set_params([existing], params)
         return True, existing
 
+    def accepts_shared(self, spring, shared):
+        """Return True if a shared node can be assigned to a spring.
+
+        Args:
+            spring (registry.Spring): The spring.
+            shared (str): Shared network node.
+
+        Returns:
+            bool: True by default.
+        """
+        return True
+
+    def shared_changed(self, spring, kind):
+        """Rewire the shared nodes of a kind (wind, colliders) of a spring.
+
+        Called by the registry after assignments change, once per spring
+        and kind in a batch. The default does nothing.
+
+        Args:
+            spring (registry.Spring): The spring.
+            kind (str): Shared kind, e.g. :data:`constants.KIND_COLLIDER`.
+        """
+
+    def get_shared_preset(self, springs):
+        """Return the preset blocks of the shared nodes of springs.
+
+        Args:
+            springs (list): :class:`registry.Spring` records of this backend
+                saved in a rig preset.
+
+        Returns:
+            dict: Preset blocks, e.g. ``colliders`` and ``assignments``.
+            Empty by default.
+        """
+        return {}
+
+    def set_shared_preset(self, preset, namespace):
+        """Create the shared nodes of a rig preset and assign them.
+
+        Called after the preset springs are created. The default does
+        nothing.
+
+        Args:
+            preset (dict): The preset.
+            namespace (str): Target namespace.
+        """
+
     def get_solver_settings(self):
         """Return the scene-wide solver settings saved in rig presets.
 

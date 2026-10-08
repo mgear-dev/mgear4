@@ -29,6 +29,7 @@ from . import remove_settings
 from . import rest_values
 from . import restore_rest_values
 from .. import chain
+from .. import colliders
 from .. import constants
 from .. import proxy
 from .. import registry
@@ -55,6 +56,10 @@ TURBULENCE_STRENGTH = "springTurbulenceStrength"
 TURBULENCE_SEED = "springTurbulenceSeed"
 TURBULENCE_SEED_PER_BONE = "springTurbulenceSeedPerBone"
 FORCE_FUNCTION = "springElasticForceFunction"
+RADIUS = "springRadius"
+TIP_RADIUS = "springTipRadius"
+BONE_CAPSULE = "springBoneAsCapsule"
+MESH_CUTOFF = "springMeshCutoff"
 OFFSET_WEIGHT = "springOffsetWeight"
 TARGET_BLEND = "springTargetBlend"
 
@@ -124,6 +129,32 @@ BDN_PARAMS = (
         kind=constants.PARAM_BOOL,
     ),
     _param(ANGLE, "Angle", 60.0, "Limits", maximum=360.0),
+    _param(RADIUS, "Root Radius", 0.0, "Collision", maximum=1000.0, soft_maximum=10.0),
+    _param(
+        TIP_RADIUS,
+        "Tip Radius",
+        0.0,
+        "Collision",
+        maximum=1000.0,
+        soft_maximum=10.0,
+    ),
+    _param(
+        BONE_CAPSULE,
+        "Bone As Capsule",
+        False,
+        "Collision",
+        minimum=False,
+        maximum=True,
+        kind=constants.PARAM_BOOL,
+    ),
+    _param(
+        MESH_CUTOFF,
+        "Mesh Cutoff",
+        10.0,
+        "Collision",
+        maximum=10000.0,
+        soft_maximum=100.0,
+    ),
     _param(OFFSET_WEIGHT, "Root Motion Cancel", 1.0, "Root Motion"),
     _param(TARGET_BLEND, "Pose Blend", 0.0, "Target"),
     _param(
@@ -247,6 +278,36 @@ BDN_TOOLTIPS = {
         "Key it to fade between following the animation and holding a "
         "captured pose."
     ),
+    RADIUS: (
+        "Collision radius of the chain at its root, in scene units: the "
+        "thickness the colliders push away. The radius blends linearly "
+        "to the Tip Radius along the chain. Each bone is a sphere at its "
+        "end, or a capsule with Bone As Capsule. Sections with their own "
+        "collider (Fit Capsules on the spring controls) use its radii "
+        "instead.\n"
+        "0: the bone is a point. 0.5-1: thin hair strands. 2-5: braids, "
+        "tails, cloth strips. Fit Bone Radius measures both radii from "
+        "the mesh."
+    ),
+    TIP_RADIUS: (
+        "Collision radius of the chain at its tip, in scene units.\n"
+        "Same as Root Radius: even thickness (ropes, cloth strips). About "
+        "a third to a half of it: tapered tails and braids. 0: pointy tip."
+    ),
+    BONE_CAPSULE: (
+        "Collide with the whole bone, a capsule from its root radius to "
+        "its end radius, instead of a sphere at its end.\n"
+        "On: long bones, few joints (tails, cloth strips): nothing passes "
+        "between two joints. Off: faster, enough for dense chains. "
+        "Sphere and capsule colliders only."
+    ),
+    MESH_CUTOFF: (
+        "Distance beyond which a mesh collider is ignored, in scene "
+        "units: limits the search on big meshes.\n"
+        "10: default, a body for a hair chain. Lower it on dense meshes "
+        "to save time, raise it for fast motion that moves far from the "
+        "mesh in one frame."
+    ),
     FORCE_FUNCTION: (
         "Experimental. Shape of the elastic force: 0 Linear (default), "
         "1 Quadratic, 2 Cubic. Quadratic and Cubic pull harder the "
@@ -265,12 +326,25 @@ DIRECT_PARAMS = (
     (TURBULENCE_STRENGTH, "turbulenceStrength"),
     (FORCE_FUNCTION, "elasticForceFunction"),
     (OFFSET_WEIGHT, "offsetMatrixWeight"),
+    (BONE_CAPSULE, "boneAsCapsule"),
+    (MESH_CUTOFF, "meshColCutoff"),
 )
 # ramped parameters: (parameter, boneDynamicsNode attribute), one per RGB
 RAMPED_PARAMS = (
     (DAMPING, "damping"),
     (ELASTICITY, "elasticity"),
     (STIFFNESS, "stiffness"),
+)
+
+# node attribute: suffix of its radius ramp (blendTwoAttr named after the
+# node), the spring Root / Tip Radius gradient
+RADIUS_RAMPS = {"rootRadius": "_rootRadiusRamp", "radius": "_radiusRamp"}
+# boneDynamicsNode collider arrays, cleared and refilled together
+COLLIDER_ARRAYS = (
+    "sphereCollider",
+    "capsuleColliderInput",
+    "infinitePlaneCollider",
+    "meshCollider",
 )
 
 # Network attributes ---------------------------------------------------------
@@ -282,7 +356,6 @@ TREE_ATTR = "tree"
 ROOTS_ATTR = "roots"
 POSES_ATTR = "poses"
 OFFSET_ATTR = "offsetNode"
-WIND_ATTR = "wind"
 WIND_SCALE_ATTR = "windScaleNode"
 GROUP_ATTR = "group"
 POSE_WEIGHT_ATTR = "poseWeight"
@@ -556,7 +629,6 @@ class BoneDynamicsBackend(SpringBackend):
         _add_message(network, ROOTS_ATTR, multi=True)
         _add_message(network, POSES_ATTR, multi=True)
         _add_message(network, OFFSET_ATTR, offset)
-        _add_message(network, WIND_ATTR)
         _add_message(network, WIND_SCALE_ATTR)
         _add_message(network, GROUP_ATTR)
         return network
@@ -592,7 +664,8 @@ class BoneDynamicsBackend(SpringBackend):
 
         Returns:
             dict: ``tips`` (multiplyDivide with the damping, elasticity
-            and stiffness tip values in X, Y, Z) and ``mass_tip`` (plug).
+            and stiffness tip values in X, Y, Z), ``mass_tip`` and
+            ``radius_tip`` (plugs). The tip radius is a parameter itself.
         """
         tips = cmds.createNode("multiplyDivide", name=prefix + "_sprg_tips")
         for (param, _), axis in zip(RAMPED_PARAMS, "XYZ"):
@@ -601,7 +674,11 @@ class BoneDynamicsBackend(SpringBackend):
         mass_tip = cmds.createNode("multiplyDivide", name=prefix + "_sprg_massTip")
         cmds.connectAttr(_plug(settings, MASS), mass_tip + ".input1X")
         cmds.connectAttr(_plug(settings, MASS + TIP), mass_tip + ".input2X")
-        return {"tips": tips, "mass_tip": mass_tip + ".outputX"}
+        return {
+            "tips": tips,
+            "mass_tip": mass_tip + ".outputX",
+            "radius_tip": _plug(settings, TIP_RADIUS),
+        }
 
     def _attach(self, section, bone, end, target, context):
         """Create and connect the boneDynamicsNode of a section.
@@ -612,7 +689,8 @@ class BoneDynamicsBackend(SpringBackend):
             end (str): Sim end joint.
             target (str): Target bone joint.
             context (dict): ``settings``, ``solver``, ``offset``,
-                ``enable``, ``tips`` and ``mass_tip`` of the spring, and
+                ``enable``, ``tips``, ``mass_tip`` and ``radius_tip`` of the
+                spring, and
                 ``count``, the number of sections attached so far.
         """
         settings = context["settings"]
@@ -662,11 +740,52 @@ class BoneDynamicsBackend(SpringBackend):
         cmds.setAttr(seed + ".weight[1]", context["count"])
         cmds.connectAttr(seed + ".output", _plug(node, "turbulenceSeed"))
 
-        mass = cmds.createNode("blendTwoAttr", name=name + "_massRamp")
-        cmds.setAttr(mass + ".attributesBlender", section.ratio)
-        cmds.connectAttr(_plug(settings, MASS), mass + ".input[0]")
-        cmds.connectAttr(context["mass_tip"], mass + ".input[1]")
-        cmds.connectAttr(mass + ".output", _plug(node, "mass"))
+        # single values: lerp(value, value * tip, ratio)
+        for suffix, param, tip, ratio, attr in (
+            ("_massRamp", MASS, "mass_tip", section.ratio, "mass"),
+            (
+                RADIUS_RAMPS["rootRadius"],
+                RADIUS,
+                "radius_tip",
+                section.ratio,
+                "rootRadius",
+            ),
+            (RADIUS_RAMPS["radius"], RADIUS, "radius_tip", section.end_ratio, "radius"),
+        ):
+            lerp = cmds.createNode("blendTwoAttr", name=name + suffix)
+            cmds.setAttr(lerp + ".attributesBlender", ratio)
+            cmds.connectAttr(_plug(settings, param), lerp + ".input[0]")
+            cmds.connectAttr(context[tip], lerp + ".input[1]")
+            cmds.connectAttr(lerp + ".output", _plug(node, attr))
+
+    def sections(self, spring):
+        """Return the simulated sections of a spring, with their ramp ratios.
+
+        Args:
+            spring (registry.Spring): The spring.
+
+        Returns:
+            list: ``(bone joint, end joint, ratio, end ratio)`` tuples, the
+            ratios going from 0 at the root to 1 at the tips.
+        """
+        result = []
+        for node in nodes_of_type(spring, NODE_TYPE):
+            # the radius ramps hold the section ratios, see _attach
+            bone, end, root_ramp, end_ramp = (
+                cmds.listConnections(_plug(node, attr), source=True, destination=False)[
+                    0
+                ]
+                for attr in ("boneTranslate", "endTranslate", "rootRadius", "radius")
+            )
+            result.append(
+                (
+                    bone,
+                    end,
+                    cmds.getAttr(root_ramp + ".attributesBlender"),
+                    cmds.getAttr(end_ramp + ".attributesBlender"),
+                )
+            )
+        return result
 
     # target pose ------------------------------------------------------------
 
@@ -704,6 +823,29 @@ class BoneDynamicsBackend(SpringBackend):
             list: Spring root names.
         """
         return attribute.get_message_inputs(spring.node, ROOTS_ATTR)
+
+    def sim_joint(self, control):
+        """Return the simulated joint driving a spring control.
+
+        The control's parent constraint blends its target joints (first
+        half) and its sim joints (second half), see :func:`proxy.build`.
+
+        Args:
+            control (str): Control of a Bone Dynamics spring.
+
+        Returns:
+            str: The sim joint long name, or None when the control is not
+            driven by a Bone Dynamics spring.
+        """
+        for constraint in (
+            cmds.listRelatives(control, type="parentConstraint", fullPath=True) or []
+        ):
+            targets = cmds.parentConstraint(constraint, query=True, targetList=True)
+            sims = cmds.ls(targets[len(targets) // 2 :], long=True)
+            spring = registry.spring_from_node(sims[0]) if sims else None
+            if spring and spring.backend == self.name:
+                return sims[0]
+        return None
 
     def set_target_mode(self, springs, mode, external=None):
         """Set the target pose mode of springs, in one undo chunk.
@@ -847,14 +989,14 @@ class BoneDynamicsBackend(SpringBackend):
             )
         return controllers
 
-    def _wind_vector(self, wind):
-        """Return the direction node of a wind controller.
+    def _wind_network(self, wind):
+        """Return the shared network of a wind controller.
 
         Args:
             wind (str): Wind controller.
 
         Returns:
-            str: The vectorProduct node.
+            str: The wind network node.
 
         Raises:
             ValueError: If the node is not a spring wind controller.
@@ -866,42 +1008,36 @@ class BoneDynamicsBackend(SpringBackend):
             or []
         ):
             if registry.node_kind(network) == constants.KIND_WIND:
-                return attribute.get_message_inputs(network, WIND_VECTOR_ATTR)[0]
+                return network
         raise ValueError("{} is not a spring wind controller".format(wind))
+
+    def wind_of(self, spring):
+        """Return the wind controller of a spring.
+
+        Args:
+            spring (registry.Spring): The spring.
+
+        Returns:
+            str: The wind controller, or None.
+        """
+        for network in registry.shared_of(spring, constants.KIND_WIND):
+            controllers = attribute.get_message_inputs(network, WIND_CONTROLLER_ATTR)
+            if controllers:
+                return controllers[0]
+        return None
 
     def connect_wind(self, springs, wind):
         """Drive the additional force of springs with a wind controller.
+
+        A spring has one wind: its previous wind is disconnected.
 
         Args:
             springs (list): :class:`registry.Spring` records.
             wind (str): Wind controller from :meth:`create_wind`.
         """
-        vector = self._wind_vector(wind)
+        network = self._wind_network(wind)
         with utils.undo_chunk("springManagerConnectWind"):
-            self.disconnect_wind(springs)
-            for spring in springs:
-                settings = spring.settings_node
-                with utils.capture_created_nodes() as created:
-                    scale = cmds.createNode(
-                        "multiplyDivide",
-                        name=node_remap.flat_name(settings) + "_sprg_wind",
-                    )
-                cmds.connectAttr(_plug(wind, WIND_STRENGTH), scale + ".input1X")
-                cmds.connectAttr(_plug(settings, WIND_SCALE), scale + ".input2X")
-                for node in nodes_of_type(spring, NODE_TYPE):
-                    cmds.connectAttr(
-                        vector + ".output", _plug(node, "additionalForce"), force=True
-                    )
-                    cmds.connectAttr(
-                        scale + ".outputX",
-                        _plug(node, "additionalForceScale"),
-                        force=True,
-                    )
-                cmds.connectAttr(wind + ".message", _plug(spring.node, WIND_ATTR))
-                cmds.connectAttr(
-                    scale + ".message", _plug(spring.node, WIND_SCALE_ATTR)
-                )
-                registry.add_members(spring.node, created)
+            registry.assign(network, springs)
 
     def disconnect_wind(self, springs):
         """Remove the wind from springs.
@@ -911,22 +1047,211 @@ class BoneDynamicsBackend(SpringBackend):
         """
         with utils.undo_chunk("springManagerDisconnectWind"):
             for spring in springs:
-                if not attribute.get_message_inputs(spring.node, WIND_ATTR):
-                    continue
-                settings = spring.settings_node
-                for node in nodes_of_type(spring, NODE_TYPE):
-                    force = _plug(node, "additionalForce")
-                    attribute.disconnect_plug_inputs(force)
-                    cmds.setAttr(force, 0, 0, 0, type="double3")
-                    cmds.connectAttr(
-                        _plug(settings, WIND_SCALE),
-                        _plug(node, "additionalForceScale"),
-                        force=True,
+                for network in registry.shared_of(spring, constants.KIND_WIND):
+                    registry.unassign(network, [spring])
+
+    # shared nodes -------------------------------------------------------------
+
+    def bone_node(self, joint):
+        """Return the boneDynamicsNode simulating a sim joint.
+
+        Args:
+            joint (str): Sim joint.
+
+        Returns:
+            str: The node, or None when the joint is not a simulated bone.
+        """
+        for plug in (
+            cmds.listConnections(
+                joint + ".translate", source=False, destination=True, plugs=True
+            )
+            or []
+        ):
+            node, attr = plug.split(".", 1)
+            if attr == "boneTranslate" and cmds.nodeType(node) == NODE_TYPE:
+                return node
+        return None
+
+    def link_collider(self, network):
+        """Let a collider on a sim joint set the volume of its bone.
+
+        A capsule drives its bone's ``rootRadius`` (from radiusB, the start)
+        and ``radius`` (from radiusA, the end), and turns Bone As Capsule on.
+        A sphere drives both, unless a capsule already does. Each section
+        then collides with the volume other chains collide against, fitted
+        per section. Bones without a collider keep the spring Root / Tip
+        Radius gradient.
+
+        Args:
+            network (str): Collider network.
+
+        Returns:
+            bool: True when the collider drives a bone.
+        """
+        kind_type = colliders.collider_type(network)
+        driver_node = colliders.driver(network)
+        node = self.bone_node(driver_node) if driver_node else None
+        if not node or kind_type not in (colliders.SPHERE, colliders.CAPSULE):
+            return False
+        shape = colliders.collider_shape(network)
+        if kind_type == colliders.CAPSULE:
+            links = (("radiusB", "rootRadius"), ("radiusA", "radius"))
+            spring = registry.spring_from_node(node)
+            if spring:
+                self.set_params([spring], {BONE_CAPSULE: True})
+        else:
+            if cmds.listConnections(
+                _plug(node, "rootRadius"),
+                source=True,
+                destination=False,
+                type=colliders.SHAPE_TYPES[colliders.CAPSULE],
+            ):
+                return False
+            links = (("radius", "rootRadius"), ("radius", "radius"))
+        for source, destination in links:
+            cmds.connectAttr(_plug(shape, source), _plug(node, destination), force=True)
+        return True
+
+    def unlink_collider(self, network):
+        """Give the bones driven by a collider back to the spring gradient.
+
+        Args:
+            network (str): Collider network.
+        """
+        shape = colliders.collider_shape(network)
+        if not shape:
+            return
+        for plug in (
+            cmds.listConnections(
+                shape, source=False, destination=True, plugs=True, type=NODE_TYPE
+            )
+            or []
+        ):
+            node, attr = plug.split(".", 1)
+            ramps = cmds.ls(node + RADIUS_RAMPS.get(attr, ""), type="blendTwoAttr")
+            if attr in RADIUS_RAMPS and ramps:
+                cmds.connectAttr(ramps[0] + ".output", plug, force=True)
+
+    def accepts_shared(self, spring, shared):
+        # a collider driven by the spring's own joints would collide with
+        # the chain itself
+        if registry.node_kind(shared) != constants.KIND_COLLIDER:
+            return True
+        driver_node = colliders.driver(shared)
+        if driver_node and cmds.ls(driver_node, long=True)[0] in cmds.ls(
+            spring.members, long=True
+        ):
+            mgear.log(
+                "{} follows {}: not assigned to its own chain".format(
+                    colliders.label(shared), spring.label
+                ),
+                mgear.sev_warning,
+            )
+            return False
+        return True
+
+    def shared_changed(self, spring, kind):
+        if kind == constants.KIND_WIND:
+            self._disconnect_wind_nodes(spring)
+            for network in registry.shared_of(spring, kind):
+                self._connect_wind_nodes(spring, network)
+        elif kind == constants.KIND_COLLIDER:
+            self._connect_colliders(spring)
+
+    def _connect_colliders(self, spring):
+        """Rewire the collider inputs of a spring's nodes.
+
+        Every collider array of the nodes is cleared, then refilled from the
+        assigned colliders in order, so the arrays have no gaps.
+
+        Args:
+            spring (registry.Spring): The spring.
+        """
+        nodes = nodes_of_type(spring, NODE_TYPE)
+        for node in nodes:
+            for array in COLLIDER_ARRAYS:
+                for index in cmds.getAttr(_plug(node, array), multiIndices=True) or []:
+                    cmds.removeMultiInstance(
+                        "{}.{}[{}]".format(node, array, index), **{"break": True}
                     )
-                attribute.disconnect_plug_inputs(_plug(spring.node, WIND_ATTR))
-                scale = attribute.get_message_inputs(spring.node, WIND_SCALE_ATTR)
-                if scale:
-                    cmds.delete(scale)
+        counters = dict.fromkeys(colliders.TYPES, 0)
+        for network in registry.shared_of(spring, constants.KIND_COLLIDER):
+            kind_type = colliders.collider_type(network)
+            shape = colliders.collider_shape(network)
+            if kind_type not in counters or not shape:
+                continue
+            index = counters[kind_type]
+            counters[kind_type] += 1
+            matrix = colliders.collider_transform(network) + ".worldMatrix[0]"
+            if kind_type == colliders.SPHERE:
+                links = (
+                    (matrix, "sphereCollider[{}].sphereColMatrix"),
+                    (shape + ".radius", "sphereCollider[{}].sphereColRadius"),
+                )
+            elif kind_type == colliders.CAPSULE:
+                prefix = "capsuleColliderInput[{}]."
+                links = (
+                    (matrix, prefix + "capsuleColliderMatrix"),
+                    (shape + ".height", prefix + "capsuleColliderHeight"),
+                    (shape + ".radiusA", prefix + "capsuleColliderRadiusA"),
+                    (shape + ".radiusB", prefix + "capsuleColliderRadiusB"),
+                )
+            elif kind_type == colliders.PLANE:
+                links = ((matrix, "infinitePlaneCollider[{}].infinitePlaneColMatrix"),)
+            else:
+                links = ((shape + ".worldMesh[0]", "meshCollider[{}]"),)
+            for node in nodes:
+                for source, destination in links:
+                    cmds.connectAttr(source, _plug(node, destination.format(index)))
+
+    def _connect_wind_nodes(self, spring, network):
+        """Wire a wind network into the nodes of a spring.
+
+        Args:
+            spring (registry.Spring): The spring.
+            network (str): Wind network.
+        """
+        wind = attribute.get_message_inputs(network, WIND_CONTROLLER_ATTR)[0]
+        vector = attribute.get_message_inputs(network, WIND_VECTOR_ATTR)[0]
+        settings = spring.settings_node
+        with utils.capture_created_nodes() as created:
+            scale = cmds.createNode(
+                "multiplyDivide",
+                name=node_remap.flat_name(settings) + "_sprg_wind",
+            )
+        cmds.connectAttr(_plug(wind, WIND_STRENGTH), scale + ".input1X")
+        cmds.connectAttr(_plug(settings, WIND_SCALE), scale + ".input2X")
+        for node in nodes_of_type(spring, NODE_TYPE):
+            cmds.connectAttr(
+                vector + ".output", _plug(node, "additionalForce"), force=True
+            )
+            cmds.connectAttr(
+                scale + ".outputX", _plug(node, "additionalForceScale"), force=True
+            )
+        cmds.connectAttr(
+            scale + ".message", _plug(spring.node, WIND_SCALE_ATTR), force=True
+        )
+        registry.add_members(spring.node, created)
+
+    def _disconnect_wind_nodes(self, spring):
+        """Remove the wind wiring of a spring's nodes.
+
+        Args:
+            spring (registry.Spring): The spring.
+        """
+        settings = spring.settings_node
+        for node in nodes_of_type(spring, NODE_TYPE):
+            force = _plug(node, "additionalForce")
+            attribute.disconnect_plug_inputs(force)
+            cmds.setAttr(force, 0, 0, 0, type="double3")
+            cmds.connectAttr(
+                _plug(settings, WIND_SCALE),
+                _plug(node, "additionalForceScale"),
+                force=True,
+            )
+        scale = attribute.get_message_inputs(spring.node, WIND_SCALE_ATTR)
+        if scale:
+            cmds.delete(scale)
 
     # visualizer ------------------------------------------------------------
 
@@ -1031,6 +1356,49 @@ class BoneDynamicsBackend(SpringBackend):
 
     def get_solver_settings(self):
         return solver.get_settings()
+
+    def get_shared_preset(self, springs):
+        blocks = {"colliders": [], "assignments": {}}
+        entries = {}
+        for spring in springs:
+            for network in registry.shared_of(spring, constants.KIND_COLLIDER):
+                if network not in entries:
+                    entries[network] = colliders.to_preset(network)
+                    blocks["colliders"].append(entries[network])
+                blocks["assignments"].setdefault(entries[network]["name"], []).append(
+                    node_remap.short_name(spring.controls[0])
+                )
+        return blocks if blocks["colliders"] else {}
+
+    def set_shared_preset(self, preset, namespace):
+        if not preset.get("colliders"):
+            return
+        if not self.is_available():
+            mgear.log(
+                "Bone Dynamics is not available, preset colliders skipped",
+                mgear.sev_warning,
+            )
+            return
+        existing = {
+            colliders.label(network): network for network in colliders.list_colliders()
+        }
+        created = {}
+        for entry in preset["colliders"]:
+            network = colliders.from_preset(entry, namespace, existing)
+            if network:
+                created[entry["name"]] = network
+                existing[colliders.label(network)] = network
+        with registry.batched_sync():
+            for name, controls in (preset.get("assignments") or {}).items():
+                if name not in created:
+                    continue
+                springs = [
+                    registry.spring_from_node(
+                        node_remap.add_namespace(control, namespace)
+                    )
+                    for control in controls
+                ]
+                registry.assign(created[name], [spring for spring in springs if spring])
 
     def set_solver_settings(self, settings):
         if settings:

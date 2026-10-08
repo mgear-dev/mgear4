@@ -25,7 +25,7 @@ PRIMARY = "primary"
 BRANCH_POLICIES = (KINEMATIC, AVERAGE, PRIMARY)
 
 JointSpec = namedtuple("JointSpec", ("key", "parent", "control", "aim"))
-Section = namedtuple("Section", ("bone", "end", "control", "ratio"))
+Section = namedtuple("Section", ("bone", "end", "control", "ratio", "end_ratio"))
 
 
 class ChainNode(object):
@@ -147,7 +147,8 @@ def plan(tree, policy=KINEMATIC, primary=0):
           tips), ``aim`` the control or ``"tip"`` it points to, or None.
         - ``sections``: :class:`Section` list. ``ratio`` is the start of
           the section along its longest path, 0 at the root and close to
-          1 at the tips (counted in sections).
+          1 at the tips (counted in sections); ``end_ratio`` its end, 1
+          at the tips.
         - ``drivers``: ``{control: [joint keys]}``, the joints each
           control follows (several for the ``average`` policy).
 
@@ -171,9 +172,7 @@ def plan(tree, policy=KINEMATIC, primary=0):
                 key = ("branch", node.name, index)
                 branches.append(key)
                 joints.append(JointSpec(key, pivot, node.name, child.name))
-                sections.append(
-                    Section(key, _end_key(child), node.name, _ratio(depth, total))
-                )
+                sections.append(_section(key, _end_key(child), node.name, depth, total))
                 add(child, key, depth + 1)
             if policy == AVERAGE:
                 drivers[node.name] = branches
@@ -189,14 +188,12 @@ def plan(tree, policy=KINEMATIC, primary=0):
         )
         drivers[node.name] = [bone]
         if child:
-            sections.append(
-                Section(bone, _end_key(child), node.name, _ratio(depth, total))
-            )
+            sections.append(_section(bone, _end_key(child), node.name, depth, total))
             add(child, bone, depth + 1)
         else:
             tip = ("tip", node.name)
             joints.append(JointSpec(tip, bone, node.name, None))
-            sections.append(Section(bone, tip, node.name, _ratio(depth, total)))
+            sections.append(_section(bone, tip, node.name, depth, total))
 
     add(tree, None, 0)
     return joints, sections, drivers
@@ -226,6 +223,10 @@ def _depth_below(tree):
 
 def _ratio(depth, total):
     return float(depth) / total if total else 0.0
+
+
+def _section(bone, end, control, depth, total):
+    return Section(bone, end, control, _ratio(depth, total), _ratio(depth + 1, total))
 
 
 def tree_to_data(tree):

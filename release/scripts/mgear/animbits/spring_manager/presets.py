@@ -182,6 +182,9 @@ def describe(preset):
         if len(controls) > 6:
             shown += ", ... ({} more)".format(len(controls) - 6)
         lines.append("Controls: " + shown)
+        collider_count = len(preset.get("colliders") or [])
+        if collider_count:
+            lines.append("Colliders: {}".format(collider_count))
     description = (preset.get("description") or "").strip()
     if description:
         lines.insert(0, description)
@@ -510,6 +513,12 @@ def collect(springs, description=""):
         settings = backend.get_solver_settings()
         if settings:
             preset["solver"][backend.name] = settings
+    for backend in {backend for _, backend in pairs}:
+        blocks = backend.get_shared_preset(
+            [spring for spring, owner in pairs if owner is backend]
+        )
+        preset["colliders"].extend(blocks.get("colliders") or [])
+        preset["assignments"].update(blocks.get("assignments") or {})
     return preset
 
 
@@ -533,7 +542,7 @@ def save(path, springs, description=""):
     return preset
 
 
-def apply_by_name(preset, namespace="", apply_solver=True):
+def apply_by_name(preset, namespace="", apply_solver=True, apply_colliders=True):
     """Create or update springs from a preset, matching controls by name.
 
     Args:
@@ -541,6 +550,8 @@ def apply_by_name(preset, namespace="", apply_solver=True):
         namespace (str, optional): Namespace to look the controls up in.
         apply_solver (bool, optional): Also apply the ``solver`` block to
             the scene solver settings.
+        apply_colliders (bool, optional): Also create or update the
+            ``colliders`` and assign them to the springs.
 
     Returns:
         tuple: ``(springs, missing)``: the created or updated
@@ -572,6 +583,13 @@ def apply_by_name(preset, namespace="", apply_solver=True):
                 backend = get_backend(name)
                 if backend and backend.is_available():
                     backend.set_solver_settings(settings)
+        if apply_colliders:
+            for backend in {
+                get_backend(entry.get("backend"))
+                for entry in preset.get("springs") or []
+            }:
+                if backend:
+                    backend.set_shared_preset(preset, namespace)
     for name in missing:
         mgear.log("Preset control not found: {}".format(name), mgear.sev_warning)
     return springs, missing

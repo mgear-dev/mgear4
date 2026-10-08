@@ -6,6 +6,8 @@ Spring Manager are found through their ``springSetupMembers`` attribute
 and reported as :class:`LegacySpring` (backend ``"legacy"``).
 """
 
+import contextlib
+
 from maya import cmds
 
 from mgear.core import attribute
@@ -341,7 +343,10 @@ def create_network(
         attributeType="long",
         defaultValue=constants.SCENE_VERSION,
     )
-    for attr in (constants.CONTROLS_ATTR, constants.MEMBERS_ATTR):
+    attrs = [constants.CONTROLS_ATTR, constants.MEMBERS_ATTR]
+    if kind != constants.KIND_SPRING:
+        attrs.append(constants.ASSIGNED_ATTR)
+    for attr in attrs:
         cmds.addAttr(network, longName=attr, attributeType="message", multi=True)
     cmds.addAttr(network, longName=constants.SETTINGS_ATTR, attributeType="message")
     extra = dict(extra or {})
@@ -443,3 +448,160 @@ def add_members(network, nodes):
     skip.update(attribute.get_message_inputs(network, constants.SETTINGS_ATTR))
     members = [node for node in nodes if node not in skip and cmds.objExists(node)]
     attribute.connect_messages(members, network, constants.MEMBERS_ATTR)
+
+
+# -----------------------------------------------------------------------------
+# Shared object assignment
+# -----------------------------------------------------------------------------
+
+# (spring, kind) pairs waiting for a sync, None outside batched_sync()
+_PENDING = None
+
+
+@contextlib.contextmanager
+def batched_sync():
+    """Sync each changed spring once, at the end of a batch of assignments.
+
+    Inside the block, :func:`assign` and :func:`unassign` only record the
+    springs to sync: assigning 10 colliders to a spring rewires it once.
+    Nested blocks join the outer one.
+    """
+    global _PENDING
+    if _PENDING is not None:
+        yield
+        return
+    _PENDING = {}
+    try:
+        yield
+    finally:
+        pending, _PENDING = _PENDING, None
+        for spring, kind in pending:
+            _sync(spring, kind)
+
+
+def _sync(spring, kind):
+    """Let the spring backend rewire the shared nodes of a kind."""
+    from .backends import get_backend
+
+    backend = get_backend(spring.backend)
+    if backend and spring.exists():
+        backend.shared_changed(spring, kind)
+
+
+def _changed(spring, kind):
+    if _PENDING is None:
+        _sync(spring, kind)
+    else:
+        _PENDING[(spring, kind)] = True
+
+
+def _assigned_plugs(spring):
+    """Return the ``(shared node, plug)`` pairs a spring is assigned to."""
+    pairs = []
+    for plug in (
+        cmds.listConnections(
+            spring.node + ".message", source=False, destination=True, plugs=True
+        )
+        or []
+    ):
+        node, attr = plug.split(".", 1)
+        if attr.startswith(constants.ASSIGNED_ATTR + "["):
+            pairs.append((node, plug))
+    return pairs
+
+
+def assigned_springs(shared):
+    """Return the springs a shared node (wind, collider) is assigned to.
+
+    Args:
+        shared (str): Shared network node.
+
+    Returns:
+        list: :class:`Spring` records, in assignment order.
+    """
+    springs = []
+    for network in attribute.get_message_inputs(shared, constants.ASSIGNED_ATTR):
+        spring = _network_spring(network)
+        if spring:
+            springs.append(spring)
+    return springs
+
+
+def shared_of(spring, kind):
+    """Return the shared nodes of a kind assigned to a spring.
+
+    Args:
+        spring (Spring): The spring.
+        kind (str): Shared kind, e.g. :data:`constants.KIND_COLLIDER`.
+
+    Returns:
+        list: Shared network nodes, sorted by name.
+    """
+    return sorted(
+        {node for node, _ in _assigned_plugs(spring) if node_kind(node) == kind}
+    )
+
+
+def assign(shared, springs):
+    """Assign a shared node (wind, collider) to springs.
+
+    The spring backends rewire the springs through
+    :meth:`SpringBackend.shared_changed`. For exclusive kinds the spring's
+    previous node of that kind is unassigned first. Springs already
+    assigned, or refused by :meth:`SpringBackend.accepts_shared`, are
+    skipped.
+
+    Args:
+        shared (str): Shared network node.
+        springs (list): :class:`Spring` records.
+    """
+    from .backends import get_backend
+
+    kind = node_kind(shared)
+    with batched_sync():
+        for spring in springs:
+            assigned = dict(_assigned_plugs(spring))
+            backend = get_backend(spring.backend)
+            if shared in assigned or (
+                backend and not backend.accepts_shared(spring, shared)
+            ):
+                continue
+            if kind in constants.EXCLUSIVE_KINDS:
+                for other in assigned:
+                    if node_kind(other) == kind:
+                        unassign(other, [spring])
+            attribute.connect_messages([spring.node], shared, constants.ASSIGNED_ATTR)
+            _changed(spring, kind)
+
+
+def unassign(shared, springs=None):
+    """Remove a shared node from springs.
+
+    Args:
+        shared (str): Shared network node.
+        springs (list, optional): :class:`Spring` records, every assigned
+            spring when None.
+    """
+    kind = node_kind(shared)
+    with batched_sync():
+        for spring in assigned_springs(shared) if springs is None else springs:
+            plug = dict(_assigned_plugs(spring)).get(shared)
+            if not plug:
+                continue
+            cmds.disconnectAttr(spring.node + ".message", plug)
+            cmds.removeMultiInstance(plug)
+            _changed(spring, kind)
+
+
+def delete_shared(shared):
+    """Unassign a shared node from every spring, then delete it.
+
+    Args:
+        shared (str): Shared network node.
+    """
+    unassign(shared)
+    members = cmds.ls(attribute.get_message_inputs(shared, constants.MEMBERS_ATTR))
+    if members:
+        cmds.delete(members)
+    if cmds.objExists(shared):
+        cmds.delete(shared)

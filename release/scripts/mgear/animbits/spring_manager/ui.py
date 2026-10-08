@@ -47,6 +47,7 @@ MISSING_STATE = "plug-in missing"
 # bake dialog destination combo index
 DESTINATION_LAYER = 1
 APPLY_SOLVER_KEY = constants.SETTINGS_PREFIX + "apply_solver"
+APPLY_COLLIDERS_KEY = constants.SETTINGS_PREFIX + "apply_colliders"
 PRESET_PATH_ROLE = QtCore.Qt.UserRole + 1
 
 COLUMN_NAME = 0
@@ -399,6 +400,7 @@ class SpringManager(MayaQWidgetDockableMixin, QtWidgets.QDialog, pyqt.SettingsMi
         self.reveal_library_action = None
         self.docs_action = None
         self.apply_solver_action = None
+        self.apply_colliders_action = None
         # widgets
         self.menu_bar = None
         self.solver_combo = None
@@ -408,6 +410,8 @@ class SpringManager(MayaQWidgetDockableMixin, QtWidgets.QDialog, pyqt.SettingsMi
         self.solver_section = None
         self.solver_stack = None
         self.solver_panels = {}
+        # (backend name, section, panel), see ui_panels.SECTION_PANELS
+        self.backend_sections = []
         self.springs_section = None
         self.spring_search_le = None
         self.spring_tree = None
@@ -454,7 +458,10 @@ class SpringManager(MayaQWidgetDockableMixin, QtWidgets.QDialog, pyqt.SettingsMi
             GRID_VIEW_KEY: (self.grid_view_btn, False),
             SPRINGS_HEIGHT_KEY: (self.spring_grip, pyqt.dpi_scale(SPRINGS_HEIGHT)),
             APPLY_SOLVER_KEY: (self.apply_solver_action, True),
+            APPLY_COLLIDERS_KEY: (self.apply_colliders_action, True),
         }
+        for _, _, panel in self.backend_sections:
+            self.user_settings.update(getattr(panel, "user_settings", {}))
         self.load_settings()
         self._new_values = self.load_json_setting(NEW_VALUES_KEY, {})
         self._load_libraries()
@@ -490,6 +497,13 @@ class SpringManager(MayaQWidgetDockableMixin, QtWidgets.QDialog, pyqt.SettingsMi
             "Rig presets also set the scene solver settings (gravity, "
             "start frame...)"
         )
+        self.apply_colliders_action = QtWidgets.QAction("Apply Colliders", self)
+        self.apply_colliders_action.setCheckable(True)
+        self.apply_colliders_action.setChecked(True)
+        self.apply_colliders_action.setToolTip(
+            "Rig presets also create or update their colliders and assign "
+            "them to the springs"
+        )
 
     def create_widgets(self):
         """Create the widgets."""
@@ -506,6 +520,7 @@ class SpringManager(MayaQWidgetDockableMixin, QtWidgets.QDialog, pyqt.SettingsMi
         presets_menu = self.menu_bar.addMenu("Presets")
         presets_menu.addAction(self.save_preset_action)
         presets_menu.addAction(self.apply_solver_action)
+        presets_menu.addAction(self.apply_colliders_action)
         presets_menu.addSeparator()
         presets_menu.addAction(self.add_library_action)
         presets_menu.addAction(self.remove_library_action)
@@ -542,11 +557,14 @@ class SpringManager(MayaQWidgetDockableMixin, QtWidgets.QDialog, pyqt.SettingsMi
             self.create_stack.addWidget(panel)
             solver_class = ui_panels.SOLVER_PANELS.get(backend.name)
             if solver_class:
-                panel = solver_class()
-                panel.springs_fn = self.selected_springs
-                panel.all_springs_fn = self.all_springs
+                panel = self._make_panel(solver_class)
                 self.solver_panels[backend.name] = panel
                 self.solver_stack.addWidget(panel)
+            for title, panel_class in ui_panels.SECTION_PANELS.get(backend.name, ()):
+                panel = self._make_panel(panel_class)
+                section = widgets.CollapsibleWidget(title, expanded=False)
+                section.addWidget(panel)
+                self.backend_sections.append((backend.name, section, panel))
         self.missing_label = QtWidgets.QLabel(
             "Some springs need a solver plug-in that is not loaded: they "
             "can't be edited or baked. See Help > Documentation."
@@ -650,13 +668,25 @@ class SpringManager(MayaQWidgetDockableMixin, QtWidgets.QDialog, pyqt.SettingsMi
         self.expander.setSizePolicy(
             QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Expanding
         )
-        self.sections = [
-            self.create_section,
-            self.solver_section,
-            self.springs_section,
-            self.params_section,
-            self.presets_section,
-        ]
+        self.sections = (
+            [self.create_section, self.solver_section, self.springs_section]
+            + [section for _, section, _ in self.backend_sections]
+            + [self.params_section, self.presets_section]
+        )
+
+    def _make_panel(self, panel_class):
+        """Create a solver or section panel, giving it the springs getters.
+
+        Args:
+            panel_class (type): Panel class, see :mod:`ui_panels`.
+
+        Returns:
+            QtWidgets.QWidget: The panel.
+        """
+        panel = panel_class()
+        panel.springs_fn = self.selected_springs
+        panel.all_springs_fn = self.all_springs
+        return panel
 
     def create_layout(self):
         """Lay the widgets out."""
@@ -691,6 +721,8 @@ class SpringManager(MayaQWidgetDockableMixin, QtWidgets.QDialog, pyqt.SettingsMi
         self.springs_section.addWidget(self.spring_tree)
         self.springs_section.addWidget(self.spring_grip)
         main_layout.addWidget(self.springs_section)
+        for _, section, _ in self.backend_sections:
+            main_layout.addWidget(section)
 
         params_buttons = QtWidgets.QHBoxLayout()
         params_buttons.addWidget(self.reset_btn)
@@ -766,7 +798,7 @@ class SpringManager(MayaQWidgetDockableMixin, QtWidgets.QDialog, pyqt.SettingsMi
     def _update_expander(self, *args):
         """Fill the free space when no stretching section is expanded."""
         stretching = any(
-            section.is_expanded() and section.is_expandable()
+            section.is_expanded() and section.is_expandable() and not section.isHidden()
             for section in self.sections
         )
         self.expander.setVisible(not stretching)
@@ -853,6 +885,10 @@ class SpringManager(MayaQWidgetDockableMixin, QtWidgets.QDialog, pyqt.SettingsMi
         if solver_panel:
             pyqt.show_stacked_page(self.solver_stack, solver_panel)
             solver_panel.refresh()
+        for backend_name, section, _ in self.backend_sections:
+            section.setVisible(backend_name == name)
+        self._refresh_section_panels()
+        self._update_expander()
         self.update_params_panel()
         self.refresh_presets()
 
@@ -923,6 +959,14 @@ class SpringManager(MayaQWidgetDockableMixin, QtWidgets.QDialog, pyqt.SettingsMi
         self._node_map = registry.node_map(springs)
         self.missing_label.setVisible(missing)
         self.filter_springs()
+        self._refresh_section_panels()
+
+    def _refresh_section_panels(self):
+        """Refresh the extra section panels of the current solver."""
+        name = self.solver_combo.currentData()
+        for backend_name, _, panel in self.backend_sections:
+            if backend_name == name:
+                panel.refresh()
 
     def filter_springs(self, *args):
         """Hide the springs not matching the filter text."""
@@ -1564,6 +1608,7 @@ class SpringManager(MayaQWidgetDockableMixin, QtWidgets.QDialog, pyqt.SettingsMi
                             preset,
                             namespace,
                             apply_solver=self.apply_solver_action.isChecked(),
+                            apply_colliders=self.apply_colliders_action.isChecked(),
                         )[1]
                     )
         if missing:
