@@ -1,5 +1,6 @@
 """Spring Manager window."""
 
+import html
 import os
 import re
 import webbrowser
@@ -26,6 +27,7 @@ from . import bake
 from . import constants
 from . import presets
 from . import registry
+from . import ui_panels
 from .backends import editable_springs
 from .backends import get_backend
 from .backends import get_backends
@@ -36,11 +38,15 @@ DOCS_URL = (
     "animbitsUserDocumentation.html#spring-manager"
 )
 NEW_VALUES_KEY = constants.SETTINGS_PREFIX + "new_values"
-SOLVER_KEY = constants.SETTINGS_PREFIX + "solver"
 LIBRARY_KEY = constants.SETTINGS_PREFIX + "library"
 GRID_VIEW_KEY = constants.SETTINGS_PREFIX + "preset_grid"
 SPRINGS_HEIGHT_KEY = constants.SETTINGS_PREFIX + "springs_height"
 SPRINGS_HEIGHT = 150
+BAKE_LAYER = "springBake"
+MISSING_STATE = "plug-in missing"
+# bake dialog destination combo index
+DESTINATION_LAYER = 1
+APPLY_SOLVER_KEY = constants.SETTINGS_PREFIX + "apply_solver"
 PRESET_PATH_ROLE = QtCore.Qt.UserRole + 1
 
 COLUMN_NAME = 0
@@ -96,6 +102,23 @@ def type_badge(preset_type):
             )
         )
     return _BADGES[preset_type]
+
+
+def param_tooltip(spec):
+    """Return the rich text tooltip of a parameter.
+
+    Rich text, so Qt wraps the long lines.
+
+    Args:
+        spec (constants.ParamSpec): The parameter.
+
+    Returns:
+        str: The label in bold, then one paragraph per tooltip line.
+    """
+    paragraphs = "".join(
+        "<p>{}</p>".format(html.escape(line)) for line in spec.tooltip.split("\n")
+    )
+    return "<b>{}</b>{}".format(html.escape(spec.label), paragraphs)
 
 
 class Library(object):
@@ -246,6 +269,13 @@ class BakeDialog(QtWidgets.QDialog):
             "Frames simulated before the start frame so the springs are "
             "settled when baking starts. No keys are added before the start."
         )
+        self.destination_combo = QtWidgets.QComboBox()
+        self.destination_combo.addItems(("Base layer", "New animation layer"))
+        self.destination_combo.setToolTip(
+            "A new animation layer keeps the original animation untouched"
+        )
+        self.layer_le = QtWidgets.QLineEdit(BAKE_LAYER)
+        self.layer_le.setEnabled(False)
         self.delete_cb = QtWidgets.QCheckBox("Delete springs after bake")
         self.delete_cb.setChecked(True)
         self.delete_cb.setToolTip(
@@ -259,6 +289,8 @@ class BakeDialog(QtWidgets.QDialog):
         range_layout.addWidget(self.end_spin)
         form = QtWidgets.QFormLayout()
         form.addRow("Pre-roll frames", self.preroll_spin)
+        form.addRow("Bake to", self.destination_combo)
+        form.addRow("Layer name", self.layer_le)
 
         buttons = QtWidgets.QDialogButtonBox(
             QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel
@@ -276,12 +308,16 @@ class BakeDialog(QtWidgets.QDialog):
 
         self.custom_rb.toggled.connect(self.start_spin.setEnabled)
         self.custom_rb.toggled.connect(self.end_spin.setEnabled)
+        self.destination_combo.currentIndexChanged.connect(
+            lambda index: self.layer_le.setEnabled(index == DESTINATION_LAYER)
+        )
 
     def options(self):
         """Return the bake options.
 
         Returns:
-            dict: ``start``, ``end``, ``preroll`` and ``delete_springs``.
+            dict: ``start``, ``end``, ``preroll``, ``delete_springs`` and
+            ``destination_layer``.
         """
         start = end = None
         if self.custom_rb.isChecked():
@@ -292,6 +328,11 @@ class BakeDialog(QtWidgets.QDialog):
             "end": end,
             "preroll": self.preroll_spin.value(),
             "delete_springs": self.delete_cb.isChecked(),
+            "destination_layer": (
+                self.layer_le.text().strip() or BAKE_LAYER
+                if self.destination_combo.currentIndex() == DESTINATION_LAYER
+                else None
+            ),
         }
 
 
@@ -310,6 +351,9 @@ PARAM_WIDGETS = {
     constants.PARAM_FLOAT: _float_widget,
     constants.PARAM_INT: partial(_float_widget, decimals=0),
     constants.PARAM_BOOL: lambda spec: widgets.TriStateCheckBox(),
+    constants.PARAM_VECTOR: lambda spec: widgets.VectorSpinBox(
+        minimum=spec.minimum, maximum=spec.maximum, default=spec.default
+    ),
 }
 
 
@@ -334,7 +378,7 @@ class SpringManager(MayaQWidgetDockableMixin, QtWidgets.QDialog, pyqt.SettingsMi
         # selection pushed to Maya by the list, its callback is skipped
         self._pushed_selection = None
         self._items = {}
-        self._control_map = {}
+        self._node_map = {}
         self._panel_backend = None
         self._drag_start = {}
         self._new_values = {}
@@ -354,13 +398,16 @@ class SpringManager(MayaQWidgetDockableMixin, QtWidgets.QDialog, pyqt.SettingsMi
         self.remove_library_action = None
         self.reveal_library_action = None
         self.docs_action = None
+        self.apply_solver_action = None
         # widgets
         self.menu_bar = None
         self.solver_combo = None
         self.create_section = None
-        self.direction_buttons = {}
-        self.direction_widget = None
-        self.create_btn = None
+        self.create_stack = None
+        self.create_panels = {}
+        self.solver_section = None
+        self.solver_stack = None
+        self.solver_panels = {}
         self.springs_section = None
         self.spring_search_le = None
         self.spring_tree = None
@@ -387,6 +434,7 @@ class SpringManager(MayaQWidgetDockableMixin, QtWidgets.QDialog, pyqt.SettingsMi
         self.apply_values_btn = None
         self.save_btn = None
         self.expander = None
+        self.missing_label = None
         self.sections = []
 
         self.setObjectName(self.toolName)
@@ -403,9 +451,9 @@ class SpringManager(MayaQWidgetDockableMixin, QtWidgets.QDialog, pyqt.SettingsMi
         self.create_layout()
 
         self.user_settings = {
-            SOLVER_KEY: (self.solver_combo, 0),
             GRID_VIEW_KEY: (self.grid_view_btn, False),
             SPRINGS_HEIGHT_KEY: (self.spring_grip, pyqt.dpi_scale(SPRINGS_HEIGHT)),
+            APPLY_SOLVER_KEY: (self.apply_solver_action, True),
         }
         self.load_settings()
         self._new_values = self.load_json_setting(NEW_VALUES_KEY, {})
@@ -435,6 +483,13 @@ class SpringManager(MayaQWidgetDockableMixin, QtWidgets.QDialog, pyqt.SettingsMi
         self.remove_library_action = QtWidgets.QAction("Remove Library Folder", self)
         self.reveal_library_action = QtWidgets.QAction("Reveal Library Folder", self)
         self.docs_action = QtWidgets.QAction("Documentation", self)
+        self.apply_solver_action = QtWidgets.QAction("Apply Solver Settings", self)
+        self.apply_solver_action.setCheckable(True)
+        self.apply_solver_action.setChecked(True)
+        self.apply_solver_action.setToolTip(
+            "Rig presets also set the scene solver settings (gravity, "
+            "start frame...)"
+        )
 
     def create_widgets(self):
         """Create the widgets."""
@@ -450,6 +505,7 @@ class SpringManager(MayaQWidgetDockableMixin, QtWidgets.QDialog, pyqt.SettingsMi
         springs_menu.addAction(self.refresh_action)
         presets_menu = self.menu_bar.addMenu("Presets")
         presets_menu.addAction(self.save_preset_action)
+        presets_menu.addAction(self.apply_solver_action)
         presets_menu.addSeparator()
         presets_menu.addAction(self.add_library_action)
         presets_menu.addAction(self.remove_library_action)
@@ -471,18 +527,33 @@ class SpringManager(MayaQWidgetDockableMixin, QtWidgets.QDialog, pyqt.SettingsMi
         self.create_section = widgets.CollapsibleWidget(
             "Create", expanded=True, expandable=False
         )
-        for direction in constants.DIRECTIONS + (constants.AUTO_DIRECTION,):
-            auto = direction == constants.AUTO_DIRECTION
-            button = QtWidgets.QPushButton("Auto" if auto else direction.upper())
-            button.setToolTip(
-                "Create springs on the selected controls, aiming along "
-                "{}".format(
-                    "the chain (child or parent direction)" if auto else direction
-                )
+        # one create panel per solver, see ui_panels
+        self.create_stack = QtWidgets.QStackedWidget()
+        self.solver_section = widgets.CollapsibleWidget(
+            "Solver", expanded=True, expandable=False
+        )
+        self.solver_stack = QtWidgets.QStackedWidget()
+        for backend in get_backends():
+            create_class = ui_panels.CREATE_PANELS.get(
+                backend.name, ui_panels.DefaultCreatePanel
             )
-            self.direction_buttons[direction] = button
-        self.direction_widget = QtWidgets.QWidget()
-        self.create_btn = QtWidgets.QPushButton("Create from Selection")
+            panel = create_class()
+            self.create_panels[backend.name] = panel
+            self.create_stack.addWidget(panel)
+            solver_class = ui_panels.SOLVER_PANELS.get(backend.name)
+            if solver_class:
+                panel = solver_class()
+                panel.springs_fn = self.selected_springs
+                panel.all_springs_fn = self.all_springs
+                self.solver_panels[backend.name] = panel
+                self.solver_stack.addWidget(panel)
+        self.missing_label = QtWidgets.QLabel(
+            "Some springs need a solver plug-in that is not loaded: they "
+            "can't be edited or baked. See Help > Documentation."
+        )
+        self.missing_label.setWordWrap(True)
+        self.missing_label.setStyleSheet(ui_panels.WARNING_STYLE)
+        self.missing_label.setVisible(False)
 
         # springs: fixed height list, resized with the grip under it
         self.springs_section = widgets.CollapsibleWidget(
@@ -581,6 +652,7 @@ class SpringManager(MayaQWidgetDockableMixin, QtWidgets.QDialog, pyqt.SettingsMi
         )
         self.sections = [
             self.create_section,
+            self.solver_section,
             self.springs_section,
             self.params_section,
             self.presets_section,
@@ -608,15 +680,11 @@ class SpringManager(MayaQWidgetDockableMixin, QtWidgets.QDialog, pyqt.SettingsMi
         solver_layout.addWidget(QtWidgets.QLabel("Solver"))
         solver_layout.addWidget(self.solver_combo, 1)
         main_layout.addLayout(solver_layout)
+        main_layout.addWidget(self.missing_label)
 
-        grid = QtWidgets.QGridLayout(self.direction_widget)
-        grid.setContentsMargins(0, 0, 0, 0)
-        grid.setSpacing(2)
-        for index, direction in enumerate(constants.DIRECTIONS):
-            grid.addWidget(self.direction_buttons[direction], index // 3, index % 3)
-        grid.addWidget(self.direction_buttons[constants.AUTO_DIRECTION], 2, 0, 1, 3)
-        self.create_section.addWidget(self.direction_widget)
-        self.create_section.addWidget(self.create_btn)
+        self.create_section.addWidget(self.create_stack)
+        self.solver_section.addWidget(self.solver_stack)
+        main_layout.addWidget(self.solver_section)
         main_layout.addWidget(self.create_section)
 
         self.springs_section.addWidget(self.spring_search_le)
@@ -674,9 +742,8 @@ class SpringManager(MayaQWidgetDockableMixin, QtWidgets.QDialog, pyqt.SettingsMi
         for section in self.sections:
             section.expandedChanged.connect(self._update_expander)
         self.solver_combo.currentIndexChanged.connect(self.on_solver_changed)
-        for direction, button in self.direction_buttons.items():
-            button.clicked.connect(partial(self.create_springs, direction))
-        self.create_btn.clicked.connect(partial(self.create_springs, None))
+        for panel in self.create_panels.values():
+            panel.createRequested.connect(self.create_springs)
         self.spring_search_le.textChanged.connect(self.filter_springs)
         self.spring_tree.itemSelectionChanged.connect(self.on_tree_selection_changed)
         self.spring_tree.customContextMenuRequested.connect(self._tree_menu)
@@ -760,6 +827,9 @@ class SpringManager(MayaQWidgetDockableMixin, QtWidgets.QDialog, pyqt.SettingsMi
         """Rebuild the springs list and sync it with the Maya selection."""
         self.refresh_springs()
         self.on_maya_selection_changed()
+        panel = self.solver_panels.get(self.solver_combo.currentData())
+        if panel:
+            panel.refresh()
 
     # -----------------------------------------------------------------
     # Solver and create
@@ -775,17 +845,23 @@ class SpringManager(MayaQWidgetDockableMixin, QtWidgets.QDialog, pyqt.SettingsMi
     def on_solver_changed(self, *args):
         """Show the create options of the solver and refresh the panel."""
         backend = self.current_backend()
-        directions = bool(backend and backend.supports_direction)
-        self.direction_widget.setVisible(directions)
-        self.create_btn.setVisible(not directions)
+        name = backend.name if backend else None
+        if name in self.create_panels:
+            pyqt.show_stacked_page(self.create_stack, self.create_panels[name])
+        solver_panel = self.solver_panels.get(name)
+        self.solver_section.setVisible(bool(solver_panel))
+        if solver_panel:
+            pyqt.show_stacked_page(self.solver_stack, solver_panel)
+            solver_panel.refresh()
         self.update_params_panel()
+        self.refresh_presets()
 
-    def create_springs(self, direction=None):
+    def create_springs(self, options=None):
         """Create springs on the selected controls.
 
         Args:
-            direction (str, optional): Spring direction or ``"auto"``, for
-                backends that support directions.
+            options (dict, optional): Create options from the solver's
+                create panel.
         """
         controls = cmds.ls(selection=True, long=True, type="transform")
         if not controls:
@@ -795,8 +871,9 @@ class SpringManager(MayaQWidgetDockableMixin, QtWidgets.QDialog, pyqt.SettingsMi
         if not backend or not backend.is_available():
             cmds.warning("The selected solver is not available")
             return
-        options = {"direction": direction} if direction else {}
-        springs = backend.create(controls, self._backend_new_values(backend), options)
+        springs = backend.create(
+            controls, self._backend_new_values(backend), dict(options or {})
+        )
         if springs:
             cmds.select(controls, replace=True)
         self.scene_changed()
@@ -813,27 +890,38 @@ class SpringManager(MayaQWidgetDockableMixin, QtWidgets.QDialog, pyqt.SettingsMi
         """
         springs = registry.list_springs(previous=list(self._items))
         self._items = {}
+        # plug-in queries once per backend, not per row
+        available = {}
+        missing = False
         with pyqt.block_signals(self.spring_tree):
             self.spring_tree.clear()
             for spring in springs:
                 backend = get_backend(spring.backend)
+                if spring.backend not in available:
+                    available[spring.backend] = bool(backend) and (
+                        backend.is_available(),
+                        backend.editable,
+                    )
+                state = available[spring.backend]
+                missing = missing or not (state and state[0])
                 item = QtWidgets.QTreeWidgetItem(
                     [
                         spring.label,
                         backend.label if backend else spring.backend,
-                        spring.state,
+                        spring.state if state and state[0] else MISSING_STATE,
                     ]
                 )
                 item.setData(COLUMN_NAME, QtCore.Qt.UserRole, spring)
                 item.setToolTip(COLUMN_NAME, spring.node)
-                if backend and backend.read_only_message:
+                if state and not state[1]:
                     item.setToolTip(COLUMN_SOLVER, backend.read_only_message)
                     item.setForeground(
-                        COLUMN_SOLVER, QtGui.QBrush(QtGui.QColor(230, 160, 60))
+                        COLUMN_SOLVER, QtGui.QBrush(ui_panels.WARNING_COLOR)
                     )
                 self.spring_tree.addTopLevelItem(item)
                 self._items[spring] = item
-        self._control_map = registry.control_map(springs)
+        self._node_map = registry.node_map(springs)
+        self.missing_label.setVisible(missing)
         self.filter_springs()
 
     def filter_springs(self, *args):
@@ -846,6 +934,14 @@ class SpringManager(MayaQWidgetDockableMixin, QtWidgets.QDialog, pyqt.SettingsMi
                 for column in (COLUMN_NAME, COLUMN_SOLVER, COLUMN_STATE)
             )
             item.setHidden(not visible)
+
+    def all_springs(self):
+        """Return the springs listed, as of the last refresh.
+
+        Returns:
+            list: :class:`registry.Spring` records.
+        """
+        return list(self._items)
 
     def selected_springs(self):
         """Return the springs selected in the list.
@@ -862,7 +958,7 @@ class SpringManager(MayaQWidgetDockableMixin, QtWidgets.QDialog, pyqt.SettingsMi
         """Select the rows of the springs owning the Maya selection."""
         if self.closed:
             return
-        springs = registry.selected_springs(self._control_map)
+        springs = registry.selected_springs(self._node_map)
         if any(spring not in self._items for spring in springs):
             self.refresh_springs()
         with pyqt.block_signals(self.spring_tree):
@@ -909,6 +1005,13 @@ class SpringManager(MayaQWidgetDockableMixin, QtWidgets.QDialog, pyqt.SettingsMi
         select_rig.triggered.connect(self.select_rig_nodes)
         enable.triggered.connect(partial(self.set_enabled, True))
         disable.triggered.connect(partial(self.set_enabled, False))
+        groups = OrderedDict()
+        for spring, backend in editable_springs(springs):
+            groups.setdefault(backend.name, []).append(spring)
+        for name, group in groups.items():
+            builder = ui_panels.SPRING_MENUS.get(name)
+            if builder:
+                builder(menu, group, self.update_params_panel)
         menu.exec_(self.spring_tree.viewport().mapToGlobal(position))
         menu.deleteLater()
 
@@ -942,23 +1045,20 @@ class SpringManager(MayaQWidgetDockableMixin, QtWidgets.QDialog, pyqt.SettingsMi
     # -----------------------------------------------------------------
     # Parameters panel
     # -----------------------------------------------------------------
-    def _target_springs(self, selected=None):
+    def _target_springs(self, editable=None):
         """Return the springs edited by the parameter panel.
 
         Args:
-            selected (list, optional): Selected springs, read from the list
-                when None.
+            editable (list, optional): ``(spring, backend)`` pairs of the
+                selected editable springs, read from the list when None.
 
         Returns:
             list: Selected editable springs of the panel backend.
         """
-        backend = self._panel_backend
-        if selected is None:
-            selected = self.selected_springs()
+        if editable is None:
+            editable = editable_springs(self.selected_springs())
         return [
-            spring
-            for spring, spring_backend in editable_springs(selected)
-            if spring_backend is backend
+            spring for spring, backend in editable if backend is self._panel_backend
         ]
 
     def update_params_panel(self):
@@ -970,7 +1070,8 @@ class SpringManager(MayaQWidgetDockableMixin, QtWidgets.QDialog, pyqt.SettingsMi
         backend = editable[0][1] if editable else self.current_backend()
         if backend is not self._panel_backend:
             self._build_param_rows(backend)
-        springs = self._target_springs(selected)
+        springs = self._target_springs(editable)
+        values = [backend.get_params(spring) for spring in springs]
 
         read_only = bool(selected) and not springs
         if read_only:
@@ -980,7 +1081,9 @@ class SpringManager(MayaQWidgetDockableMixin, QtWidgets.QDialog, pyqt.SettingsMi
                 or "The selected springs can't be edited."
             )
         elif springs:
-            self.params_status.setText("Editing {} spring(s)".format(len(springs)))
+            status = ["Editing {} spring(s).".format(len(springs))]
+            status.extend(backend.param_warnings(springs, values))
+            self.params_status.setText(" ".join(status))
         else:
             self.params_status.setText(
                 "Values for new springs (select springs to edit them)"
@@ -990,15 +1093,23 @@ class SpringManager(MayaQWidgetDockableMixin, QtWidgets.QDialog, pyqt.SettingsMi
         self.key_btn.setEnabled(bool(springs))
 
         if springs:
-            values = [backend.get_params(spring) for spring in springs]
             for attr, widget in self.param_widgets.items():
                 current = [v[attr] for v in values if attr in v]
                 if not current:
                     continue
-                if values_differ(current):
-                    widget.setMixed(True)
+                widget.setValue(current[0])
+                if not values_differ(current):
+                    continue
+                if isinstance(current[0], tuple):
+                    # vectors: mixed per component
+                    widget.setMixed(
+                        [
+                            values_differ([value[i] for value in current])
+                            for i in range(len(current[0]))
+                        ]
+                    )
                 else:
-                    widget.setValue(current[0])
+                    widget.setMixed(True)
         elif backend:
             new_values = self._backend_new_values(backend)
             for attr, widget in self.param_widgets.items():
@@ -1038,6 +1149,10 @@ class SpringManager(MayaQWidgetDockableMixin, QtWidgets.QDialog, pyqt.SettingsMi
             widget.valueCommitted.connect(partial(self._on_param_committed, spec.attr))
             label = QtWidgets.QLabel(spec.label)
             label.setMinimumWidth(label_width)
+            if spec.tooltip:
+                tooltip = param_tooltip(spec)
+                label.setToolTip(tooltip)
+                widget.setToolTip(tooltip)
             forms[spec.group].addRow(label, widget)
             self.param_widgets[spec.attr] = widget
 
@@ -1275,10 +1390,11 @@ class SpringManager(MayaQWidgetDockableMixin, QtWidgets.QDialog, pyqt.SettingsMi
     def refresh_presets(self, *args):
         """List the presets of the current library."""
         library = self.current_library()
+        solver_name = self.solver_combo.currentData()
         items = []
         for name, path in presets.list_presets(library.folder):
             preset = self._load_preset(path)
-            if preset is None:
+            if preset is None or solver_name not in presets.preset_backends(preset):
                 continue
             preset_type = presets.preset_type(preset)
             item = QtGui.QStandardItem(self._preset_icon(path, preset_type), name)
@@ -1443,7 +1559,13 @@ class SpringManager(MayaQWidgetDockableMixin, QtWidgets.QDialog, pyqt.SettingsMi
                 if presets.preset_type(preset) == constants.PRESET_VALUES:
                     self._apply_values_preset(preset)
                 else:
-                    missing.extend(presets.apply_by_name(preset, namespace)[1])
+                    missing.extend(
+                        presets.apply_by_name(
+                            preset,
+                            namespace,
+                            apply_solver=self.apply_solver_action.isChecked(),
+                        )[1]
+                    )
         if missing:
             cmds.warning(
                 "{} preset control(s) not found, see the script editor".format(
@@ -1459,7 +1581,7 @@ class SpringManager(MayaQWidgetDockableMixin, QtWidgets.QDialog, pyqt.SettingsMi
             preset (dict): The preset.
         """
         selection = cmds.ls(selection=True, long=True, type="transform") or []
-        owners = registry.map_nodes_to_springs(selection, self._control_map)
+        owners = registry.map_nodes_to_springs(selection, self._node_map)
         springs = list(OrderedDict.fromkeys(s for s in owners.values() if s))
         presets.apply_values(preset, springs)
         free = [node for node, spring in owners.items() if not spring]

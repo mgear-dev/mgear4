@@ -1903,13 +1903,20 @@ def get_message_inputs(node, attr):
     if not cmds.attributeQuery(attr, node=node, exists=True):
         return []
     plug = "{}.{}".format(node, attr)
+    # shapes=True: return connected shapes, not their transforms
     if not cmds.attributeQuery(attr, node=node, multi=True):
-        return cmds.listConnections(plug, source=True, destination=False) or []
+        return (
+            cmds.listConnections(plug, source=True, destination=False, shapes=True)
+            or []
+        )
     nodes = []
     for index in cmds.getAttr(plug, multiIndices=True) or []:
         nodes.extend(
             cmds.listConnections(
-                "{}[{}]".format(plug, index), source=True, destination=False
+                "{}[{}]".format(plug, index),
+                source=True,
+                destination=False,
+                shapes=True,
             )
             or []
         )
@@ -2003,3 +2010,38 @@ def delete_attrs(node, attrs):
     for attr in attrs:
         if cmds.attributeQuery(attr, node=node, exists=True):
             cmds.deleteAttr(node, attribute=attr)
+
+
+def has_input(plug):
+    """Return True if a plug has an incoming connection.
+
+    Args:
+        plug (str): Plug name, e.g. ``"ctl.translateX"``.
+
+    Returns:
+        bool: True when connected as destination.
+    """
+    return bool(cmds.listConnections(plug, source=True, destination=False))
+
+
+def disconnect_plug_inputs(plug, keep=None):
+    """Disconnect the incoming connections of a plug (cmds version).
+
+    Args:
+        plug (str): Destination plug name.
+        keep (callable, optional): ``keep(source_plug)`` returns True for
+            connections to leave connected.
+
+    Returns:
+        list: The disconnected source plugs.
+    """
+    sources = (
+        cmds.listConnections(plug, source=True, destination=False, plugs=True) or []
+    )
+    removed = []
+    for source in sources:
+        if keep and keep(source):
+            continue
+        cmds.disconnectAttr(source, plug)
+        removed.append(source)
+    return removed

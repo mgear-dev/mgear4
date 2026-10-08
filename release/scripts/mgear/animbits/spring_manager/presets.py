@@ -29,6 +29,7 @@ from mgear.core import node_remap
 from mgear.core import utils
 
 from . import constants
+from .backends import classic
 from .backends import editable_springs
 from .backends import get_backend
 
@@ -135,6 +136,18 @@ def preset_type(preset):
     return constants.PRESET_VALUES
 
 
+def preset_backends(preset):
+    """Return the solver backends a preset holds values for.
+
+    Args:
+        preset (dict): The preset.
+
+    Returns:
+        set: Backend names.
+    """
+    return {entry.get("backend") for entry in preset.get("springs") or []}
+
+
 def describe(preset):
     """Return a short human readable summary of a preset.
 
@@ -145,10 +158,13 @@ def describe(preset):
         str: Multi-line summary: type, how it applies and its contents.
     """
     entries = preset.get("springs") or []
-    backends = sorted({entry.get("backend") or "?" for entry in entries})
+    backends = sorted(
+        get_backend(name).label if get_backend(name) else str(name)
+        for name in preset_backends(preset)
+    )
     lines = []
     if preset_type(preset) == constants.PRESET_VALUES:
-        lines.append("Values preset ({})".format(", ".join(backends)))
+        lines.append("{} values preset".format(" + ".join(backends)))
         lines.append(
             "Applies its parameter values to the selected springs, and "
             "creates springs on selected controls without one."
@@ -156,7 +172,7 @@ def describe(preset):
     else:
         controls = [c for entry in entries for c in entry.get("controls") or []]
         lines.append(
-            "Rig preset: {} spring(s) ({})".format(len(entries), ", ".join(backends))
+            "{} rig preset: {} spring(s)".format(" + ".join(backends), len(entries))
         )
         lines.append(
             "Creates or updates springs on its controls, in the namespace "
@@ -181,20 +197,20 @@ def convert_v1(data):
     Returns:
         dict: The v2 preset.
     """
-    param_names = [spec.attr for spec in constants.CLASSIC_PARAMS]
+    param_names = [spec.attr for spec in classic.CLASSIC_PARAMS]
     entries = []
     for key, config in sorted((data.get("configs") or {}).items()):
         direction = config.get("direction")
-        if direction not in constants.DIRECTIONS:
+        if direction not in classic.DIRECTIONS:
             mgear.log(
                 "Preset direction '{}' for {} is not valid, using "
                 "auto".format(direction, key),
                 mgear.sev_warning,
             )
-            direction = constants.AUTO_DIRECTION
+            direction = classic.AUTO_DIRECTION
         entries.append(
             {
-                "backend": constants.CLASSIC_BACKEND,
+                "backend": classic.CLASSIC_BACKEND,
                 "controls": [key],
                 "options": {"direction": direction},
                 "params": {
@@ -487,9 +503,14 @@ def collect(springs, description=""):
             "{} spring(s) can't be saved in a preset".format(len(springs) - len(pairs)),
             mgear.sev_warning,
         )
-    return build_preset(
+    preset = build_preset(
         [backend.to_preset(spring) for spring, backend in pairs], description
     )
+    for backend in {backend for _, backend in pairs}:
+        settings = backend.get_solver_settings()
+        if settings:
+            preset["solver"][backend.name] = settings
+    return preset
 
 
 def save(path, springs, description=""):
@@ -512,12 +533,14 @@ def save(path, springs, description=""):
     return preset
 
 
-def apply_by_name(preset, namespace=""):
+def apply_by_name(preset, namespace="", apply_solver=True):
     """Create or update springs from a preset, matching controls by name.
 
     Args:
         preset (dict): The preset.
         namespace (str, optional): Namespace to look the controls up in.
+        apply_solver (bool, optional): Also apply the ``solver`` block to
+            the scene solver settings.
 
     Returns:
         tuple: ``(springs, missing)``: the created or updated
@@ -544,6 +567,11 @@ def apply_by_name(preset, namespace=""):
             spring = backend.from_preset(entry, controls)
             if spring:
                 springs.append(spring)
+        if apply_solver:
+            for name, settings in (preset.get("solver") or {}).items():
+                backend = get_backend(name)
+                if backend and backend.is_available():
+                    backend.set_solver_settings(settings)
     for name in missing:
         mgear.log("Preset control not found: {}".format(name), mgear.sev_warning)
     return springs, missing

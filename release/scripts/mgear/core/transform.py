@@ -1223,3 +1223,34 @@ def copy_local_transform(source, target, attrs=LOCAL_TRANSFORM_ATTRS):
             cmds.setAttr(target_plug, *value[0])
         else:
             cmds.setAttr(target_plug, value)
+
+
+def get_aim_matrix(position, aim, up):
+    """Return a world matrix at a position, X axis aiming at a point.
+
+    Y follows the up vector hint. When the up vector is parallel to the
+    aim, another world axis is used, so the matrix is always valid.
+
+    Args:
+        position (sequence): Position (MVector or 3 floats).
+        aim (sequence): Aim position (MVector or 3 floats).
+        up (sequence): Up vector hint (MVector or 3 floats).
+
+    Returns:
+        om2.MMatrix: The matrix (X: aim, Y: up, Z: X ^ Y).
+    """
+    position = om2.MVector(*position)
+    x = (om2.MVector(*aim) - position).normal()
+    up = om2.MVector(*up).normal()
+    if abs(x * up) > 0.99:
+        up = om2.MVector(0, 0, 1) if abs(x.z) < 0.9 else om2.MVector(0, 1, 0)
+    z = (x ^ up).normal()
+    y = (z ^ x).normal()
+    return om2.MMatrix(
+        (
+            (x.x, x.y, x.z, 0.0),
+            (y.x, y.y, y.z, 0.0),
+            (z.x, z.y, z.z, 0.0),
+            (position.x, position.y, position.z, 1.0),
+        )
+    )

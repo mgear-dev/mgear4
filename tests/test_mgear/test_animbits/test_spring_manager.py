@@ -79,6 +79,14 @@ def _chain(name="arm", namespace=""):
 # ---------------------------------------------------------------------
 # Presets: pure helpers
 # ---------------------------------------------------------------------
+def test_param_tooltips(sm):
+    from mgear.animbits.spring_manager.backends import get_backends
+
+    for backend in get_backends():
+        for spec in backend.param_specs():
+            assert spec.tooltip, (backend.name, spec.attr)
+
+
 def test_namespace_helpers(sm):
     from mgear.core import node_remap
 
@@ -455,20 +463,21 @@ def test_ui_workflow(sm, clean_settings, tmp_path):
 
     controls = _chain()
     window = ui.SpringManager()
+    window.solver_combo.setCurrentIndex(window.solver_combo.findData("classic"))
     try:
         # create from selection
         cmds.select(clear=True)
-        window.create_springs("auto")
+        window.create_springs({"direction": "auto"})
         assert sm.registry.list_springs() == []
         cmds.select(controls[:2])
-        window.create_springs("auto")
+        window.create_springs({"direction": "auto"})
         assert window.spring_tree.topLevelItemCount() == 2
 
         # Maya selection -> rows and panel
         cmds.select(controls[0])
         window.on_maya_selection_changed()
         assert len(window.selected_springs()) == 1
-        assert window.params_status.text() == "Editing 1 spring(s)"
+        assert window.params_status.text() == "Editing 1 spring(s)."
 
         # mixed values
         springs = sm.registry.list_springs()
@@ -534,7 +543,7 @@ def test_preset_types_and_files(sm, tmp_path):
         "classic", {"springRotationalDamping": 0.3}, "Soft look"
     )
     assert presets.preset_type(values) == "values"
-    assert "Values preset" in presets.describe(values)
+    assert "Classic values preset" in presets.describe(values)
     assert presets.describe(values).startswith("Soft look")
 
     rig = presets.build_preset([{"backend": "classic", "controls": ["ns:a_ctl"]}])
@@ -589,9 +598,10 @@ def test_ui_layout_filter_and_bool(sm, clean_settings):
 
     controls = _chain()
     window = ui.SpringManager()
+    window.solver_combo.setCurrentIndex(window.solver_combo.findData("classic"))
     try:
         cmds.select(controls)
-        window.create_springs("auto")
+        window.create_springs({"direction": "auto"})
 
         # collapsing every section shows the trailing spacer
         assert window.expander.isHidden()
@@ -646,3 +656,57 @@ def test_param_value_helpers(sm):
     assert values_differ([0.5, 0.5]) is False
     assert values_differ([(0, 1, 0), (0, 1, 0.1)]) is True
     assert values_differ([True, False]) is True
+
+
+def test_bake_to_layer_keeps_animation(sm):
+    from maya import cmds
+
+    controls = _chain()
+    springs = sm.classic.create([controls[0]], options={"direction": "y"})
+    assert sm.bake.bake(springs, start=1, end=10, destination_layer="springBake")
+    assert sm.registry.list_springs() == []
+    assert cmds.animLayer("springBake", query=True, exists=True)
+    # original curve on the base layer, baked rotation in the layer
+    from mgear.core import anim_utils
+
+    base_plug = anim_utils.layer_base_plug(controls[0] + ".tx")
+    assert cmds.nodeType(cmds.listConnections(base_plug, source=True)[0]).startswith(
+        "animCurve"
+    )
+    layer_curves = cmds.animLayer("springBake", query=True, animCurves=True)
+    assert any("rotate" in curve for curve in layer_curves)
+
+
+def test_registry_kinds(sm):
+    from maya import cmds
+
+    controls = _chain()
+    spring = sm.classic.create([controls[0]])[0]
+    solver = sm.registry.create_network(
+        "solver_net", "classic", [], None, kind=sm.constants.KIND_SOLVER
+    )
+    assert sm.registry.list_springs() == [spring]
+    assert sm.registry.list_shared(sm.constants.KIND_SOLVER) == [solver]
+    assert sm.registry.list_shared(sm.constants.KIND_SOLVER, "other") == []
+    assert sm.registry.spring_from_node(solver) is None
+    sm.bake.delete([spring])
+    assert cmds.objExists(solver)
+
+
+def test_ui_create_panels(sm, clean_settings):
+    from mgear.animbits.spring_manager import ui
+    from mgear.animbits.spring_manager import ui_panels
+
+    window = ui.SpringManager()
+    window.solver_combo.setCurrentIndex(window.solver_combo.findData("classic"))
+    try:
+        panel = window.create_stack.currentWidget()
+        assert isinstance(panel, ui_panels.ClassicCreatePanel)
+        assert window.solver_section.isHidden()
+        options = []
+        panel.createRequested.connect(options.append)
+        panel.direction_buttons["-y"].click()
+        assert options == [{"direction": "-y"}]
+    finally:
+        window.shutdown()
+        window.deleteLater()

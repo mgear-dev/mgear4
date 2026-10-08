@@ -1,0 +1,22 @@
+{
+    "assignments": {},
+    "colliders": [],
+    "description": "Bone Dynamics: soft hair strands or ponytails, a little gravity and a looser tip.",
+    "namespaces": [],
+    "solver": {},
+    "springs": [
+        {
+            "backend": "bone_dynamics",
+            "controls": [],
+            "params": {
+                "springDamping": 0.3,
+                "springElasticity": 60.0,
+                "springElasticityTip": 0.6,
+                "springGravity": 0.3,
+                "springStiffness": 0.1
+            }
+        }
+    ],
+    "type": "values",
+    "version": 2
+}

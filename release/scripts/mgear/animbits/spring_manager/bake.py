@@ -12,11 +12,13 @@ from . import constants
 from .backends import get_backend
 
 
-def group_by_backend(springs):
+def group_by_backend(springs, available=False):
     """Group springs by backend. Springs of unknown backends are skipped.
 
     Args:
         springs (list): :class:`registry.Spring` records.
+        available (bool, optional): Also skip the springs whose backend
+            can't be used (e.g. solver plug-in not loaded).
 
     Returns:
         OrderedDict: ``{backend: [spring, ...]}``.
@@ -24,7 +26,14 @@ def group_by_backend(springs):
     groups = OrderedDict()
     for spring in springs:
         backend = get_backend(spring.backend)
-        if backend:
+        if backend and available and not backend.is_available():
+            mgear.log(
+                "{} skipped: the {} solver is not available".format(
+                    spring.label, backend.label
+                ),
+                mgear.sev_warning,
+            )
+        elif backend:
             groups.setdefault(backend, []).append(spring)
         else:
             mgear.log(
@@ -71,7 +80,14 @@ def delete(springs, transfer_animation=True):
                     backend.delete(spring, transfer_animation)
 
 
-def bake(springs, start=None, end=None, preroll=0, delete_springs=True):
+def bake(
+    springs,
+    start=None,
+    end=None,
+    preroll=0,
+    delete_springs=True,
+    destination_layer=None,
+):
     """Bake springs onto their controls.
 
     Args:
@@ -85,14 +101,19 @@ def bake(springs, start=None, end=None, preroll=0, delete_springs=True):
         delete_springs (bool, optional): Delete the setups after baking.
             Otherwise they are kept, detached from the controls, and
             marked as baked.
+        destination_layer (str, optional): Bake to this animation layer,
+            created when missing, keeping the original animation.
 
     Returns:
         bool: True if something was baked.
     """
     groups = group_by_backend(
-        spring
-        for spring in springs
-        if spring.exists() and spring.state != constants.STATE_BAKED
+        (
+            spring
+            for spring in springs
+            if spring.exists() and spring.state != constants.STATE_BAKED
+        ),
+        available=True,
     )
     plugs = collect_channels(groups)
     if not plugs:
@@ -105,12 +126,22 @@ def bake(springs, start=None, end=None, preroll=0, delete_springs=True):
         for backend, group in groups.items():
             backend.prepare_bake(group, start - max(0, preroll))
         try:
-            anim_utils.bake_attributes(plugs, start=start, end=end, preroll=preroll)
+            anim_utils.bake_attributes(
+                plugs,
+                start=start,
+                end=end,
+                preroll=preroll,
+                destination_layer=destination_layer,
+            )
         finally:
             for backend, group in groups.items():
                 backend.finish_bake(group)
         if delete_springs:
-            delete([spring for group in groups.values() for spring in group])
+            # baked on a layer: the original animation goes back to the base
+            delete(
+                [spring for group in groups.values() for spring in group],
+                transfer_animation=bool(destination_layer),
+            )
         else:
             for backend, group in groups.items():
                 for spring in group:

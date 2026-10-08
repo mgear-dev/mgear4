@@ -1,0 +1,23 @@
+{
+    "assignments": {},
+    "colliders": [],
+    "description": "Bone Dynamics: cloth strips, belts and skirts, heavy and damped, with an angle limit.",
+    "namespaces": [],
+    "solver": {},
+    "springs": [
+        {
+            "backend": "bone_dynamics",
+            "controls": [],
+            "params": {
+                "springAngleLimit": 90.0,
+                "springAngleLimitEnable": true,
+                "springDamping": 0.4,
+                "springElasticity": 20.0,
+                "springGravity": 0.6,
+                "springStiffness": 0.1
+            }
+        }
+    ],
+    "type": "values",
+    "version": 2
+}

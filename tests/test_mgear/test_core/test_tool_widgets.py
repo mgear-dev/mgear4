@@ -317,3 +317,37 @@ def test_height_grip_commit(qt_app):
     target = QtWidgets.QListWidget()
     grip = widgets.HeightGrip(target, minimum=50, maximum=300)
     assert grip.settings_signal() is grip.heightCommitted
+
+
+def test_vector_spin_box(qt_app):
+    from mgear.core import widgets
+
+    widget = widgets.VectorSpinBox(default=(0.0, 1.0, 0.0))
+    committed = []
+    widget.valueCommitted.connect(committed.append)
+    widget.spin_boxes[1].setValue(2.0)
+    assert committed == [(0.0, 2.0, 0.0)]
+
+    widget.setMixed([True, False, True])
+    assert widget.isMixed()
+    assert widget.value() == (None, 2.0, None)
+    widget.spin_boxes[0].setValue(5.0)
+    assert committed[-1] == (5.0, 2.0, None)
+    widget.setValue((1, 2, 3))
+    assert widget.value() == (1.0, 2.0, 3.0) and not widget.isMixed()
+
+
+def test_show_stacked_page(qt_app):
+    from mgear.core import pyqt
+    from mgear.vendor.Qt import QtWidgets
+
+    stack = QtWidgets.QStackedWidget()
+    small = QtWidgets.QLabel("small")
+    big = QtWidgets.QLabel("big")
+    big.setMinimumHeight(400)
+    stack.addWidget(small)
+    stack.addWidget(big)
+    pyqt.show_stacked_page(stack, small)
+    assert stack.currentWidget() is small
+    assert stack.sizeHint().height() < 400
+    assert big.sizePolicy().verticalPolicy() == QtWidgets.QSizePolicy.Ignored

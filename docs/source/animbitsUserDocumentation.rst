@@ -466,7 +466,12 @@ The control animation is moved to a spring root node while the spring is active,
 Solver
 ------
 
-The **Solver** menu lists the spring solvers. **Classic** is the mGear spring (``mgear_springNode``) included with mGear. Solvers that need a plug-in that is not installed are shown disabled.
+The **Solver** menu lists the spring solvers:
+
+* **Classic** - The mGear spring (``mgear_springNode``) included with mGear. One independent spring per control.
+* **Bone Dynamics** - Chain springs using the optional boneDynamicsNode plug-in: gravity, wind, angle limits, target pose and branching. See `Bone Dynamics (optional)`_.
+
+Solvers that need a plug-in that is not installed are shown disabled. The **Create** section shows the options of the selected solver, and a **Solver** section shows its scene-wide settings when it has some.
 
 Create
 ------
@@ -488,7 +493,7 @@ Springs made by the Spring Manager of mGear 5.3 and older are listed as **Legacy
 Parameters
 ----------
 
-Edits the selected springs live. When the selected springs have different values, the field shows **—**; editing it sets the value on all of them. A slider drag is one undo step. If a parameter is animated, editing it sets a key at the current frame. The parameters are also on the control, in the Channel Box, so they can be keyed.
+Edits the selected springs live. When the selected springs have different values, the field shows **—**; editing it sets the value on all of them. A slider drag is one undo step. If a parameter is animated, editing it sets a key at the current frame. The parameters are also on the control, in the Channel Box, so they can be keyed. Hover a parameter for what it does and typical values.
 
 * **Total Intensity** (0-1) - Overall spring effect. 0 follows the animation exactly.
 * **Rig Scale** (0-100) - Distance between the control and the spring goal. Increase it on big rigs.
@@ -520,6 +525,8 @@ Choose the library in the menu:
 * **Type** - **Values** saves the values of the first selected spring, or the values for new springs when no spring is selected. **Rig** saves the selected springs (only available when springs are selected).
 * **Thumbnail** - Captured from the active viewport when the dialog opens. **Viewport** captures it again, **Capture Region...** lets you drag a rectangle anywhere on the screen, and **Clear** saves the preset without image. The thumbnail is saved as a ``.png`` next to the ``.spg`` file.
 
+The list only shows the presets of the current **Solver** (Classic or Bone Dynamics); the tooltip names the solver and the preset type.
+
 Actions (buttons, double-click or right-click):
 
 * **Apply** - Values presets apply their values to the selected springs and create springs on the selected controls without one. Rig presets create or update the springs on their controls, in the namespace of the selected nodes (you are asked when the selection has several namespaces).
@@ -535,12 +542,90 @@ Bake
 
 * **Playback range** or **Custom range**
 * **Pre-roll frames** - Frames simulated before the start frame so the springs are settled when baking starts. No keys are added before the start frame.
+* **Bake to** - **Base layer**, or **New animation layer**: the baked keys go on an override animation layer and the original animation stays untouched on the base layer.
 * **Delete springs after bake** - When off, the springs are kept, disconnected from the controls, and shown as *baked*.
 
 **Notes:**
 
 * Springs are simulated frame by frame: play every frame (Playback Speed: Play every frame) when previewing.
 * The spring solver resets when the time jumps, so scrubbing or jumping frames gives a different result than the playback. Use pre-roll frames when the animation is already moving on the first frame.
+
+Bone Dynamics (optional)
+------------------------
+
+The **Bone Dynamics** solver simulates whole chains of controls with `boneDynamicsNode <https://github.com/akasaki1211/boneDynamicsNode>`_, a free Maya plug-in by Hiroyuki Akasaki (MIT License). It is not shipped with mGear: install it to unlock this solver. Only the compiled plug-in is needed; the Spring Manager does not use the plug-in's Python scripts.
+
+Installing boneDynamicsNode
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+1. Download the repository from https://github.com/akasaki1211/boneDynamicsNode (**Code > Download ZIP**) and extract it.
+2. Copy the plug-in for your Maya version, ``plug-ins/<MayaVersion>/boneDynamicsNode.mll`` (Maya 2022 to 2027 builds are included), to a plug-ins folder:
+
+   * ``Documents/maya/<MayaVersion>/plug-ins`` (create the ``plug-ins`` folder if needed), one copy per Maya version, or
+   * any folder in the ``MAYA_PLUG_IN_PATH`` environment variable (for studio deployments).
+
+3. Start Maya, open **Windows > Settings/Preferences > Plug-in Manager**, find ``boneDynamicsNode.mll`` and check **Loaded** and **Auto load**.
+4. Open the Spring Manager: **Bone Dynamics** is now enabled in the **Solver** menu.
+
+Notes:
+
+* The ``scripts`` folder of the repository (``bdn`` package and Attribute Editor template) is **not** needed by mGear. You can install it if you also want to use the plug-in's own tools.
+* Windows builds are provided by the author. Linux builds can be compiled from the source but are not tested by the author; there is no macOS build.
+* Scenes with Bone Dynamics springs need the plug-in to play. Bake the springs before sending a scene to someone without the plug-in: the Spring Manager lists springs whose plug-in is missing as *plug-in missing*, and they can only be deleted.
+
+Workflow
+~~~~~~~~
+
+1. Choose **Bone Dynamics** in the **Solver** menu.
+2. Select the **root control** of each chain (a tail root, a hair root, a skirt root...) and press **Create Chain from Selection**. The child controls are found automatically, through ``npo`` groups and other transforms.
+3. Play the animation (every frame) and tune the parameters.
+
+The controls are driven through hidden proxy joints: a *target* chain that follows the animation, and a *sim* chain driven by one boneDynamicsNode per bone. The rig itself is not modified, and deleting the spring gives the animation back to the controls.
+
+Create options:
+
+* **Target pose** - The pose the chain is pulled back to (with **Elasticity**):
+
+  * **Animation** - The animated controls (default).
+  * **Target Controls** - Keyable pose controls, shown next to the chain. Animate the pose the chain wants to reach, separately from the base animation.
+  * **Captured Pose** - The pose of the controls when the spring is created, or when **Capture Pose** is used.
+  * **Blend** - The **Pose Blend** parameter fades from the animation (0) to the captured or controlled pose (1).
+
+  Right-click springs for **Target Pose** to change the mode, **Capture Pose**, or **External Chain from Selection** (select the external nodes in order, then a control of the spring): another chain of the same length drives the target pose. With an elasticity of 0 the target pose has no effect.
+
+* **Branch root** - For a control with several child chains, like a skirt root: **Kinematic** keeps its animation (default), **Average** follows the average of its branches, **Follow primary branch** follows one branch.
+* **Split branches into separate springs** - Each branch becomes its own spring, with its own parameters.
+* **Tip length** - Length of the tip added after the last control, relative to the last bone, when the control has no child transform.
+* **Root motion** - The node whose motion is cancelled from the simulation, so fast character moves don't drag the chains. **Auto** uses the Shifter ``world_ctl`` (or ``global_C0_ctl``) of the rig.
+* **Visualizer** - Draw the bones, angle limits and collision volumes in the viewport, as red wireframe capsules along the chain. The visualizer nodes are parented under the spring group.
+
+Parameters (on the root control, keyable):
+
+* **Total Intensity** - 0 follows the animation exactly, 1 is the full simulation.
+* **Damping**, **Elasticity**, **Stiffness**, **Mass** - The dynamics. Long chains usually need more damping and elasticity.
+* **Tip Multiplier** - Multiplies Damping, Elasticity, Stiffness and Mass along the chain: 1 at the root, the multiplier at the tip. For example, an elasticity tip multiplier of 0.5 makes the tip looser.
+* **Gravity**, **Wind Scale**, **Turbulence** - Forces. Gravity scales the solver gravity vector. Turbulence adds a random, slowly changing force; **Turb. Seed** picks another random take, and **Turb. Seed per Bone** gives every bone its own seed so the bones and branches do not move in unison.
+* **Angle Limit** - Limits the bend from the target pose. It wins over collisions.
+* **Root Motion Cancel** - How much of the root motion is cancelled.
+* **Pose Blend** - Used by the Blend target mode.
+* **Elastic Function** - Advanced: 0 linear, 1 quadratic, 2 cubic.
+
+Solver section (shared by every Bone Dynamics spring of the scene):
+
+* **Enabled**, **Start frame** (the simulation resets at this frame), **Gravity** (follows the scene up axis and units), **Ground** collision and height, **Iterations** (collision accuracy).
+* **Wind** - **Create Wind** makes a wind controller: rotate it to set the direction and key its **strength** (default 100; strong elasticity needs more). **Connect** / **Disconnect** link it to the selected springs.
+* **Visualizer On / Off** - For the selected springs, or all of them.
+* A banner offers to fix the playback when it is not set to play every frame.
+
+Presets: rig presets save the chains, options and values, and the solver settings. **Presets > Apply Solver Settings** chooses whether applying a rig preset also changes the scene solver. The Factory library includes values presets for chains: **Chain Hair**, **Chain Tail**, **Chain Cloth Strip** and **Chain Antenna**.
+
+Caveats:
+
+* Play every frame: the simulation depends on the previous frames. Cached playback is turned off by the plug-in while it is enabled.
+* Bake before rendering or exporting.
+* The plug-in assumes centimeters and the Y-up gravity by default; the Spring Manager sets the gravity from the scene settings.
+* Twist is not simulated: it follows the target pose.
+* The plug-in uses unregistered node IDs (0x7b0xx). They could clash with in-house plug-ins using the same range.
 
 Bake/Clear Spring Nodes
 =======================

@@ -1,0 +1,22 @@
+{
+    "assignments": {},
+    "colliders": [],
+    "description": "Bone Dynamics: tails and long appendages, lively with a softer tip.",
+    "namespaces": [],
+    "solver": {},
+    "springs": [
+        {
+            "backend": "bone_dynamics",
+            "controls": [],
+            "params": {
+                "springDamping": 0.2,
+                "springElasticity": 80.0,
+                "springElasticityTip": 0.5,
+                "springGravity": 0.1,
+                "springStiffness": 0.05
+            }
+        }
+    ],
+    "type": "values",
+    "version": 2
+}

@@ -1030,3 +1030,18 @@ def set_hide_on_playback(nodes, enabled=True):
             ):
                 continue
         cmds.setAttr(node + ".hideOnPlayback", enabled)
+
+
+def create_dag_node(node_type, name, parent=None):
+    """Create a DAG node with maya.cmds and return its long name.
+
+    Args:
+        node_type (str): Node type, e.g. ``"transform"`` or ``"joint"``.
+        name (str): Node name.
+        parent (str, optional): Parent node.
+
+    Returns:
+        str: The long name of the created node.
+    """
+    kwargs = {"parent": parent} if parent else {}
+    return cmds.ls(cmds.createNode(node_type, name=name, **kwargs), long=True)[0]

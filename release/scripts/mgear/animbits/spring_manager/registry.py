@@ -144,20 +144,56 @@ class LegacySpring(Spring):
 # -----------------------------------------------------------------------------
 
 
-def _network_spring(network):
-    """Return the spring of a network node, or None if it is not tagged.
+def node_kind(network):
+    """Return the kind of a Spring Manager network node.
 
     Args:
         network (str): Network node name.
 
     Returns:
-        Spring: The spring, or None.
+        str: :data:`constants.KIND_SPRING` when the kind is not stored.
+    """
+    return attribute.get_string_attr(
+        network, constants.KIND_ATTR, constants.KIND_SPRING
+    )
+
+
+def _network_spring(network):
+    """Return the spring of a network node, or None if it is not a spring.
+
+    Args:
+        network (str): Network node name.
+
+    Returns:
+        Spring: The spring, or None for untagged and shared nodes.
     """
     if cmds.nodeType(network) != "network" or not cmds.attributeQuery(
         constants.TAG_ATTR, node=network, exists=True
     ):
         return None
+    if node_kind(network) != constants.KIND_SPRING:
+        return None
     return Spring(network, cmds.getAttr("{}.{}".format(network, constants.TAG_ATTR)))
+
+
+def list_shared(kind, backend=None):
+    """Return the shared Spring Manager nodes of a kind (solver, wind...).
+
+    Args:
+        kind (str): Node kind, e.g. :data:`constants.KIND_SOLVER`.
+        backend (str, optional): Only nodes of this backend.
+
+    Returns:
+        list: Network node names.
+    """
+    nodes = []
+    for node in attribute.ls_nodes_with_attr(constants.KIND_ATTR):
+        if node_kind(node) != kind:
+            continue
+        if backend and attribute.get_string_attr(node, constants.TAG_ATTR) != backend:
+            continue
+        nodes.append(node)
+    return nodes
 
 
 def list_springs(previous=None):
@@ -260,28 +296,12 @@ def springs_from_nodes(nodes, known=None):
     return springs
 
 
-def control_map(springs):
-    """Return a lookup of the springs by long control name.
-
-    Args:
-        springs (list): :class:`Spring` records.
-
-    Returns:
-        dict: ``{long control name: Spring}``.
-    """
-    lookup = {}
-    for spring in springs:
-        for control in cmds.ls(spring.controls, long=True) or []:
-            lookup[control] = spring
-    return lookup
-
-
 def selected_springs(known=None):
     """Return the springs owning the selected nodes.
 
     Args:
         known (dict, optional): ``{long control name: Spring}`` looked up
-            first, see :func:`control_map`.
+            first, see :func:`node_map`.
 
     Returns:
         list: :class:`Spring` records.
@@ -294,21 +314,27 @@ def selected_springs(known=None):
 # -----------------------------------------------------------------------------
 
 
-def create_network(name, backend, controls, settings_node, extra=None):
-    """Create and tag the network node owning a spring setup.
+def create_network(
+    name, backend, controls, settings_node, extra=None, kind=constants.KIND_SPRING
+):
+    """Create and tag the network node owning a spring setup or shared node.
 
     Args:
         name (str): Network node name.
         backend (str): Backend name stored in the tag.
-        controls (list): Driven controls.
-        settings_node (str): Node holding the animatable parameters.
+        controls (list): Driven controls. Empty for shared nodes.
+        settings_node (str): Node holding the animatable parameters, or
+            None for shared nodes.
         extra (dict, optional): Additional string attributes to store.
+        kind (str, optional): :data:`constants.KIND_SPRING` or a shared
+            kind (solver, wind, collider).
 
     Returns:
         str: The network node.
     """
     network = cmds.createNode("network", name=name)
     attribute.set_string_attr(network, constants.TAG_ATTR, backend)
+    attribute.set_string_attr(network, constants.KIND_ATTR, kind)
     cmds.addAttr(
         network,
         longName=constants.VERSION_ATTR,
@@ -324,11 +350,83 @@ def create_network(name, backend, controls, settings_node, extra=None):
         attribute.set_string_attr(network, attr, value)
 
     attribute.connect_messages(controls, network, constants.CONTROLS_ATTR)
-    cmds.connectAttr(
-        settings_node + ".message",
-        "{}.{}".format(network, constants.SETTINGS_ATTR),
-    )
+    if settings_node:
+        cmds.connectAttr(
+            settings_node + ".message",
+            "{}.{}".format(network, constants.SETTINGS_ATTR),
+        )
     return network
+
+
+def shared_nodes():
+    """Return the shared Spring Manager networks and their members.
+
+    Returns:
+        set: Node names of every non-spring network (solver, wind,
+        collider) and of the nodes they own.
+    """
+    nodes = set()
+    for network in attribute.ls_nodes_with_attr(constants.KIND_ATTR):
+        if node_kind(network) == constants.KIND_SPRING:
+            continue
+        nodes.add(network)
+        nodes.update(attribute.get_message_inputs(network, constants.MEMBERS_ATTR))
+    return nodes
+
+
+def delete_members(network, members=None):
+    """Delete the members of a spring, keeping the shared nodes it uses.
+
+    Maya deletes upstream nodes left without outputs, so the connections
+    from shared nodes (solver, wind, colliders) into the members are
+    removed first.
+
+    Args:
+        network (str): Spring network node.
+        members (list, optional): Members, read from the network when None.
+    """
+    members = (
+        cmds.ls(
+            members
+            if members is not None
+            else attribute.get_message_inputs(network, constants.MEMBERS_ATTR)
+        )
+        or []
+    )
+    if not members:
+        return
+    shared = shared_nodes()
+    for member in members:
+        connections = (
+            cmds.listConnections(
+                member,
+                source=True,
+                destination=False,
+                plugs=True,
+                connections=True,
+            )
+            or []
+        )
+        for destination, source in zip(connections[::2], connections[1::2]):
+            if source.split(".")[0] in shared:
+                cmds.disconnectAttr(source, destination)
+    cmds.delete(members)
+
+
+def node_map(springs):
+    """Return a lookup of springs by the long names of their nodes.
+
+    Args:
+        springs (list): :class:`Spring` records.
+
+    Returns:
+        dict: ``{long name: Spring}`` for controls and members.
+    """
+    lookup = {}
+    for spring in springs:
+        for node in cmds.ls(spring.members + spring.controls, long=True) or []:
+            lookup[node] = spring
+    return lookup
 
 
 def add_members(network, nodes):

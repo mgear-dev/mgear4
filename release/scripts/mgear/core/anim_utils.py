@@ -262,6 +262,34 @@ def is_animated(plug):
     return any(is_anim_source(node) for node in sources)
 
 
+def layer_base_plug(plug):
+    """Return the plug feeding the base animation of a layered attribute.
+
+    When animation layers drive the plug, the base input of the bottom
+    layer blend node is returned (``inputA``, or ``inputAX`` for rotation
+    blends). Otherwise the plug itself is returned.
+
+    Args:
+        plug (str): Attribute plug, e.g. ``"ctl.translateX"``.
+
+    Returns:
+        str: The plug to connect base animation to.
+    """
+    current = plug
+    while True:
+        inputs = (
+            cmds.listConnections(current, source=True, destination=False, plugs=True)
+            or []
+        )
+        if not inputs:
+            return current
+        node, attr = inputs[0].split(".", 1)
+        types = cmds.nodeType(node, inherited=True) or []
+        if "animBlendNodeBase" not in types or not attr.startswith("output"):
+            return current
+        current = "{}.inputA{}".format(node, attr[len("output") :])
+
+
 def move_animation_curves(source, target, attrs=None):
     """Move the animation driving attributes of one node to another node.
 
@@ -269,6 +297,8 @@ def move_animation_curves(source, target, attrs=None):
     attributes, or to their children (e.g. ``translateX`` for
     ``translate``), are disconnected and connected to the same attribute
     on the target. Other connections, like constraints, are left as is.
+    When the target attribute is driven by animation layers, the
+    animation goes to the base input of the layers.
 
     Args:
         source (str): Node with the animation.
@@ -300,7 +330,7 @@ def move_animation_curves(source, target, attrs=None):
             for input_plug in inputs:
                 if not is_anim_source(input_plug.split(".")[0]):
                     continue
-                target_plug = "{}.{}".format(target, name)
+                target_plug = layer_base_plug("{}.{}".format(target, name))
                 cmds.disconnectAttr(input_plug, source_plug)
                 cmds.connectAttr(input_plug, target_plug, force=True)
                 moved.append(target_plug)
@@ -332,7 +362,34 @@ def set_or_key(plug, value):
     return True
 
 
-def bake_attributes(nodes, attrs=None, start=None, end=None, sample=1, preroll=0):
+def get_play_every_frame():
+    """Return True when playback evaluates every frame.
+
+    Returns:
+        bool: True for "Play every frame".
+    """
+    return cmds.playbackOptions(query=True, playbackSpeed=True) == 0
+
+
+def set_play_every_frame(enabled=True):
+    """Set playback to evaluate every frame, or to real time.
+
+    Args:
+        enabled (bool, optional): True for "Play every frame", False for
+            real time.
+    """
+    cmds.playbackOptions(playbackSpeed=0 if enabled else 1)
+
+
+def bake_attributes(
+    nodes,
+    attrs=None,
+    start=None,
+    end=None,
+    sample=1,
+    preroll=0,
+    destination_layer=None,
+):
     """Bake attributes over a frame range as a simulation.
 
     Keys outside the range are kept. The viewport is suspended while
@@ -351,6 +408,9 @@ def bake_attributes(nodes, attrs=None, start=None, end=None, sample=1, preroll=0
         end (float, optional): Last frame. Defaults to the playback end.
         sample (float, optional): Bake every ``sample`` frames.
         preroll (int, optional): Frames evaluated before ``start``.
+        destination_layer (str, optional): Animation layer receiving the
+            keys, created as an override layer when missing. The existing
+            curves are kept on the base layer.
 
     Returns:
         bool: True if something was baked.
@@ -368,6 +428,11 @@ def bake_attributes(nodes, attrs=None, start=None, end=None, sample=1, preroll=0
         else nodes
     )
     kwargs = {"attribute": list(attrs)} if attrs else {}
+    if destination_layer:
+        if not cmds.animLayer(destination_layer, query=True, exists=True):
+            cmds.animLayer(destination_layer, override=True)
+        cmds.animLayer(destination_layer, edit=True, attribute=plugs)
+        kwargs["destinationLayer"] = destination_layer
     with utils.viewport_suspended():
         # simulations only compute when read: pull every frame in order
         for frame in range(int(start) - max(0, int(preroll)), int(start) + 1):

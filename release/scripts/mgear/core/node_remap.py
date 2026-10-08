@@ -389,3 +389,15 @@ def match_by_position(source_positions, target_positions, tolerance=0.01):
         if best is not None:
             result[source] = best
     return result
+
+
+def flat_name(path):
+    """Return a node name usable as a prefix: leaf name, colons replaced.
+
+    Args:
+        path (str): Node name or DAG path, e.g. ``"|grp|chr:arm_ctl"``.
+
+    Returns:
+        str: ``"chr_arm_ctl"``.
+    """
+    return leaf_name(path).replace(":", "_")

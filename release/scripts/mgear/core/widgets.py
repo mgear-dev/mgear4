@@ -2,6 +2,7 @@
 
 import json
 import os
+from functools import partial
 
 from mgear.vendor.Qt import QtCore, QtWidgets, QtGui
 from maya import cmds
@@ -591,6 +592,124 @@ class HeightGrip(QtWidgets.QFrame):
             QtCore.Signal: ``heightCommitted``.
         """
         return self.heightCommitted
+
+
+class VectorSpinBox(QtWidgets.QWidget):
+    """Row of labelled float spin boxes editing a vector value.
+
+    Same interface as :class:`FloatSliderSpinBox`: ``value``,
+    ``setValue``, ``isMixed``, ``setMixed``, ``valueChanged`` and
+    ``valueCommitted``. Mixed components show "—"; when one component is
+    edited, components still mixed are reported as None, so callers can
+    leave them unchanged.
+    """
+
+    valueChanged = QtCore.Signal(object)
+    valueCommitted = QtCore.Signal(object)
+
+    MIXED_TEXT = "—"
+
+    def __init__(
+        self,
+        labels="XYZ",
+        minimum=-1.0e6,
+        maximum=1.0e6,
+        default=(0.0, 0.0, 0.0),
+        decimals=3,
+        parent=None,
+    ):
+        """Initialize the widget.
+
+        Args:
+            labels (str or list, optional): One label per component.
+            minimum (float, optional): Minimum of every component.
+            maximum (float, optional): Maximum of every component.
+            default (tuple, optional): Initial value.
+            decimals (int, optional): Spin box decimals.
+            parent (QtWidgets.QWidget, optional): Parent widget.
+        """
+        super(VectorSpinBox, self).__init__(parent)
+        self._minimum = float(minimum)
+        self._step = 10.0**-decimals
+        self._mixed = [False] * len(labels)
+        self.spin_boxes = []
+        layout = QtWidgets.QHBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        for index, label in enumerate(labels):
+            spin = QtWidgets.QDoubleSpinBox()
+            spin.setDecimals(decimals)
+            spin.setRange(minimum, maximum)
+            spin.setKeyboardTracking(False)
+            spin.setPrefix("{} ".format(label))
+            spin.valueChanged.connect(partial(self._on_changed, index))
+            layout.addWidget(spin, 1)
+            self.spin_boxes.append(spin)
+        self.setValue(default)
+
+    def value(self):
+        """Return the value. Mixed components are None.
+
+        Returns:
+            tuple: The components.
+        """
+        return tuple(
+            None if mixed else spin.value()
+            for spin, mixed in zip(self.spin_boxes, self._mixed)
+        )
+
+    def setValue(self, value):
+        """Set the value without emitting signals. Clears the mixed state.
+
+        Args:
+            value (tuple): The components.
+        """
+        self.setMixed(False)
+        for spin, component in zip(self.spin_boxes, value):
+            with pyqt.block_signals(spin):
+                spin.setValue(component)
+
+    def isMixed(self):
+        """Return True when any component shows the mixed state.
+
+        Returns:
+            bool: The mixed state.
+        """
+        return any(self._mixed)
+
+    def setMixed(self, mixed):
+        """Show or clear the mixed state, without emitting signals.
+
+        Args:
+            mixed (bool or list): One flag for every component, or a list
+                with one flag per component.
+        """
+        if isinstance(mixed, bool):
+            mixed = [mixed] * len(self.spin_boxes)
+        for index, (spin, flag) in enumerate(zip(self.spin_boxes, mixed)):
+            if flag == self._mixed[index]:
+                continue
+            self._mixed[index] = flag
+            with pyqt.block_signals(spin):
+                if flag:
+                    spin.setSpecialValueText(spin.prefix() + self.MIXED_TEXT)
+                    spin.setMinimum(self._minimum - self._step)
+                    spin.setValue(spin.minimum())
+                else:
+                    spin.setSpecialValueText("")
+                    spin.setMinimum(self._minimum)
+
+    def _on_changed(self, index, value):
+        if self._mixed[index]:
+            if value < self._minimum:
+                return
+            self._mixed[index] = False
+            spin = self.spin_boxes[index]
+            with pyqt.block_signals(spin):
+                spin.setSpecialValueText("")
+                spin.setMinimum(self._minimum)
+                spin.setValue(value)
+        self.valueChanged.emit(self.value())
+        self.valueCommitted.emit(self.value())
 
 
 class TriStateCheckBox(QtWidgets.QCheckBox):

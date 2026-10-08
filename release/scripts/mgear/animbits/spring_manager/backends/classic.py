@@ -21,19 +21,133 @@ from mgear.core import applyop
 from mgear.core import attribute
 from mgear.core import icon
 from mgear.core import node as node_utils
+from mgear.core import node_remap
 from mgear.core import transform
 from mgear.core import utils
+from mgear.core.node import create_dag_node
 
 from . import SpringBackend
-from . import clamp
+from . import add_settings
+from . import constraint_skips
+from . import remove_settings
+from . import rest_values
+from . import restore_rest_values
 from .. import constants
 from .. import registry
 
+# Constants --------------------------------------------------------
+CLASSIC_BACKEND = "classic"
+DIRECTION_VIS_ATTR = "springDirectionVis"
+DIRECTION_ATTR = "direction"
+
+TOTAL_INTENSITY = "springTotalIntensity"
+RIG_SCALE = "springRigScale"
+TRANS_INTENSITY = "springTranslationalIntensity"
+TRANS_DAMPING = "springTranslationalDamping"
+TRANS_STIFFNESS = "springTranslationalStiffness"
+ROT_INTENSITY = "springRotationalIntensity"
+ROT_DAMPING = "springRotationalDamping"
+ROT_STIFFNESS = "springRotationalStiffness"
+
+CLASSIC_PARAMS = (
+    constants.param(TOTAL_INTENSITY, "Total Intensity", 1.0, "Global"),
+    constants.param(
+        RIG_SCALE,
+        "Rig Scale",
+        1.0,
+        "Global",
+        maximum=100.0,
+        soft_maximum=10.0,
+        rig_dependent=True,
+    ),
+    constants.param(TRANS_INTENSITY, "Intensity", 0.0, "Translation"),
+    constants.param(TRANS_DAMPING, "Damping", 0.5, "Translation"),
+    constants.param(TRANS_STIFFNESS, "Stiffness", 0.5, "Translation"),
+    constants.param(ROT_INTENSITY, "Intensity", 1.0, "Rotation"),
+    constants.param(ROT_DAMPING, "Damping", 0.5, "Rotation"),
+    constants.param(ROT_STIFFNESS, "Stiffness", 0.5, "Rotation"),
+    constants.param(
+        DIRECTION_VIS_ATTR,
+        "Show Arrow",
+        True,
+        "Display",
+        minimum=False,
+        maximum=True,
+        kind=constants.PARAM_BOOL,
+        keyable=False,
+        rig_dependent=True,
+    ),
+)
+
+CLASSIC_TOOLTIPS = {
+    TOTAL_INTENSITY: (
+        "Master blend between the animation (0) and the spring (1).\n"
+        "1: full spring. 0.5: half the overlap, handy to tone down a "
+        "shot without retuning. Key it to fade the spring in or out."
+    ),
+    RIG_SCALE: (
+        "Scales the spring to the size of the rig, so the same values "
+        "behave alike on small and big characters.\n"
+        "1: rig at the default size. 10: a rig ten times bigger. Not "
+        "copied by values presets."
+    ),
+    TRANS_INTENSITY: (
+        "How much the spring moves the control position (follow "
+        "through in translation).\n"
+        "0: rotation only, the usual choice for tails, hair and "
+        "antennas. 0.2-0.5: jiggle (belly, cheeks, pouches)."
+    ),
+    TRANS_DAMPING: (
+        "How fast the translation bounce dies out.\n"
+        "0.2: wobbly, keeps bouncing (jelly). 0.5: balanced. 0.8: one "
+        "soft overshoot and settles."
+    ),
+    TRANS_STIFFNESS: (
+        "How strongly the position is pulled back to the animation.\n"
+        "0.2: slow, heavy lag. 0.5: balanced. 0.8: tight, small and "
+        "fast jiggle."
+    ),
+    ROT_INTENSITY: (
+        "How much the spring rotates the control (overlap and follow "
+        "through).\n"
+        "1: full overlap for tails, hair and ears. 0.5-0.7: subtle "
+        "secondary motion (clothes, straps)."
+    ),
+    ROT_DAMPING: (
+        "How fast the rotation swing dies out.\n"
+        "0.2: floppy, swings several times (floppy ears, ribbons). "
+        "0.5: natural (hair, tails). 0.7+: settles quickly (stiff "
+        "appendages)."
+    ),
+    ROT_STIFFNESS: (
+        "How strongly the rotation is pulled back to the animation.\n"
+        "0.15: loose, big lag (Floppy). 0.3: natural (Soft, Tail). "
+        "0.8: tight, small fast overlap (Stiff, antennas)."
+    ),
+    DIRECTION_VIS_ATTR: (
+        "Shows the arrow of the spring aim direction in the viewport. "
+        "Display only, not keyed."
+    ),
+}
+CLASSIC_PARAMS = constants.with_tooltips(CLASSIC_PARAMS, CLASSIC_TOOLTIPS)
+
+# Directions -------------------------------------------------------------
+AUTO_DIRECTION = "auto"
+
+# direction: (aim/up axis, up vector). The aim channel and sign are
+# derived from the direction name, see backends.classic.
+DIRECTION_TABLE = {
+    "x": ("xy", (0, 1, 0)),
+    "y": ("yx", (1, 0, 0)),
+    "z": ("zy", (0, 1, 0)),
+    "-x": ("-xy", (0, 1, 0)),
+    "-y": ("-yx", (1, 0, 0)),
+    "-z": ("-zy", (0, 1, 0)),
+}
+DIRECTIONS = tuple(DIRECTION_TABLE)
+
 SOLVER_PLUGIN = "mgear_solvers"
 ROOT_ATTR = "root"
-REST_ATTR = "restValues"
-MOVED_ATTRS = ("translate", "rotate")
-TR_CHANNELS = tuple(attr + axis for attr in MOVED_ATTRS for axis in "XYZ")
 
 
 # -----------------------------------------------------------------------------
@@ -41,46 +155,15 @@ TR_CHANNELS = tuple(attr + axis for attr in MOVED_ATTRS for axis in "XYZ")
 # -----------------------------------------------------------------------------
 
 
-def _base_name(control):
-    """Return a namespace-free name prefix for the nodes of a control.
-
-    Args:
-        control (str): Control name.
-
-    Returns:
-        str: ``ns:arm_ctl`` gives ``ns_arm_ctl``.
-    """
-    return control.split("|")[-1].replace(":", "_")
-
-
 def _plug(node, attr):
     return "{}.{}".format(node, attr)
-
-
-def _has_input(plug):
-    return bool(cmds.listConnections(plug, source=True, destination=False))
-
-
-def _create(node_type, name, parent=None):
-    """Create a DAG node and return its long name.
-
-    Args:
-        node_type (str): Node type.
-        name (str): Node name.
-        parent (str, optional): Parent node.
-
-    Returns:
-        str: The long name.
-    """
-    kwargs = {"parent": parent} if parent else {}
-    return cmds.ls(cmds.createNode(node_type, name=name, **kwargs), long=True)[0]
 
 
 def _aim_channel(direction):
     """Return the aim channel and sign of a direction.
 
     Args:
-        direction (str): One of :data:`constants.DIRECTIONS`.
+        direction (str): One of :data:`DIRECTIONS`.
 
     Returns:
         tuple: ``("translateX", -1)`` for ``"-x"``.
@@ -98,7 +181,7 @@ def resolve_direction(control):
         control (str): Control name.
 
     Returns:
-        str: One of :data:`constants.DIRECTIONS`. ``"x"`` when no
+        str: One of :data:`DIRECTIONS`. ``"x"`` when no
         direction can be found.
     """
     children = (
@@ -140,38 +223,6 @@ def resolve_direction(control):
     return axis if values[index] > 0 else "-" + axis
 
 
-def _rest_values(control):
-    """Return the static translate / rotate values of a control.
-
-    Args:
-        control (str): Control name.
-
-    Returns:
-        dict: ``{channel: value}`` for channels without input.
-    """
-    return {
-        channel: cmds.getAttr(_plug(control, channel))
-        for channel in TR_CHANNELS
-        if not _has_input(_plug(control, channel))
-    }
-
-
-def _constraint_skips(control):
-    """Return the locked translate / rotate axes of a control.
-
-    Args:
-        control (str): Control name.
-
-    Returns:
-        tuple: ``(skip_translate, skip_rotate)`` lists of axes.
-    """
-    unlocked = attribute.get_unlocked_channels(control, MOVED_ATTRS)
-    return tuple(
-        [axis.lower() for axis in "XYZ" if attr + axis not in unlocked]
-        for attr in MOVED_ATTRS
-    )
-
-
 def _delete_constraints(members):
     """Delete the parent constraints among the members of a setup.
 
@@ -195,19 +246,18 @@ def _delete_constraints(members):
 class ClassicBackend(SpringBackend):
     """Per-control spring using the ``mgear_springNode`` solver."""
 
-    name = constants.CLASSIC_BACKEND
+    name = CLASSIC_BACKEND
     label = "Classic"
     unavailable_message = (
         "The mgear_solvers plug-in could not be loaded. Check the mGear "
         "installation."
     )
-    supports_direction = True
 
     def is_available(self):
         return utils.is_plugin_available(SOLVER_PLUGIN)
 
     def param_specs(self):
-        return constants.CLASSIC_PARAMS
+        return CLASSIC_PARAMS
 
     # create ---------------------------------------------------------------
 
@@ -218,7 +268,7 @@ class ClassicBackend(SpringBackend):
             controls (list): Control names.
             params (dict, optional): Parameter values.
             options (dict, optional): ``direction``, one of
-                :data:`constants.DIRECTIONS` or ``"auto"`` (default).
+                :data:`DIRECTIONS` or ``"auto"`` (default).
 
         Returns:
             list: The created :class:`registry.Spring` records.
@@ -226,7 +276,7 @@ class ClassicBackend(SpringBackend):
         utils.ensure_plugin(SOLVER_PLUGIN)
         values = self.default_params()
         values.update(params or {})
-        direction = (options or {}).get("direction") or constants.AUTO_DIRECTION
+        direction = (options or {}).get("direction") or AUTO_DIRECTION
         springs = []
         with utils.undo_chunk("springManagerCreate"):
             for control in controls:
@@ -250,7 +300,7 @@ class ClassicBackend(SpringBackend):
                 mgear.sev_warning,
             )
             return None
-        skips = _constraint_skips(control)
+        skips = constraint_skips(control)
         if len(skips[0]) == 3 and len(skips[1]) == 3:
             mgear.log(
                 "{} has locked translate and rotate, skipped".format(control),
@@ -258,97 +308,59 @@ class ClassicBackend(SpringBackend):
             )
             return None
 
-        if direction == constants.AUTO_DIRECTION:
+        if direction == AUTO_DIRECTION:
             direction = resolve_direction(control)
-        if direction not in constants.DIRECTION_TABLE:
+        if direction not in DIRECTION_TABLE:
             raise ValueError("Invalid spring direction: {}".format(direction))
 
-        rest = _rest_values(control)
+        rest = rest_values([control])
         with utils.capture_created_nodes() as created:
             root = self._build(control, direction, values, skips)
         network = registry.create_network(
-            "{}_{}".format(_base_name(control), constants.NETWORK_SUFFIX),
+            "{}_{}".format(node_remap.flat_name(control), constants.NETWORK_SUFFIX),
             self.name,
             [control],
             control,
-            {constants.DIRECTION_ATTR: direction, REST_ATTR: json.dumps(rest)},
+            {DIRECTION_ATTR: direction, constants.REST_ATTR: json.dumps(rest)},
         )
         cmds.addAttr(network, longName=ROOT_ATTR, attributeType="message")
         cmds.connectAttr(root + ".message", _plug(network, ROOT_ATTR))
         registry.add_members(network, created)
         return registry.Spring(network, self.name)
 
-    def _add_settings(self, control, values):
-        cmds.addAttr(
-            control,
-            longName=constants.SEPARATOR_ATTR,
-            niceName="__________",
-            attributeType="enum",
-            enumName="Spring",
-        )
-        cmds.setAttr(
-            _plug(control, constants.SEPARATOR_ATTR),
-            channelBox=True,
-            keyable=False,
-        )
-        for spec in self.param_specs():
-            plug = _plug(control, spec.attr)
-            value = clamp(spec, values.get(spec.attr, spec.default))
-            if spec.kind == constants.PARAM_BOOL:
-                cmds.addAttr(
-                    control,
-                    longName=spec.attr,
-                    attributeType="bool",
-                    defaultValue=spec.default,
-                )
-            else:
-                cmds.addAttr(
-                    control,
-                    longName=spec.attr,
-                    attributeType="float",
-                    minValue=spec.minimum,
-                    maxValue=spec.maximum,
-                    defaultValue=spec.default,
-                )
-            cmds.setAttr(plug, value)
-            if spec.keyable:
-                cmds.setAttr(plug, keyable=True)
-            else:
-                cmds.setAttr(plug, channelBox=True, keyable=False)
-
     def _build(self, control, direction, values, skips):
-        base = _base_name(control)
+        base = node_remap.flat_name(control)
         aim_channel, sign = _aim_channel(direction)
-        aim_axis, up_vector = constants.DIRECTION_TABLE[direction]
-        self._add_settings(control, values)
+        aim_axis, up_vector = DIRECTION_TABLE[direction]
+        add_settings(control, self.param_specs(), values)
         settings = {spec.attr: _plug(control, spec.attr) for spec in self.param_specs()}
 
         parent = cmds.listRelatives(control, parent=True, fullPath=True)
         node_type = "joint" if cmds.nodeType(control) == "joint" else "transform"
-        root = _create(node_type, base + "_sprg_root", parent[0] if parent else None)
-        transform.copy_local_transform(control, root)
-        trans = _create("transform", base + "_sprg_trans", root)
-        aim = _create("transform", base + "_sprg_aim", trans)
-        goal = _create("transform", base + "_sprg_goal", aim)
-        driver = _create("transform", base + "_sprg_driver", trans)
-
-        node_utils.createMulNode(
-            settings[constants.RIG_SCALE], sign, _plug(aim, aim_channel)
+        root = create_dag_node(
+            node_type, base + "_sprg_root", parent[0] if parent else None
         )
+        transform.copy_local_transform(control, root)
+        trans = create_dag_node("transform", base + "_sprg_trans", root)
+        aim = create_dag_node("transform", base + "_sprg_aim", trans)
+        goal = create_dag_node("transform", base + "_sprg_goal", aim)
+        driver = create_dag_node("transform", base + "_sprg_driver", trans)
+
+        node_utils.createMulNode(settings[RIG_SCALE], sign, _plug(aim, aim_channel))
 
         position_solver = str(applyop.gear_spring_op(trans))
         direction_solver = str(applyop.gear_spring_op(goal))
         for solver, damping, stiffness in (
-            (position_solver, constants.TRANS_DAMPING, constants.TRANS_STIFFNESS),
-            (direction_solver, constants.ROT_DAMPING, constants.ROT_STIFFNESS),
+            (position_solver, TRANS_DAMPING, TRANS_STIFFNESS),
+            (direction_solver, ROT_DAMPING, ROT_STIFFNESS),
         ):
             cmds.connectAttr(settings[damping], solver + ".damping")
             cmds.connectAttr(settings[stiffness], solver + ".stiffness")
         node_utils.createMulNode(
-            [settings[constants.TOTAL_INTENSITY]] * 2,
+            [settings[TOTAL_INTENSITY]] * 2,
             [
-                settings[constants.TRANS_INTENSITY],
-                settings[constants.ROT_INTENSITY],
+                settings[TRANS_INTENSITY],
+                settings[ROT_INTENSITY],
             ],
             [position_solver + ".intensity", direction_solver + ".intensity"],
         )
@@ -364,13 +376,11 @@ class ClassicBackend(SpringBackend):
         cmds.setAttr(arrow + ".overrideEnabled", 1)
         cmds.setAttr(arrow + ".overrideDisplayType", 1)
         for axis in "XYZ":
-            cmds.connectAttr(settings[constants.RIG_SCALE], arrow + ".scale" + axis)
+            cmds.connectAttr(settings[RIG_SCALE], arrow + ".scale" + axis)
         for shape in cmds.listRelatives(arrow, shapes=True, fullPath=True):
-            cmds.connectAttr(
-                settings[constants.DIRECTION_VIS_ATTR], shape + ".visibility"
-            )
+            cmds.connectAttr(settings[DIRECTION_VIS_ATTR], shape + ".visibility")
 
-        anim_utils.move_animation_curves(control, root, MOVED_ATTRS)
+        anim_utils.move_animation_curves(control, root, constants.MOVED_ATTRS)
 
         constraint = cmds.parentConstraint(
             driver,
@@ -398,34 +408,19 @@ class ClassicBackend(SpringBackend):
 
         # the control constraint first, to avoid offsets
         _delete_constraints(members)
+        if control and roots and transfer_animation:
+            anim_utils.move_animation_curves(roots[0], control, constants.MOVED_ATTRS)
+        restore_rest_values(network)
+        registry.delete_members(network, members)
         if control:
-            if roots and transfer_animation:
-                anim_utils.move_animation_curves(roots[0], control, MOVED_ATTRS)
-            self._restore_rest_values(network, control)
-        members = [node for node in members if cmds.objExists(node)]
-        if members:
-            cmds.delete(members)
-        if control:
-            attribute.delete_attrs(
-                control,
-                [spec.attr for spec in self.param_specs()] + [constants.SEPARATOR_ATTR],
-            )
-        cmds.delete(network)
-
-    def _restore_rest_values(self, network, control):
-        rest = attribute.get_string_attr(network, REST_ATTR)
-        if not rest:
-            return
-        for channel, value in json.loads(rest).items():
-            plug = _plug(control, channel)
-            if _has_input(plug) or cmds.getAttr(plug, lock=True):
-                continue
-            cmds.setAttr(plug, value)
+            remove_settings(control, self.param_specs())
+        if cmds.objExists(network):
+            cmds.delete(network)
 
     # parameters -----------------------------------------------------------
 
     def set_enabled(self, springs, enabled):
-        self.set_params(springs, {constants.TOTAL_INTENSITY: float(enabled)})
+        self.set_params(springs, {TOTAL_INTENSITY: float(enabled)})
 
     # bake -----------------------------------------------------------------
 
@@ -434,8 +429,8 @@ class ClassicBackend(SpringBackend):
         settings = spring.settings_node
         attrs = []
         for attr, intensity in (
-            ("translate", constants.TRANS_INTENSITY),
-            ("rotate", constants.ROT_INTENSITY),
+            ("translate", TRANS_INTENSITY),
+            ("rotate", ROT_INTENSITY),
         ):
             plug = _plug(settings, intensity)
             if cmds.getAttr(plug) > 0 or anim_utils.is_animated(plug):
@@ -451,26 +446,16 @@ class ClassicBackend(SpringBackend):
             "controls": spring.controls,
             "options": {
                 "direction": attribute.get_string_attr(
-                    spring.node, constants.DIRECTION_ATTR, constants.AUTO_DIRECTION
+                    spring.node, DIRECTION_ATTR, AUTO_DIRECTION
                 )
             },
             "params": self.get_params(spring),
         }
 
     def from_preset(self, entry, controls):
-        control = controls[0]
-        existing = registry.spring_from_node(control)
         params = entry.get("params") or {}
-        if existing:
-            if existing.backend != self.name:
-                mgear.log(
-                    "{} has a {} spring, preset entry skipped".format(
-                        control, existing.backend
-                    ),
-                    mgear.sev_warning,
-                )
-                return None
-            self.set_params([existing], params)
-            return existing
-        springs = self.create([control], params, entry.get("options"))
+        handled, spring = self.update_existing(controls[0], params)
+        if handled:
+            return spring
+        springs = self.create([controls[0]], params, entry.get("options"))
         return springs[0] if springs else None

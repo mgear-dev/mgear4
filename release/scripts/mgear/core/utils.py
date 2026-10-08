@@ -505,10 +505,51 @@ def get_frame_rate():
         return 50
     if currentUnit == 'ntscf':
         return 60
+    if currentUnit == "game":
+        return 15
     if 'fps' in currentUnit:
-        return int(currentUnit.replace('fps',''))
+        # fractional rates like "23.976fps" are returned as float
+        fps = float(currentUnit.replace("fps", ""))
+        return int(fps) if fps.is_integer() else fps
 
     return 1 
+
+
+# centimeters per scene linear unit
+LINEAR_UNIT_CM = {
+    "mm": 0.1,
+    "cm": 1.0,
+    "m": 100.0,
+    "km": 100000.0,
+    "in": 2.54,
+    "ft": 30.48,
+    "yd": 91.44,
+    "mi": 160934.4,
+}
+
+
+def get_linear_unit_scale(unit=None):
+    """Return the size of a linear unit, in centimeters.
+
+    Args:
+        unit (str, optional): Maya linear unit, the scene unit when None.
+
+    Returns:
+        float: Centimeters per unit (1.0 for cm, 100.0 for m).
+    """
+    unit = unit or cmds.currentUnit(query=True, linear=True)
+    return LINEAR_UNIT_CM.get(unit, 1.0)
+
+
+def get_up_vector():
+    """Return the scene up axis as a vector.
+
+    Returns:
+        tuple: ``(0, 1, 0)`` for Y-up, ``(0, 0, 1)`` for Z-up.
+    """
+    if cmds.upAxis(query=True, axis=True) == "z":
+        return (0.0, 0.0, 1.0)
+    return (0.0, 1.0, 0.0)
 
 
 def set_frame_rate(fps):

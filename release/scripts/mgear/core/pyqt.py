@@ -354,6 +354,8 @@ def clear_layout(layout):
     while layout.count():
         child = layout.takeAt(0)
         if child.widget() is not None:
+            # hidden at once: deleteLater only runs on the next event loop
+            child.widget().hide()
             child.widget().deleteLater()
         elif child.layout() is not None:
             clear_layout(child.layout())
@@ -383,6 +385,28 @@ def block_signals(widget, children=False):
         widget.blockSignals(blocked)
         for i, child_widget in enumerate(child_widgets):
             child_widget.blockSignals(blocked_children[i])
+
+
+def show_stacked_page(stack, page):
+    """Show a stacked widget page, sizing the stack to that page only.
+
+    By default a QStackedWidget is as large as its largest page. Hidden
+    pages get an ignored size policy, so the stack follows the shown page.
+
+    Args:
+        stack (QtWidgets.QStackedWidget): The stack.
+        page (QtWidgets.QWidget): The page to show.
+    """
+    for index in range(stack.count()):
+        widget = stack.widget(index)
+        policy = (
+            QtWidgets.QSizePolicy.Preferred
+            if widget is page
+            else QtWidgets.QSizePolicy.Ignored
+        )
+        widget.setSizePolicy(policy, policy)
+    stack.setCurrentWidget(page)
+    stack.adjustSize()
 
 
 def wildcard_to_regex(text):

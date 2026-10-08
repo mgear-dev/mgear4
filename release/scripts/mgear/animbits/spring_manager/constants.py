@@ -37,8 +37,25 @@ ParamSpec = namedtuple(
         "kind",
         "keyable",
         "rig_dependent",
+        "tooltip",
     ),
 )
+
+
+def with_tooltips(specs, tooltips):
+    """Return parameter descriptions with their tooltips set.
+
+    Args:
+        specs (tuple): :class:`ParamSpec` items.
+        tooltips (dict): ``{attr: tooltip}``. Missing attributes keep
+            their tooltip.
+
+    Returns:
+        tuple: The parameters.
+    """
+    return tuple(
+        spec._replace(tooltip=tooltips.get(spec.attr, spec.tooltip)) for spec in specs
+    )
 
 
 def param(
@@ -52,6 +69,7 @@ def param(
     kind=PARAM_FLOAT,
     keyable=True,
     rig_dependent=False,
+    tooltip="",
 ):
     """Return a parameter description.
 
@@ -67,6 +85,8 @@ def param(
         keyable (bool, optional): Keyed by "Key All".
         rig_dependent (bool, optional): Depends on the target rig (its
             size, or a display choice): not copied by a values preset.
+        tooltip (str, optional): What the parameter does and typical
+            values, one paragraph per line.
 
     Returns:
         ParamSpec: The parameter.
@@ -82,78 +102,29 @@ def param(
         kind,
         keyable,
         rig_dependent,
+        tooltip,
     )
 
 
-# Classic backend --------------------------------------------------------
-CLASSIC_BACKEND = "classic"
+# Settings and rest values shared by the backends --------------------------
 SEPARATOR_ATTR = "springSettings"
-DIRECTION_VIS_ATTR = "springDirectionVis"
-DIRECTION_ATTR = "direction"
+REST_ATTR = "restValues"
+MOVED_ATTRS = ("translate", "rotate")
+TR_CHANNELS = tuple(attr + axis for attr in MOVED_ATTRS for axis in "XYZ")
 
-TOTAL_INTENSITY = "springTotalIntensity"
-RIG_SCALE = "springRigScale"
-TRANS_INTENSITY = "springTranslationalIntensity"
-TRANS_DAMPING = "springTranslationalDamping"
-TRANS_STIFFNESS = "springTranslationalStiffness"
-ROT_INTENSITY = "springRotationalIntensity"
-ROT_DAMPING = "springRotationalDamping"
-ROT_STIFFNESS = "springRotationalStiffness"
-
-CLASSIC_PARAMS = (
-    param(TOTAL_INTENSITY, "Total Intensity", 1.0, "Global"),
-    param(
-        RIG_SCALE,
-        "Rig Scale",
-        1.0,
-        "Global",
-        maximum=100.0,
-        soft_maximum=10.0,
-        rig_dependent=True,
-    ),
-    param(TRANS_INTENSITY, "Intensity", 0.0, "Translation"),
-    param(TRANS_DAMPING, "Damping", 0.5, "Translation"),
-    param(TRANS_STIFFNESS, "Stiffness", 0.5, "Translation"),
-    param(ROT_INTENSITY, "Intensity", 1.0, "Rotation"),
-    param(ROT_DAMPING, "Damping", 0.5, "Rotation"),
-    param(ROT_STIFFNESS, "Stiffness", 0.5, "Rotation"),
-    param(
-        DIRECTION_VIS_ATTR,
-        "Show Arrow",
-        True,
-        "Display",
-        minimum=False,
-        maximum=True,
-        kind=PARAM_BOOL,
-        keyable=False,
-        rig_dependent=True,
-    ),
-)
+BONE_DYNAMICS_BACKEND = "bone_dynamics"
 
 # Legacy setups (Spring Manager before 5.4) ------------------------------
 LEGACY_BACKEND = "legacy"
 LEGACY_MEMBERS_ATTR = "springSetupMembers"
-LEGACY_ATTRS = tuple(spec.attr for spec in CLASSIC_PARAMS) + (
-    LEGACY_MEMBERS_ATTR,
-    "springConfig",
-    "springTranslation",
-    "springRotation",
-)
 
-# Directions -------------------------------------------------------------
-AUTO_DIRECTION = "auto"
-
-# direction: (aim/up axis, up vector). The aim channel and sign are
-# derived from the direction name, see backends.classic.
-DIRECTION_TABLE = {
-    "x": ("xy", (0, 1, 0)),
-    "y": ("yx", (1, 0, 0)),
-    "z": ("zy", (0, 1, 0)),
-    "-x": ("-xy", (0, 1, 0)),
-    "-y": ("-yx", (1, 0, 0)),
-    "-z": ("-zy", (0, 1, 0)),
-}
-DIRECTIONS = tuple(DIRECTION_TABLE)
+# Scene node kinds: only "spring" networks are listed as springs, the
+# others are shared nodes never deleted with a spring
+KIND_ATTR = "mgearSpringKind"
+KIND_SPRING = "spring"
+KIND_SOLVER = "solver"
+KIND_WIND = "wind"
+KIND_COLLIDER = "collider"
 
 # Presets ----------------------------------------------------------------
 PRESET_VERSION = 2

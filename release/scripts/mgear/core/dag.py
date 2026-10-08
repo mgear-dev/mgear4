@@ -292,3 +292,70 @@ def findComponentChildren4(node: pm.PyNode, name: str, sideIndex: str) -> List[p
 
     return [pm.PyNode(x) for x in children]
 
+
+def is_curve_control(node):
+    """Return True if a transform has a NURBS curve shape.
+
+    Args:
+        node (str): Node name.
+
+    Returns:
+        bool: True for curve controls.
+    """
+    return bool(cmds.listRelatives(node, shapes=True, type="nurbsCurve", fullPath=True))
+
+
+def get_child_controls(node, is_control=is_curve_control):
+    """Return the first descendant controls of a node, looking through groups.
+
+    Transforms that are not controls (e.g. ``npo`` groups) are searched
+    below; the first controls found on each branch are returned.
+
+    Args:
+        node (str): Parent node.
+        is_control (callable, optional): ``is_control(node)`` predicate.
+
+    Returns:
+        list: Control long names, in hierarchy order.
+    """
+    found = []
+    stack = list(
+        reversed(
+            cmds.listRelatives(node, children=True, type="transform", fullPath=True)
+            or []
+        )
+    )
+    while stack:
+        child = stack.pop()
+        if is_control(child):
+            found.append(child)
+            continue
+        stack.extend(
+            reversed(
+                cmds.listRelatives(
+                    child, children=True, type="transform", fullPath=True
+                )
+                or []
+            )
+        )
+    return found
+
+
+def get_top_nodes(nodes):
+    """Return the nodes that have no ancestor in the list.
+
+    Args:
+        nodes (list): DAG node names.
+
+    Returns:
+        list: Long names of the top nodes, in order.
+    """
+    longs = cmds.ls(nodes, long=True) or []
+    selected = set(longs)
+    tops = []
+    for node in longs:
+        parts = node.split("|")
+        ancestors = {"|".join(parts[:index]) for index in range(2, len(parts))}
+        if not ancestors & selected:
+            tops.append(node)
+    return tops

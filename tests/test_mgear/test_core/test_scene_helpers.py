@@ -273,3 +273,60 @@ def test_set_or_key_and_copy_local(run_with_maya_standalone, setup_path):
     assert cmds.getAttr(target + ".jointOrient")[0] == pytest.approx((10, 20, 30))
     assert cmds.getAttr(target + ".translate")[0] == pytest.approx((1, 2, 3))
     assert cmds.getAttr(target + ".rotateOrder") == 3
+
+
+def test_playback_and_layer_helpers(run_with_maya_standalone, setup_path):
+    from maya import cmds
+    from mgear.core import anim_utils
+
+    cmds.file(new=True, force=True)
+    anim_utils.set_play_every_frame(True)
+    assert anim_utils.get_play_every_frame()
+    anim_utils.set_play_every_frame(False)
+    assert not anim_utils.get_play_every_frame()
+
+    node = cmds.createNode("transform", name="node")
+    assert anim_utils.layer_base_plug(node + ".tx") == node + ".tx"
+    cmds.setKeyframe(node, attribute="tx", time=1, value=1)
+    layer = cmds.animLayer("layer1")
+    cmds.animLayer(layer, edit=True, attribute=node + ".tx")
+    base = anim_utils.layer_base_plug(node + ".tx")
+    assert base.endswith(".inputA")
+    assert cmds.nodeType(cmds.listConnections(base, source=True)[0]).startswith(
+        "animCurve"
+    )
+
+
+def test_dag_and_transform_helpers(run_with_maya_standalone, setup_path):
+    from maya import cmds
+    from mgear.core import attribute
+    from mgear.core import dag
+    from mgear.core import node
+    from mgear.core import node_remap
+    from mgear.core import transform
+    from mgear.core import utils
+
+    cmds.file(new=True, force=True)
+    root = cmds.circle(name="root_ctl", constructionHistory=False)[0]
+    npo = node.create_dag_node("transform", "child_npo", root)
+    assert npo == "|root_ctl|child_npo"
+    child = cmds.circle(name="child_ctl", constructionHistory=False)[0]
+    child = cmds.ls(cmds.parent(child, npo, relative=True), long=True)[0]
+    assert dag.is_curve_control(root) and not dag.is_curve_control(npo)
+    assert dag.get_child_controls(root) == [child]
+    assert dag.get_top_nodes([child, root]) == ["|root_ctl"]
+    assert node_remap.flat_name("|grp|chr:arm_ctl") == "chr_arm_ctl"
+
+    matrix = transform.get_aim_matrix((0, 0, 0), (0, 5, 0), (0, 1, 0))
+    assert list(matrix)[0:3] == pytest.approx([0, 1, 0])
+    assert list(matrix)[12:15] == pytest.approx([0, 0, 0])
+
+    assert utils.get_linear_unit_scale("m") == 100.0
+    assert utils.get_up_vector() == (0.0, 1.0, 0.0)
+
+    assert not attribute.has_input(child + ".tx")
+    cmds.connectAttr(root + ".ty", child + ".tx")
+    assert attribute.has_input(child + ".tx")
+    keep = attribute.disconnect_plug_inputs(child + ".tx", keep=lambda plug: True)
+    assert keep == [] and attribute.has_input(child + ".tx")
+    assert attribute.disconnect_plug_inputs(child + ".tx") == ["root_ctl.translateY"]

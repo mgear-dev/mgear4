@@ -1,0 +1,22 @@
+{
+    "assignments": {},
+    "colliders": [],
+    "description": "Bone Dynamics: antennas and stiff whips, snappy and springy.",
+    "namespaces": [],
+    "solver": {},
+    "springs": [
+        {
+            "backend": "bone_dynamics",
+            "controls": [],
+            "params": {
+                "springDamping": 0.15,
+                "springElasticity": 150.0,
+                "springElasticityTip": 0.4,
+                "springGravity": 0.0,
+                "springStiffness": 0.2
+            }
+        }
+    ],
+    "type": "values",
+    "version": 2
+}

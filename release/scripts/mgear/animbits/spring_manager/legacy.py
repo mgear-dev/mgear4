@@ -12,6 +12,15 @@ from mgear.core import attribute
 
 from . import constants
 from .backends import SpringBackend
+from .backends import classic
+
+# attributes added on the control by the previous Spring Manager
+LEGACY_ATTRS = tuple(spec.attr for spec in classic.CLASSIC_PARAMS) + (
+    constants.LEGACY_MEMBERS_ATTR,
+    "springConfig",
+    "springTranslation",
+    "springRotation",
+)
 
 
 def _constraints(control):
@@ -56,7 +65,7 @@ class LegacyBackend(SpringBackend):
                 "Legacy spring on {} has no root node".format(control),
                 mgear.sev_warning,
             )
-        attribute.delete_attrs(control, constants.LEGACY_ATTRS)
+        attribute.delete_attrs(control, LEGACY_ATTRS)
 
     def detach(self, spring):
         constraints = _constraints(spring.node)
