@@ -28,7 +28,6 @@ Modules
    mgear.rigbits.ghost
    mgear.rigbits.lips_rigger
    mgear.rigbits.menu
-   mgear.rigbits.postSpring
    mgear.rigbits.proxySlicer
    mgear.rigbits.rbf_io
    mgear.rigbits.rbf_manager_ui
@@ -53,7 +52,6 @@ Modules
    mgear/mgear.rigbits.ghost
    mgear/mgear.rigbits.lips_rigger
    mgear/mgear.rigbits.menu
-   mgear/mgear.rigbits.postSpring
    mgear/mgear.rigbits.proxySlicer
    mgear/mgear.rigbits.rbf_io
    mgear/mgear.rigbits.rbf_manager_ui

@@ -1,0 +1,27 @@
+{
+    "assignments": {},
+    "colliders": [],
+    "description": "Loose, bouncy motion with long oscillation. Cartoony appendages, loose cloth.",
+    "namespaces": [],
+    "solver": {},
+    "springs": [
+        {
+            "backend": "classic",
+            "controls": [],
+            "options": {
+                "direction": "auto"
+            },
+            "params": {
+                "springRotationalDamping": 0.2,
+                "springRotationalIntensity": 1.0,
+                "springRotationalStiffness": 0.15,
+                "springTotalIntensity": 1.0,
+                "springTranslationalDamping": 0.5,
+                "springTranslationalIntensity": 0.0,
+                "springTranslationalStiffness": 0.5
+            }
+        }
+    ],
+    "type": "values",
+    "version": 2
+}

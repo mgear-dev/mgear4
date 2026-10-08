@@ -231,6 +231,168 @@ def get_keyframe_times(nodes):
     return sorted(set(times))
 
 
+def is_anim_source(node):
+    """Return True if the node is an anim curve or an anim layer blend.
+
+    Args:
+        node (str): Node name.
+
+    Returns:
+        bool: True for animCurve and animBlendNode types.
+    """
+    types = cmds.nodeType(node, inherited=True) or []
+    return "animCurve" in types or "animBlendNodeBase" in types
+
+
+def is_animated(plug):
+    """Return True if a plug is driven by an anim curve or an anim layer.
+
+    Args:
+        plug (str): Plug name, e.g. ``"ctl.translateX"``.
+
+    Returns:
+        bool: True if animated.
+    """
+    sources = (
+        cmds.listConnections(
+            plug, source=True, destination=False, skipConversionNodes=True
+        )
+        or []
+    )
+    return any(is_anim_source(node) for node in sources)
+
+
+def move_animation_curves(source, target, attrs=None):
+    """Move the animation driving attributes of one node to another node.
+
+    Anim curves and anim layer blend nodes connected to the source
+    attributes, or to their children (e.g. ``translateX`` for
+    ``translate``), are disconnected and connected to the same attribute
+    on the target. Other connections, like constraints, are left as is.
+
+    Args:
+        source (str): Node with the animation.
+        target (str): Node that receives the animation.
+        attrs (list, optional): Attribute names to move. Defaults to
+            translate, rotate and scale.
+
+    Returns:
+        list: The target plugs that received animation.
+    """
+    attrs = attrs or ("translate", "rotate", "scale")
+    moved = []
+    for attr in attrs:
+        if not cmds.attributeQuery(attr, node=source, exists=True):
+            continue
+        children = cmds.attributeQuery(attr, node=source, listChildren=True) or []
+        for name in [attr] + children:
+            source_plug = "{}.{}".format(source, name)
+            inputs = (
+                cmds.listConnections(
+                    source_plug,
+                    source=True,
+                    destination=False,
+                    plugs=True,
+                    skipConversionNodes=True,
+                )
+                or []
+            )
+            for input_plug in inputs:
+                if not is_anim_source(input_plug.split(".")[0]):
+                    continue
+                target_plug = "{}.{}".format(target, name)
+                cmds.disconnectAttr(input_plug, source_plug)
+                cmds.connectAttr(input_plug, target_plug, force=True)
+                moved.append(target_plug)
+    return moved
+
+
+def set_or_key(plug, value):
+    """Set a plug, or key it at the current time when it is animated.
+
+    Plugs driven by something other than animation are left unchanged.
+
+    Args:
+        plug (str): Plug name.
+        value (object): New value.
+
+    Returns:
+        bool: True if the value was set or keyed.
+    """
+    if is_animated(plug):
+        cmds.setKeyframe(plug, value=value)
+        return True
+    if cmds.listConnections(plug, source=True, destination=False):
+        mgear.log(
+            "{} is driven by a connection, not changed".format(plug),
+            mgear.sev_warning,
+        )
+        return False
+    cmds.setAttr(plug, value)
+    return True
+
+
+def bake_attributes(nodes, attrs=None, start=None, end=None, sample=1, preroll=0):
+    """Bake attributes over a frame range as a simulation.
+
+    Keys outside the range are kept. The viewport is suspended while
+    baking. For simulations (springs, dynamics), ``preroll`` frames before
+    ``start`` and the start frame are evaluated one by one first, so the
+    bake continues a settled simulation instead of restarting it. No keys
+    are written before ``start``.
+
+    Args:
+        nodes (list): Node names, or full plugs (``node.attr``) when
+            ``attrs`` is None.
+        attrs (list, optional): Attribute names to bake on every node.
+            When None, ``nodes`` must be plugs.
+        start (float, optional): First frame. Defaults to the playback
+            start.
+        end (float, optional): Last frame. Defaults to the playback end.
+        sample (float, optional): Bake every ``sample`` frames.
+        preroll (int, optional): Frames evaluated before ``start``.
+
+    Returns:
+        bool: True if something was baked.
+    """
+    if not nodes:
+        return False
+    if start is None:
+        start = cmds.playbackOptions(query=True, minTime=True)
+    if end is None:
+        end = cmds.playbackOptions(query=True, maxTime=True)
+    nodes = list(nodes)
+    plugs = (
+        ["{}.{}".format(node, attr) for node in nodes for attr in attrs]
+        if attrs
+        else nodes
+    )
+    kwargs = {"attribute": list(attrs)} if attrs else {}
+    with utils.viewport_suspended():
+        # simulations only compute when read: pull every frame in order
+        for frame in range(int(start) - max(0, int(preroll)), int(start) + 1):
+            cmds.currentTime(frame, edit=True)
+            cmds.dgeval(plugs)
+        cmds.bakeResults(
+            nodes,
+            time=(start, end),
+            simulation=True,
+            sampleBy=sample,
+            oversamplingRate=1,
+            disableImplicitControl=True,
+            preserveOutsideKeys=True,
+            sparseAnimCurveBake=False,
+            removeBakedAttributeFromLayer=False,
+            removeBakedAnimFromLayer=False,
+            bakeOnOverrideLayer=False,
+            minimizeRotation=True,
+            controlPoints=False,
+            shape=False,
+            **kwargs,
+        )
+    return True
+
+
 def getRootNode():
     """Returns the root node from a selected node
 

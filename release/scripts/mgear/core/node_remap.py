@@ -53,6 +53,55 @@ def short_name(path):
     return strip_namespace_path(path).split("|")[-1]
 
 
+def get_namespace(path):
+    """Return the namespace of a node name or DAG path leaf.
+
+    Args:
+        path (str): Node name or DAG path, e.g. ``|grp|chr:sub:arm_ctl``.
+
+    Returns:
+        str: The namespace with a trailing colon, e.g. ``"chr:sub:"``, or
+        ``""`` for the root namespace.
+    """
+    leaf = leaf_name(path)
+    if ":" not in leaf:
+        return ""
+    return leaf.rsplit(":", 1)[0] + ":"
+
+
+def add_namespace(name, namespace):
+    """Return a short name placed in a namespace.
+
+    Args:
+        name (str): Node name without namespace.
+        namespace (str): Namespace, with or without trailing colon. ``""``
+            or None for the root namespace.
+
+    Returns:
+        str: ``namespace:name``, or ``name`` for the root namespace.
+    """
+    namespace = (namespace or "").rstrip(":")
+    return "{}:{}".format(namespace, name) if namespace else name
+
+
+def common_namespace(paths):
+    """Return the namespace shared by node names, e.g. a selection.
+
+    Args:
+        paths (list): Node names or DAG paths.
+
+    Returns:
+        tuple: ``(namespace, candidates)``. ``namespace`` (trailing colon,
+        ``""`` for the root namespace) when every name is in the same
+        namespace, None when there are no names or several namespaces.
+        ``candidates`` is the sorted list of unique namespaces.
+    """
+    candidates = sorted({get_namespace(path) for path in paths})
+    if len(candidates) == 1:
+        return candidates[0], candidates
+    return None, candidates
+
+
 def _ls(patterns, node_type=None, recursive=False):
     """List unique long names matching the patterns, ignoring bad patterns.
 

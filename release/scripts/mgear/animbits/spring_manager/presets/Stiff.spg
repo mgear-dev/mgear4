@@ -1,0 +1,27 @@
+{
+    "assignments": {},
+    "colliders": [],
+    "description": "Short, firm overlap that settles quickly. Antennas, short straps, props.",
+    "namespaces": [],
+    "solver": {},
+    "springs": [
+        {
+            "backend": "classic",
+            "controls": [],
+            "options": {
+                "direction": "auto"
+            },
+            "params": {
+                "springRotationalDamping": 0.5,
+                "springRotationalIntensity": 0.6,
+                "springRotationalStiffness": 0.8,
+                "springTotalIntensity": 1.0,
+                "springTranslationalDamping": 0.5,
+                "springTranslationalIntensity": 0.0,
+                "springTranslationalStiffness": 0.5
+            }
+        }
+    ],
+    "type": "values",
+    "version": 2
+}

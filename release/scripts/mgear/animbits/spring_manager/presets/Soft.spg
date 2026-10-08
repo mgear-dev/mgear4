@@ -1,0 +1,27 @@
+{
+    "assignments": {},
+    "colliders": [],
+    "description": "Smooth follow-through with a gentle settle. Good default for most secondary motion.",
+    "namespaces": [],
+    "solver": {},
+    "springs": [
+        {
+            "backend": "classic",
+            "controls": [],
+            "options": {
+                "direction": "auto"
+            },
+            "params": {
+                "springRotationalDamping": 0.6,
+                "springRotationalIntensity": 1.0,
+                "springRotationalStiffness": 0.3,
+                "springTotalIntensity": 1.0,
+                "springTranslationalDamping": 0.5,
+                "springTranslationalIntensity": 0.0,
+                "springTranslationalStiffness": 0.5
+            }
+        }
+    ],
+    "type": "values",
+    "version": 2
+}

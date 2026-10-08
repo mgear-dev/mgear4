@@ -446,50 +446,101 @@ See your key poses side by side while you block. Blocking Ghosts creates static,
 Spring Manager
 ==============
 
-Configure and manage spring dynamics nodes that create secondary motion and jiggle effects on rigged characters.
+Add spring dynamics to animation controls for secondary motion: tails, antennas, hair, ears, cloth pieces or any control that should follow the animation with overlap and jiggle. The springs are live in the scene and are baked to keys when the animation is final.
 
 .. image:: images/animbits/springManager.png
     :align: center
     :scale: 80%
 
-**Key Features:**
+The Spring Manager works on any animation control. It is not related to the Shifter spring components (see `Bake/Clear Spring Nodes`_ for those).
 
-* Configure spring parameters on Shifter spring nodes
-* Direction-based setup (X, Y, Z, -X, -Y, -Z)
-* Preset management system for saving/loading configurations
-* Batch operations for baking and deleting springs
+**Workflow:**
 
-Spring Parameters
------------------
+1. Select the controls and press a direction button in the **Create** section. **Auto** aims each spring along the chain: towards the first child, or away from the parent for the last control.
+2. Play the animation. Select springs in the viewport or in the **Springs** list and tune them in the **Parameters** section.
+3. Save the setup as a preset to reuse it on other shots or characters.
+4. **Springs > Bake Selected / Bake All** to convert the dynamics to keys.
 
-* **Total Intensity** (0-1) - Overall spring effect strength
-* **Spring Rig Scale** (0-100) - Scale spring relative to rig size
-* **Translational Intensity** (0-1) - Translation motion strength
-* **Translational Damping** (0-1) - Translation friction/damping
-* **Translational Stiffness** (0-1) - Translation resistance to deformation
-* **Rotational Intensity** (0-1) - Rotation motion strength
-* **Rotational Damping** (0-1) - Rotation damping
-* **Rotational Stiffness** (0-1) - Rotation resistance
+The control animation is moved to a spring root node while the spring is active, and given back to the control when the spring is deleted. Every create, edit, bake and delete is a single undo step.
 
-**Direction Buttons:**
+Solver
+------
 
-Quick setup for directional springs: X, Y, Z, -X, -Y, -Z
+The **Solver** menu lists the spring solvers. **Classic** is the mGear spring (``mgear_springNode``) included with mGear. Solvers that need a plug-in that is not installed are shown disabled.
 
-Preset System
--------------
+Create
+------
 
-* Store and load spring configurations as .spg files
-* Custom library path support
-* Search and organize presets
-* Reuse configurations across different rigs
+* **X, Y, Z, -X, -Y, -Z** - Create springs on the selected controls, aiming along that axis of each control.
+* **Auto** - Find the direction of each control from its chain.
 
-**Menus:**
+New springs use the values shown in the **Parameters** section when no spring is selected. Controls that already have a spring, or with locked translate and rotate, are skipped.
 
-* **Bake** - Bake Selected, Bake All (convert dynamics to keyframes)
-* **Delete** - Delete Selected, Delete All
-* **Presets** - Set Library, Store Preset, Refresh, Delete Preset
-* **Select** - Select All Spring Targets
+Springs
+-------
 
+Lists the springs of the scene, with their solver and state. Type in the filter field to show only the matching springs (case insensitive, ``*`` wildcard). Drag the bar under the list to make it taller or shorter; the height is remembered. The list and the Maya selection follow each other: selecting a control selects its spring row, and selecting rows selects the controls.
+
+Right-click a spring for: **Select Rig Nodes**, **Enable / Disable** (total intensity 1 or 0), **Bake**, **Delete** and **Refresh**. The list updates by itself after the tool's actions, undo, redo and scene changes; use **Refresh** after creating or deleting springs outside the tool (for example deleting nodes in the Outliner).
+
+Springs made by the Spring Manager of mGear 5.3 and older are listed as **Legacy**. They can be baked or deleted, but not edited: delete and create them again to edit them.
+
+Parameters
+----------
+
+Edits the selected springs live. When the selected springs have different values, the field shows **—**; editing it sets the value on all of them. A slider drag is one undo step. If a parameter is animated, editing it sets a key at the current frame. The parameters are also on the control, in the Channel Box, so they can be keyed.
+
+* **Total Intensity** (0-1) - Overall spring effect. 0 follows the animation exactly.
+* **Rig Scale** (0-100) - Distance between the control and the spring goal. Increase it on big rigs.
+* **Translation Intensity / Damping / Stiffness** (0-1) - Position spring: how much the control lags in position, how fast the motion dies out, and how strongly it is pulled back.
+* **Rotation Intensity / Damping / Stiffness** (0-1) - Direction spring: same, for the rotation.
+* **Show Arrow** - Display the template arrow showing the spring direction. A display setting: it is not keyed by **Key All** and not copied by values presets.
+
+**Reset Defaults** restores the default values. **Key All** keys every parameter of the selected springs.
+
+Presets
+-------
+
+Presets are ``.spg`` files. There are two types, shown with a colored badge, in the tooltip and in the details under the list:
+
+* **Values presets** (blue **V**) - Only the parameter values, not tied to any control. They work on any spring of any character: use them for reusable looks such as *Soft*, *Stiff* or *Tail*. The Factory presets are values presets.
+* **Rig presets** (orange **R**) - The springs of a character: the control names (without namespace), the direction and the values of each spring. They recreate that exact setup on the same character, in any namespace: use them to save and share a character's spring setup.
+
+Choose the library in the menu:
+
+* **Factory** - Values presets included with mGear (Soft, Stiff, Floppy, Tail, Hair). Read only.
+* **User** - Your presets, in ``<Maya user prefs>/mGear/spring_presets``. The folder is created when you save the first preset.
+* **Custom folders** - Add shared folders with **+** or **Presets > Add Library Folder**.
+
+**Grid** shows the presets as a thumbnail grid. Selecting a preset shows its thumbnail, type, description and contents under the list. The search field filters the list (case insensitive, ``*`` wildcard).
+
+**Save...** opens the save dialog:
+
+* **Name** and **Description**.
+* **Type** - **Values** saves the values of the first selected spring, or the values for new springs when no spring is selected. **Rig** saves the selected springs (only available when springs are selected).
+* **Thumbnail** - Captured from the active viewport when the dialog opens. **Viewport** captures it again, **Capture Region...** lets you drag a rectangle anywhere on the screen, and **Clear** saves the preset without image. The thumbnail is saved as a ``.png`` next to the ``.spg`` file.
+
+Actions (buttons, double-click or right-click):
+
+* **Apply** - Values presets apply their values to the selected springs and create springs on the selected controls without one. Rig presets create or update the springs on their controls, in the namespace of the selected nodes (you are asked when the selection has several namespaces).
+* **Apply Values** - Apply only the parameter values of any preset to the selected springs. The **Rig Scale** and **Show Arrow** are kept, as they depend on the target rig. Only the values saved for the springs' solver are used.
+* Right-click: **Select Preset Controls** (rig presets), **Edit Description...**, **Thumbnail from Viewport**, **Thumbnail from Screen Region...**, **Rename**, **Delete** and **Reveal in File Browser**.
+
+Presets from older mGear versions are still loaded, as rig presets.
+
+Bake
+----
+
+**Springs > Bake Selected / Bake All** open the bake options:
+
+* **Playback range** or **Custom range**
+* **Pre-roll frames** - Frames simulated before the start frame so the springs are settled when baking starts. No keys are added before the start frame.
+* **Delete springs after bake** - When off, the springs are kept, disconnected from the controls, and shown as *baked*.
+
+**Notes:**
+
+* Springs are simulated frame by frame: play every frame (Playback Speed: Play every frame) when previewing.
+* The spring solver resets when the time jumps, so scrubbing or jumping frames gives a different result than the playback. Use pre-roll frames when the animation is already moving on the first frame.
 
 Bake/Clear Spring Nodes
 =======================

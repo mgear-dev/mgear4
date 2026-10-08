@@ -396,6 +396,46 @@ def undo_disabled():
             cmds.undoInfo(stateWithoutFlush=True)
 
 
+@contextlib.contextmanager
+def capture_created_nodes():
+    """Context manager - Record the nodes created while the block runs.
+
+    Yields a list that is filled when the block exits, with the names of
+    the nodes created in the block that still exist. DAG nodes use their
+    shortest unique path. Useful to tag or delete everything a setup
+    function created, including utility nodes made by helpers.
+
+    Example:
+        >>> with capture_created_nodes() as nodes:
+        ...     cmds.polyCube()
+        >>> nodes
+        ['pCube1', 'pCubeShape1', 'polyCube1']
+    """
+    handles = []
+
+    def _added(mobject, *args):
+        handles.append(OpenMaya.MObjectHandle(mobject))
+
+    callback_id = OpenMaya.MDGMessage.addNodeAddedCallback(_added, "dependNode")
+    created = []
+    try:
+        yield created
+    finally:
+        OpenMaya.MMessage.removeCallback(callback_id)
+        seen = set()
+        for handle in handles:
+            if not handle.isValid():
+                continue
+            mobject = handle.object()
+            if mobject.hasFn(OpenMaya.MFn.kDagNode):
+                name = OpenMaya.MDagPath.getAPathTo(mobject).partialPathName()
+            else:
+                name = OpenMaya.MFnDependencyNode(mobject).name()
+            if name not in seen:
+                seen.add(name)
+                created.append(name)
+
+
 def timeFunc(func):
     """Use as a property to time any desired function"""
 
@@ -555,6 +595,59 @@ def get_point_count(shape):
     return OpenMaya.MItGeometry(selection_list.getDagPath(0)).count()
 
 
+# plug-ins that failed to load in this session, see is_plugin_available
+_FAILED_PLUGINS = set()
+
+
+def is_plugin_available(name):
+    """Return True if a Maya plug-in is loaded or can be loaded quietly.
+
+    Used to unlock optional features that depend on third-party plug-ins.
+    A failed load is cached for the session, so the load is only tried
+    once and the warning is only logged once. Never raises.
+
+    Args:
+        name (str): Plug-in name, with or without the file extension.
+
+    Returns:
+        bool: True if the plug-in is loaded.
+    """
+    try:
+        if cmds.pluginInfo(name, query=True, loaded=True):
+            return True
+    except RuntimeError:
+        pass
+    if name in _FAILED_PLUGINS:
+        return False
+    try:
+        cmds.loadPlugin(name, quiet=True)
+        return bool(cmds.pluginInfo(name, query=True, loaded=True))
+    except RuntimeError:
+        _FAILED_PLUGINS.add(name)
+        mgear.log(
+            "Optional plug-in '{}' is not available".format(name),
+            mgear.sev_warning,
+        )
+        return False
+
+
+def ensure_plugin(name):
+    """Load a Maya plug-in or raise a readable error.
+
+    Args:
+        name (str): Plug-in name, with or without the file extension.
+
+    Raises:
+        RuntimeError: If the plug-in can not be loaded.
+    """
+    if not is_plugin_available(name):
+        raise RuntimeError(
+            "The Maya plug-in '{}' is required but could not be loaded. "
+            "Check that it is installed in a MAYA_PLUG_IN_PATH "
+            "folder.".format(name)
+        )
+
+
 def get_os():
     """
     Gets the OS that Maya is running in.
@@ -690,6 +783,45 @@ def get_active_camera():
         parents = cmds.listRelatives(camera, parent=True, fullPath=True)
         return parents[0] if parents else None
     return cmds.ls(camera, long=True)[0]
+
+
+def capture_active_view(path, max_size=None):
+    """Save an image of the active 3D viewport, as currently drawn.
+
+    Reads the viewport color buffer, so no playblast or render is needed
+    and overlapping windows are not captured.
+
+    Args:
+        path (str): Output image file. The format comes from the extension
+            (png, jpg, ...).
+        max_size (int, optional): Downscale so the largest side is at most
+            this size, keeping the aspect ratio.
+
+    Returns:
+        str: The saved file path, or None when there is no active viewport
+        (for example in batch mode).
+    """
+    if cmds.about(batch=True):
+        return None
+    from maya import OpenMaya as om1
+    from maya import OpenMayaUI as omui1
+
+    try:
+        view = omui1.M3dView.active3dView()
+        image = om1.MImage()
+        view.readColorBuffer(image, True)
+        width, height = view.portWidth(), view.portHeight()
+        if max_size and max(width, height) > max_size:
+            scale = float(max_size) / max(width, height)
+            image.resize(max(1, int(width * scale)), max(1, int(height * scale)), True)
+        extension = os.path.splitext(path)[1].lstrip(".").lower() or "png"
+        folder = os.path.dirname(path)
+        if folder and not os.path.isdir(folder):
+            os.makedirs(folder)
+        image.writeToFile(path, extension)
+    except RuntimeError:
+        return None
+    return path
 
 
 def get_camera_axis(camera, axis="x", matrix=None):

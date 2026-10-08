@@ -1,0 +1,27 @@
+{
+    "assignments": {},
+    "colliders": [],
+    "description": "Soft rotation with a little positional lag. Hair strands, ponytails, ears.",
+    "namespaces": [],
+    "solver": {},
+    "springs": [
+        {
+            "backend": "classic",
+            "controls": [],
+            "options": {
+                "direction": "auto"
+            },
+            "params": {
+                "springRotationalDamping": 0.5,
+                "springRotationalIntensity": 1.0,
+                "springRotationalStiffness": 0.2,
+                "springTotalIntensity": 1.0,
+                "springTranslationalDamping": 0.6,
+                "springTranslationalIntensity": 0.2,
+                "springTranslationalStiffness": 0.5
+            }
+        }
+    ],
+    "type": "values",
+    "version": 2
+}

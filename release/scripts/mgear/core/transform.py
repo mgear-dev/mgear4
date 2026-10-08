@@ -1173,3 +1173,53 @@ def set_world_transform_data(obj, transform_data):
     #     cmds.xform(obj, ws=True, scalePivot=pivot)
 
 
+
+
+LOCAL_TRANSFORM_ATTRS = (
+    "offsetParentMatrix",
+    "rotateOrder",
+    "rotateAxis",
+    "jointOrient",
+    "translate",
+    "rotate",
+    "scale",
+    "segmentScaleCompensate",
+)
+
+
+def copy_local_transform(source, target, attrs=LOCAL_TRANSFORM_ATTRS):
+    """Copy the local transform setup of a node to another node.
+
+    Values are copied. Inputs that are not animation (e.g. a connected
+    offset parent matrix) are connected to the target too, so both nodes
+    get the same local matrix. Attributes missing on either node are
+    skipped (e.g. ``jointOrient`` on a transform).
+
+    Args:
+        source (str): Source transform or joint.
+        target (str): Target transform or joint.
+        attrs (tuple, optional): Attributes to copy.
+    """
+    # local import: anim_utils imports this module
+    from mgear.core import anim_utils
+
+    for attr in attrs:
+        if not cmds.attributeQuery(attr, node=source, exists=True):
+            continue
+        if not cmds.attributeQuery(attr, node=target, exists=True):
+            continue
+        source_plug = "{}.{}".format(source, attr)
+        target_plug = "{}.{}".format(target, attr)
+        inputs = cmds.listConnections(
+            source_plug, source=True, destination=False, plugs=True
+        )
+        if inputs and not anim_utils.is_anim_source(inputs[0].split(".")[0]):
+            cmds.connectAttr(inputs[0], target_plug, force=True)
+            continue
+        value = cmds.getAttr(source_plug)
+        if attr == "offsetParentMatrix":
+            cmds.setAttr(target_plug, value, type="matrix")
+        elif isinstance(value, list):
+            cmds.setAttr(target_plug, *value[0])
+        else:
+            cmds.setAttr(target_plug, value)

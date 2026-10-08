@@ -24,7 +24,6 @@ Submodules
    mgear.rigbits.ghost
    mgear.rigbits.menu
    mgear.rigbits.mirror_controls
-   mgear.rigbits.postSpring
    mgear.rigbits.proxySlicer
    mgear.rigbits.rbf_io
    mgear.rigbits.rbf_manager_ui

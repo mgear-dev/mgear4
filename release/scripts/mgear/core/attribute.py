@@ -1881,3 +1881,125 @@ def set_ramp(node, attr, entries):
         cmds.setAttr(element + "Position", position)
         cmds.setAttr(element + "FloatValue", value)
         cmds.setAttr(element + "Interp", int(interp))
+
+
+#############################################
+# cmds attribute helpers (string based)
+#############################################
+
+
+def get_message_inputs(node, attr):
+    """Return the nodes connected to a message attribute, in index order.
+
+    Works with single and multi message attributes.
+
+    Args:
+        node (str): Node name.
+        attr (str): Message attribute name.
+
+    Returns:
+        list: Connected node names (shortest unique path for DAG nodes).
+    """
+    if not cmds.attributeQuery(attr, node=node, exists=True):
+        return []
+    plug = "{}.{}".format(node, attr)
+    if not cmds.attributeQuery(attr, node=node, multi=True):
+        return cmds.listConnections(plug, source=True, destination=False) or []
+    nodes = []
+    for index in cmds.getAttr(plug, multiIndices=True) or []:
+        nodes.extend(
+            cmds.listConnections(
+                "{}[{}]".format(plug, index), source=True, destination=False
+            )
+            or []
+        )
+    return nodes
+
+
+def connect_messages(nodes, node, attr):
+    """Connect node messages after the last used index of a multi attr.
+
+    Args:
+        nodes (list): Source node names.
+        node (str): Destination node.
+        attr (str): Multi message attribute on the destination node.
+    """
+    plug = "{}.{}".format(node, attr)
+    indices = cmds.getAttr(plug, multiIndices=True) or []
+    index = indices[-1] + 1 if indices else 0
+    for source in nodes:
+        cmds.connectAttr(source + ".message", "{}[{}]".format(plug, index), force=True)
+        index += 1
+
+
+def ls_nodes_with_attr(attr):
+    """Return the nodes holding an attribute, in every namespace.
+
+    Args:
+        attr (str): Attribute name, e.g. a tag attribute.
+
+    Returns:
+        list: Sorted unique node names.
+    """
+    return sorted(
+        set(cmds.ls("*.{}".format(attr), objectsOnly=True, recursive=True) or [])
+    )
+
+
+def get_string_attr(node, attr, default=None):
+    """Return a string attribute value.
+
+    Args:
+        node (str): Node name.
+        attr (str): Attribute name.
+        default (str, optional): Returned when the attribute is missing.
+
+    Returns:
+        str: The value, or ``default``.
+    """
+    if not cmds.attributeQuery(attr, node=node, exists=True):
+        return default
+    return cmds.getAttr("{}.{}".format(node, attr))
+
+
+def set_string_attr(node, attr, value):
+    """Set a string attribute, creating it when missing.
+
+    Args:
+        node (str): Node name.
+        attr (str): Attribute name.
+        value (str): Value.
+    """
+    if not cmds.attributeQuery(attr, node=node, exists=True):
+        cmds.addAttr(node, longName=attr, dataType="string")
+    cmds.setAttr("{}.{}".format(node, attr), value, type="string")
+
+
+def get_unlocked_channels(node, attrs=("translate", "rotate", "scale")):
+    """Return the unlocked scalar channels of compound attributes.
+
+    Args:
+        node (str): Node name.
+        attrs (tuple, optional): Compound attributes with X, Y, Z children.
+
+    Returns:
+        list: Channel names, e.g. ``["translateX", "rotateY"]``.
+    """
+    return [
+        attr + axis
+        for attr in attrs
+        for axis in "XYZ"
+        if not cmds.getAttr("{}.{}{}".format(node, attr, axis), lock=True)
+    ]
+
+
+def delete_attrs(node, attrs):
+    """Delete the attributes that exist on a node.
+
+    Args:
+        node (str): Node name.
+        attrs (list): Attribute names. Missing ones are skipped.
+    """
+    for attr in attrs:
+        if cmds.attributeQuery(attr, node=node, exists=True):
+            cmds.deleteAttr(node, attribute=attr)

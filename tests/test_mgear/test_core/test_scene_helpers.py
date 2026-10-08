@@ -149,3 +149,127 @@ def test_qt_log_handler_attach(qt_app):
     handler.detach()
     assert logger.level == logging.WARNING
     logger.setLevel(logging.NOTSET)
+
+
+def test_plugin_helpers(run_with_maya_standalone, setup_path):
+    from mgear.core import utils
+
+    utils._FAILED_PLUGINS.discard("notARealPlugin")
+    assert utils.is_plugin_available("notARealPlugin") is False
+    assert "notARealPlugin" in utils._FAILED_PLUGINS
+    # cached: second call does not raise either
+    assert utils.is_plugin_available("notARealPlugin") is False
+    with pytest.raises(RuntimeError, match="notARealPlugin"):
+        utils.ensure_plugin("notARealPlugin")
+
+
+def test_move_animation_curves(run_with_maya_standalone, setup_path):
+    from maya import cmds
+    from mgear.core import anim_utils
+
+    cmds.file(new=True, force=True)
+    source = cmds.createNode("transform", name="source")
+    target = cmds.createNode("transform", name="target")
+    cns_driver = cmds.createNode("transform", name="driver")
+    cmds.setKeyframe(source, attribute="translateX", time=1, value=2)
+    cmds.setKeyframe(source, attribute="rotateY", time=1, value=30)
+    cmds.connectAttr(cns_driver + ".scaleX", source + ".scaleX")
+
+    moved = anim_utils.move_animation_curves(source, target)
+    assert sorted(moved) == ["target.rotateY", "target.translateX"]
+    assert not cmds.listConnections(source + ".translateX", source=True)
+    assert cmds.listConnections(target + ".translateX", source=True)
+    # non anim connections stay
+    assert cmds.listConnections(source + ".scaleX", source=True)
+
+
+def test_bake_attributes(run_with_maya_standalone, setup_path):
+    from maya import cmds
+    from mgear.core import anim_utils
+
+    cmds.file(new=True, force=True)
+    driver = cmds.createNode("transform", name="driver")
+    driven = cmds.createNode("transform", name="driven")
+    cmds.setKeyframe(driver, attribute="translateX", time=1, value=0)
+    cmds.setKeyframe(driver, attribute="translateX", time=10, value=9)
+    cns = cmds.pointConstraint(driver, driven)[0]
+
+    assert anim_utils.bake_attributes([driven], ["translateX"], start=1, end=10)
+    cmds.delete(cns)
+    times = cmds.keyframe(driven + ".translateX", query=True, timeChange=True)
+    assert times == [float(f) for f in range(1, 11)]
+    cmds.currentTime(10)
+    assert cmds.getAttr(driven + ".translateX") == pytest.approx(9.0)
+    assert anim_utils.bake_attributes([], ["translateX"]) is False
+
+
+def test_capture_created_nodes(run_with_maya_standalone, setup_path):
+    from maya import cmds
+    from mgear.core import utils
+
+    cmds.file(new=True, force=True)
+    with utils.capture_created_nodes() as nodes:
+        cube = cmds.polyCube(name="capCube")[0]
+        tmp = cmds.createNode("multiplyDivide", name="tmpMul")
+        cmds.delete(tmp)
+    assert cube in nodes
+    assert "capCubeShape" in nodes
+    assert "tmpMul" not in nodes
+    assert len(nodes) == len(set(nodes))
+
+
+def test_cmds_attribute_helpers(run_with_maya_standalone, setup_path):
+    from maya import cmds
+    from mgear.core import attribute
+
+    cmds.file(new=True, force=True)
+    holder = cmds.createNode("network", name="holder")
+    cmds.addAttr(holder, longName="items", attributeType="message", multi=True)
+    nodes = [cmds.createNode("transform", name="n{}".format(i)) for i in range(3)]
+    attribute.connect_messages(nodes[:2], holder, "items")
+    attribute.connect_messages(nodes[2:], holder, "items")
+    assert attribute.get_message_inputs(holder, "items") == nodes
+    assert attribute.get_message_inputs(holder, "missing") == []
+
+    assert attribute.get_string_attr(holder, "tag", "none") == "none"
+    attribute.set_string_attr(holder, "tag", "spring")
+    assert attribute.get_string_attr(holder, "tag") == "spring"
+    if not cmds.namespace(exists="ns"):
+        cmds.namespace(add="ns")
+    other = cmds.createNode("network", name="ns:other")
+    attribute.set_string_attr(other, "tag", "x")
+    assert attribute.ls_nodes_with_attr("tag") == sorted([holder, other])
+
+    cmds.setAttr(nodes[0] + ".tx", lock=True)
+    channels = attribute.get_unlocked_channels(nodes[0], ("translate",))
+    assert channels == ["translateY", "translateZ"]
+    attribute.delete_attrs(holder, ["tag", "missing"])
+    assert not cmds.attributeQuery("tag", node=holder, exists=True)
+
+
+def test_set_or_key_and_copy_local(run_with_maya_standalone, setup_path):
+    from maya import cmds
+    from mgear.core import anim_utils
+    from mgear.core import transform
+
+    cmds.file(new=True, force=True)
+    node = cmds.createNode("transform", name="node")
+    assert anim_utils.set_or_key(node + ".tx", 2.0)
+    assert cmds.getAttr(node + ".tx") == 2.0
+    cmds.setKeyframe(node, attribute="ty", time=1, value=0)
+    cmds.currentTime(5)
+    assert anim_utils.set_or_key(node + ".ty", 3.0)
+    assert cmds.keyframe(node + ".ty", query=True, time=(5, 5), valueChange=True)
+    driver = cmds.createNode("transform", name="driver")
+    cmds.connectAttr(driver + ".tz", node + ".tz")
+    assert not anim_utils.set_or_key(node + ".tz", 1.0)
+
+    source = cmds.createNode("joint", name="source")
+    cmds.setAttr(source + ".jointOrient", 10, 20, 30)
+    cmds.setAttr(source + ".translate", 1, 2, 3)
+    cmds.setAttr(source + ".rotateOrder", 3)
+    target = cmds.createNode("joint", name="target")
+    transform.copy_local_transform(source, target)
+    assert cmds.getAttr(target + ".jointOrient")[0] == pytest.approx((10, 20, 30))
+    assert cmds.getAttr(target + ".translate")[0] == pytest.approx((1, 2, 3))
+    assert cmds.getAttr(target + ".rotateOrder") == 3

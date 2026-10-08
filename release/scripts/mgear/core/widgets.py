@@ -332,6 +332,9 @@ class CollapsibleHeader(QtWidgets.QWidget):
 
 
 class CollapsibleWidget(QtWidgets.QWidget):
+    # emitted with the new state when the widget is expanded or collapsed
+    expandedChanged = QtCore.Signal(bool)
+
     def __init__(self, text, expanded=True, expandable=True, parent=None):
         """Create a collapsible widget with header and body.
 
@@ -366,7 +369,24 @@ class CollapsibleWidget(QtWidgets.QWidget):
     def addLayout(self, layout):
         self.body_layout.addLayout(layout)
 
+    def is_expanded(self):
+        """Return True when the body is shown.
+
+        Returns:
+            bool: The expanded state.
+        """
+        return self.header_wgt.is_expanded()
+
+    def is_expandable(self):
+        """Return True when the widget grows to fill space once expanded.
+
+        Returns:
+            bool: The expandable setting.
+        """
+        return self._expandable
+
     def set_expanded(self, expanded):
+        changed = expanded != self.header_wgt.is_expanded()
         self.header_wgt.set_expanded(expanded)
         self.body_wgt.setVisible(expanded)
         # Update size policy based on expanded state and expandable setting
@@ -380,6 +400,8 @@ class CollapsibleWidget(QtWidgets.QWidget):
                 QtWidgets.QSizePolicy.Preferred,
                 QtWidgets.QSizePolicy.Fixed
             )
+        if changed:
+            self.expandedChanged.emit(expanded)
 
     def set_header_background_color(self, color):
         self.header_wgt.set_background_color(color)
@@ -477,6 +499,469 @@ class ColorSwatchButton(QtWidgets.QPushButton):
         """Paint the button with the current color."""
         r, g, b = (int(round(c * 255)) for c in self._color)
         self.setStyleSheet("background-color: rgb({}, {}, {});".format(r, g, b))
+
+
+class HeightGrip(QtWidgets.QFrame):
+    """Drag handle that sets the height of the widget above it.
+
+    Put it under the target widget in a layout. Dragging it up or down
+    gives the target a fixed height, clamped to ``minimum`` and
+    ``maximum``. Implements the settings protocol of
+    :class:`pyqt.SettingsMixin`, so the height can be remembered.
+    """
+
+    # emitted while dragging; heightCommitted once when the drag ends
+    heightChanged = QtCore.Signal(int)
+    heightCommitted = QtCore.Signal(int)
+
+    def __init__(self, target, minimum=40, maximum=2000, parent=None):
+        """Initialize the grip.
+
+        Args:
+            target (QtWidgets.QWidget): Widget whose height is set.
+            minimum (int, optional): Smallest height, in pixels.
+            maximum (int, optional): Largest height, in pixels.
+            parent (QtWidgets.QWidget, optional): Parent widget.
+        """
+        super(HeightGrip, self).__init__(parent)
+        self._target = target
+        self._minimum = minimum
+        self._maximum = maximum
+        self._press_y = None
+        self._press_height = None
+        self.setFixedHeight(pyqt.dpi_scale(6))
+        self.setCursor(QtCore.Qt.SizeVerCursor)
+        self.setToolTip("Drag to resize")
+        self.setFrameShape(QtWidgets.QFrame.HLine)
+        self.setFrameShadow(QtWidgets.QFrame.Sunken)
+
+    def set_target_height(self, height):
+        """Set the target height, clamped to the range.
+
+        Args:
+            height (int): Height in pixels.
+        """
+        height = int(max(self._minimum, min(self._maximum, height)))
+        target = self._target
+        if target.minimumHeight() != height or target.maximumHeight() != height:
+            target.setFixedHeight(height)
+            self.heightChanged.emit(height)
+
+    def mousePressEvent(self, event):
+        if event.button() == QtCore.Qt.LeftButton:
+            self._press_y = event.globalPos().y()
+            self._press_height = self._target.height()
+        super(HeightGrip, self).mousePressEvent(event)
+
+    def mouseMoveEvent(self, event):
+        if self._press_y is not None:
+            delta = event.globalPos().y() - self._press_y
+            self.set_target_height(self._press_height + delta)
+        super(HeightGrip, self).mouseMoveEvent(event)
+
+    def mouseReleaseEvent(self, event):
+        if self._press_y is not None:
+            self._press_y = None
+            self.heightCommitted.emit(self._target.maximumHeight())
+        super(HeightGrip, self).mouseReleaseEvent(event)
+
+    def settings_value(self):
+        """Return the target height for pyqt.SettingsMixin.
+
+        Returns:
+            int: Height in pixels.
+        """
+        return self._target.maximumHeight()
+
+    def set_settings_value(self, value):
+        """Set the target height from a stored setting.
+
+        Args:
+            value (object): Stored height, ignored when not a number.
+        """
+        try:
+            self.set_target_height(int(float(value)))
+        except (TypeError, ValueError):
+            pass
+
+    def settings_signal(self):
+        """Return the signal emitted when a drag ends.
+
+        Returns:
+            QtCore.Signal: ``heightCommitted``.
+        """
+        return self.heightCommitted
+
+
+class TriStateCheckBox(QtWidgets.QCheckBox):
+    """Check box with a mixed state, for multi-selection editing.
+
+    Same interface as :class:`FloatSliderSpinBox`: ``value``,
+    ``setValue``, ``isMixed``, ``setMixed``, ``valueChanged`` and
+    ``valueCommitted``. The mixed state shows as partially checked and a
+    click always sets a plain checked or unchecked value.
+    """
+
+    valueChanged = QtCore.Signal(object)
+    valueCommitted = QtCore.Signal(object)
+
+    def __init__(self, text="", parent=None):
+        """Initialize the check box.
+
+        Args:
+            text (str, optional): Label.
+            parent (QtWidgets.QWidget, optional): Parent widget.
+        """
+        super(TriStateCheckBox, self).__init__(text, parent)
+        self.clicked.connect(self._on_clicked)
+
+    def value(self):
+        """Return the checked state.
+
+        Returns:
+            bool: The value.
+        """
+        return self.isChecked()
+
+    def setValue(self, value):
+        """Set the state without emitting signals. Clears the mixed state.
+
+        Args:
+            value (bool): The value.
+        """
+        with pyqt.block_signals(self):
+            self.setTristate(False)
+            self.setChecked(bool(value))
+
+    def isMixed(self):
+        """Return True when showing the mixed state.
+
+        Returns:
+            bool: The mixed state.
+        """
+        return self.checkState() == QtCore.Qt.PartiallyChecked
+
+    def setMixed(self, mixed):
+        """Show or clear the mixed state, without emitting signals.
+
+        Args:
+            mixed (bool): True to show the partially checked state.
+        """
+        if mixed:
+            with pyqt.block_signals(self):
+                self.setTristate(True)
+                self.setCheckState(QtCore.Qt.PartiallyChecked)
+        elif self.isMixed():
+            self.setValue(True)
+
+    def _on_clicked(self, *args):
+        self.setTristate(False)
+        self.valueChanged.emit(self.isChecked())
+        self.valueCommitted.emit(self.isChecked())
+
+
+class ThumbnailEditor(QtWidgets.QWidget):
+    """Square thumbnail preview with viewport, region and clear buttons.
+
+    The viewport button captures the active Maya viewport, the region
+    button lets the user drag a rectangle anywhere on the screen
+    (:mod:`mgear.core.screen_capture`). Images are cropped to a square.
+    ``imageChanged`` is emitted with the new image, or None when cleared.
+    """
+
+    imageChanged = QtCore.Signal(object)
+
+    def __init__(self, image=None, size=128, image_size=256, parent=None):
+        """Initialize the editor.
+
+        Args:
+            image (QtGui.QImage, optional): Initial image.
+            size (int, optional): Preview size, in pixels.
+            image_size (int, optional): Size of the stored square image.
+            parent (QtWidgets.QWidget, optional): Parent widget.
+        """
+        super(ThumbnailEditor, self).__init__(parent)
+        self._image = None
+        self._size = size
+        self._image_size = image_size
+        self.preview = QtWidgets.QLabel()
+        self.preview.setFixedSize(size, size)
+        self.preview.setAlignment(QtCore.Qt.AlignCenter)
+        self.preview.setStyleSheet(
+            "background-color: rgb(40, 40, 40); color: rgb(150, 150, 150);"
+        )
+        self.viewport_btn = QtWidgets.QPushButton("Viewport")
+        self.viewport_btn.setToolTip("Capture the active viewport")
+        self.region_btn = QtWidgets.QPushButton("Capture Region...")
+        self.region_btn.setToolTip("Drag a rectangle anywhere on the screen")
+        self.clear_btn = QtWidgets.QPushButton("Clear")
+
+        buttons = QtWidgets.QVBoxLayout()
+        buttons.addWidget(self.viewport_btn)
+        buttons.addWidget(self.region_btn)
+        buttons.addWidget(self.clear_btn)
+        buttons.addStretch()
+        layout = QtWidgets.QHBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.addWidget(self.preview)
+        layout.addLayout(buttons)
+
+        self.viewport_btn.clicked.connect(self.capture_viewport)
+        self.region_btn.clicked.connect(self.capture_region)
+        self.clear_btn.clicked.connect(self.clear)
+        self.set_image(image)
+
+    def image(self):
+        """Return the image.
+
+        Returns:
+            QtGui.QImage: The square image, or None.
+        """
+        return self._image
+
+    def set_image(self, image):
+        """Set the image, cropped to a square.
+
+        Args:
+            image (QtGui.QImage): The image, or None to clear.
+        """
+        self._image = pyqt.square_crop_image(image, self._image_size)
+        if self._image is None:
+            self.preview.setPixmap(QtGui.QPixmap())
+            self.preview.setText("No image")
+        else:
+            self.preview.setPixmap(
+                QtGui.QPixmap.fromImage(self._image).scaled(
+                    self._size,
+                    self._size,
+                    QtCore.Qt.KeepAspectRatio,
+                    QtCore.Qt.SmoothTransformation,
+                )
+            )
+        self.imageChanged.emit(self._image)
+
+    def clear(self):
+        """Remove the image."""
+        self.set_image(None)
+
+    def capture_viewport(self):
+        """Use the active viewport as image."""
+        image = pyqt.capture_active_view_image()
+        if image is None:
+            cmds.warning("No active viewport to capture")
+            return
+        self.set_image(image)
+
+    def capture_region(self):
+        """Use a screen region as image."""
+        from mgear.core import screen_capture
+
+        image = screen_capture.capture_screen_region(hide_widgets=[self.window()])
+        if image is not None:
+            self.set_image(image)
+
+
+class FloatSliderSpinBox(QtWidgets.QWidget):
+    """Float spin box and slider kept in sync, with a mixed-value state.
+
+    ``valueChanged`` is emitted while the value changes (including during
+    a slider drag). ``valueCommitted`` is emitted once when an edit is
+    finished: slider released, slider track clicked or spin box value
+    entered. Use it to record a single undo step per edit.
+
+    The slider covers ``minimum`` to ``soft_maximum``. Typing a larger
+    value (up to ``maximum``) extends the slider range.
+
+    The mixed state shows "—" in the spin box, for multi-selection
+    editing when the edited objects have different values. Any edit
+    clears it.
+    """
+
+    valueChanged = QtCore.Signal(float)
+    valueCommitted = QtCore.Signal(float)
+    sliderPressed = QtCore.Signal()
+
+    SLIDER_STEPS = 1000
+    MIXED_TEXT = "—"
+
+    def __init__(
+        self,
+        label="",
+        minimum=0.0,
+        maximum=1.0,
+        default=0.0,
+        decimals=3,
+        soft_maximum=None,
+        parent=None,
+    ):
+        """Initialize the widget.
+
+        Args:
+            label (str, optional): Label shown on the left. No label when
+                empty.
+            minimum (float, optional): Minimum value.
+            maximum (float, optional): Maximum value.
+            default (float, optional): Initial value.
+            decimals (int, optional): Spin box decimals.
+            soft_maximum (float, optional): Initial slider maximum.
+                Defaults to ``maximum``.
+            parent (QtWidgets.QWidget, optional): Parent widget.
+        """
+        super(FloatSliderSpinBox, self).__init__(parent)
+        self._minimum = float(minimum)
+        self._maximum = float(maximum)
+        soft_maximum = float(
+            maximum if soft_maximum is None else min(soft_maximum, maximum)
+        )
+        self._slider_maximum = soft_maximum
+        self._mixed = False
+        self._step = 10.0**-decimals
+
+        self.label = QtWidgets.QLabel(label)
+        self.label.setVisible(bool(label))
+
+        self.spin_box = QtWidgets.QDoubleSpinBox()
+        self.spin_box.setDecimals(decimals)
+        self.spin_box.setRange(self._minimum, self._maximum)
+        self.spin_box.setSingleStep(
+            max(self._step, (soft_maximum - self._minimum) / 100.0)
+        )
+        self.spin_box.setKeyboardTracking(False)
+        self.spin_box.setMinimumWidth(pyqt.dpi_scale(60))
+
+        self.slider = QtWidgets.QSlider(QtCore.Qt.Horizontal)
+        self.slider.setRange(0, self.SLIDER_STEPS)
+
+        layout = QtWidgets.QHBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.addWidget(self.label)
+        layout.addWidget(self.spin_box)
+        layout.addWidget(self.slider, 1)
+
+        self._set_widgets(float(default))
+
+        self.spin_box.valueChanged.connect(self._on_spin_changed)
+        self.slider.valueChanged.connect(self._on_slider_changed)
+        self.slider.sliderPressed.connect(self.sliderPressed.emit)
+        self.slider.sliderReleased.connect(self._on_slider_released)
+
+    # public -----------------------------------------------------------
+
+    def value(self):
+        """Return the current value.
+
+        Returns:
+            float: The value. Meaningless while the widget is mixed.
+        """
+        return self.spin_box.value()
+
+    def setValue(self, value):
+        """Set the value without emitting signals. Clears the mixed state.
+
+        Args:
+            value (float): New value, clamped to the range.
+        """
+        self.setMixed(False)
+        self._set_widgets(float(value))
+
+    def isMixed(self):
+        """Return True while the widget shows the mixed state.
+
+        Returns:
+            bool: The mixed state.
+        """
+        return self._mixed
+
+    def setMixed(self, mixed):
+        """Show or clear the mixed-value state. Does not emit signals.
+
+        Args:
+            mixed (bool): True to show "—" in the spin box.
+        """
+        if mixed == self._mixed:
+            return
+        self._mixed = mixed
+        with pyqt.block_signals(self.spin_box):
+            if mixed:
+                # the special value text is shown when value == minimum
+                self.spin_box.setSpecialValueText(self.MIXED_TEXT)
+                self.spin_box.setMinimum(self._minimum - self._step)
+                self.spin_box.setValue(self.spin_box.minimum())
+            else:
+                self.spin_box.setSpecialValueText("")
+                self.spin_box.setMinimum(self._minimum)
+
+    def settings_value(self):
+        """Return the value for pyqt.SettingsMixin.
+
+        Returns:
+            float: The value.
+        """
+        return self.value()
+
+    def set_settings_value(self, value):
+        """Set the value from a stored setting (pyqt.SettingsMixin).
+
+        Args:
+            value (object): Stored value, ignored when not a number.
+        """
+        try:
+            self.setValue(float(value))
+        except (TypeError, ValueError):
+            pass
+
+    def settings_signal(self):
+        """Return the signal emitted when an edit is finished.
+
+        Returns:
+            QtCore.Signal: ``valueCommitted``.
+        """
+        return self.valueCommitted
+
+    # internal ---------------------------------------------------------
+
+    def _set_widgets(self, value):
+        value = max(self._minimum, min(self._maximum, value))
+        if value > self._slider_maximum:
+            self._slider_maximum = value
+        with pyqt.block_signals(self.spin_box):
+            self.spin_box.setValue(value)
+        with pyqt.block_signals(self.slider):
+            self.slider.setValue(self._to_slider(value))
+
+    def _to_slider(self, value):
+        span = self._slider_maximum - self._minimum
+        if span <= 0:
+            return 0
+        ratio = (value - self._minimum) / span
+        return int(round(max(0.0, min(1.0, ratio)) * self.SLIDER_STEPS))
+
+    def _from_slider(self, position):
+        span = self._slider_maximum - self._minimum
+        return self._minimum + span * position / float(self.SLIDER_STEPS)
+
+    def _on_spin_changed(self, value):
+        if self._mixed:
+            if value < self._minimum:
+                # still showing the mixed text
+                return
+            self.setMixed(False)
+        self._set_widgets(value)
+        self.valueChanged.emit(self.value())
+        self.valueCommitted.emit(self.value())
+
+    def _on_slider_changed(self, position):
+        self.setMixed(False)
+        value = round(self._from_slider(position), self.spin_box.decimals())
+        with pyqt.block_signals(self.spin_box):
+            self.spin_box.setValue(value)
+        self.valueChanged.emit(self.value())
+        if not self.slider.isSliderDown():
+            # track click or keyboard: the edit is already finished
+            self.valueCommitted.emit(self.value())
+
+    def _on_slider_released(self):
+        self.valueCommitted.emit(self.value())
 
 
 class NodeListWidget(QtWidgets.QWidget):

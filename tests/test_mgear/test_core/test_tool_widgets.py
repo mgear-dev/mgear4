@@ -148,3 +148,172 @@ def test_settings_mixin_round_trip(clean_settings):
     assert not second.toggle.isChecked()
     assert second.swatch.color() == pytest.approx((0.2, 0.4, 0.6))
     assert second.nodes.nodes() == ["|a"]
+
+
+def test_float_slider_spin_box(qt_app):
+    from mgear.core import widgets
+
+    widget = widgets.FloatSliderSpinBox("Damping", 0.0, 1.0, 0.5)
+    changed = []
+    committed = []
+    widget.valueChanged.connect(changed.append)
+    widget.valueCommitted.connect(committed.append)
+
+    # Slider midpoint -> spin box value; a track change commits at once.
+    widget.slider.setValue(widget.SLIDER_STEPS // 4)
+    assert widget.value() == pytest.approx(0.25)
+    assert changed[-1] == pytest.approx(0.25)
+    assert committed == [pytest.approx(0.25)]
+
+    # A drag commits only once, on release.
+    del committed[:]
+    widget.slider.setSliderDown(True)
+    for position in (300, 600, 900):
+        widget.slider.setValue(position)
+    assert committed == []
+    # setSliderDown(False) emits sliderReleased
+    widget.slider.setSliderDown(False)
+    assert committed == [pytest.approx(0.9)]
+
+    # setValue does not emit.
+    del changed[:]
+    widget.setValue(0.1)
+    assert widget.value() == pytest.approx(0.1)
+    assert changed == []
+
+
+def test_float_slider_spin_box_mixed_and_soft_max(qt_app):
+    from mgear.core import widgets
+
+    widget = widgets.FloatSliderSpinBox("", 0.0, 100.0, 1.0, soft_maximum=10.0)
+    committed = []
+    widget.valueCommitted.connect(committed.append)
+
+    widget.setMixed(True)
+    assert widget.isMixed()
+    assert widget.spin_box.text() == widget.MIXED_TEXT
+    assert committed == []
+
+    # Typing a value clears the mixed state and commits it.
+    widget.spin_box.setValue(0.3)
+    assert not widget.isMixed()
+    assert committed == [pytest.approx(0.3)]
+
+    # A value above the soft maximum extends the slider range.
+    widget.setValue(50.0)
+    assert widget.slider.value() == widget.SLIDER_STEPS
+    widget.setValue(25.0)
+    assert widget.slider.value() == widget.SLIDER_STEPS // 2
+
+
+def test_set_proxy_filter(qt_app):
+    from mgear.core import pyqt
+    from mgear.vendor.Qt import QtCore
+    from mgear.vendor.Qt import QtGui
+
+    model = QtGui.QStandardItemModel()
+    for name in ("Tail_soft", "hair_stiff", "a(b"):
+        model.appendRow(QtGui.QStandardItem(name))
+    proxy = QtCore.QSortFilterProxyModel()
+    proxy.setSourceModel(model)
+
+    def visible():
+        return [proxy.index(row, 0).data() for row in range(proxy.rowCount())]
+
+    pyqt.set_proxy_filter(proxy, "tail")
+    assert visible() == ["Tail_soft"]
+    pyqt.set_proxy_filter(proxy, "ta*l")
+    assert visible() == ["Tail_soft"]
+    pyqt.set_proxy_filter(proxy, "tail", case_sensitive=True)
+    assert visible() == []
+    pyqt.set_proxy_filter(proxy, "a(b")
+    assert visible() == ["a(b"]
+    pyqt.set_proxy_filter(proxy, "")
+    assert len(visible()) == 3
+
+
+def test_collapsible_widget_signal(qt_app):
+    from mgear.core import widgets
+
+    section = widgets.CollapsibleWidget("Test", expanded=True, expandable=False)
+    states = []
+    section.expandedChanged.connect(states.append)
+    section.set_expanded(False)
+    section.set_expanded(False)
+    section.on_header_clicked()
+    assert states == [False, True]
+    assert section.is_expanded()
+    assert not section.is_expandable()
+
+
+def test_height_grip(qt_app):
+    from mgear.core import widgets
+    from mgear.vendor.Qt import QtWidgets
+
+    target = QtWidgets.QListWidget()
+    grip = widgets.HeightGrip(target, minimum=50, maximum=300)
+    heights = []
+    grip.heightChanged.connect(heights.append)
+    grip.set_target_height(120)
+    assert target.minimumHeight() == target.maximumHeight() == 120
+    grip.set_target_height(1000)
+    assert target.maximumHeight() == 300
+    grip.set_settings_value("80")
+    assert grip.settings_value() == target.height()
+    grip.set_settings_value("bad")
+    assert heights == [120, 300, 80]
+
+
+def test_pyqt_image_and_settings_helpers(clean_settings):
+    from mgear.core import pyqt
+    from mgear.vendor.Qt import QtGui
+    from mgear.vendor.Qt import QtWidgets
+
+    image = QtGui.QImage(200, 100, QtGui.QImage.Format_RGB32)
+    square = pyqt.square_crop_image(image, 64)
+    assert (square.width(), square.height()) == (64, 64)
+    assert pyqt.square_crop_image(None, 64) is None
+    badge = pyqt.text_badge("V", 32, QtGui.QColor(10, 20, 30))
+    assert badge.width() == 32
+    assert pyqt.text_width(QtWidgets.QLabel().fontMetrics(), "abc") > 0
+
+    class Holder(pyqt.SettingsMixin):
+        pass
+
+    holder = Holder()
+    holder.save_json_setting("pytest_json", {"a": [1, 2]})
+    assert holder.load_json_setting("pytest_json", {}) == {"a": [1, 2]}
+    assert holder.load_json_setting("pytest_json", []) == []
+    holder.settings.setValue("pytest_json", "{bad")
+    assert holder.load_json_setting("pytest_json", {}) == {}
+
+
+def test_tristate_and_thumbnail_editor(qt_app):
+    from mgear.core import widgets
+    from mgear.vendor.Qt import QtGui
+
+    box = widgets.TriStateCheckBox()
+    committed = []
+    box.valueCommitted.connect(committed.append)
+    box.setMixed(True)
+    assert box.isMixed()
+    box.click()
+    assert committed == [True] and not box.isMixed()
+    box.setValue(False)
+    assert box.value() is False and committed == [True]
+
+    editor = widgets.ThumbnailEditor(size=64, image_size=32)
+    assert editor.image() is None
+    editor.set_image(QtGui.QImage(100, 50, QtGui.QImage.Format_RGB32))
+    assert editor.image().width() == 32
+    editor.clear()
+    assert editor.image() is None
+
+
+def test_height_grip_commit(qt_app):
+    from mgear.core import widgets
+    from mgear.vendor.Qt import QtWidgets
+
+    target = QtWidgets.QListWidget()
+    grip = widgets.HeightGrip(target, minimum=50, maximum=300)
+    assert grip.settings_signal() is grip.heightCommitted

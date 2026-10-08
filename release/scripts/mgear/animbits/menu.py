@@ -17,8 +17,16 @@ def install():
         ("Smart Reset Attribute/SRT", str_smart_reset, "mgear_smart_reset.svg"),
         ("-----", None),
         ("Spring Manager", str_openSpringManager, "mgear_spring.svg"),
-        ("Bake Spring nodes (Shifter Component)", str_bakeSprings, "mgear_bake_spring.svg"),
-        ("Clear Baked Spring nodes (Shifter Component)", str_clearSprings, "mgear_clear_spring.svg"),
+        (
+            "Bake Spring nodes (Shifter Component)",
+            str_bakeSprings,
+            "mgear_bake_spring.svg",
+        ),
+        (
+            "Clear Baked Spring nodes (Shifter Component)",
+            str_clearSprings,
+            "mgear_clear_spring.svg",
+        ),
     )
 
     mgear.menu.install("Animbits", commands, image="mgear_animbits.svg")
@@ -66,7 +74,7 @@ clearSprings()
 
 str_openSpringManager = """
 from mgear.animbits.spring_manager import ui
-ui.openSpringManagerManager()
+ui.open_spring_manager()
 """
 
 str_mocap_humanIKMapper = """

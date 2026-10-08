@@ -1,0 +1,27 @@
+{
+    "assignments": {},
+    "colliders": [],
+    "description": "Balanced lag and bounce for tails and long chains.",
+    "namespaces": [],
+    "solver": {},
+    "springs": [
+        {
+            "backend": "classic",
+            "controls": [],
+            "options": {
+                "direction": "auto"
+            },
+            "params": {
+                "springRotationalDamping": 0.35,
+                "springRotationalIntensity": 1.0,
+                "springRotationalStiffness": 0.35,
+                "springTotalIntensity": 1.0,
+                "springTranslationalDamping": 0.5,
+                "springTranslationalIntensity": 0.0,
+                "springTranslationalStiffness": 0.5
+            }
+        }
+    ],
+    "type": "values",
+    "version": 2
+}

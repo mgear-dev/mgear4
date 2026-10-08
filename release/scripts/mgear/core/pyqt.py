@@ -4,8 +4,11 @@
 # GLOBAL
 #############################################
 import contextlib
+import json
 import logging
 import os
+import re
+import tempfile
 import traceback
 import maya.OpenMayaUI as omui
 import mgear.pymaya as pm
@@ -382,6 +385,45 @@ def block_signals(widget, children=False):
             child_widget.blockSignals(blocked_children[i])
 
 
+def wildcard_to_regex(text):
+    """Convert a wildcard filter text to a regular expression pattern.
+
+    ``*`` matches any characters and ``?`` a single character. Every other
+    character is matched literally.
+
+    Args:
+        text (str): Wildcard text, e.g. ``"tail*soft"``.
+
+    Returns:
+        str: The regular expression pattern (not anchored).
+    """
+    return re.escape(text).replace(r"\*", ".*").replace(r"\?", ".")
+
+
+def set_proxy_filter(proxy, text, case_sensitive=False):
+    """Apply a wildcard text filter to a sort filter proxy model.
+
+    Works with PySide2 and PySide6: uses ``setFilterRegularExpression``
+    when available and falls back to ``setFilterRegExp``. The text is
+    matched anywhere in the row text.
+
+    Args:
+        proxy (QtCore.QSortFilterProxyModel): The proxy model.
+        text (str): Wildcard filter text. Empty shows every row.
+        case_sensitive (bool, optional): Match case.
+    """
+    pattern = wildcard_to_regex(text or "")
+    if hasattr(proxy, "setFilterRegularExpression"):
+        if not case_sensitive:
+            pattern = "(?i)" + pattern
+        proxy.setFilterRegularExpression(pattern)
+    else:
+        proxy.setFilterCaseSensitivity(
+            QtCore.Qt.CaseSensitive if case_sensitive else QtCore.Qt.CaseInsensitive
+        )
+        proxy.setFilterRegExp(pattern)
+
+
 def get_icon_path(icon_name=None):
     """Gets the directory path to the icon"""
 
@@ -447,6 +489,99 @@ def dpi_scale(value, default=96, min_=1, max_=2):
 #############################################
 
 
+def text_width(metrics, text):
+    """Return the width of a text, on Qt5 and Qt6.
+
+    Args:
+        metrics (QtGui.QFontMetrics): Font metrics.
+        text (str): Text.
+
+    Returns:
+        int: Width in pixels.
+    """
+    if hasattr(metrics, "horizontalAdvance"):
+        return metrics.horizontalAdvance(text)
+    return metrics.width(text)
+
+
+def square_crop_image(image, size):
+    """Return a centered square crop of an image, scaled to a size.
+
+    Args:
+        image (QtGui.QImage): Source image.
+        size (int): Output width and height, in pixels.
+
+    Returns:
+        QtGui.QImage: The square image, or None for a null image.
+    """
+    if image is None or image.isNull():
+        return None
+    side = min(image.width(), image.height())
+    crop = image.copy(
+        (image.width() - side) // 2, (image.height() - side) // 2, side, side
+    )
+    return crop.scaled(
+        size, size, QtCore.Qt.KeepAspectRatio, QtCore.Qt.SmoothTransformation
+    )
+
+
+def capture_active_view_image(max_size=1024):
+    """Capture the active 3D viewport as an image.
+
+    Args:
+        max_size (int, optional): Largest side of the returned image.
+
+    Returns:
+        QtGui.QImage: The image, or None when there is no viewport.
+    """
+    from mgear.core import utils
+
+    handle, path = tempfile.mkstemp(suffix=".png")
+    os.close(handle)
+    try:
+        if not utils.capture_active_view(path, max_size=max_size):
+            return None
+        image = QtGui.QImage(path)
+        return None if image.isNull() else image
+    finally:
+        if os.path.exists(path):
+            os.remove(path)
+
+
+def text_badge(text, size, color, text_color=None):
+    """Return a rounded square icon with a short text, e.g. an initial.
+
+    Args:
+        text (str): Text drawn in the middle, one or two characters.
+        size (int): Icon size, in pixels.
+        color (QtGui.QColor): Background color.
+        text_color (QtGui.QColor, optional): Text color, white by default.
+
+    Returns:
+        QtGui.QPixmap: The badge.
+    """
+    pixmap = QtGui.QPixmap(size, size)
+    pixmap.fill(QtCore.Qt.transparent)
+    painter = QtGui.QPainter(pixmap)
+    painter.setRenderHint(QtGui.QPainter.Antialiasing)
+    painter.setBrush(color)
+    painter.setPen(QtCore.Qt.NoPen)
+    margin = size * 0.08
+    painter.drawRoundedRect(
+        QtCore.QRectF(margin, margin, size - 2 * margin, size - 2 * margin),
+        size * 0.15,
+        size * 0.15,
+    )
+    font = painter.font()
+    font.setBold(True)
+    font.setPixelSize(int(size * 0.45))
+    painter.setFont(font)
+    painter.setPen(text_color or QtGui.QColor(255, 255, 255))
+    painter.drawText(pixmap.rect(), QtCore.Qt.AlignCenter, text)
+    painter.end()
+    return pixmap
+
+
 def get_user_settings():
     """Return the shared mGear user settings object.
 
@@ -487,6 +622,32 @@ class SettingsMixin(object):
             value = self.settings.value(key, defaultValue=default_value)
             self.set_widget_value(widget, value, default_value)
             self._connect_widget_signal(widget)
+
+    def load_json_setting(self, key, default):
+        """Return a JSON value stored in the settings.
+
+        Args:
+            key (str): Settings key.
+            default (object): Returned when the value is missing, invalid
+                or not of the same type.
+
+        Returns:
+            object: The value.
+        """
+        try:
+            value = json.loads(self.settings.value(key) or "null")
+        except (TypeError, ValueError):
+            return default
+        return value if isinstance(value, type(default)) else default
+
+    def save_json_setting(self, key, value):
+        """Store a JSON serializable value in the settings.
+
+        Args:
+            key (str): Settings key.
+            value (object): Value.
+        """
+        self.settings.setValue(key, json.dumps(value))
 
     def save_settings(self):
         for key, (widget, _) in self.user_settings.items():

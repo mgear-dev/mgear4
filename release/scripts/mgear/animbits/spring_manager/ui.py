@@ -1,470 +1,1724 @@
+"""Spring Manager window."""
+
+import os
+import re
+import webbrowser
+from collections import OrderedDict
+from functools import partial
+
+from maya import cmds
+from maya.app.general.mayaMixin import MayaQWidgetDockableMixin
+import maya.api.OpenMaya as om2
+
+import mgear
+from mgear.core import callbackManager
+from mgear.core import node_remap
 from mgear.core import pyqt
-from mgear.core import widgets as mgear_widget
-from mgear.core import widgets as mwgt
-from mgear.vendor.Qt import QtWidgets
+from mgear.core import screen_capture
+from mgear.core import utils
+from mgear.core import widgets
+
 from mgear.vendor.Qt import QtCore
 from mgear.vendor.Qt import QtGui
-import mgear.pymaya as pm
-from maya.app.general.mayaMixin import MayaQWidgetDockableMixin
-from functools import partial
-import os
-import glob
-from mgear.core.utils import one_undo
+from mgear.vendor.Qt import QtWidgets
 
-import maya.cmds as cmds
+from . import bake
+from . import constants
+from . import presets
+from . import registry
+from .backends import editable_springs
+from .backends import get_backend
+from .backends import get_backends
+from .backends import values_differ
 
-from . import setup
+DOCS_URL = (
+    "https://mgear4.readthedocs.io/en/master/"
+    "animbitsUserDocumentation.html#spring-manager"
+)
+NEW_VALUES_KEY = constants.SETTINGS_PREFIX + "new_values"
+SOLVER_KEY = constants.SETTINGS_PREFIX + "solver"
+LIBRARY_KEY = constants.SETTINGS_PREFIX + "library"
+GRID_VIEW_KEY = constants.SETTINGS_PREFIX + "preset_grid"
+SPRINGS_HEIGHT_KEY = constants.SETTINGS_PREFIX + "springs_height"
+SPRINGS_HEIGHT = 150
+PRESET_PATH_ROLE = QtCore.Qt.UserRole + 1
+
+COLUMN_NAME = 0
+COLUMN_SOLVER = 1
+COLUMN_STATE = 2
+
+LIST_ICON_SIZE = 40
+GRID_ICON_SIZE = 96
+DETAIL_ICON_SIZE = 128
+
+TYPE_COLORS = {
+    constants.PRESET_VALUES: QtGui.QColor(70, 140, 200),
+    constants.PRESET_RIG: QtGui.QColor(200, 130, 60),
+}
+TYPE_LABELS = {
+    constants.PRESET_VALUES: "Values",
+    constants.PRESET_RIG: "Rig",
+}
+TYPE_HELP = {
+    constants.PRESET_VALUES: (
+        "Only the parameter values. Applies to any spring: the selected "
+        "springs get the values, and selected controls without a spring "
+        "get a new one. Use it for reusable looks (soft, stiff, tail...)."
+    ),
+    constants.PRESET_RIG: (
+        "The springs of the selected controls: control names, creation "
+        "options and values. Recreates that setup on the same character, "
+        "in any namespace. Use it to save a character's spring setup."
+    ),
+}
+
+# Factory and User libraries come first, custom folders after
+BUILTIN_LIBRARY_COUNT = 2
+
+_BADGES = {}
+
+
+def type_badge(preset_type):
+    """Return the cached placeholder icon of a preset type.
+
+    Args:
+        preset_type (str): Preset type.
+
+    Returns:
+        QtGui.QIcon: A rounded square with the type initial.
+    """
+    if preset_type not in _BADGES:
+        _BADGES[preset_type] = QtGui.QIcon(
+            pyqt.text_badge(
+                TYPE_LABELS.get(preset_type, "?")[0],
+                GRID_ICON_SIZE,
+                TYPE_COLORS.get(preset_type, QtGui.QColor(120, 120, 120)),
+            )
+        )
+    return _BADGES[preset_type]
+
+
+class Library(object):
+    """A preset library folder.
+
+    Attributes:
+        label (str): Display name.
+        folder (str): Folder path.
+        read_only (bool): Presets can't be saved, renamed or deleted.
+    """
+
+    def __init__(self, label, folder, read_only=False):
+        self.label = label
+        self.folder = folder
+        self.read_only = read_only
+
+
+class SavePresetDialog(QtWidgets.QDialog):
+    """Name, type, description and thumbnail of a new preset."""
+
+    def __init__(self, can_save_rig, parent=None):
+        """Initialize the dialog.
+
+        Args:
+            can_save_rig (bool): True when springs are selected, so a rig
+                preset can be saved.
+            parent (QtWidgets.QWidget, optional): Parent widget.
+        """
+        super(SavePresetDialog, self).__init__(parent)
+        self.setWindowTitle("Save Spring Preset")
+        self.setMinimumWidth(pyqt.dpi_scale(380))
+
+        self.name_le = QtWidgets.QLineEdit()
+        self.name_le.setPlaceholderText("Preset name")
+        self.values_rb = QtWidgets.QRadioButton("Values")
+        self.rig_rb = QtWidgets.QRadioButton("Rig")
+        self.values_rb.setToolTip(TYPE_HELP[constants.PRESET_VALUES])
+        self.rig_rb.setToolTip(TYPE_HELP[constants.PRESET_RIG])
+        self.rig_rb.setEnabled(can_save_rig)
+        if can_save_rig:
+            self.rig_rb.setChecked(True)
+        else:
+            self.values_rb.setChecked(True)
+            self.rig_rb.setToolTip(
+                TYPE_HELP[constants.PRESET_RIG]
+                + "\n\nSelect springs to save a rig preset."
+            )
+        self.type_help = QtWidgets.QLabel()
+        self.type_help.setWordWrap(True)
+        self.type_help.setStyleSheet("color: rgb(160, 160, 160);")
+        self.description_te = QtWidgets.QPlainTextEdit()
+        self.description_te.setPlaceholderText("What is this preset for?")
+        self.description_te.setFixedHeight(pyqt.dpi_scale(60))
+        self.thumbnail = widgets.ThumbnailEditor(
+            pyqt.capture_active_view_image(),
+            size=pyqt.dpi_scale(DETAIL_ICON_SIZE),
+            image_size=constants.THUMBNAIL_SIZE,
+        )
+
+        type_layout = QtWidgets.QHBoxLayout()
+        type_layout.addWidget(self.values_rb)
+        type_layout.addWidget(self.rig_rb)
+        type_layout.addStretch()
+        form = QtWidgets.QFormLayout()
+        form.addRow("Name", self.name_le)
+        form.addRow("Type", type_layout)
+        form.addRow("", self.type_help)
+        form.addRow("Description", self.description_te)
+        form.addRow("Thumbnail", self.thumbnail)
+
+        buttons = QtWidgets.QDialogButtonBox(
+            QtWidgets.QDialogButtonBox.Save | QtWidgets.QDialogButtonBox.Cancel
+        )
+        buttons.accepted.connect(self._accept)
+        buttons.rejected.connect(self.reject)
+        layout = QtWidgets.QVBoxLayout(self)
+        layout.addLayout(form)
+        layout.addWidget(buttons)
+
+        self.values_rb.toggled.connect(self._update_help)
+        self._update_help()
+
+    def _update_help(self, *args):
+        self.type_help.setText(TYPE_HELP[self.preset_type()])
+
+    def _accept(self):
+        if not self.name():
+            self.name_le.setFocus()
+            return
+        self.accept()
+
+    def name(self):
+        """Return the preset name.
+
+        Returns:
+            str: Name, stripped.
+        """
+        return self.name_le.text().strip()
+
+    def preset_type(self):
+        """Return the chosen preset type.
+
+        Returns:
+            str: :data:`constants.PRESET_VALUES` or ``PRESET_RIG``.
+        """
+        if self.rig_rb.isChecked():
+            return constants.PRESET_RIG
+        return constants.PRESET_VALUES
+
+    def description(self):
+        """Return the description.
+
+        Returns:
+            str: Description, stripped.
+        """
+        return self.description_te.toPlainText().strip()
+
+
+class BakeDialog(QtWidgets.QDialog):
+    """Bake options: frame range, pre-roll and delete or keep."""
+
+    def __init__(self, count, parent=None):
+        """Initialize the dialog.
+
+        Args:
+            count (int): Number of springs to bake, shown in the title.
+            parent (QtWidgets.QWidget, optional): Parent widget.
+        """
+        super(BakeDialog, self).__init__(parent)
+        self.setWindowTitle("Bake {} Spring(s)".format(count))
+
+        start = cmds.playbackOptions(query=True, minTime=True)
+        end = cmds.playbackOptions(query=True, maxTime=True)
+
+        self.playback_rb = QtWidgets.QRadioButton("Playback range")
+        self.playback_rb.setChecked(True)
+        self.custom_rb = QtWidgets.QRadioButton("Custom range")
+        self.start_spin = QtWidgets.QDoubleSpinBox()
+        self.end_spin = QtWidgets.QDoubleSpinBox()
+        for spin, value in ((self.start_spin, start), (self.end_spin, end)):
+            spin.setDecimals(0)
+            spin.setRange(-1000000, 1000000)
+            spin.setValue(value)
+            spin.setEnabled(False)
+        self.preroll_spin = QtWidgets.QSpinBox()
+        self.preroll_spin.setRange(0, 10000)
+        self.preroll_spin.setToolTip(
+            "Frames simulated before the start frame so the springs are "
+            "settled when baking starts. No keys are added before the start."
+        )
+        self.delete_cb = QtWidgets.QCheckBox("Delete springs after bake")
+        self.delete_cb.setChecked(True)
+        self.delete_cb.setToolTip(
+            "When off, the springs are kept, disconnected from the controls "
+            "and marked as baked."
+        )
+
+        range_layout = QtWidgets.QHBoxLayout()
+        range_layout.addWidget(self.custom_rb)
+        range_layout.addWidget(self.start_spin)
+        range_layout.addWidget(self.end_spin)
+        form = QtWidgets.QFormLayout()
+        form.addRow("Pre-roll frames", self.preroll_spin)
+
+        buttons = QtWidgets.QDialogButtonBox(
+            QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel
+        )
+        buttons.button(QtWidgets.QDialogButtonBox.Ok).setText("Bake")
+        buttons.accepted.connect(self.accept)
+        buttons.rejected.connect(self.reject)
+
+        layout = QtWidgets.QVBoxLayout(self)
+        layout.addWidget(self.playback_rb)
+        layout.addLayout(range_layout)
+        layout.addLayout(form)
+        layout.addWidget(self.delete_cb)
+        layout.addWidget(buttons)
+
+        self.custom_rb.toggled.connect(self.start_spin.setEnabled)
+        self.custom_rb.toggled.connect(self.end_spin.setEnabled)
+
+    def options(self):
+        """Return the bake options.
+
+        Returns:
+            dict: ``start``, ``end``, ``preroll`` and ``delete_springs``.
+        """
+        start = end = None
+        if self.custom_rb.isChecked():
+            start = self.start_spin.value()
+            end = self.end_spin.value()
+        return {
+            "start": start,
+            "end": end,
+            "preroll": self.preroll_spin.value(),
+            "delete_springs": self.delete_cb.isChecked(),
+        }
+
+
+def _float_widget(spec, decimals=3):
+    return widgets.FloatSliderSpinBox(
+        minimum=spec.minimum,
+        maximum=spec.maximum,
+        default=spec.default,
+        decimals=decimals,
+        soft_maximum=spec.soft_maximum,
+    )
+
+
+# parameter kind: widget factory. Kinds without a widget are not shown.
+PARAM_WIDGETS = {
+    constants.PARAM_FLOAT: _float_widget,
+    constants.PARAM_INT: partial(_float_widget, decimals=0),
+    constants.PARAM_BOOL: lambda spec: widgets.TriStateCheckBox(),
+}
 
 
 class SpringManager(MayaQWidgetDockableMixin, QtWidgets.QDialog, pyqt.SettingsMixin):
-    """
-    UI to collect configuration data for a node in Maya.
-    """
+    """Dockable Spring Manager window."""
+
+    toolName = "mgearSpringManager"
 
     def __init__(self, parent=None):
+        """Initialize the window.
+
+        Args:
+            parent (QtWidgets.QWidget, optional): Parent widget.
+        """
         super(SpringManager, self).__init__(parent)
         pyqt.SettingsMixin.__init__(self)
 
-        self.setAttribute(QtCore.Qt.WA_DeleteOnClose, True)
+        self.closed = False
+        self.callbacks = callbackManager.CallbackManager()
+        self._selection_pending = False
+        self._refresh_pending = False
+        # selection pushed to Maya by the list, its callback is skipped
+        self._pushed_selection = None
+        self._items = {}
+        self._control_map = {}
+        self._panel_backend = None
+        self._drag_start = {}
+        self._new_values = {}
+        self._libraries = []
+        self._preset_cache = {}
+        self._icon_cache = {}
 
+        # actions
+        self.bake_selected_action = None
+        self.bake_all_action = None
+        self.delete_selected_action = None
+        self.delete_all_action = None
+        self.select_all_action = None
+        self.refresh_action = None
+        self.save_preset_action = None
+        self.add_library_action = None
+        self.remove_library_action = None
+        self.reveal_library_action = None
+        self.docs_action = None
+        # widgets
+        self.menu_bar = None
+        self.solver_combo = None
+        self.create_section = None
+        self.direction_buttons = {}
+        self.direction_widget = None
+        self.create_btn = None
+        self.springs_section = None
+        self.spring_search_le = None
+        self.spring_tree = None
+        self.spring_grip = None
+        self.params_section = None
+        self.params_status = None
+        self.params_layout = None
+        self.param_widgets = {}
+        self.reset_btn = None
+        self.key_btn = None
+        self.presets_section = None
+        self.library_combo = None
+        self.add_library_btn = None
+        self.grid_view_btn = None
+        self.search_le = None
+        self.preset_view = None
+        self.preset_model = None
+        self.preset_proxy = None
+        self.detail_widget = None
+        self.detail_icon = None
+        self.detail_title = None
+        self.detail_text = None
+        self.apply_btn = None
+        self.apply_values_btn = None
+        self.save_btn = None
+        self.expander = None
+        self.sections = []
+
+        self.setObjectName(self.toolName)
         self.setWindowTitle("Spring Manager")
-        min_w = 425
-        min_h = 125
-        self.setMinimumWidth(min_w)
-        self.resize(min_w, min_h)
-        self.setSizePolicy(
-            QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding
-        )
-
+        self.setMinimumWidth(pyqt.dpi_scale(360))
         if cmds.about(ntOS=True):
             flags = self.windowFlags() ^ QtCore.Qt.WindowContextHelpButtonHint
             self.setWindowFlags(flags)
         elif cmds.about(macOS=True):
             self.setWindowFlags(QtCore.Qt.Tool)
 
-        self.settings = QtCore.QSettings("MGear", "SpringManager")
-
         self.create_actions()
         self.create_widgets()
         self.create_layout()
+
+        self.user_settings = {
+            SOLVER_KEY: (self.solver_combo, 0),
+            GRID_VIEW_KEY: (self.grid_view_btn, False),
+            SPRINGS_HEIGHT_KEY: (self.spring_grip, pyqt.dpi_scale(SPRINGS_HEIGHT)),
+        }
+        self.load_settings()
+        self._new_values = self.load_json_setting(NEW_VALUES_KEY, {})
+        self._load_libraries()
+
         self.create_connections()
+        self.on_solver_changed()
+        self.set_grid_view(self.grid_view_btn.isChecked())
+        self.scene_changed()
+        self._update_expander()
+        self._start_callbacks()
 
-        self.configs = []
-
+    # -----------------------------------------------------------------
+    # UI setup
+    # -----------------------------------------------------------------
     def create_actions(self):
-        # Bake actions
-        self.bake_selected_action = QtWidgets.QAction("Bake Selected Spring", self)
-        self.bake_all_action = QtWidgets.QAction("Bake All Springs", self)
+        """Create the menu actions."""
+        self.bake_selected_action = QtWidgets.QAction("Bake Selected...", self)
+        self.bake_all_action = QtWidgets.QAction("Bake All...", self)
+        self.delete_selected_action = QtWidgets.QAction("Delete Selected", self)
+        self.delete_all_action = QtWidgets.QAction("Delete All", self)
+        self.select_all_action = QtWidgets.QAction("Select All Spring Controls", self)
+        self.refresh_action = QtWidgets.QAction("Refresh", self)
 
-        # Delete actions
-        self.delete_selected_action = QtWidgets.QAction("Delete Selected Spring", self)
-        self.delete_all_action = QtWidgets.QAction("Delete All Springs", self)
-
-        # preset actions
-        self.set_lib_action = QtWidgets.QAction("Set Library", self)
-        self.store_preset_action = QtWidgets.QAction("Store Preset", self)
-        self.refresh_presets_action = QtWidgets.QAction("Refresh Presets", self)
-        self.delete_preset_action = QtWidgets.QAction("Delete Preset", self)
-        # Select actions
-        self.select_all_targets_action = QtWidgets.QAction("Select All Spring Targets", self)
+        self.save_preset_action = QtWidgets.QAction("Save Preset...", self)
+        self.add_library_action = QtWidgets.QAction("Add Library Folder...", self)
+        self.remove_library_action = QtWidgets.QAction("Remove Library Folder", self)
+        self.reveal_library_action = QtWidgets.QAction("Reveal Library Folder", self)
+        self.docs_action = QtWidgets.QAction("Documentation", self)
 
     def create_widgets(self):
-        # menu bar
+        """Create the widgets."""
         self.menu_bar = QtWidgets.QMenuBar()
+        springs_menu = self.menu_bar.addMenu("Springs")
+        springs_menu.addAction(self.bake_selected_action)
+        springs_menu.addAction(self.bake_all_action)
+        springs_menu.addSeparator()
+        springs_menu.addAction(self.delete_selected_action)
+        springs_menu.addAction(self.delete_all_action)
+        springs_menu.addSeparator()
+        springs_menu.addAction(self.select_all_action)
+        springs_menu.addAction(self.refresh_action)
+        presets_menu = self.menu_bar.addMenu("Presets")
+        presets_menu.addAction(self.save_preset_action)
+        presets_menu.addSeparator()
+        presets_menu.addAction(self.add_library_action)
+        presets_menu.addAction(self.remove_library_action)
+        presets_menu.addAction(self.reveal_library_action)
+        help_menu = self.menu_bar.addMenu("Help")
+        help_menu.addAction(self.docs_action)
 
-        self.bake_menu = self.menu_bar.addMenu("Bake")
-        self.bake_menu.addAction(self.bake_selected_action)
-        self.bake_menu.addAction(self.bake_all_action)
+        # solver
+        self.solver_combo = QtWidgets.QComboBox()
+        model = self.solver_combo.model()
+        for index, backend in enumerate(get_backends()):
+            self.solver_combo.addItem(backend.label, backend.name)
+            if not backend.is_available():
+                item = model.item(index)
+                item.setEnabled(False)
+                item.setToolTip(backend.unavailable_message)
 
-        self.delete_menu = self.menu_bar.addMenu("Delete")
-        self.delete_menu.addAction(self.delete_selected_action)
-        self.delete_menu.addAction(self.delete_all_action)
-
-        self.presets_menu = self.menu_bar.addMenu("Presets")
-        self.presets_menu.addAction(self.set_lib_action)
-        self.presets_menu.addAction(self.store_preset_action)
-        self.presets_menu.addAction(self.refresh_presets_action)
-        self.presets_menu.addAction(self.delete_preset_action)
-
-        self.select_menu = self.menu_bar.addMenu("Select")
-        self.select_menu.addAction(self.select_all_targets_action)
-
-        # directions
-        self.directions_group_box = QtWidgets.QGroupBox("Directions")
-
-        self.directions = ["x", "y", "z", "-x", "-y", "-z"]
-        self.direction_buttons = {}
-        for direction in self.directions:
-            btn = QtWidgets.QPushButton(direction)
-            self.direction_buttons[direction] = btn
-
-        # config sliders
-        self.spin_sliders = {}
-        self.collapsible_spring_params = mgear_widget.CollapsibleWidget(
-            "Spring Parameters", expanded=False
+        # create
+        self.create_section = widgets.CollapsibleWidget(
+            "Create", expanded=True, expandable=False
         )
+        for direction in constants.DIRECTIONS + (constants.AUTO_DIRECTION,):
+            auto = direction == constants.AUTO_DIRECTION
+            button = QtWidgets.QPushButton("Auto" if auto else direction.upper())
+            button.setToolTip(
+                "Create springs on the selected controls, aiming along "
+                "{}".format(
+                    "the chain (child or parent direction)" if auto else direction
+                )
+            )
+            self.direction_buttons[direction] = button
+        self.direction_widget = QtWidgets.QWidget()
+        self.create_btn = QtWidgets.QPushButton("Create from Selection")
 
-        options = [
-            ("Total Intensity", "springTotalIntensity", 1),
-            ("Spring Rig Scale", "springRigScale", 1),
-            ("Translational Intensity", "springTranslationalIntensity", 0),
-            ("Translational Damping", "springTranslationalDamping", 0.5),
-            ("Translational Stiffness", "springTranslationalStiffness", 0.5,),
-            ("Rotational Intensity", "springRotationalIntensity", 1),
-            ("Rotational Damping", "springRotationalDamping", 0.5),
-            ("Rotational Stiffness", "springRotationalStiffness", 0.5),
-        ]
-        self.spring_options_layout = QtWidgets.QFormLayout()
-        self.spring_options_layout.setSizeConstraint(QtWidgets.QLayout.SetMaximumSize)
+        # springs: fixed height list, resized with the grip under it
+        self.springs_section = widgets.CollapsibleWidget(
+            "Springs", expanded=True, expandable=False
+        )
+        self.spring_search_le = QtWidgets.QLineEdit()
+        self.spring_search_le.setPlaceholderText("Filter springs (* wildcard)")
+        self.spring_search_le.setClearButtonEnabled(True)
+        self.spring_tree = QtWidgets.QTreeWidget()
+        self.spring_tree.setHeaderLabels(("Control", "Solver", "State"))
+        self.spring_tree.setRootIsDecorated(False)
+        self.spring_tree.setUniformRowHeights(True)
+        self.spring_tree.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)
+        self.spring_tree.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
+        self.spring_grip = widgets.HeightGrip(
+            self.spring_tree, minimum=pyqt.dpi_scale(60)
+        )
+        self.spring_grip.set_target_height(pyqt.dpi_scale(SPRINGS_HEIGHT))
+        header = self.spring_tree.header()
+        header.setStretchLastSection(False)
+        header.setSectionResizeMode(COLUMN_NAME, QtWidgets.QHeaderView.Stretch)
+        for column in (COLUMN_SOLVER, COLUMN_STATE):
+            header.setSectionResizeMode(column, QtWidgets.QHeaderView.ResizeToContents)
 
-        for label_text, name, default_value in options:
-            if name == "springRigScale":
-                spin_range = 100
-                slider_range = 10000
-            else:
-                spin_range = 1
-                slider_range = 100
-            spin = QtWidgets.QDoubleSpinBox()
-            spin.setMinimumWidth(50)
-            spin.setRange(0, spin_range)
-            spin.setSingleStep(0.1)
-            spin.setValue(default_value)
-            slider = QtWidgets.QSlider(QtCore.Qt.Horizontal)
-            slider.setRange(0, slider_range)
-            slider.setValue(default_value * 100)
-
-            self.spring_options_layout.addRow(label_text, spin)
-            self.spring_options_layout.addRow("", slider)
-
-            self.spin_sliders[name] = (spin, slider)
+        # parameters
+        self.params_section = widgets.CollapsibleWidget(
+            "Parameters", expanded=True, expandable=False
+        )
+        self.params_status = QtWidgets.QLabel()
+        self.params_status.setWordWrap(True)
+        self.params_layout = QtWidgets.QVBoxLayout()
+        self.params_layout.setContentsMargins(0, 0, 0, 0)
+        self.reset_btn = QtWidgets.QPushButton("Reset Defaults")
+        self.key_btn = QtWidgets.QPushButton("Key All")
+        self.key_btn.setToolTip("Set a key on every parameter of the selected springs")
 
         # presets
-        self.presets_collapsible = mgear_widget.CollapsibleWidget(
-            "Presets", expanded=False
+        self.presets_section = widgets.CollapsibleWidget("Presets", expanded=True)
+        self.library_combo = QtWidgets.QComboBox()
+        self.library_combo.setSizePolicy(
+            QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Fixed
+        )
+        self.add_library_btn = QtWidgets.QToolButton()
+        self.add_library_btn.setText("+")
+        self.add_library_btn.setToolTip("Add a library folder")
+        self.grid_view_btn = QtWidgets.QToolButton()
+        self.grid_view_btn.setText("Grid")
+        self.grid_view_btn.setCheckable(True)
+        self.grid_view_btn.setToolTip("Show the presets as a thumbnail grid")
+        self.search_le = QtWidgets.QLineEdit()
+        self.search_le.setPlaceholderText("Search presets (* wildcard)")
+        self.search_le.setClearButtonEnabled(True)
+        self.preset_model = QtGui.QStandardItemModel(self)
+        self.preset_proxy = QtCore.QSortFilterProxyModel(self)
+        self.preset_proxy.setSourceModel(self.preset_model)
+        self.preset_view = QtWidgets.QListView()
+        self.preset_view.setModel(self.preset_proxy)
+        self.preset_view.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
+        self.preset_view.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)
+        self.preset_view.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
+        self.preset_view.setMinimumHeight(pyqt.dpi_scale(80))
+        self.preset_view.setResizeMode(QtWidgets.QListView.Adjust)
+        self.detail_widget = QtWidgets.QWidget()
+        self.detail_icon = QtWidgets.QLabel()
+        self.detail_icon.setFixedSize(
+            pyqt.dpi_scale(LIST_ICON_SIZE * 2), pyqt.dpi_scale(LIST_ICON_SIZE * 2)
+        )
+        self.detail_icon.setAlignment(QtCore.Qt.AlignCenter)
+        self.detail_title = QtWidgets.QLabel()
+        self.detail_text = QtWidgets.QLabel()
+        self.detail_text.setWordWrap(True)
+        self.detail_text.setAlignment(QtCore.Qt.AlignTop | QtCore.Qt.AlignLeft)
+        self.detail_text.setStyleSheet("color: rgb(170, 170, 170);")
+        self.apply_btn = QtWidgets.QPushButton("Apply")
+        self.apply_btn.setToolTip(
+            "Values presets: apply the values to the selected springs and "
+            "create springs on selected controls without one.\n"
+            "Rig presets: create or update springs on the preset controls, "
+            "in the namespace of the selection."
+        )
+        self.apply_values_btn = QtWidgets.QPushButton("Apply Values")
+        self.apply_values_btn.setToolTip(
+            "Apply only the parameter values to the selected springs, for "
+            "any preset type"
+        )
+        self.save_btn = QtWidgets.QPushButton("Save...")
+        self.save_btn.setToolTip(
+            "Save a preset: a values preset (from the selected spring or the "
+            "values for new springs) or a rig preset (the selected springs)"
         )
 
-        self.presets_library_directory = self._get_presets_library_directory()
-        self.presets_lib_directory_label = QtWidgets.QLabel("Library Path: {}".format(self.presets_library_directory))
-        self.presets_lib_directory_label.setWordWrap(True)
-
-        self.search_le = QtWidgets.QLineEdit()
-        self.search_le.setPlaceholderText("Search Filter")
-
-        self.list_view = QtWidgets.QListView()
-        self.list_view.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
-        self.list_view.setSelectionMode(QtWidgets.QListView.ExtendedSelection)
-        self.item_model = QtGui.QStandardItemModel(self)
-        self.__proxy_model = QtCore.QSortFilterProxyModel(self)
-        self.__proxy_model.setSourceModel(self.item_model)
-        self.list_view.setModel(self.__proxy_model)
-
-
-
-        self.set_library(self.presets_library_directory)
+        # takes the free space when no stretching section is expanded
+        self.expander = QtWidgets.QWidget()
+        self.expander.setSizePolicy(
+            QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Expanding
+        )
+        self.sections = [
+            self.create_section,
+            self.springs_section,
+            self.params_section,
+            self.presets_section,
+        ]
 
     def create_layout(self):
-        main_layout = QtWidgets.QVBoxLayout(self)
+        """Lay the widgets out."""
+        window_layout = QtWidgets.QVBoxLayout(self)
+        window_layout.setContentsMargins(0, 0, 0, 0)
+        window_layout.setSpacing(0)
+        window_layout.setMenuBar(self.menu_bar)
+        # the sections scroll when the window is too short for them
+        content = QtWidgets.QWidget()
+        scroll = QtWidgets.QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QtWidgets.QFrame.NoFrame)
+        scroll.setWidget(content)
+        window_layout.addWidget(scroll)
+        main_layout = QtWidgets.QVBoxLayout(content)
         main_layout.setContentsMargins(2, 2, 2, 2)
-        main_layout.setSpacing(0)
-        main_layout.setMenuBar(self.menu_bar)
+        main_layout.setSpacing(2)
 
-        directions_grid_layout = QtWidgets.QGridLayout()
-        for i, direction in enumerate(self.directions):
-            directions_grid_layout.addWidget(self.direction_buttons[direction], i // 3, i % 3)
+        solver_layout = QtWidgets.QHBoxLayout()
+        solver_layout.setContentsMargins(4, 2, 4, 2)
+        solver_layout.addWidget(QtWidgets.QLabel("Solver"))
+        solver_layout.addWidget(self.solver_combo, 1)
+        main_layout.addLayout(solver_layout)
 
-        self.directions_group_box.setLayout(directions_grid_layout)
-        main_layout.addWidget(self.directions_group_box)
+        grid = QtWidgets.QGridLayout(self.direction_widget)
+        grid.setContentsMargins(0, 0, 0, 0)
+        grid.setSpacing(2)
+        for index, direction in enumerate(constants.DIRECTIONS):
+            grid.addWidget(self.direction_buttons[direction], index // 3, index % 3)
+        grid.addWidget(self.direction_buttons[constants.AUTO_DIRECTION], 2, 0, 1, 3)
+        self.create_section.addWidget(self.direction_widget)
+        self.create_section.addWidget(self.create_btn)
+        main_layout.addWidget(self.create_section)
 
-        self.collapsible_spring_params.addLayout(self.spring_options_layout)
-        main_layout.addWidget(self.collapsible_spring_params)
+        self.springs_section.addWidget(self.spring_search_le)
+        self.springs_section.addWidget(self.spring_tree)
+        self.springs_section.addWidget(self.spring_grip)
+        main_layout.addWidget(self.springs_section)
 
-        presets_layout = QtWidgets.QVBoxLayout()
-        presets_layout.addWidget(self.presets_lib_directory_label)
-        presets_layout.addWidget(self.search_le)
-        presets_layout.addWidget(self.list_view)
-        self.presets_collapsible.addLayout(presets_layout)
+        params_buttons = QtWidgets.QHBoxLayout()
+        params_buttons.addWidget(self.reset_btn)
+        params_buttons.addWidget(self.key_btn)
+        self.params_section.addWidget(self.params_status)
+        self.params_section.addLayout(self.params_layout)
+        self.params_section.addLayout(params_buttons)
+        main_layout.addWidget(self.params_section)
 
-        main_layout.addWidget(self.presets_collapsible)
+        library_layout = QtWidgets.QHBoxLayout()
+        library_layout.addWidget(self.library_combo)
+        library_layout.addWidget(self.add_library_btn)
+        library_layout.addWidget(self.grid_view_btn)
+        detail_text_layout = QtWidgets.QVBoxLayout()
+        detail_text_layout.addWidget(self.detail_title)
+        detail_text_layout.addWidget(self.detail_text, 1)
+        detail_layout = QtWidgets.QHBoxLayout(self.detail_widget)
+        detail_layout.setContentsMargins(0, 0, 0, 0)
+        detail_layout.addWidget(self.detail_icon, 0, QtCore.Qt.AlignTop)
+        detail_layout.addLayout(detail_text_layout, 1)
+        preset_buttons = QtWidgets.QHBoxLayout()
+        preset_buttons.addWidget(self.apply_btn)
+        preset_buttons.addWidget(self.apply_values_btn)
+        preset_buttons.addWidget(self.save_btn)
+        self.presets_section.addLayout(library_layout)
+        self.presets_section.addWidget(self.search_le)
+        self.presets_section.addWidget(self.preset_view)
+        self.presets_section.addWidget(self.detail_widget)
+        self.presets_section.body_layout.setStretchFactor(self.preset_view, 1)
+        self.presets_section.addLayout(preset_buttons)
+        main_layout.addWidget(self.presets_section)
 
-        expander = QtWidgets.QWidget()
-        expander.setSizePolicy(
-            QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding
-        )
-        main_layout.addWidget(expander)
+        main_layout.addWidget(self.expander)
 
     def create_connections(self):
-        self.bake_selected_action.triggered.connect(setup.bake)
-        self.bake_all_action.triggered.connect(setup.bake_all)
+        """Connect the signals."""
+        self.bake_selected_action.triggered.connect(self.bake_selected)
+        self.bake_all_action.triggered.connect(self.bake_all)
+        self.delete_selected_action.triggered.connect(self.delete_selected)
+        self.delete_all_action.triggered.connect(self.delete_all)
+        self.select_all_action.triggered.connect(self.select_all_controls)
+        self.refresh_action.triggered.connect(self.scene_changed)
+        self.save_preset_action.triggered.connect(self.save_preset)
+        self.add_library_action.triggered.connect(self.add_library)
+        self.remove_library_action.triggered.connect(self.remove_library)
+        self.reveal_library_action.triggered.connect(self.reveal_library)
+        self.docs_action.triggered.connect(partial(webbrowser.open, DOCS_URL))
 
-        self.delete_selected_action.triggered.connect(partial(setup.delete_spring_setup, None, True))
-        self.delete_all_action.triggered.connect(setup.delete_all_springs)
-        self.select_all_targets_action.triggered.connect(setup.select_all_springs_targets)
+        for section in self.sections:
+            section.expandedChanged.connect(self._update_expander)
+        self.solver_combo.currentIndexChanged.connect(self.on_solver_changed)
+        for direction, button in self.direction_buttons.items():
+            button.clicked.connect(partial(self.create_springs, direction))
+        self.create_btn.clicked.connect(partial(self.create_springs, None))
+        self.spring_search_le.textChanged.connect(self.filter_springs)
+        self.spring_tree.itemSelectionChanged.connect(self.on_tree_selection_changed)
+        self.spring_tree.customContextMenuRequested.connect(self._tree_menu)
+        self.reset_btn.clicked.connect(self.reset_params)
+        self.key_btn.clicked.connect(self.key_params)
 
-        self.set_lib_action.triggered.connect(partial(self.set_library, None))
-        self.store_preset_action.triggered.connect(self.store_preset)
-        self.refresh_presets_action.triggered.connect(self.update_presets)
-        self.delete_preset_action.triggered.connect(self.delete_preset)
+        self.library_combo.currentIndexChanged.connect(self.on_library_changed)
+        self.add_library_btn.clicked.connect(self.add_library)
+        self.grid_view_btn.toggled.connect(self.set_grid_view)
+        self.search_le.textChanged.connect(self._on_search_changed)
+        self.preset_view.doubleClicked.connect(self._on_preset_double_clicked)
+        self.preset_view.customContextMenuRequested.connect(self._preset_menu)
+        self.preset_view.selectionModel().selectionChanged.connect(
+            self.update_preset_details
+        )
+        self.apply_btn.clicked.connect(self.apply_preset)
+        self.apply_values_btn.clicked.connect(self.apply_preset_values)
+        self.save_btn.clicked.connect(self.save_preset)
 
-        self.search_le.textChanged.connect(self.filter_changed)
-        self.list_view.doubleClicked.connect(self.apply_preset)
-        self.list_view.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
-        self.list_view.customContextMenuRequested.connect(self._component_menu)
+    def _update_expander(self, *args):
+        """Fill the free space when no stretching section is expanded."""
+        stretching = any(
+            section.is_expanded() and section.is_expandable()
+            for section in self.sections
+        )
+        self.expander.setVisible(not stretching)
 
+    def _on_search_changed(self, text):
+        pyqt.set_proxy_filter(self.preset_proxy, text)
 
-        for btn in self.direction_buttons.values():
-            btn.clicked.connect(self.collect_data)
+    def _on_preset_double_clicked(self, index):
+        self.apply_preset()
 
-        for spin, slider in self.spin_sliders.values():
-            spin.valueChanged.connect(
-                lambda value, slider=slider: slider.setValue(int(value * 100))
-            )
-            slider.valueChanged.connect(
-                lambda value, spin=spin: spin.setValue(value * 0.01)
-            )
+    # -----------------------------------------------------------------
+    # Callbacks
+    # -----------------------------------------------------------------
+    def _start_callbacks(self):
+        """Register the selection, undo and scene callbacks."""
+        cbm = self.callbacks
+        cbm.selectionChangedCB("selection", self._on_selection_event)
+        cbm.eventCB("undo", self._on_scene_event, "Undo")
+        cbm.eventCB("redo", self._on_scene_event, "Redo")
+        cbm.sceneMessageCB(
+            "afterNew", self._on_scene_event, om2.MSceneMessage.kAfterNew
+        )
+        cbm.sceneMessageCB(
+            "afterOpen", self._on_scene_event, om2.MSceneMessage.kAfterOpen
+        )
 
+    def _on_selection_event(self, *args):
+        """Coalesce Maya selection callbacks into one UI update."""
+        if self._selection_pending:
+            return
+        self._selection_pending = True
+        QtCore.QTimer.singleShot(0, self._deferred_selection)
 
-    def set_node_from_selection(self):
-        """
-        Set node name from current Maya selection.
-        """
-        selected = pm.selected()
-        self.node_le.setText(",".join([str(node) for node in selected]))
+    def _deferred_selection(self):
+        self._selection_pending = False
+        if self.closed:
+            return
+        if self._pushed_selection is not None:
+            pushed = self._pushed_selection
+            self._pushed_selection = None
+            if pushed == cmds.ls(selection=True, long=True):
+                return
+        self.on_maya_selection_changed()
 
-    def collect_data(self):
-        """
-        Collects all data into a list of config dictionaries.
-        """
-        self.configs = []
-        # nodes = self.node_le.text().split(",")
-        nodes = pm.selected()
-        direction = self.sender().text()  # Assumes button clicked
+    def _on_scene_event(self, *args):
+        """Coalesce undo, redo and scene callbacks into one refresh."""
+        if self._refresh_pending:
+            return
+        self._refresh_pending = True
+        QtCore.QTimer.singleShot(0, self._deferred_refresh)
 
-        for node in nodes:
-            config = {"node": node.name(), "direction": direction}
-            for name, (spin, _) in self.spin_sliders.items():
-                config[name] = spin.value()
+    def _deferred_refresh(self):
+        self._refresh_pending = False
+        if not self.closed:
+            self.scene_changed()
 
-            self.configs.append(config)
-        for conf in self.configs:
-            setup.create_spring(conf["node"], conf)
+    def scene_changed(self):
+        """Rebuild the springs list and sync it with the Maya selection."""
+        self.refresh_springs()
+        self.on_maya_selection_changed()
 
-    def get_presets(self, directory):
-        """
-        Get a list of preset filenames in a directory, filtering by extension and file size.
-
-        Args:
-            directory (str): The path to the directory containing the presets.
-            extension (str): The file extension to filter by.
+    # -----------------------------------------------------------------
+    # Solver and create
+    # -----------------------------------------------------------------
+    def current_backend(self):
+        """Return the backend selected in the solver combo.
 
         Returns:
-            list: A list of preset filenames without extensions.
+            SpringBackend: The backend.
         """
-        preset_paths = glob.glob(os.path.join(directory, "*{}".format(setup.SPRING_PRESET_EXTENSION)))
-        presets = [
-            os.path.splitext(os.path.basename(f))[0]
-            for f in preset_paths
-            if os.stat(f).st_size > 0
+        return get_backend(self.solver_combo.currentData())
+
+    def on_solver_changed(self, *args):
+        """Show the create options of the solver and refresh the panel."""
+        backend = self.current_backend()
+        directions = bool(backend and backend.supports_direction)
+        self.direction_widget.setVisible(directions)
+        self.create_btn.setVisible(not directions)
+        self.update_params_panel()
+
+    def create_springs(self, direction=None):
+        """Create springs on the selected controls.
+
+        Args:
+            direction (str, optional): Spring direction or ``"auto"``, for
+                backends that support directions.
+        """
+        controls = cmds.ls(selection=True, long=True, type="transform")
+        if not controls:
+            cmds.warning("Select the controls to add springs to")
+            return
+        backend = self.current_backend()
+        if not backend or not backend.is_available():
+            cmds.warning("The selected solver is not available")
+            return
+        options = {"direction": direction} if direction else {}
+        springs = backend.create(controls, self._backend_new_values(backend), options)
+        if springs:
+            cmds.select(controls, replace=True)
+        self.scene_changed()
+        mgear.log("Created {} spring(s)".format(len(springs)))
+
+    # -----------------------------------------------------------------
+    # Springs list and selection sync
+    # -----------------------------------------------------------------
+    def refresh_springs(self):
+        """Rebuild the springs list from the scene.
+
+        Spring records still in the scene are reused, keeping their cached
+        controls and settings node.
+        """
+        springs = registry.list_springs(previous=list(self._items))
+        self._items = {}
+        with pyqt.block_signals(self.spring_tree):
+            self.spring_tree.clear()
+            for spring in springs:
+                backend = get_backend(spring.backend)
+                item = QtWidgets.QTreeWidgetItem(
+                    [
+                        spring.label,
+                        backend.label if backend else spring.backend,
+                        spring.state,
+                    ]
+                )
+                item.setData(COLUMN_NAME, QtCore.Qt.UserRole, spring)
+                item.setToolTip(COLUMN_NAME, spring.node)
+                if backend and backend.read_only_message:
+                    item.setToolTip(COLUMN_SOLVER, backend.read_only_message)
+                    item.setForeground(
+                        COLUMN_SOLVER, QtGui.QBrush(QtGui.QColor(230, 160, 60))
+                    )
+                self.spring_tree.addTopLevelItem(item)
+                self._items[spring] = item
+        self._control_map = registry.control_map(springs)
+        self.filter_springs()
+
+    def filter_springs(self, *args):
+        """Hide the springs not matching the filter text."""
+        text = self.spring_search_le.text().strip()
+        pattern = re.compile(pyqt.wildcard_to_regex(text), re.IGNORECASE)
+        for item in self._items.values():
+            visible = not text or any(
+                pattern.search(item.text(column))
+                for column in (COLUMN_NAME, COLUMN_SOLVER, COLUMN_STATE)
+            )
+            item.setHidden(not visible)
+
+    def selected_springs(self):
+        """Return the springs selected in the list.
+
+        Returns:
+            list: :class:`registry.Spring` records.
+        """
+        return [
+            item.data(COLUMN_NAME, QtCore.Qt.UserRole)
+            for item in self.spring_tree.selectedItems()
         ]
-        return presets
 
-    def read_preset_from_directory(self, directory):
-        """
-        Parses target directory and gets the files names
-        Args:
-            directory:
-
-        Returns: (file_name)
-
-        """
-        presets = self.get_presets(directory)
-
-        return tuple(presets)
-
-    def set_library(self, directory=None):
-        """
-        Clears the preset list and populates a new one with the items of the given directory
-        Args:
-            directory:
-
-        Returns:
-
-        """
-        if not directory:
-            directory = pm.fileDialog2(fileMode=3)[0]
-
-        try:
-            if not os.path.isdir(directory):
-                print("Directory does not exist. Creating...")
-                os.makedirs(directory, exist_ok=True)
-
-        except:
-            pm.error("Could not create directory")
+    def on_maya_selection_changed(self):
+        """Select the rows of the springs owning the Maya selection."""
+        if self.closed:
             return
+        springs = registry.selected_springs(self._control_map)
+        if any(spring not in self._items for spring in springs):
+            self.refresh_springs()
+        with pyqt.block_signals(self.spring_tree):
+            self.spring_tree.clearSelection()
+            for spring in springs:
+                item = self._items.get(spring)
+                if item:
+                    item.setSelected(True)
+        self.update_params_panel()
 
-        if not os.path.isdir(directory):
-            pm.error("Invalid directory")
-            return
-
-        self.presets_library_directory = directory
-        self.settings.setValue("presetsLibraryDirectory", directory)
-        self.presets_lib_directory_label.setText("Library Path: {}".format(self.presets_library_directory))
-
-        self.update_presets()
-
-    def update_presets(self):
-        self.item_model.clear()
-        presets = self.read_preset_from_directory(self.presets_library_directory)
-        for preset in presets:
-            item = QtGui.QStandardItem(preset)
-            file_path = "{}/{}{}".format(self.presets_library_directory, preset, setup.SPRING_PRESET_EXTENSION)
-            target_nodes = setup.get_preset_targets(preset_file_path=file_path)
-            tooltip_text = "Target nodes = " + ", ".join(target_nodes)
-            item.setData(tooltip_text, QtCore.Qt.ToolTipRole)
-            self.item_model.appendRow(item)
-
-    def store_preset(self):
-        file_name, dialog_result = QtWidgets.QInputDialog.getText(self, "Enter Preset Name", "Name:")
-        if not dialog_result:
-            return
-        file_name = "/{}{}".format(file_name, setup.SPRING_PRESET_EXTENSION)
-        setup.store_preset_from_selection(self.presets_library_directory + file_name)
-
-        self.update_presets()
-
-    @one_undo
-    def apply_preset(self, clicked_item):
-        """
-        Applies preset to selected nodes
-        Args:
-            clicked_item:
-
-        Returns:
-
-        """
-        item = self.item_model.itemFromIndex(self.__proxy_model.mapToSource(clicked_item))
-        name = item.text()
-        file_path = "{}/{}{}".format(self.presets_library_directory, name, setup.SPRING_PRESET_EXTENSION)
-        affected_nodes = setup.apply_preset(preset_file_path=file_path, namespace_cb=self._namespace_confirmation_dialogue)
-        print("Affected nodes = {}".format(affected_nodes))
-        return affected_nodes
-
-    def delete_preset(self):
-        if not self.list_view.selectedIndexes():
-            pm.error("Must select an item from the preset list")
-            return
-
-        list_selection = self.list_view.selectedIndexes()
-        list_selection = [self._get_preset_name(i) for i in list_selection]
-
-        if self._delete_confirmation_dialogue(list_selection) is False:
-            return
-
-        for item in list_selection:
-            file_path = "{}/{}{}".format(self.presets_library_directory, item, setup.SPRING_PRESET_EXTENSION)
-            if not os.path.exists(file_path):
-                pm.error("File was not found. {}".format(file_path))
-            os.remove(file_path)
-
-        self.update_presets()
-
-    def _component_menu(self, QPos):
-        comp_widget = self.list_view
-        current_selection = comp_widget.selectedIndexes()
-        if current_selection is None:
-            return
-        self.comp_menu = QtWidgets.QMenu()
-        parentPosition = comp_widget.mapToGlobal(QtCore.QPoint(0, 0))
-        apply_preset_menu_item = self.comp_menu.addAction("Apply presets")
-        bake_presets_menu_item = self.comp_menu.addAction("Bake presets")
-        delete_presets_menu_item = self.comp_menu.addAction("Delete presets")
-        self.comp_menu.addSeparator()
-        select_targets_menu_item = self.comp_menu.addAction("Select targets")
-
-        apply_preset_menu_item.triggered.connect(self.cm_apply_presets)
-        bake_presets_menu_item.triggered.connect(self.cm_bake_presets)
-        delete_presets_menu_item.triggered.connect(self.delete_preset)
-        select_targets_menu_item.triggered.connect(self.cm_select_affected)
-
-        self.comp_menu.move(parentPosition + QPos)
-        self.comp_menu.show()
-
-    @one_undo
-    def cm_apply_presets(self):
-        list_selection = self.list_view.selectedIndexes()
-        for item in list_selection:
-            self.apply_preset(item)
-
-    @one_undo
-    def cm_bake_presets(self):
-        list_selection = self.list_view.selectedIndexes()
-        nodes_to_bake = []
-        for item in list_selection:
-            nodes_to_bake.extend(self.apply_preset(item))
-
-        start_time = pm.playbackOptions(query=True, minTime=True)
-        end_time = pm.playbackOptions(query=True, maxTime=True)
-        pm.currentTime(end_time)
-        pm.currentTime(start_time)
-        setup.bake(nodes_to_bake)
-
-    @one_undo
-    def cm_select_affected(self):
-        list_selection = self.list_view.selectedIndexes()
-        affected_nodes = []
-        for qindex in list_selection:
-            item = self.item_model.itemFromIndex(self.__proxy_model.mapToSource(qindex))
-            name = item.text()
-            file_path = "{}/{}{}".format(self.presets_library_directory, name, setup.SPRING_PRESET_EXTENSION)
-            affected_nodes.extend(setup.get_preset_targets(preset_file_path=file_path, namespace_cb=self._namespace_confirmation_dialogue))
-        pm.select(affected_nodes)
-
-    def filter_changed(self, filter):
-        regExp = QtCore.QRegExp(filter,
-                                QtCore.Qt.CaseSensitive,
-                                QtCore.QRegExp.Wildcard
-                                )
-        self.__proxy_model.setFilterRegExp(regExp)
-
-    def _namespace_confirmation_dialogue(self, preset_namespace, selected_namespace):
-        message_box = QtWidgets.QMessageBox()
-
-        message_box.setWindowTitle("Namespace mismatch")
-        message_box.setText("Namespace from selection does not match the namespace stored in the preset.")
-        message_box.setInformativeText("Click Apply to map nodes from preset namespace '{}' ".format(preset_namespace)
-                                       + "\n to selected namespace '{}'".format(selected_namespace))
-
-        message_box.setStandardButtons(QtWidgets.QMessageBox.Apply | QtWidgets.QMessageBox.Ignore)
-
-        return message_box.exec_() == QtWidgets.QMessageBox.Apply
-
-    def _delete_confirmation_dialogue(self, items_to_delete):
-        message_box = QtWidgets.QMessageBox()
-        message_box.setWindowTitle("Confirm deletion")
-        message_box.setText("Do you wish to delete the following items?")
-        message_box.setInformativeText(", ".join(items_to_delete))
-
-        message_box.setStandardButtons(QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.Cancel)
-
-        return message_box.exec_() == QtWidgets.QMessageBox.Yes
-
-    def _get_preset_name(self, proxy_index):
-        model_item = self.item_model.itemFromIndex(self.__proxy_model.mapToSource(proxy_index))
-        return model_item.text()
-
-    def _get_presets_library_directory(self):
-        value = self.settings.value("presetsLibraryDirectory")
-        if value:
-            return value
+    def on_tree_selection_changed(self):
+        """Select the controls of the springs selected in the list."""
+        controls = []
+        for spring in self.selected_springs():
+            if spring.exists():
+                controls.extend(spring.controls)
+        if controls:
+            cmds.select(controls, replace=True)
         else:
-            value = pm.workspace(query=1, rootDirectory=True)
-            value += 'data'
-            return value
+            cmds.select(clear=True)
+        self._pushed_selection = cmds.ls(selection=True, long=True)
+        self.update_params_panel()
+
+    def select_all_controls(self):
+        """Select the controls of every spring."""
+        controls = []
+        for spring in registry.list_springs(previous=list(self._items)):
+            controls.extend(spring.controls)
+        cmds.select(controls, replace=True)
+
+    def _tree_menu(self, position):
+        menu = QtWidgets.QMenu(self)
+        springs = self.selected_springs()
+        select_rig = menu.addAction("Select Rig Nodes")
+        enable = menu.addAction("Enable")
+        disable = menu.addAction("Disable")
+        menu.addSeparator()
+        menu.addAction(self.bake_selected_action)
+        menu.addAction(self.delete_selected_action)
+        menu.addSeparator()
+        menu.addAction(self.refresh_action)
+        for action in (select_rig, enable, disable):
+            action.setEnabled(bool(springs))
+        select_rig.triggered.connect(self.select_rig_nodes)
+        enable.triggered.connect(partial(self.set_enabled, True))
+        disable.triggered.connect(partial(self.set_enabled, False))
+        menu.exec_(self.spring_tree.viewport().mapToGlobal(position))
+        menu.deleteLater()
+
+    def select_rig_nodes(self):
+        """Select the nodes created by the selected springs."""
+        nodes = []
+        for spring in self.selected_springs():
+            if spring.exists():
+                nodes.extend(
+                    node
+                    for node in spring.members
+                    if cmds.objectType(node, isAType="dagNode")
+                )
+        if nodes:
+            cmds.select(nodes, replace=True)
+
+    def set_enabled(self, enabled):
+        """Turn the selected springs on or off.
+
+        Args:
+            enabled (bool): True to turn them on.
+        """
+        groups = OrderedDict()
+        for spring, backend in editable_springs(self.selected_springs()):
+            groups.setdefault(backend, []).append(spring)
+        with utils.undo_chunk("springManagerSetEnabled"):
+            for backend, springs in groups.items():
+                backend.set_enabled(springs, enabled)
+        self.update_params_panel()
+
+    # -----------------------------------------------------------------
+    # Parameters panel
+    # -----------------------------------------------------------------
+    def _target_springs(self, selected=None):
+        """Return the springs edited by the parameter panel.
+
+        Args:
+            selected (list, optional): Selected springs, read from the list
+                when None.
+
+        Returns:
+            list: Selected editable springs of the panel backend.
+        """
+        backend = self._panel_backend
+        if selected is None:
+            selected = self.selected_springs()
+        return [
+            spring
+            for spring, spring_backend in editable_springs(selected)
+            if spring_backend is backend
+        ]
+
+    def update_params_panel(self):
+        """Rebuild or refresh the parameter rows for the selection."""
+        if self.closed:
+            return
+        selected = self.selected_springs()
+        editable = editable_springs(selected)
+        backend = editable[0][1] if editable else self.current_backend()
+        if backend is not self._panel_backend:
+            self._build_param_rows(backend)
+        springs = self._target_springs(selected)
+
+        read_only = bool(selected) and not springs
+        if read_only:
+            selected_backend = get_backend(selected[0].backend)
+            self.params_status.setText(
+                (selected_backend and selected_backend.read_only_message)
+                or "The selected springs can't be edited."
+            )
+        elif springs:
+            self.params_status.setText("Editing {} spring(s)".format(len(springs)))
+        else:
+            self.params_status.setText(
+                "Values for new springs (select springs to edit them)"
+            )
+        for widget in self.param_widgets.values():
+            widget.setEnabled(not read_only)
+        self.key_btn.setEnabled(bool(springs))
+
+        if springs:
+            values = [backend.get_params(spring) for spring in springs]
+            for attr, widget in self.param_widgets.items():
+                current = [v[attr] for v in values if attr in v]
+                if not current:
+                    continue
+                if values_differ(current):
+                    widget.setMixed(True)
+                else:
+                    widget.setValue(current[0])
+        elif backend:
+            new_values = self._backend_new_values(backend)
+            for attr, widget in self.param_widgets.items():
+                widget.setValue(new_values[attr])
+
+    def _build_param_rows(self, backend):
+        """Create the parameter rows of a backend, grouped.
+
+        Args:
+            backend (SpringBackend): The backend, or None.
+        """
+        pyqt.clear_layout(self.params_layout)
+        self.param_widgets = {}
+        self._panel_backend = backend
+        if not backend:
+            return
+        specs = [spec for spec in backend.param_specs() if spec.kind in PARAM_WIDGETS]
+        metrics = self.fontMetrics()
+        label_width = max(
+            [pyqt.text_width(metrics, spec.label) for spec in specs] or [0]
+        ) + pyqt.dpi_scale(8)
+        forms = OrderedDict()
+        for spec in specs:
+            if spec.group not in forms:
+                box = QtWidgets.QGroupBox(spec.group)
+                form = QtWidgets.QFormLayout(box)
+                form.setContentsMargins(4, 4, 4, 4)
+                form.setSpacing(2)
+                forms[spec.group] = form
+                self.params_layout.addWidget(box)
+            widget = PARAM_WIDGETS[spec.kind](spec)
+            if hasattr(widget, "sliderPressed"):
+                widget.sliderPressed.connect(
+                    partial(self._on_param_drag_start, spec.attr)
+                )
+                widget.valueChanged.connect(partial(self._on_param_changed, spec.attr))
+            widget.valueCommitted.connect(partial(self._on_param_committed, spec.attr))
+            label = QtWidgets.QLabel(spec.label)
+            label.setMinimumWidth(label_width)
+            forms[spec.group].addRow(label, widget)
+            self.param_widgets[spec.attr] = widget
+
+    def _on_param_drag_start(self, attr):
+        """Remember the plugs and values before a slider drag.
+
+        Args:
+            attr (str): Parameter attribute.
+        """
+        backend = self._panel_backend
+        self._drag_start = {}
+        for spring in self._target_springs():
+            plug = backend.param_plugs(spring).get(attr)
+            if plug:
+                self._drag_start[plug] = cmds.getAttr(plug)
+
+    def _on_param_changed(self, attr, value):
+        """Preview a slider drag live, without undo.
+
+        Args:
+            attr (str): Parameter attribute.
+            value (float): New value.
+        """
+        if not self._drag_start or not self.param_widgets[attr].slider.isSliderDown():
+            return
+        with utils.undo_disabled():
+            for plug in self._drag_start:
+                cmds.setAttr(plug, value)
+
+    def _on_param_committed(self, attr, value):
+        """Apply an edit in one undo step, or store it for new springs.
+
+        Args:
+            attr (str): Parameter attribute.
+            value (object): New value.
+        """
+        springs = self._target_springs()
+        backend = self._panel_backend
+        if not springs:
+            self._new_values.setdefault(backend.name, {})[attr] = value
+            self.save_json_setting(NEW_VALUES_KEY, self._new_values)
+            return
+        # undo must restore the value from before the drag
+        with utils.undo_disabled():
+            for plug, start in self._drag_start.items():
+                cmds.setAttr(plug, start)
+        self._drag_start = {}
+        backend.set_params(springs, {attr: value})
+
+    def reset_params(self):
+        """Reset the parameters of the selected springs, or the new values."""
+        backend = self._panel_backend
+        if not backend:
+            return
+        springs = self._target_springs()
+        if springs:
+            backend.set_params(springs, backend.default_params())
+        else:
+            self._new_values.pop(backend.name, None)
+            self.save_json_setting(NEW_VALUES_KEY, self._new_values)
+        self.update_params_panel()
+
+    def key_params(self):
+        """Key every keyable parameter of the selected springs."""
+        backend = self._panel_backend
+        keyable = {spec.attr for spec in backend.param_specs() if spec.keyable}
+        plugs = []
+        for spring in self._target_springs():
+            plugs.extend(
+                plug
+                for attr, plug in backend.param_plugs(spring).items()
+                if attr in keyable
+            )
+        if plugs:
+            cmds.setKeyframe(plugs)
+
+    def _backend_new_values(self, backend):
+        """Return the values for new springs of a backend.
+
+        Args:
+            backend (SpringBackend): The backend.
+
+        Returns:
+            dict: ``{attr: value}``, defaults for unset parameters.
+        """
+        values = backend.default_params()
+        stored = self._new_values.get(backend.name) or {}
+        values.update({key: value for key, value in stored.items() if key in values})
+        return values
+
+    # -----------------------------------------------------------------
+    # Bake and delete
+    # -----------------------------------------------------------------
+    def bake_selected(self):
+        """Bake the selected springs, asking for the options."""
+        self._bake(self.selected_springs())
+
+    def bake_all(self):
+        """Bake every spring, asking for the options."""
+        self._bake(list(self._items))
+
+    def _bake(self, springs):
+        count = sum(
+            1
+            for spring in springs
+            if spring.exists() and spring.state != constants.STATE_BAKED
+        )
+        if not count:
+            cmds.warning("No springs to bake")
+            return
+        dialog = BakeDialog(count, self)
+        if not dialog.exec_():
+            return
+        bake.bake(springs, **dialog.options())
+        self.scene_changed()
+
+    def delete_selected(self):
+        """Delete the selected springs, giving the animation back."""
+        springs = self.selected_springs()
+        if not springs:
+            cmds.warning("Select the springs to delete")
+            return
+        bake.delete(springs)
+        self.scene_changed()
+
+    def delete_all(self):
+        """Delete every spring after confirmation."""
+        springs = registry.list_springs(previous=list(self._items))
+        if not springs:
+            return
+        answer = QtWidgets.QMessageBox.question(
+            self,
+            "Delete All Springs",
+            "Delete {} spring(s)? The animation is given back to the "
+            "controls.".format(len(springs)),
+        )
+        if answer != QtWidgets.QMessageBox.Yes:
+            return
+        bake.delete(springs)
+        self.scene_changed()
+
+    # -----------------------------------------------------------------
+    # Preset libraries
+    # -----------------------------------------------------------------
+    def _load_libraries(self):
+        """Fill the library combo: Factory, User and custom folders."""
+        custom = self.load_json_setting(constants.CUSTOM_LIBRARIES_KEY, [])
+        self._libraries = [
+            Library("Factory", presets.factory_folder(), read_only=True),
+            Library("User", presets.user_folder()),
+        ]
+        self._libraries += [
+            Library(path, path) for path in custom if isinstance(path, str)
+        ]
+        current = self.settings.value(LIBRARY_KEY)
+        with pyqt.block_signals(self.library_combo):
+            self.library_combo.clear()
+            for library in self._libraries:
+                self.library_combo.addItem(library.label, library.folder)
+                self.library_combo.setItemData(
+                    self.library_combo.count() - 1,
+                    library.folder,
+                    QtCore.Qt.ToolTipRole,
+                )
+            index = self.library_combo.findData(current)
+            self.library_combo.setCurrentIndex(max(index, 0))
+        self.refresh_presets()
+
+    def _save_custom_libraries(self):
+        self.save_json_setting(
+            constants.CUSTOM_LIBRARIES_KEY,
+            [library.folder for library in self._libraries[BUILTIN_LIBRARY_COUNT:]],
+        )
+
+    def current_library(self):
+        """Return the current library.
+
+        Returns:
+            Library: The library.
+        """
+        return self._libraries[max(self.library_combo.currentIndex(), 0)]
+
+    def on_library_changed(self, *args):
+        """Remember the current library and list its presets."""
+        self.settings.setValue(LIBRARY_KEY, self.current_library().folder)
+        self.refresh_presets()
+
+    def _load_preset(self, path):
+        """Return a preset, cached until the file changes.
+
+        Args:
+            path (str): Preset file path.
+
+        Returns:
+            dict: The preset, or None when it can not be read.
+        """
+        try:
+            stamp = os.path.getmtime(path)
+        except OSError:
+            return None
+        cached = self._preset_cache.get(path)
+        if cached and cached[0] == stamp:
+            return cached[1]
+        try:
+            preset = presets.read(path)
+        except (IOError, OSError, ValueError) as error:
+            mgear.log(str(error), mgear.sev_warning)
+            preset = None
+        self._preset_cache[path] = (stamp, preset)
+        return preset
+
+    def _preset_icon(self, path, preset_type):
+        """Return the icon of a preset, cached until its thumbnail changes.
+
+        Args:
+            path (str): Preset file path.
+            preset_type (str): Preset type, for the placeholder badge.
+
+        Returns:
+            QtGui.QIcon: The thumbnail, or the type badge.
+        """
+        thumbnail = presets.thumbnail_path(path)
+        try:
+            stamp = os.path.getmtime(thumbnail)
+        except OSError:
+            return type_badge(preset_type)
+        cached = self._icon_cache.get(thumbnail)
+        if cached and cached[0] == stamp:
+            return cached[1]
+        pixmap = QtGui.QPixmap(thumbnail)
+        icon = QtGui.QIcon(pixmap) if not pixmap.isNull() else type_badge(preset_type)
+        self._icon_cache[thumbnail] = (stamp, icon)
+        return icon
+
+    def refresh_presets(self, *args):
+        """List the presets of the current library."""
+        library = self.current_library()
+        items = []
+        for name, path in presets.list_presets(library.folder):
+            preset = self._load_preset(path)
+            if preset is None:
+                continue
+            preset_type = presets.preset_type(preset)
+            item = QtGui.QStandardItem(self._preset_icon(path, preset_type), name)
+            item.setData(path, PRESET_PATH_ROLE)
+            item.setToolTip(
+                "{} ({})\n{}".format(
+                    name, TYPE_LABELS[preset_type], presets.describe(preset)
+                )
+            )
+            items.append(item)
+        self.preset_model.clear()
+        for item in items:
+            self.preset_model.appendRow(item)
+        self.save_btn.setEnabled(not library.read_only)
+        self.save_preset_action.setEnabled(not library.read_only)
+        self.remove_library_action.setEnabled(
+            self.library_combo.currentIndex() >= BUILTIN_LIBRARY_COUNT
+        )
+        self.update_preset_details()
+
+    def set_grid_view(self, grid):
+        """Show the presets as a thumbnail grid or as a list.
+
+        Args:
+            grid (bool): True for the grid.
+        """
+        view = self.preset_view
+        if grid:
+            size = pyqt.dpi_scale(GRID_ICON_SIZE)
+            view.setViewMode(QtWidgets.QListView.IconMode)
+            view.setIconSize(QtCore.QSize(size, size))
+            view.setGridSize(QtCore.QSize(size + 16, size + 28))
+            view.setWordWrap(True)
+            view.setMovement(QtWidgets.QListView.Static)
+        else:
+            size = pyqt.dpi_scale(LIST_ICON_SIZE)
+            view.setViewMode(QtWidgets.QListView.ListMode)
+            view.setIconSize(QtCore.QSize(size, size))
+            view.setGridSize(QtCore.QSize())
+            view.setWordWrap(False)
+
+    def update_preset_details(self, *args):
+        """Show the thumbnail, type and description of the current preset."""
+        paths = self.selected_preset_paths()
+        preset = self._load_preset(paths[0]) if len(paths) == 1 else None
+        self.detail_widget.setVisible(bool(preset))
+        if not preset:
+            return
+        preset_type = presets.preset_type(preset)
+        size = pyqt.dpi_scale(LIST_ICON_SIZE * 2)
+        self.detail_icon.setPixmap(
+            self._preset_icon(paths[0], preset_type).pixmap(size, size)
+        )
+        self.detail_title.setText(
+            "<b>{}</b> &nbsp;<span style='color:{}'>{} preset</span>".format(
+                presets.preset_name(paths[0]),
+                TYPE_COLORS[preset_type].name(),
+                TYPE_LABELS[preset_type],
+            )
+        )
+        self.detail_text.setText(presets.describe(preset))
+
+    def add_library(self):
+        """Add a custom library folder."""
+        folder = QtWidgets.QFileDialog.getExistingDirectory(
+            self, "Add Spring Preset Library"
+        )
+        if not folder:
+            return
+        folder = os.path.normpath(folder)
+        if folder not in [library.folder for library in self._libraries]:
+            self._libraries.append(Library(folder, folder))
+            self._save_custom_libraries()
+            self.library_combo.addItem(folder, folder)
+        self.library_combo.setCurrentIndex(self.library_combo.findData(folder))
+
+    def remove_library(self):
+        """Remove the current custom library folder from the list."""
+        index = self.library_combo.currentIndex()
+        if index < BUILTIN_LIBRARY_COUNT:
+            return
+        del self._libraries[index]
+        self._save_custom_libraries()
+        self.library_combo.removeItem(index)
+
+    def reveal_library(self):
+        """Open the current library folder in the file browser."""
+        folder = self.current_library().folder
+        if not os.path.isdir(folder):
+            cmds.warning("The library folder does not exist yet: " + folder)
+            return
+        utils.reveal_in_file_browser(folder)
+
+    # -----------------------------------------------------------------
+    # Presets
+    # -----------------------------------------------------------------
+    def selected_preset_paths(self):
+        """Return the file paths of the selected presets.
+
+        Returns:
+            list: File paths.
+        """
+        return [
+            index.data(PRESET_PATH_ROLE)
+            for index in self.preset_view.selectionModel().selectedRows()
+        ]
+
+    def _read_presets(self):
+        paths = self.selected_preset_paths()
+        if not paths:
+            cmds.warning("Select a preset first")
+            return []
+        loaded = [self._load_preset(path) for path in paths]
+        return [preset for preset in loaded if preset]
+
+    def _choose_namespace(self):
+        """Return the namespace to apply presets to, from the selection.
+
+        Returns:
+            str: Namespace with trailing colon, ``""`` for the root
+            namespace, or None when the user cancels.
+        """
+        names = cmds.ls(selection=True) or []
+        if not names:
+            return ""
+        namespace, candidates = node_remap.common_namespace(names)
+        if namespace is not None:
+            return namespace
+        labels = [candidate or ":" for candidate in candidates]
+        choice, accepted = QtWidgets.QInputDialog.getItem(
+            self,
+            "Choose Namespace",
+            "The selection has several namespaces. Apply the preset to:",
+            labels,
+            0,
+            False,
+        )
+        if not accepted:
+            return None
+        return "" if choice == ":" else choice
+
+    def apply_preset(self):
+        """Apply the selected presets.
+
+        Rig presets create or update their springs, in the namespace of
+        the selection. Values presets apply their values to the selected
+        springs and create springs on selected controls that have none.
+        """
+        loaded = self._read_presets()
+        if not loaded:
+            return
+        namespace = ""
+        if any(
+            presets.preset_type(preset) == constants.PRESET_RIG for preset in loaded
+        ):
+            namespace = self._choose_namespace()
+            if namespace is None:
+                return
+        missing = []
+        with utils.undo_chunk("springManagerApplyPreset"):
+            for preset in loaded:
+                if presets.preset_type(preset) == constants.PRESET_VALUES:
+                    self._apply_values_preset(preset)
+                else:
+                    missing.extend(presets.apply_by_name(preset, namespace)[1])
+        if missing:
+            cmds.warning(
+                "{} preset control(s) not found, see the script editor".format(
+                    len(missing)
+                )
+            )
+        self.scene_changed()
+
+    def _apply_values_preset(self, preset):
+        """Apply a values preset to the selection.
+
+        Args:
+            preset (dict): The preset.
+        """
+        selection = cmds.ls(selection=True, long=True, type="transform") or []
+        owners = registry.map_nodes_to_springs(selection, self._control_map)
+        springs = list(OrderedDict.fromkeys(s for s in owners.values() if s))
+        presets.apply_values(preset, springs)
+        free = [node for node, spring in owners.items() if not spring]
+        entry = preset["springs"][0] if preset["springs"] else {}
+        backend = get_backend(entry.get("backend"))
+        if free and backend and backend.is_available():
+            params = self._backend_new_values(backend)
+            params.update(presets.entry_values(entry))
+            backend.create(free, params, entry.get("options"))
+        if not springs and not free:
+            cmds.warning("Select springs or controls to apply the preset to")
+
+    def apply_preset_values(self):
+        """Apply only the values of the selected preset to the springs."""
+        loaded = self._read_presets()
+        if not loaded:
+            return
+        springs = self.selected_springs()
+        if not springs:
+            cmds.warning("Select the springs to apply the values to")
+            return
+        presets.apply_values(loaded[0], springs)
+        self.update_params_panel()
+
+    def _values_preset_params(self, springs):
+        """Return the backend and values a values preset is saved from.
+
+        Args:
+            springs (list): Selected editable ``(spring, backend)`` pairs.
+
+        Returns:
+            tuple: ``(backend, params)``: the first selected spring, or the
+            values for new springs when none is selected.
+        """
+        if springs:
+            spring, backend = springs[0]
+            return backend, backend.get_params(spring)
+        backend = self._panel_backend
+        return backend, self._backend_new_values(backend)
+
+    def save_preset(self):
+        """Save a values or rig preset in the current library."""
+        library = self.current_library()
+        if library.read_only:
+            cmds.warning("The {} library is read only".format(library.label))
+            return
+        springs = editable_springs(self.selected_springs())
+        dialog = SavePresetDialog(bool(springs), self)
+        if not dialog.exec_():
+            return
+        path = presets.preset_path(library.folder, dialog.name())
+        if os.path.exists(path):
+            answer = QtWidgets.QMessageBox.question(
+                self,
+                "Save Spring Preset",
+                "Overwrite preset '{}'?".format(dialog.name()),
+            )
+            if answer != QtWidgets.QMessageBox.Yes:
+                return
+
+        if dialog.preset_type() == constants.PRESET_RIG:
+            saved = presets.save(
+                path, [spring for spring, _ in springs], dialog.description()
+            )
+        else:
+            backend, params = self._values_preset_params(springs)
+            saved = presets.build_values_preset(
+                backend.name, params, dialog.description()
+            )
+            presets.write(path, saved)
+        if not saved:
+            return
+        self._write_thumbnail(path, dialog.thumbnail.image())
+        self.refresh_presets()
+
+    def _write_thumbnail(self, path, image):
+        """Save or remove the thumbnail of a preset.
+
+        Args:
+            path (str): Preset file path.
+            image (QtGui.QImage): The thumbnail, None to remove it.
+        """
+        thumbnail = presets.thumbnail_path(path)
+        if image is None:
+            if os.path.exists(thumbnail):
+                os.remove(thumbnail)
+        else:
+            image.save(thumbnail, "PNG")
+
+    def rename_preset(self):
+        """Rename the selected preset."""
+        paths = self.selected_preset_paths()
+        if len(paths) != 1 or self.current_library().read_only:
+            return
+        old_name = presets.preset_name(paths[0])
+        name, accepted = QtWidgets.QInputDialog.getText(
+            self, "Rename Spring Preset", "Preset name:", text=old_name
+        )
+        name = name.strip() if accepted else ""
+        if not name or name == old_name:
+            return
+        try:
+            presets.rename(paths[0], name)
+        except OSError as error:
+            cmds.warning(str(error))
+            return
+        self.refresh_presets()
+
+    def edit_preset_description(self):
+        """Edit the description of the selected preset."""
+        paths = self.selected_preset_paths()
+        if len(paths) != 1 or self.current_library().read_only:
+            return
+        preset = self._load_preset(paths[0]) or {}
+        text, accepted = QtWidgets.QInputDialog.getMultiLineText(
+            self,
+            "Preset Description",
+            "Description:",
+            preset.get("description") or "",
+        )
+        if accepted:
+            presets.set_description(paths[0], text.strip())
+            self.refresh_presets()
+
+    def update_preset_thumbnail(self, region=False):
+        """Replace the thumbnail of the selected preset.
+
+        Args:
+            region (bool, optional): Capture a screen region instead of the
+                active viewport.
+        """
+        paths = self.selected_preset_paths()
+        if len(paths) != 1 or self.current_library().read_only:
+            return
+        if region:
+            image = screen_capture.capture_screen_region(hide_widgets=[self.window()])
+        else:
+            image = pyqt.capture_active_view_image()
+        image = pyqt.square_crop_image(image, constants.THUMBNAIL_SIZE)
+        if image is None:
+            return
+        self._write_thumbnail(paths[0], image)
+        self.refresh_presets()
+
+    def delete_presets(self):
+        """Delete the selected presets after confirmation."""
+        paths = self.selected_preset_paths()
+        if not paths or self.current_library().read_only:
+            return
+        answer = QtWidgets.QMessageBox.question(
+            self,
+            "Delete Spring Presets",
+            "Delete these presets?\n{}".format(
+                "\n".join(presets.preset_name(path) for path in paths)
+            ),
+        )
+        if answer != QtWidgets.QMessageBox.Yes:
+            return
+        for path in paths:
+            presets.remove(path)
+        self.refresh_presets()
+
+    def select_preset_controls(self):
+        """Select the scene controls stored in the selected rig presets."""
+        namespace = self._choose_namespace()
+        if namespace is None:
+            return
+        controls = []
+        for preset in self._read_presets():
+            for entry in preset["springs"]:
+                controls.extend(
+                    name
+                    for name in presets.resolve_controls(entry, namespace)
+                    if cmds.objExists(name)
+                )
+        if controls:
+            cmds.select(controls, replace=True)
+        else:
+            cmds.warning("None of the preset controls exist in the scene")
+
+    def _reveal_selected_preset(self):
+        paths = self.selected_preset_paths()
+        if paths:
+            utils.reveal_in_file_browser(paths[0])
+
+    def _preset_menu(self, position):
+        menu = QtWidgets.QMenu(self)
+        paths = self.selected_preset_paths()
+        single = len(paths) == 1
+        read_only = self.current_library().read_only
+        editable = single and not read_only
+        rig = single and any(
+            presets.preset_type(preset) == constants.PRESET_RIG
+            for preset in self._read_presets()
+        )
+        apply_action = menu.addAction("Apply")
+        values_action = menu.addAction("Apply Values to Selected")
+        select_action = menu.addAction("Select Preset Controls")
+        menu.addSeparator()
+        description_action = menu.addAction("Edit Description...")
+        viewport_action = menu.addAction("Thumbnail from Viewport")
+        region_action = menu.addAction("Thumbnail from Screen Region...")
+        menu.addSeparator()
+        rename_action = menu.addAction("Rename...")
+        delete_action = menu.addAction("Delete")
+        reveal_action = menu.addAction("Reveal in File Browser")
+        for action in (apply_action, values_action):
+            action.setEnabled(bool(paths))
+        select_action.setEnabled(rig)
+        for action in (description_action, viewport_action, region_action):
+            action.setEnabled(editable)
+        rename_action.setEnabled(editable)
+        delete_action.setEnabled(bool(paths) and not read_only)
+        reveal_action.setEnabled(single)
+        apply_action.triggered.connect(self.apply_preset)
+        values_action.triggered.connect(self.apply_preset_values)
+        select_action.triggered.connect(self.select_preset_controls)
+        description_action.triggered.connect(self.edit_preset_description)
+        viewport_action.triggered.connect(partial(self.update_preset_thumbnail, False))
+        region_action.triggered.connect(partial(self.update_preset_thumbnail, True))
+        rename_action.triggered.connect(self.rename_preset)
+        delete_action.triggered.connect(self.delete_presets)
+        reveal_action.triggered.connect(self._reveal_selected_preset)
+        menu.exec_(self.preset_view.viewport().mapToGlobal(position))
+        menu.deleteLater()
+
+    # -----------------------------------------------------------------
+    # Window lifecycle
+    # -----------------------------------------------------------------
+    def shutdown(self):
+        """Remove the callbacks and save the settings (once)."""
+        if self.closed:
+            return
+        self.closed = True
+        self.callbacks.removeAllManagedCB()
+        self.save_settings()
+
+    def closeEvent(self, event):
+        """Handle the floating-window close.
+
+        Args:
+            event (QtGui.QCloseEvent): The close event.
+        """
+        self.shutdown()
+        super(SpringManager, self).closeEvent(event)
+
+    def dockCloseEventTriggered(self):
+        """Handle the docked workspace-control close."""
+        self.shutdown()
 
 
-def openSpringManagerManager(*args):
-    pyqt.showDialog(SpringManager, dockable=True)
+def open_spring_manager(*args):
+    """Show the dockable Spring Manager, replacing an open one.
+
+    Returns:
+        SpringManager: The window instance.
+    """
+    return pyqt.showDialog(SpringManager, dockable=True)
 
 
-if __name__ == "__main__":
-    window = SpringManager()
-    window.show()
+# backwards compatible entry point
+openSpringManagerManager = open_spring_manager
