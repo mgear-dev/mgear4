@@ -273,7 +273,20 @@ API
 Smart Reset Attribute/SRT
 =========================
 
-This command will reset the SRT (Scale, rotation and Translation of any selected object). If an attribute is highlighted in the Channel Box, will reset the channel instead.
+Puts the selected controls back to their default values in one click, for example to return a control to its neutral pose while posing.
+
+**How it decides what to reset:**
+
+* **Channels highlighted in the Channel Box** - Only those channels are reset, on every selected object. Use it to reset a single custom attribute (for example a ``blend`` or ``roll`` channel) without touching the transforms.
+* **Nothing highlighted** - The transforms are reset: translate, rotate and scale, plus visibility. The rotate order is reset too, but only on Shifter controls that store their original rotate order; on other nodes it is left as it is, and a message says so.
+
+**Values:** each channel goes back to its Maya default value: 0 for translate and rotate, 1 for scale and visibility, and the default value set when a custom attribute was created. It is not a stored pose: a control whose neutral pose is not at its default values goes to its default values.
+
+**Notes:**
+
+* Locked or connected channels are skipped without error.
+* No key is set. On animated channels the reset value lasts until the time changes: key it to keep it.
+* Works on any number of selected objects; channels that an object doesn't have are skipped.
 
 **TIP:** Set a hotkey for this command using mGear Hotkey creator in utilities menu.
 
@@ -285,108 +298,110 @@ This command will reset the SRT (Scale, rotation and Translation of any selected
 Cache Manager
 =============
 
-Generate and manage GPU cache (Alembic) representations of rigged geometry to improve viewport performance in heavy scenes.
+Swaps heavy rigs for a lightweight GPU cache of their geometry, so scenes with many characters play fast in the viewport. When you need to animate a rig again, one click brings it back.
 
-**Key Features:**
+**How it works:** the animated geometry of a rig is written to an Alembic file (``.abc``) with Maya's GPU cache, over the playback range. A ``gpuCache`` node named ``<rig>_cache`` shows that file in the viewport, and the rig itself is unloaded or hidden, so Maya no longer evaluates it.
 
-* Generate GPU caches for referenced rigs
-* Automatic rig unloading or hiding after cache generation
-* Filter and manage multiple rigs in a scene
-* Preference-based configuration saving
+**Requirements:**
 
-**UI Options:**
+* Rigs are found by their ``is_rig`` attribute (every Shifter rig has it). Studios can use another attribute with the ``MGEAR_CACHE_MANAGER_RIG_ATTRIBUTE`` environment variable.
+* The rigs should be **referenced**: unloading is done on the reference.
+* The **Model group** must be set: the group of the rig that holds the meshes to cache.
 
-* **Rig Switch** - Choose to Unload or Hide rig after caching
-* **Model Group** - Target group containing shapes to cache
-* **GPU Path** - File destination for cache files
-* **Display Type** - Color display override or Keep current
+**Options** (saved in your preferences, ``<Maya app dir>/mGear/animbits_cache_manager.json``):
 
-**Main Operations:**
+* **Rig switch** - What happens to the rig once cached: **Unload** its reference (default, lightest) or **Hide** it.
+* **Model group** - Name of the group holding the meshes, without namespace (for example ``model``). Select the group and click **Set**, or type it and click **Set**. It is searched under each rig, so the same name works for every character.
+* **GPU path** - Folder where the cache files are written (**...** to browse). Default: the ``MGEAR_CACHE_MANAGER_CACHE_DESTINATION`` environment variable, otherwise the temp folder.
+* **Display type** - **Current** keeps the meshes' own look; **Color** shades the whole cache with the color you pick, to tell cached characters apart.
 
-* **Cache** - Generate GPU cache for selected rig
-* **Reload Rig** - Reload previously unloaded/hidden rig
-* **Color** - Set display color override for cached geometry
+**Main window:**
+
+* **Filter** - Type to filter the rig list.
+* **Rig list** - The rigs of the scene. A cache icon marks the cached ones. Multiple selection is allowed.
+* **Cache Selected** - Caches the selected rigs over the playback range, then unloads or hides them. Rigs that are already cached are skipped.
+* **Set Rig** - Brings the selected cached rigs back: the reference is reloaded (or the rig shown again), the ``gpuCache`` node is removed and **its cache file is deleted from disk**.
+
+**Notes:**
+
+* The cache is a snapshot: after changing the animation, **Set Rig** and cache again.
+* Each cache file name includes the date and time, so caches never overwrite each other.
+* **Color** display uses a temporary Render Setup layer while caching: **existing Render Setup layers of the scene are removed**. Use **Current** in scenes that use Render Setup.
+* The list refreshes by itself when a scene is opened or created.
 
 
 HumanIK Mapper
 ==============
 
-Map and configure mocap skeleton to mGear rig controls with support for the HumanIK system, enabling batch baking and sub-IK control support.
+Drives an mGear rig with motion capture through Maya HumanIK, and bakes the mocap onto the rig controls, one file at a time or in batch.
 
 .. image:: images/animbits/humanIK_mapper.png
     :align: center
     :scale: 80%
 
-**Key Features:**
+**How it works:** the tool builds a HumanIK character definition, ``MGearIKHuman``, whose "bones" are the rig **controls** you pick for each body part. Any mocap that has its own HumanIK character can then be used as the **Source** of the rig in the HumanIK window, and baked onto the controls. The ``mayaHIK`` and ``fbxmaya`` plug-ins are loaded automatically.
 
-* Initialize HIK character definitions from rig controls
-* Configure bone-to-control mappings for all body parts
-* Support for arm/leg roll controls and sub-IK bindings
-* Single and batch baking of HIK animation
-* Export/import character configuration as .hikm files
-* Mirror mapping support (Left/Right automation)
-
-Setup Tab
+Setup tab
 ---------
 
-**Workflow:**
+1. Pose the rig in a stance HumanIK accepts (usually a T-pose), with the FK controls you want to drive.
+2. Select the root control (for example ``world_ctl`` or the body root) and click **Initialize**. This creates the definition, opens the HumanIK window, and assigns the selection as the **Reference**.
+3. Click a body part button (**Head**, **Spine**, **Right/Left Arm**, **Right/Left Leg**, **Right/Left Hand**, the **Arm Rolls** and **Leg Rolls** buttons). A **Limb Selection Order** dialog lists the HumanIK bones of that part in order (for example *Shoulder, Arm, ForeArm, Hand*). Select the matching controls **in that order** in the viewport - the dialog shows your selection live - and click **Confirm**. The numbered bones (Spine1-9, Neck1-9, rolls) are optional: select as many as your rig has.
+4. With **Apply mirror** on (default), mapping one side also maps the other side, using the left/right names of the controls.
+5. If a mapped control has locked translate, rotate or scale channels, you are asked to unlock them: HumanIK needs them free.
 
-1. Click **Initialize** to create/setup HIK character from rig
-2. Use body part buttons (Head, Spine, Arms, Legs, Hands) to configure mappings
-3. Enable **Mirror** checkbox to automatically apply mappings to both sides
-4. Configure **Sub IK** controls if needed for additional animation layers
-5. Review mappings in the expandable Mapping Table section
+**Mapping** section:
 
-**Body Part Buttons:**
+* **Refresh** - Shows the current mapping: HumanIK bone, target control and Sub IK controls.
+* **Sub IK** - Extra controls that follow a mapped control, for rigs where one HumanIK bone should drive more than one control (for example an IK control following the mapped FK hand). Right-click a row: **Set selection as Sub Ik** links the selected controls to that row's control (with a parent constraint keeping their offset), **Clear Sub Ik** removes them. **Sub Ik Active** turns these links on or off. Sub IK controls are baked with the rest.
 
-* **Head** - Map head and neck controls
-* **Spine** - Map spine chain controls
-* **Left/Right Arm** - Map arm IK/FK controls
-* **Left/Right Leg** - Map leg IK/FK controls
-* **Arm/Leg Rolls** - Configure roll bone mappings
-* **Hands** - Map finger controls
+**File menu** - **Export** / **Import** the mapping as a ``.hikm`` file (bone, target control and Sub IK controls), to set up the same rig again in one step.
 
-Batch Bake Tab
+Baking
+------
+
+* **Bake > Bake** - Set the mocap character as the **Source** in the HumanIK window, then bake: the mapped controls (and Sub IK controls) get keys, using Maya's **Bake Simulation** options (frame range included). Same as HumanIK's *Bake to Control Rig*.
+
+Batch Bake tab
 --------------
 
-Process multiple animation files at once:
+Bakes several mocap files onto the rig in one go. Keep the HumanIK window open: the tool switches its Source for each file.
 
-* Add FBX/animation files to the batch list
-* **Batch Bake Layers** - Bake animations as animation layers
-* **Batch Bake Timeline** - Bake animations directly to timeline
+* **+** / **-** - Add FBX files (each must contain a HumanIK character) or remove the selected ones.
+* **Batch Bake Layers** - Each file is referenced into the scene, set as the source and baked over the playback range on its **own animation layer**, named after the file's HumanIK character. Use it to compare takes.
+* **Batch Bake Timeline** - Each file is baked and added to the **Time Editor** as a clip, one after the other on the same track; the playback range is set to cover all of them. Use it to assemble a sequence.
+* **Bake > Export / Import Batch Bake Config** - Save or load the file list (``.bkcn``).
 
-**Menus:**
+**Notes:**
 
-* **File Menu** - Import/Export HIK mapper configurations
-* **Bake Menu** - Bake, Bake to Timeline, Export/Import Batch Bake Config
+* The mocap files stay referenced in the scene after a batch bake; remove the references when you no longer need them. The scene is not saved.
+* The mapping is not checked against the rig's IK/FK state: map and bake the controls you want animated (usually FK).
 
 
 Space Recorder
 ==============
 
-Record and apply world space transforms to selected objects across timeline ranges using 3 independent buffers.
+Records where objects are in the world over the timeline, and puts them back there later, even after the hierarchy, the parent or the space switch changed. Typical uses: change a control's space switch (for example a hand from world to chest) without the hand moving, or copy the motion of one object onto another, without constraints.
 
-**Key Features:**
+**Window:** three buffers, **A**, **B** and **C**, each with:
 
-* Record world space transforms of objects over time
-* 3 independent buffers (A, B, C) for different animation states
-* Apply recorded spaces to same objects or different selection
-* Non-destructive, constraint-free animation transfer
+* **Record Buffer** - Stores the world position, rotation and scale of each selected object on every frame of the playback range.
+* **Apply Buffer** - Puts the recorded objects back at their recorded world positions on every frame of the playback range, and keys them.
+* **Apply Sel Buffer** - Applies the recording to the **current selection** instead: the first selected object gets the first recorded object's motion, the second the second, and so on (by selection order, not by name).
 
-**Workflow:**
+**Workflow (space switch without pop):**
 
-1. Select objects to record
-2. Click **Record Buffer** (A, B, or C)
-3. System records world matrix of each object across timeline
-4. **Apply Buffer** - Apply transforms back to original objects
-5. **Apply Sel Buffer** - Apply recorded transforms to current selection (different objects)
+1. Set the playback range to the frames to fix.
+2. Select the controls and click **Record Buffer A**.
+3. Change the space switch (or reparent, or edit the parents' animation).
+4. Click **Apply Buffer A**: the controls are keyed on every frame so they stay where they were in the world.
 
-**Use Cases:**
+**Notes:**
 
-* Copy animation between rigs without constraints
-* Transfer space data for animation matching
-* Store multiple animation states for comparison
-* Match character movement to objects
+* Keep the same playback range for recording and applying.
+* Applying keys **every frame**, on all keyable channels of the objects: simplify the curves afterwards if you need sparse keys.
+* For **Apply Sel Buffer**, select at most as many objects as were recorded, in the same order.
+* Buffers live in memory: they are cleared when the window is closed or reopened, and not saved with the scene.
 
 
 Blocking Ghosts
@@ -448,10 +463,6 @@ Spring Manager
 
 Add spring dynamics to animation controls for secondary motion: tails, antennas, hair, ears, cloth pieces or any control that should follow the animation with overlap and jiggle. The springs are live in the scene and are baked to keys when the animation is final.
 
-.. image:: images/animbits/springManager.png
-    :align: center
-    :scale: 80%
-
 The Spring Manager works on any animation control. It is not related to the Shifter spring components (see `Bake/Clear Spring Nodes`_ for those).
 
 **Workflow:**
@@ -476,6 +487,11 @@ Solvers that need a plug-in that is not installed are shown disabled. The **Crea
 Create
 ------
 
+
+.. image:: images/animbits/spring_manager/classic_solver.png
+    :align: center
+    :scale: 80%
+
 * **X, Y, Z, -X, -Y, -Z** - Create springs on the selected controls, aiming along that axis of each control.
 * **Auto** - Find the direction of each control from its chain.
 
@@ -486,7 +502,12 @@ Springs
 
 Lists the springs of the scene, with their solver and state. Type in the filter field to show only the matching springs (case insensitive, ``*`` wildcard). Drag the bar under the list to make it taller or shorter; the height is remembered. The list and the Maya selection follow each other: selecting a control selects its spring row, and selecting rows selects the controls.
 
-Right-click a spring for: **Select Rig Nodes**, **Enable / Disable** (total intensity 1 or 0), **Bake**, **Delete** and **Refresh**. The list updates by itself after the tool's actions, undo, redo and scene changes; use **Refresh** after creating or deleting springs outside the tool (for example deleting nodes in the Outliner).
+
+.. image:: images/animbits/spring_manager/spring_list.png
+    :align: center
+    :scale: 80%
+
+Right-click a spring for: **Select Rig Nodes**, **Enable** / **Disable** (total intensity 1 or 0), **Bake Selected...**, **Delete Selected** and **Refresh**. Bone Dynamics springs also have the **Target Pose** submenu (see `Bone Dynamics (optional)`_). The list updates by itself after the tool's actions, undo, redo and scene changes; use **Refresh** after creating or deleting springs outside the tool (for example deleting nodes in the Outliner).
 
 Springs made by the Spring Manager of mGear 5.3 and older are listed as **Legacy**. They can be baked or deleted, but not edited: delete and create them again to edit them.
 
@@ -494,6 +515,13 @@ Parameters
 ----------
 
 Edits the selected springs live. When the selected springs have different values, the field shows **—**; editing it sets the value on all of them. A slider drag is one undo step. If a parameter is animated, editing it sets a key at the current frame. The parameters are also on the control, in the Channel Box, so they can be keyed. Hover a parameter for what it does and typical values.
+
+
+.. image:: images/animbits/spring_manager/classic_solver_parameters.png
+    :align: center
+    :scale: 80%
+
+With no spring selected, the panel shows the values used for new springs.
 
 * **Total Intensity** (0-1) - Overall spring effect. 0 follows the animation exactly.
 * **Rig Scale** (0-100) - Distance between the control and the spring goal. Increase it on big rigs.
@@ -505,6 +533,11 @@ Edits the selected springs live. When the selected springs have different values
 
 Presets
 -------
+
+
+.. image:: images/animbits/spring_manager/presets.png
+    :align: center
+    :scale: 80%
 
 Presets are ``.spg`` files. There are two types, shown with a colored badge, in the tooltip and in the details under the list:
 
@@ -580,6 +613,10 @@ Workflow
 2. Select the **root control** of each chain (a tail root, a hair root, a skirt root...) and press **Create Chain from Selection**. The child controls are found automatically, through ``npo`` groups and other transforms.
 3. Play the animation (every frame) and tune the parameters.
 
+.. image:: images/animbits/spring_manager/BoneDynamics_solver.png
+    :align: center
+    :scale: 80%
+
 The controls are driven through hidden proxy joints: a *target* chain that follows the animation, and a *sim* chain driven by one boneDynamicsNode per bone. The rig itself is not modified, and deleting the spring gives the animation back to the controls.
 
 Create options:
@@ -600,6 +637,10 @@ Create options:
 * **Visualizer** - Draw the bones, angle limits and collision volumes in the viewport, as red wireframe capsules along the chain. The visualizer nodes are parented under the spring group.
 
 Parameters (on the root control, keyable):
+
+.. image:: images/animbits/spring_manager/BoneDynamics_solver_parameters.png
+    :align: center
+    :scale: 80%
 
 * **Total Intensity** - 0 follows the animation exactly, 1 is the full simulation.
 * **Damping**, **Elasticity**, **Stiffness**, **Mass** - The dynamics. Long chains usually need more damping and elasticity.
@@ -635,6 +676,10 @@ Colliders keep the chains out of the body: hair out of the head and shoulders, s
 
 The **Colliders** section (Bone Dynamics only):
 
+.. image:: images/animbits/spring_manager/colliders.png
+    :align: center
+    :scale: 80%
+
 * **Sphere**, **Capsule**, **Plane** - Create a collider on the selected joint or control, or in world space. Capsules lie along their local Y axis; planes collide with their XZ plane (tilted ground, walls).
 * **Mesh** (experimental) - Collide with the selected mesh. With **Proxy** (recommended), a reduced copy with soft edges follows the mesh through a proximity wrap; the mesh itself is not modified. Mesh collision is slow on dense meshes: a warning shows above 2000 faces.
 * **Fit mesh** - The mesh the fit tools measure. Pick it once with **<**, then the selection only names the targets. Empty: the last selected mesh is used.
@@ -657,11 +702,21 @@ Tips:
 Bake/Clear Spring Nodes
 =======================
 
-Utility commands for managing spring animation:
+Bake and clear the springs built **inside Shifter rigs** by the spring components: ``chain_spring_01``, ``chain_spring_gravity_01`` and ``chain_spring_lite_stack_master_01``. For springs added by animators on any control, use the `Spring Manager`_ instead.
 
-* **Bake Spring Nodes** - Convert spring dynamics into baked keyframe animation
-* **Clear Baked Spring Nodes** - Remove baked keyframes, restore live spring simulation
+These components register their spring nodes in the rig's ``<rig>_PLOT_grp`` set. Each spring node blends between the live spring and its own rotation keys, with the component's **spring intensity** channel: 1 shows the live spring, 0 shows the keys.
 
-These commands work with Shifter spring components and are accessible from the Animbits menu.
+* **Bake Spring nodes (Shifter Component)** - Select the rig (or any node of it) and run it. The previous bake is cleared, then the spring rotation is keyed on every frame of the playback range, on every spring node of that rig.
+* **Clear Baked Spring nodes (Shifter Component)** - Select the rig and run it: the baked spring keys are deleted and the spring nodes go back to their rest rotation.
 
+**Workflow:**
 
+1. Animate with the springs live (spring intensity 1) and play every frame to check them.
+2. **Bake Spring nodes** once the animation is final.
+3. Set the spring intensity to 0 on the spring controls to use the baked keys (for example for export or render), or to 1 to see the live spring again.
+4. After changing the animation, bake again (it clears the old bake first), or **Clear Baked Spring nodes** to remove it.
+
+**Notes:**
+
+* Only the selected rig is processed. The selection must be the rig root or a node under it.
+* Each command is one undo step.
