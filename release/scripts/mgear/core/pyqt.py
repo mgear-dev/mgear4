@@ -606,6 +606,38 @@ def text_badge(text, size, color, text_color=None):
     return pixmap
 
 
+class CoalescedCall(object):
+    """Callable that runs a function once on the next event loop pass.
+
+    However often it is called before then, the function runs once. Use it
+    to turn bursts of Maya callbacks (selection, undo, scene messages) into
+    one UI refresh.
+
+    Example:
+        >>> refresh = CoalescedCall(window.refresh)
+        >>> callbacks.selectionChangedCB("selection", refresh)
+    """
+
+    def __init__(self, func):
+        """Initialize the call.
+
+        Args:
+            func (callable): Function called without arguments.
+        """
+        self.func = func
+        self.pending = False
+
+    def __call__(self, *args):
+        if self.pending:
+            return
+        self.pending = True
+        QtCore.QTimer.singleShot(0, self._run)
+
+    def _run(self):
+        self.pending = False
+        self.func()
+
+
 def get_user_settings():
     """Return the shared mGear user settings object.
 

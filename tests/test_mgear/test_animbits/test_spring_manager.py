@@ -654,6 +654,14 @@ def test_bake_to_layer_keeps_animation(sm):
     )
     layer_curves = cmds.animLayer("springBake", query=True, animCurves=True)
     assert any("rotate" in curve for curve in layer_curves)
+    # the layer holds the simulation, not a constant value
+    values = [
+        value
+        for curve in layer_curves
+        if "rotate" in curve
+        for value in cmds.keyframe(curve, query=True, valueChange=True)
+    ]
+    assert max(values) - min(values) > 1
 
 
 def test_registry_kinds(sm):

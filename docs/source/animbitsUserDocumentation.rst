@@ -339,42 +339,62 @@ Drives an mGear rig with motion capture through Maya HumanIK, and bakes the moca
     :align: center
     :scale: 80%
 
-**How it works:** the tool builds a HumanIK character definition, ``MGearIKHuman``, whose "bones" are the rig **controls** you pick for each body part. Any mocap that has its own HumanIK character can then be used as the **Source** of the rig in the HumanIK window, and baked onto the controls. The ``mayaHIK`` and ``fbxmaya`` plug-ins are loaded automatically.
+**How it works:** the tool builds a HumanIK character definition, ``MGearIKHuman``, whose "bones" are the rig **controls** you pick for each body part. Any HumanIK character in the scene (mocap, another character) can then drive the rig as its **Source**, and be baked onto the controls. Everything is done from this window: Maya's HumanIK window is not needed (**File > Open HumanIK Window** opens it for advanced settings). The ``mayaHIK`` plug-in is loaded when the tool opens, ``fbxmaya`` when FBX files are batch baked.
 
-Setup tab
+Character
 ---------
 
 1. Pose the rig in a stance HumanIK accepts (usually a T-pose), with the FK controls you want to drive.
-2. Select the root control (for example ``world_ctl`` or the body root) and click **Initialize**. This creates the definition, opens the HumanIK window, and assigns the selection as the **Reference**.
-3. Click a body part button (**Head**, **Spine**, **Right/Left Arm**, **Right/Left Leg**, **Right/Left Hand**, the **Arm Rolls** and **Leg Rolls** buttons). A **Limb Selection Order** dialog lists the HumanIK bones of that part in order (for example *Shoulder, Arm, ForeArm, Hand*). Select the matching controls **in that order** in the viewport - the dialog shows your selection live - and click **Confirm**. The numbered bones (Spine1-9, Neck1-9, rolls) are optional: select as many as your rig has.
-4. With **Apply mirror** on (default), mapping one side also maps the other side, using the left/right names of the controls.
-5. If a mapped control has locked translate, rotate or scale channels, you are asked to unlock them: HumanIK needs them free.
+2. Select the root control (for example ``world_ctl`` or the body root) and click **Initialize**. This creates ``MGearIKHuman`` and maps the selection as the **Reference**. If the character already exists, Initialize only sets its Reference.
 
-**Mapping** section:
+The label shows the character and how many bones are mapped.
 
-* **Refresh** - Shows the current mapping: HumanIK bone, target control and Sub IK controls.
-* **Sub IK** - Extra controls that follow a mapped control, for rigs where one HumanIK bone should drive more than one control (for example an IK control following the mapped FK hand). Right-click a row: **Set selection as Sub Ik** links the selected controls to that row's control (with a parent constraint keeping their offset), **Clear Sub Ik** removes them. **Sub Ik Active** turns these links on or off. Sub IK controls are baked with the rest.
+Mapping tab
+-----------
 
-**File menu** - **Export** / **Import** the mapping as a ``.hikm`` file (bone, target control and Sub IK controls), to set up the same rig again in one step.
+* **Body part buttons** - **Head**, **Spine**, **R/L Arm**, **R/L Hand**, **R/L Leg** and the roll buttons. Their color shows the mapping state: **green** complete, **orange** partial, grey nothing mapped. The tooltip lists each bone and its control; bones marked ``*`` are required by HumanIK (Hips, Spine, Head, and the upper leg, leg, foot, arm, forearm and hand of each side). The others (Shoulder, ToeBase, the extra spine and neck joints, fingers, rolls) are optional.
+* Click a button to open its **Map** dialog: it lists the bones of the part in order (for example *Shoulder, Arm, ForeArm, Hand*), with the required ones in bold. Select the matching controls **in that order** in the viewport: the dialog pairs each bone with a control as you select, before anything is mapped. Select fewer controls to skip the last bones. Warnings show extra controls, required bones left without a control, and missing opposite controls. Click **Apply** to map the pairs (one undo).
+* **Mirror** - Mapping one side also maps the other side to the opposite controls, found with the mGear left/right naming. Mirrored pairs are shown in italic; a bone without opposite control is left unmapped and reported.
+* If a control has locked or connected translate, rotate or scale channels, you are asked to unlock them when mapping or baking: HumanIK needs to drive them. Cancel to leave the rig unchanged.
 
-Baking
-------
+**Mapping table** - Every HumanIK bone with its control and Sub IK controls; unmapped bones are grey. Type in the filter to find a bone or control, and check **Mapped only** to hide the unmapped bones. Double-click a row to select its controls. Right-click for:
 
-* **Bake > Bake** - Set the mocap character as the **Source** in the HumanIK window, then bake: the mapped controls (and Sub IK controls) get keys, using Maya's **Bake Simulation** options (frame range included). Same as HumanIK's *Bake to Control Rig*.
+* **Select Controls** - Select the controls of the selected rows.
+* **Map Selected Control** - Map the selected control to the row's bone.
+* **Unmap** - Remove the controls of the selected rows from the definition.
+* **Set Selection as Sub IK** / **Clear Sub IK** - Sub IK controls are extra controls that follow a mapped control during the bake, for rigs where one HumanIK bone should drive more than one control (for example an IK control following the mapped FK hand). They keep their offset to the mapped control, and only their free channels are constrained and baked. With **Mirror** on, the opposite controls are linked too.
+
+The table and buttons refresh after each action, on undo and redo, and when a scene is opened or created. Use **File > Refresh** after editing the definition in the HumanIK window.
+
+**File menu** - **Export Mapping** / **Import Mapping** save and load the mapping as a ``.hikm`` file (bone, control and Sub IK controls). Control names are saved without namespace. On import, the controls are found in the namespace of the selection: select any control of the target rig first. Without selection, a control is found in any namespace when its name is unique. Controls that are missing or found in several namespaces are skipped with a warning. Files saved by older versions of the tool are read too.
+
+Source and Bake
+---------------
+
+* **Source** - The HumanIK character driving the rig: any other HumanIK character in the scene (the list refreshes when you open it), or **(none)**. Both definitions are locked when a source is set. If the rig is missing bones HumanIK requires, a warning tells which body parts to complete.
+* **Bake** (button or **Bake > Bake**) - Bake the source onto the mapped and Sub IK controls over the playback range. With **New layer**, the keys go to a new override animation layer named in the field (or after the source), and the base layer keeps its animation; otherwise the keys go to the base layer. The bake is one undo, and the source is disconnected afterwards, as with HumanIK's bake.
+* **Pre-roll** - Frames evaluated before the playback start, without keys, to let the first frames settle.
+* **Bake > Bake to Timeline** - Bake, then move the keys into a **Time Editor** clip on a new track, named after the source.
 
 Batch Bake tab
 --------------
 
-Bakes several mocap files onto the rig in one go. Keep the HumanIK window open: the tool switches its Source for each file.
+Bakes several animation files onto the rig in one go, in order, with a progress bar (press **Esc** to stop after the current file).
 
-* **+** / **-** - Add FBX files (each must contain a HumanIK character) or remove the selected ones.
-* **Batch Bake Layers** - Each file is referenced into the scene, set as the source and baked over the playback range on its **own animation layer**, named after the file's HumanIK character. Use it to compare takes.
-* **Batch Bake Timeline** - Each file is baked and added to the **Time Editor** as a clip, one after the other on the same track; the playback range is set to cover all of them. Use it to assemble a sequence.
-* **Bake > Export / Import Batch Bake Config** - Save or load the file list (``.bkcn``).
+.. image:: images/animbits/humanIK_mapper_bake.png
+    :align: center
+    :scale: 80%
+
+* **Add...** / **Remove** - Add ``.fbx``, ``.ma`` or ``.mb`` files (each with a HumanIK character) or remove the selected ones. **Load List...** / **Save List...** read and write the file list (``.bkcn``).
+* Each file is referenced in its own namespace, its HumanIK character is set as the source, and it is baked over **its own frame range** (from its keys; the playback range when it has none), with the **Pre-roll** of the Source section.
+* **Layer per file** - Each file is baked on its own override animation layer, named after the file. Use it to compare takes.
+* **Time Editor clips** - Each file becomes a Time Editor clip on a new track, each clip starting right after the previous one; the playback range is set to cover them all. Use it to assemble a sequence.
+* **Remove references** - Remove each file's reference after its bake.
+* The report lists each file with its result: baked (with the frame range), skipped (no HumanIK character in the file) or error.
 
 **Notes:**
 
-* The mocap files stay referenced in the scene after a batch bake; remove the references when you no longer need them. The scene is not saved.
+* The scene is not saved by the batch bake.
 * The mapping is not checked against the rig's IK/FK state: map and bake the controls you want animated (usually FK).
 
 

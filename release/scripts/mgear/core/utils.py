@@ -287,17 +287,19 @@ def undo_chunk(name=None):
 
 
 @contextlib.contextmanager
-def main_progress_bar(status, max_value):
+def main_progress_bar(status, max_value, interruptable=False):
     """Context manager - Drive Maya's main progress bar.
 
     Yields a ``step(status=None)`` callable that advances the bar by one
-    and optionally updates its status text. The bar is always ended, even
-    if the block raises. In batch mode nothing is shown, but ``step`` can
-    still be called.
+    and optionally updates its status text. ``step`` returns True when the
+    user pressed Esc on an interruptable bar. The bar is always ended,
+    even if the block raises. In batch mode nothing is shown, but ``step``
+    can still be called.
 
     Args:
         status (str): Initial status text.
         max_value (int): Total number of steps.
+        interruptable (bool, optional): Let the user cancel with Esc.
 
     Yields:
         callable: ``step(status=None)`` function.
@@ -308,7 +310,7 @@ def main_progress_bar(status, max_value):
         ...         step("Exporting {}".format(item))
     """
     if cmds.about(batch=True):
-        yield lambda status=None: None
+        yield lambda status=None: False
         return
 
     bar = mel.eval("$tmp = $gMainProgressBar")
@@ -316,7 +318,7 @@ def main_progress_bar(status, max_value):
         bar,
         edit=True,
         beginProgress=True,
-        isInterruptable=False,
+        isInterruptable=interruptable,
         status=status,
         maxValue=max(max_value, 1),
     )
@@ -324,6 +326,7 @@ def main_progress_bar(status, max_value):
     def step(status=None):
         kwargs = {"status": status} if status else {}
         cmds.progressBar(bar, edit=True, step=1, **kwargs)
+        return interruptable and cmds.progressBar(bar, query=True, isCancelled=True)
 
     try:
         yield step
@@ -434,6 +437,56 @@ def capture_created_nodes():
             if name not in seen:
                 seen.add(name)
                 created.append(name)
+
+
+@contextlib.contextmanager
+def keep_selection():
+    """Context manager - Restore the selection when the block exits.
+
+    Selected nodes deleted in the block are dropped from the restored
+    selection.
+
+    Example:
+        >>> with keep_selection():
+        ...     cmds.select("pCube1")
+    """
+    selection = cmds.ls(selection=True)
+    try:
+        yield
+    finally:
+        existing = cmds.ls(selection) if selection else []
+        if existing:
+            cmds.select(existing, replace=True)
+        else:
+            cmds.select(clear=True)
+
+
+def mel_call(proc, *args):
+    """Call a MEL procedure with Python arguments.
+
+    Strings are quoted and escaped, bools and numbers are passed as
+    values, so names with quotes or backslashes can't break the command.
+
+    Args:
+        proc (str): MEL procedure name.
+        *args: str, bool, int or float arguments.
+
+    Returns:
+        object: The procedure's return value.
+
+    Example:
+        >>> mel_call("hikSetCurrentCharacter", "Character1")
+    """
+    values = []
+    for arg in args:
+        if isinstance(arg, str):
+            escaped = arg.replace("\\", "\\\\").replace('"', '\\"')
+            values.append('"{}"'.format(escaped))
+        elif isinstance(arg, bool):
+            values.append(str(int(arg)))
+        else:
+            values.append(repr(arg))
+    return mel.eval("{}({});".format(proc, ", ".join(values)))
 
 
 def timeFunc(func):

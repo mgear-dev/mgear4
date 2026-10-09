@@ -431,7 +431,8 @@ def bake_attributes(
     if destination_layer:
         if not cmds.animLayer(destination_layer, query=True, exists=True):
             cmds.animLayer(destination_layer, override=True)
-        cmds.animLayer(destination_layer, edit=True, attribute=plugs)
+        # bakeResults adds the plugs to the layer: adding them first would
+        # cut their driving connections and bake a constant value
         kwargs["destinationLayer"] = destination_layer
     with utils.viewport_suspended():
         # simulations only compute when read: pull every frame in order
@@ -456,6 +457,48 @@ def bake_attributes(
             **kwargs,
         )
     return True
+
+
+def new_time_editor_track():
+    """Add a track to the active Time Editor composition.
+
+    A composition is created when the scene has none.
+
+    Returns:
+        str: The track, as ``"composition:index"``.
+    """
+    try:
+        composition = cmds.timeEditorComposition(query=True, active=True)
+    except RuntimeError:
+        composition = None
+    if not composition:
+        composition = cmds.timeEditorComposition("Composition1")
+    index = cmds.timeEditorTracks(composition, edit=True, addTrack=-1)
+    return "{}:{}".format(composition, index)
+
+
+def add_time_editor_clip(name, nodes, start, track=None):
+    """Move the animation of nodes into a Time Editor clip.
+
+    The keys leave the scene and play from the clip.
+
+    Args:
+        name (str): Clip name; the animation source is named after it.
+        nodes (list): Animated nodes.
+        start (float): Clip start frame.
+        track (str, optional): Track, see :func:`new_time_editor_track`.
+            Default: a new track.
+
+    Returns:
+        int: The clip id.
+    """
+    track = track or new_time_editor_track()
+    with utils.keep_selection():
+        cmds.select(nodes, replace=True)
+        source = cmds.timeEditorAnimSource(name, addSelectedObjects=True)
+    return cmds.timeEditorClip(
+        "{}_clip".format(name), animSource=source, startTime=start, track=track
+    )
 
 
 def getRootNode():
