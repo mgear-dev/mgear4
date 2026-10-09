@@ -232,6 +232,37 @@ def test_set_proxy_filter(qt_app):
     assert len(visible()) == 3
 
 
+def test_set_smooth_scroll(qt_app):
+    from mgear.core import pyqt
+    from mgear.vendor.Qt import QtWidgets
+
+    per_item = QtWidgets.QAbstractItemView.ScrollPerItem
+    per_pixel = QtWidgets.QAbstractItemView.ScrollPerPixel
+    view = QtWidgets.QListWidget()
+    view.setHorizontalScrollMode(per_item)
+    view.horizontalScrollBar().setSingleStep(1)
+
+    pyqt.set_smooth_scroll(view, step=20)
+    step = int(round(pyqt.dpi_scale(20)))
+    assert view.verticalScrollMode() == per_pixel
+    assert view.verticalScrollBar().singleStep() == step
+    # Horizontal is left untouched by default.
+    assert view.horizontalScrollMode() == per_item
+    assert view.horizontalScrollBar().singleStep() == 1
+
+    pyqt.set_smooth_scroll(view, step=20, horizontal=True)
+    assert view.horizontalScrollMode() == per_pixel
+    assert view.horizontalScrollBar().singleStep() == step
+
+
+def test_custom_step_list_smooth_scroll(qt_app):
+    from mgear.shifter import custom_step_widget
+    from mgear.vendor.Qt import QtWidgets
+
+    view = custom_step_widget.CustomStepListWidget()
+    assert view.verticalScrollMode() == QtWidgets.QAbstractItemView.ScrollPerPixel
+
+
 def test_collapsible_widget_signal(qt_app):
     from mgear.core import widgets
 

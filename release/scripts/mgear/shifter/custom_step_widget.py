@@ -1654,6 +1654,8 @@ class CustomStepListWidget(QtWidgets.QListWidget):
         self.setDefaultDropAction(QtCore.Qt.MoveAction)
         self.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)
         self.setAlternatingRowColors(False)
+        # Groups are single tall rows: scroll by pixel to move through them
+        pyqt.set_smooth_scroll(self)
 
         # Track widgets for proper cleanup
         self._item_widgets = {}

@@ -409,6 +409,27 @@ def show_stacked_page(stack, page):
     stack.adjustSize()
 
 
+def set_smooth_scroll(view, step=16, horizontal=False):
+    """Scroll an item view by pixels instead of by whole items.
+
+    The default per-item scroll jumps a full row on each wheel tick, and
+    can't stop inside a row taller than the viewport (e.g. a row holding
+    a large embedded widget), leaving part of it unreachable.
+
+    Args:
+        view (QtWidgets.QAbstractItemView): The view to update.
+        step (int, optional): Pixels per wheel tick or arrow click, at
+            96 dpi. Scaled with the screen dpi.
+        horizontal (bool, optional): Also scroll horizontally by pixels.
+    """
+    single_step = int(round(dpi_scale(step)))
+    view.setVerticalScrollMode(QtWidgets.QAbstractItemView.ScrollPerPixel)
+    view.verticalScrollBar().setSingleStep(single_step)
+    if horizontal:
+        view.setHorizontalScrollMode(QtWidgets.QAbstractItemView.ScrollPerPixel)
+        view.horizontalScrollBar().setSingleStep(single_step)
+
+
 def wildcard_to_regex(text):
     """Convert a wildcard filter text to a regular expression pattern.
 
