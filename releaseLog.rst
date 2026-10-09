@@ -25,6 +25,7 @@ Release Log
 	* Core: Add deformer_io, a generic layer to save and rebuild deformers, plus deformer stack, weights and lattice helpers
 	* Core: Add screen_capture, vector_path, svg_export, shading and node_remap modules
 	* Core: Add helpers for undo, progress bar, OM2 callbacks, widgets, settings, animation bake and Time Editor
+	* Core: Menu: Warn when a submenu item uses a callable command instead of a source string
 	* Shifter: Build Log: Faster log window that stays responsive across repeated builds
 	* Shifter: Guide Explorer: Skip tree refreshes while a build is running
 	* Shifter: Add is_building() and build_in_progress() to detect a running build
@@ -34,6 +35,7 @@ Release Log
 **Bug Fix**
 	* Core: Skin: Fix skin pack export file names for clashing or namespaced objects
 	* Core: Skin: Fix vertex count mismatch import in batch mode and from the Import Skin menu
+	* Core: Skin and Weights menu: Items can be added to a shelf and repeated with Repeat Last
 	* Core: callbackManager: Fix Python 3 errors when removing callbacks
 	* Core: Smart Reset: Reset in one undo step
 	* Core: Clear Baked Spring nodes: Fix IndexError on springs without pairBlend
