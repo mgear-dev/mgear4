@@ -14,9 +14,16 @@ from functools import partial
 import mgear.pymaya as pm
 from mgear.core import pyqt
 from mgear.core.widgets import CollapsibleWidget
+from mgear.core.widgets import HeightGrip
 from mgear.vendor.Qt import QtCore, QtWidgets, QtGui
 
 MGEAR_SHIFTER_CUSTOMSTEP_KEY = "MGEAR_SHIFTER_CUSTOMSTEP_PATH"
+
+# User settings keys for the resizable pre and post step list heights
+PRE_LIST_HEIGHT_KEY = "shifter_custom_step/pre_list_height"
+POST_LIST_HEIGHT_KEY = "shifter_custom_step/post_list_height"
+LIST_HEIGHT = 200
+LIST_MIN_HEIGHT = 60
 
 if sys.version_info[0] == 2:
     string_types = (basestring,)
@@ -452,7 +459,7 @@ class CustomStepItemWidget(QtWidgets.QFrame):
     dragStarted = QtCore.Signal(object)  # Emitted when drag starts (passes self)
 
     # Style constants
-    SHARED_COLOR = "#2E7D32"  # Green for shared steps
+    SHARED_COLOR = "#56733A"  # Moss green for shared steps
     INACTIVE_COLOR = "#8B4444"  # Pale red for deactivated steps
     NORMAL_COLOR = "#3C3C3C"  # Default dark background
     SELECTED_COLOR = "#4A6B8A"  # Pale blue for selected items
@@ -3317,7 +3324,7 @@ class Ui_Form(object):
         self.mainLayout.addWidget(self.override_preCustomSteps_checkBox)
 
         self.preCollapsible = CollapsibleWidget("Pre Custom Step", expanded=True)
-        self.mainLayout.addWidget(self.preCollapsible, 1)  # stretch factor 1
+        self.mainLayout.addWidget(self.preCollapsible)
 
         self.preCustomStep_checkBox = QtWidgets.QCheckBox("Enable")
         self.preCollapsible.addWidget(self.preCustomStep_checkBox)
@@ -3328,6 +3335,11 @@ class Ui_Form(object):
 
         self.preCustomStep_listWidget = CustomStepListWidget()
         self.preCollapsible.addWidget(self.preCustomStep_listWidget)
+        self.preCustomStep_grip = HeightGrip(
+            self.preCustomStep_listWidget, minimum=pyqt.dpi_scale(LIST_MIN_HEIGHT)
+        )
+        self.preCustomStep_grip.set_target_height(pyqt.dpi_scale(LIST_HEIGHT))
+        self.preCollapsible.addWidget(self.preCustomStep_grip)
 
         # =============================================
         # Post Custom Step collapsible section
@@ -3342,7 +3354,7 @@ class Ui_Form(object):
         self.postCollapsible = CollapsibleWidget(
             "Post Custom Step", expanded=True
         )
-        self.mainLayout.addWidget(self.postCollapsible, 1)  # stretch factor 1
+        self.mainLayout.addWidget(self.postCollapsible)
 
         self.postCustomStep_checkBox = QtWidgets.QCheckBox("Enable")
         self.postCollapsible.addWidget(self.postCustomStep_checkBox)
@@ -3353,6 +3365,11 @@ class Ui_Form(object):
 
         self.postCustomStep_listWidget = CustomStepListWidget()
         self.postCollapsible.addWidget(self.postCustomStep_listWidget)
+        self.postCustomStep_grip = HeightGrip(
+            self.postCustomStep_listWidget, minimum=pyqt.dpi_scale(LIST_MIN_HEIGHT)
+        )
+        self.postCustomStep_grip.set_target_height(pyqt.dpi_scale(LIST_HEIGHT))
+        self.postCollapsible.addWidget(self.postCustomStep_grip)
 
         # =============================================
         # Step Info collapsible section
@@ -3360,7 +3377,7 @@ class Ui_Form(object):
         self.infoCollapsible = CollapsibleWidget(
             "Step Info", expanded=True, expandable=False
         )
-        self.mainLayout.addWidget(self.infoCollapsible, 0)  # no stretch
+        self.mainLayout.addWidget(self.infoCollapsible)
 
         infoWidget = QtWidgets.QWidget()
         self.infoLayout = QtWidgets.QFormLayout(infoWidget)
@@ -3438,22 +3455,8 @@ class Ui_Form(object):
 
         self.infoCollapsible.addWidget(pathWidget)
 
-        # Connect collapsible header clicks to update stretch factors
-        self.preCollapsible.header_wgt.clicked.connect(self._updateStretchFactors)
-        self.postCollapsible.header_wgt.clicked.connect(self._updateStretchFactors)
-        self.infoCollapsible.header_wgt.clicked.connect(self._updateStretchFactors)
-
-    def _updateStretchFactors(self):
-        """Update layout stretch factors based on collapsed/expanded state."""
-        # Get expanded states (after the click has toggled)
-        pre_expanded = self.preCollapsible.header_wgt.is_expanded()
-        post_expanded = self.postCollapsible.header_wgt.is_expanded()
-
-        # Set stretch: 1 if expanded, 0 if collapsed
-        # Info section always has stretch 0 (minimum height)
-        self.mainLayout.setStretch(0, 1 if pre_expanded else 0)
-        self.mainLayout.setStretch(1, 1 if post_expanded else 0)
-        self.mainLayout.setStretch(2, 0)  # Info always minimal
+        # List heights are set with the grips: spare space goes at the end
+        self.mainLayout.addStretch(1)
 
 
 # ============================================================================
@@ -3807,12 +3810,24 @@ class GroupSelectionDialog(QtWidgets.QDialog):
         return self._selected_groups
 
 
-class CustomStepTab(QtWidgets.QDialog, Ui_Form):
+class CustomStepTab(QtWidgets.QDialog, Ui_Form, pyqt.SettingsMixin):
     """Custom Step Tab widget."""
 
     def __init__(self, parent=None):
         super(CustomStepTab, self).__init__(parent)
+        pyqt.SettingsMixin.__init__(self)
         self.setupUi(self)
+        self.user_settings = {
+            PRE_LIST_HEIGHT_KEY: (
+                self.preCustomStep_grip,
+                pyqt.dpi_scale(LIST_HEIGHT),
+            ),
+            POST_LIST_HEIGHT_KEY: (
+                self.postCustomStep_grip,
+                pyqt.dpi_scale(LIST_HEIGHT),
+            ),
+        }
+        self.load_settings()
 
 
 class CustomStepMixin(object):

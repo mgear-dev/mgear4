@@ -263,6 +263,33 @@ def test_custom_step_list_smooth_scroll(qt_app):
     assert view.verticalScrollMode() == QtWidgets.QAbstractItemView.ScrollPerPixel
 
 
+def test_custom_step_tab_list_heights(clean_settings):
+    from mgear.core import pyqt
+    from mgear.shifter import custom_step_widget as csw
+
+    keys = (csw.PRE_LIST_HEIGHT_KEY, csw.POST_LIST_HEIGHT_KEY)
+    for key in keys:
+        clean_settings.remove(key)
+
+    # Defaults, one grip per list.
+    tab = csw.CustomStepTab()
+    default = int(pyqt.dpi_scale(csw.LIST_HEIGHT))
+    assert tab.preCustomStep_listWidget.maximumHeight() == default
+    assert tab.postCustomStep_listWidget.maximumHeight() == default
+
+    # A finished drag is saved and restored by the next tab.
+    tab.preCustomStep_grip.set_target_height(320)
+    tab.preCustomStep_grip.heightCommitted.emit(320)
+    tab.postCustomStep_grip.set_target_height(1)
+    tab.postCustomStep_grip.heightCommitted.emit(1)
+    minimum = int(pyqt.dpi_scale(csw.LIST_MIN_HEIGHT))
+    assert tab.postCustomStep_listWidget.maximumHeight() == minimum
+
+    restored = csw.CustomStepTab()
+    assert restored.preCustomStep_listWidget.maximumHeight() == 320
+    assert restored.postCustomStep_listWidget.maximumHeight() == minimum
+
+
 def test_collapsible_widget_signal(qt_app):
     from mgear.core import widgets
 

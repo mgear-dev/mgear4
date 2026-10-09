@@ -24,12 +24,13 @@ Release Log
 	* Core: Deformer: create_proximity_wrap gains an optional wrap_mode argument. Supersedes PR #650 (thanks evilbeanz13)
 	* Core: Add deformer_io, a generic layer to save and rebuild deformers, plus deformer stack, weights and lattice helpers
 	* Core: Add screen_capture, vector_path, svg_export, shading and node_remap modules
-	* Core: Add helpers for undo, progress bar, OM2 callbacks, widgets, settings, animation bake and Time Editor
+	* Core: Add helpers for undo, progress bar, OM2 callbacks, widgets, settings, smooth scrolling, animation bake and Time Editor
 	* Core: Menu: Warn when a submenu item uses a callable command instead of a source string
 	* Shifter: Build Log: Faster log window that stays responsive across repeated builds
 	* Shifter: Guide Explorer: Skip tree refreshes while a build is running
 	* Shifter: Add is_building() and build_in_progress() to detect a running build
 	* Shifter: Custom Step: Add Import Lattice, Shrink Wrap and Proximity Wrap Configuration templates
+	* Shifter: Custom Step: Pre and post step lists can be resized by dragging; shared steps use a softer moss green
 	* Docs: Document Blocking Ghosts, Lattice / Shrink Wrap / Proximity Wrap IO, Spring Manager, HumanIK Mapper, Anim Picker SVG editor and screen capture, skin namespace support and the build log
 
 **Bug Fix**
@@ -41,6 +42,7 @@ Release Log
 	* Core: Clear Baked Spring nodes: Fix IndexError on springs without pairBlend
 	* PyMaya: PyNode raises MayaNodeError again for missing nodes
 	* Shifter: Build Log: Clear the log at the start of every build and keep it when reopening the window
+	* Shifter: Custom Step: Groups with many steps scroll smoothly and their last steps are reachable
 	* Anim Picker: Fix SVG badge size, default opacity of new vector items and the dead "Toggle handles" entry
 	* Solvers: Spring nodes no longer step twice on the same frame; Gravity node ground follows the ground_transform plane
 	* Animbits: Spring Manager: Fix search filter on PySide6, preset crashes and settings saving
