@@ -1,30 +1,22 @@
-from functools import partial
-import mgear
 import mgear.menu
-from mgear.core import pyqt
-from mgear.core import skin
-from mgear.core import wmap
-import mgear.pymaya as pm
-from mgear.pymaya import versions
 
 
-def install_skinning_menu():
-    """Install Skinning submenu"""
-    commands = (
-        ("Copy Skin", partial(skin.skinCopy, None, None), "mgear_copy.svg"),
-        (
-            "Copy Skin Add",
-            partial(skin.skin_copy_add, None, None),
-            "mgear_copy-add.svg",
-        ),
-        (
-            "Copy Skin Partial",
-            partial(skin.skinCopyPartial, None, None),
-            "mgear_copy-partial.svg",
-        ),
+def skinning_menu_commands():
+    """Get the Skin and Weights submenu commands.
+
+    Commands are source strings, not callables, so the menu items can be
+    dragged to a shelf and re-run with Repeat Last.
+
+    Returns:
+        tuple: (label, command, image) entries, with ("-----", None) dividers.
+    """
+    return (
+        ("Copy Skin", str_skinCopy, "mgear_copy.svg"),
+        ("Copy Skin Add", str_skinCopyAdd, "mgear_copy-add.svg"),
+        ("Copy Skin Partial", str_skinCopyPartial, "mgear_copy-partial.svg"),
         (
             "Select Skin Deformers",
-            skin.selectDeformers,
+            str_selectDeformers,
             "mgear_mouse-pointer.svg",
         ),
         ("-----", None),
@@ -33,72 +25,133 @@ def install_skinning_menu():
             str_openSkinClusterSelector,
             "mgear_list.svg",
         ),
-        ("Skin Cluster Rename", skin.rename_skin_clusters, "mgear_edit-3.svg"),
+        ("Skin Cluster Rename", str_renameSkinClusters, "mgear_edit-3.svg"),
         ("-----", None),
-        ("Import Skin", import_skin_ui, "mgear_log-in.svg"),
-        (
-            "Import Skin Pack",
-            import_skin_pack_ui,
-            "mgear_package_in.svg",
-        ),
+        ("Import Skin", str_importSkin, "mgear_log-in.svg"),
+        ("Import Skin Pack", str_importSkinPack, "mgear_package_in.svg"),
         ("-----", None),
-        (
-            "Export Skin",
-            partial(skin.exportSkin, None, None),
-            "mgear_log-out.svg",
-        ),
+        ("Export Skin", str_exportSkin, "mgear_log-out.svg"),
         (
             "Export Skin Pack Binary",
-            partial(skin.exportSkinPack, None, None),
+            str_exportSkinPack,
             "mgear_package_out.svg",
         ),
         (
             "Export Skin Pack ASCII",
-            partial(skin.exportJsonSkinPack, None, None),
+            str_exportJsonSkinPack,
             "mgear_package_out.svg",
         ),
         (
             "Export Skin Pack ASCII with Position Data",
-            partial(skin.exportJsonSkinPackWithPositions, None, None),
+            str_exportJsonSkinPackWithPositions,
             "mgear_package_out_positions.svg",
         ),
         ("-----", None),
-        ("Get Names in gSkin File", partial(skin.getObjsFromSkinFile, None)),
+        ("Get Names in gSkin File", str_getObjsFromSkinFile),
         ("-----", None),
         (
             "Import Deformer Weight Map",
-            partial(wmap.import_weights_selected, None),
+            str_importWeightMap,
             "mgear_log-in.svg",
         ),
         (
             "Export Deformer Weight Map",
-            partial(wmap.export_weights_selected, None),
+            str_exportWeightMap,
             "mgear_log-out.svg",
         ),
     )
 
-    mgear.menu.install("Skin and Weights", commands, image="mgear_skin.svg")
 
-
-def import_skin_ui(*args):
-    """Import a skin file, opening the remap dialog for missing items."""
-    skin.importSkin(on_missing="ui")
-
-
-def import_skin_pack_ui(*args):
-    """Import a skin pack, opening the remap dialog for missing items."""
-    skin.importSkinPack(on_missing="ui")
+def install_skinning_menu():
+    """Install Skinning submenu"""
+    mgear.menu.install(
+        "Skin and Weights", skinning_menu_commands(), image="mgear_skin.svg"
+    )
 
 
 def install_utils_menu(m):
-    """Install core utils submenu"""
-    if versions.current() < 20220000:
-        pm.setParent(m, menu=True)
-        pm.menuItem(divider=True)
-        pm.menuItem(label="Compile PyQt ui", command=pyqt.ui2py)
+    """Install core utils submenu.
 
+    Kept for backwards compatibility. The only item, "Compile PyQt ui", was
+    for Maya versions older than 2022, which mGear no longer supports.
+
+    Args:
+        m (str): Parent utilities menu.
+    """
+    return
+
+
+str_skinCopy = """
+from mgear.core import skin
+skin.skinCopy()
+"""
+
+str_skinCopyAdd = """
+from mgear.core import skin
+skin.skin_copy_add()
+"""
+
+str_skinCopyPartial = """
+from mgear.core import skin
+skin.skinCopyPartial()
+"""
+
+str_selectDeformers = """
+from mgear.core import skin
+skin.selectDeformers()
+"""
 
 str_openSkinClusterSelector = """
 from mgear.core import skin
 skin.openSkinClusterSelector()
+"""
+
+str_renameSkinClusters = """
+from mgear.core import skin
+skin.rename_skin_clusters()
+"""
+
+str_importSkin = """
+from mgear.core import skin
+skin.importSkin(on_missing="ui")
+"""
+
+str_importSkinPack = """
+from mgear.core import skin
+skin.importSkinPack(on_missing="ui")
+"""
+
+str_exportSkin = """
+from mgear.core import skin
+skin.exportSkin()
+"""
+
+str_exportSkinPack = """
+from mgear.core import skin
+skin.exportSkinPack()
+"""
+
+str_exportJsonSkinPack = """
+from mgear.core import skin
+skin.exportJsonSkinPack()
+"""
+
+str_exportJsonSkinPackWithPositions = """
+from mgear.core import skin
+skin.exportJsonSkinPackWithPositions()
+"""
+
+str_getObjsFromSkinFile = """
+from mgear.core import skin
+skin.getObjsFromSkinFile()
+"""
+
+str_importWeightMap = """
+from mgear.core import wmap
+wmap.import_weights_selected()
+"""
+
+str_exportWeightMap = """
+from mgear.core import wmap
+wmap.export_weights_selected()
 """

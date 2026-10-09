@@ -89,6 +89,7 @@ def install(label, commands, parent=menuId, image=""):
                         tearOff=True,
                         label=label,
                         image=image)
+        menu_label = label
         for conf in commands:
             if len(conf) == 3:
                 label, command, img = conf
@@ -102,6 +103,11 @@ def install(label, commands, parent=menuId, image=""):
                 command(m)
                 pm.setParent(m, menu=True)
                 continue
+            if callable(command):
+                pm.displayWarning(
+                    "mGear menu '{}' > '{}' uses a callable command. Use a "
+                    "source string so it can be added to a shelf and "
+                    "repeated.".format(menu_label, label))
 
             pm.menuItem(label=label, command=command, image=img)
 
@@ -168,7 +174,6 @@ def install_main_menu():
     # Install Utilities Menu
     import mgear.menu
     m = mgear.menu.install_utils_menu()
-    mgear.core.menu.install_utils_menu(m)
     mgear.rigbits.menu.install_utils_menu(m)
 
     # install dragdrop override in utilities
