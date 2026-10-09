@@ -1,19 +1,21 @@
-"""Bone Dynamics colliders: shared collision objects assigned to springs.
+"""Spring colliders: shared collision objects assigned to springs.
 
-A collider is a ``mgearSpring`` network of kind ``collider`` owning:
+A collider is a ``mgearSpring`` network of kind ``collider``, owned by no
+solver (:data:`OWNER`), holding:
 
 - ``<name>_drv``: a group under :data:`GROUP`, constrained to the driver
   (a joint or control) so the rig hierarchy is never changed;
-- ``<name>``: the collider transform under it, holding the plug-in shape
-  (``sphereColliderNode``, ``capsuleColliderNode`` or
-  ``infinitePlaneColliderNode``). Its local matrix is the offset from the
-  driver, free to edit.
+- ``<name>``: the collider transform under it. With the boneDynamicsNode
+  plug-in it holds the plug-in shape (``sphereColliderNode``,
+  ``capsuleColliderNode`` or ``infinitePlaneColliderNode``); without it,
+  spheres and planes get mGear display curves and spheres a ``radius``
+  attribute. Its local matrix is the offset from the driver.
 
 Mesh colliders use a mesh instead: a reduced proxy following the source
 mesh (owned by the collider), or the source mesh itself.
 
-Colliders are assigned to springs with :func:`registry.assign`; the Bone
-Dynamics backend wires them into its nodes.
+Colliders are assigned to springs with :func:`registry.assign`; each
+spring backend wires the types it uses (``SpringBackend.collider_types``).
 """
 
 import json
@@ -22,7 +24,9 @@ import maya.api.OpenMaya as om2
 from maya import cmds
 
 import mgear
+import mgear.pymaya as pm
 from mgear.core import attribute
+from mgear.core import icon
 from mgear.core import mesh as mesh_utils
 from mgear.core import node_remap
 from mgear.core import string
@@ -31,7 +35,9 @@ from mgear.core import utils
 from . import constants
 from . import registry
 
-BACKEND = constants.BONE_DYNAMICS_BACKEND
+# collider networks are shared by every solver: tagged with this owner
+OWNER = "colliders"
+BDN_PLUGIN = "boneDynamicsNode"
 GROUP = "spring_colliders_grp"
 
 SPHERE = "sphere"
@@ -63,6 +69,8 @@ PROXY_REDUCE = 50.0
 # faces above which mesh collision gets slow
 FACE_WARNING = 2000
 DISPLAY_COLOR = 17  # yellow, as the plug-in collider tools
+# size of the mGear plane collider display
+PLANE_DISPLAY_SIZE = 10.0
 
 
 def _plug(node, attr):
@@ -85,11 +93,34 @@ def _group():
     return cmds.createNode("transform", name=GROUP)
 
 
-def _ensure_plugin():
+def plugin_shapes():
+    """Return True if colliders use the boneDynamicsNode plug-in shapes.
+
+    Without the plug-in, sphere and plane colliders use mGear display
+    shapes, and capsule and mesh colliders can't be created.
+
+    Returns:
+        bool: True when the boneDynamicsNode plug-in is available.
+    """
+    return utils.is_plugin_available(BDN_PLUGIN)
+
+
+def _require_plugin(kind_type):
+    if not plugin_shapes():
+        raise RuntimeError(
+            "{} colliders need the boneDynamicsNode plug-in".format(
+                kind_type.capitalize()
+            )
+        )
+
+
+def _driver_backend(network):
+    """Return the backend of the spring whose node drives a collider."""
     from .backends import get_backend
 
-    if not get_backend(BACKEND).is_available():
-        raise RuntimeError("boneDynamicsNode plug-in is not available")
+    node = driver(network)
+    spring = registry.spring_from_node(node) if node else None
+    return get_backend(spring.backend) if spring else None
 
 
 # -----------------------------------------------------------------------------
@@ -103,7 +134,7 @@ def list_colliders():
     Returns:
         list: Network node names, sorted.
     """
-    return sorted(registry.list_shared(constants.KIND_COLLIDER, BACKEND))
+    return sorted(registry.list_shared(constants.KIND_COLLIDER))
 
 
 def collider_type(network):
@@ -128,6 +159,27 @@ def collider_shape(network):
     return shapes[0] if shapes else None
 
 
+def dimension_node(network):
+    """Return the node holding the dimension attributes of a collider.
+
+    The plug-in shape, or the collider transform for mGear display shapes
+    (its ``radius`` attribute).
+
+    Args:
+        network (str): Collider network.
+
+    Returns:
+        str: The node, or None for colliders without dimensions.
+    """
+    attrs = DIMENSIONS.get(collider_type(network), ())
+    transform = collider_transform(network)
+    if attrs and transform:
+        if cmds.attributeQuery(attrs[0], node=transform, exists=True):
+            return transform
+        return collider_shape(network)
+    return None
+
+
 def driver(network):
     """Return the driver of a collider, or None."""
     nodes = attribute.get_message_inputs(network, DRIVER_ATTR)
@@ -144,6 +196,32 @@ def label(network):
     """Return the display name of a collider: its transform short name."""
     transform = collider_transform(network)
     return node_remap.leaf_name(transform) if transform else network
+
+
+def usable(networks):
+    """Return the colliders whose transform still exists.
+
+    A collider whose transform was deleted outside the tool (e.g. in the
+    Outliner) can't be wired: it is skipped with a warning. Delete it from
+    the colliders list.
+
+    Args:
+        networks (list): Collider networks.
+
+    Returns:
+        list: The networks with a collider transform.
+    """
+    result = []
+    for network in networks:
+        if collider_transform(network):
+            result.append(network)
+        else:
+            mgear.log(
+                "Collider {} has no collider object any more, skipped. Delete "
+                "it from the colliders list.".format(network),
+                mgear.sev_warning,
+            )
+    return result
 
 
 def collider_from_node(node):
@@ -183,9 +261,9 @@ def get_dimensions(network):
     Returns:
         dict: ``{attr: value}``, empty for planes and meshes.
     """
-    shape = collider_shape(network)
+    node = dimension_node(network)
     return {
-        attr: cmds.getAttr(_plug(shape, attr))
+        attr: cmds.getAttr(_plug(node, attr))
         for attr in DIMENSIONS.get(collider_type(network), ())
     }
 
@@ -197,10 +275,10 @@ def set_dimensions(network, dimensions):
         network (str): Collider network.
         dimensions (dict): ``{attr: value}``.
     """
-    shape = collider_shape(network)
+    node = dimension_node(network)
     for attr in DIMENSIONS.get(collider_type(network), ()):
         if attr in dimensions:
-            cmds.setAttr(_plug(shape, attr), dimensions[attr])
+            cmds.setAttr(_plug(node, attr), dimensions[attr])
 
 
 def get_offset(network):
@@ -250,7 +328,7 @@ def _create_network(name, kind_type, transform, driver_node=None, extra=None):
     values = {TYPE_ATTR: kind_type}
     values.update(extra or {})
     network = registry.create_network(
-        name + "_net", BACKEND, [], None, values, kind=constants.KIND_COLLIDER
+        name + "_net", OWNER, [], None, values, kind=constants.KIND_COLLIDER
     )
     for attr, source in (
         (TRANSFORM_ATTR, transform),
@@ -265,9 +343,10 @@ def _create_network(name, kind_type, transform, driver_node=None, extra=None):
 def create(kind_type, driver_node=None, name=None, dimensions=None, matrix=None):
     """Create a sphere, capsule or plane collider.
 
-    A sphere or capsule driven by the sim joint of a Bone Dynamics spring
-    also sets the volume of that bone, see
-    :meth:`BoneDynamicsBackend.link_collider`.
+    With the boneDynamicsNode plug-in, its collider shapes are used.
+    Without it, spheres and planes get mGear display shapes and capsules
+    raise a RuntimeError. A collider driven by a spring's node also sets
+    that spring's volume, see :meth:`SpringBackend.link_collider`.
 
     Args:
         kind_type (str): :data:`SPHERE`, :data:`CAPSULE` or :data:`PLANE`.
@@ -284,7 +363,9 @@ def create(kind_type, driver_node=None, name=None, dimensions=None, matrix=None)
     """
     if kind_type not in SHAPE_TYPES:
         raise ValueError("Unknown collider type: {}".format(kind_type))
-    _ensure_plugin()
+    use_plugin = plugin_shapes()
+    if kind_type == CAPSULE:
+        _require_plugin(kind_type)
     base = name or "{}_{}Col".format(
         node_remap.flat_name(driver_node) if driver_node else "world", kind_type
     )
@@ -304,11 +385,14 @@ def create(kind_type, driver_node=None, name=None, dimensions=None, matrix=None)
                 )
                 cmds.parentConstraint(driver_node, group, maintainOffset=True)
             transform = cmds.createNode("transform", name=base, parent=group)
-            shape = cmds.createNode(
-                SHAPE_TYPES[kind_type], name=base + "Shape", parent=transform
-            )
-            cmds.setAttr(shape + ".overrideEnabled", True)
-            cmds.setAttr(shape + ".overrideColor", DISPLAY_COLOR)
+            if use_plugin:
+                shape = cmds.createNode(
+                    SHAPE_TYPES[kind_type], name=base + "Shape", parent=transform
+                )
+                cmds.setAttr(shape + ".overrideEnabled", True)
+                cmds.setAttr(shape + ".overrideColor", DISPLAY_COLOR)
+            else:
+                _mgear_display(kind_type, transform, base)
         transform = cmds.ls(transform, long=True)[0]
         network = _create_network(base, kind_type, transform, driver_node)
         registry.add_members(network, created)
@@ -316,11 +400,93 @@ def create(kind_type, driver_node=None, name=None, dimensions=None, matrix=None)
             set_dimensions(network, dimensions)
         if matrix:
             set_world_matrix(network, matrix)
-        # on a spring's own joint: the bone collides with the same volume
-        from .backends import get_backend
-
-        get_backend(BACKEND).link_collider(network)
+        # on a spring's own node: the bone collides with the same volume
+        backend = _driver_backend(network)
+        if backend:
+            backend.link_collider(network)
     return network
+
+
+def create_many(kind_type, drivers=None, dimensions=None):
+    """Create a collider on each driver, in one undo chunk.
+
+    Args:
+        kind_type (str): :data:`SPHERE`, :data:`CAPSULE` or :data:`PLANE`.
+        drivers (list, optional): Joints or controls; one world collider
+            when empty.
+        dimensions (dict, optional): Shape dimensions of every collider.
+
+    Returns:
+        list: The collider networks.
+    """
+    with utils.undo_chunk("springManagerCreateColliders"):
+        return [
+            create(kind_type, driver_node, dimensions=dimensions)
+            for driver_node in drivers or [None]
+        ]
+
+
+def _mgear_display(kind_type, transform, base):
+    """Create the mGear display of a collider without plug-in shapes.
+
+    A sphere gets a ``radius`` attribute on its transform, scaling a sphere
+    icon under a display child. A plane gets a square of its XZ plane.
+
+    Args:
+        kind_type (str): :data:`SPHERE` or :data:`PLANE`.
+        transform (str): Collider transform.
+        base (str): Name prefix.
+    """
+    if kind_type == SPHERE:
+        cmds.addAttr(
+            transform,
+            longName="radius",
+            attributeType="double",
+            minValue=0.0,
+            defaultValue=1.0,
+            keyable=True,
+        )
+        display = cmds.createNode("transform", name=base + "_display", parent=transform)
+        for axis in "XYZ":
+            cmds.connectAttr(transform + ".radius", display + ".scale" + axis)
+        icon.sphere(
+            parent=pm.PyNode(display),
+            name=base + "_sphere",
+            width=2.0,
+            color=DISPLAY_COLOR,
+        )
+        return
+    icon.square(
+        parent=pm.PyNode(transform),
+        name=base + "_grid",
+        width=PLANE_DISPLAY_SIZE,
+        depth=PLANE_DISPLAY_SIZE,
+        color=DISPLAY_COLOR,
+    )
+
+
+def world_position(network):
+    """Return the plug of a collider's world position.
+
+    A ``decomposeMatrix`` owned by the collider, created on first use, so
+    the springs using the position share it.
+
+    Args:
+        network (str): Collider network.
+
+    Returns:
+        str: The ``outputTranslate`` plug.
+    """
+    nodes = cmds.ls(
+        attribute.get_message_inputs(network, constants.MEMBERS_ATTR),
+        type="decomposeMatrix",
+    )
+    if not nodes:
+        transform = collider_transform(network)
+        nodes = [cmds.createNode("decomposeMatrix", name=label(network) + "_position")]
+        cmds.connectAttr(transform + ".worldMatrix[0]", nodes[0] + ".inputMatrix")
+        registry.add_members(network, nodes)
+    return nodes[0] + ".outputTranslate"
 
 
 def create_mesh(mesh, proxy=True, reduce_percent=None, name=None):
@@ -337,7 +503,7 @@ def create_mesh(mesh, proxy=True, reduce_percent=None, name=None):
     Returns:
         str: The collider network.
     """
-    _ensure_plugin()
+    _require_plugin(MESH)
     base = _unique(name or "{}_meshCol".format(node_remap.flat_name(mesh)))
     if reduce_percent is None:
         reduce_percent = PROXY_REDUCE
@@ -392,13 +558,12 @@ def delete(networks):
     Args:
         networks (list): Collider networks.
     """
-    from .backends import get_backend
-
-    backend = get_backend(BACKEND)
     with utils.undo_chunk("springManagerDeleteCollider"):
         for network in networks:
             if cmds.objExists(network):
-                backend.unlink_collider(network)
+                backend = _driver_backend(network)
+                if backend:
+                    backend.unlink_collider(network)
                 registry.delete_shared(network)
 
 
@@ -496,12 +661,16 @@ def from_preset(entry, namespace="", existing=None):
                 mgear.sev_warning,
             )
             return None
-        return create_mesh(
-            source,
-            mesh_entry.get("proxy", True),
-            mesh_entry.get("reduce_percent", PROXY_REDUCE),
-            name,
-        )
+        try:
+            return create_mesh(
+                source,
+                mesh_entry.get("proxy", True),
+                mesh_entry.get("reduce_percent", PROXY_REDUCE),
+                name,
+            )
+        except RuntimeError as error:
+            mgear.log("Collider {}: {}, skipped".format(name, error), mgear.sev_warning)
+            return None
     if kind_type not in SHAPE_TYPES:
         mgear.log(
             "Collider {}: unknown type {}, skipped".format(name, kind_type),
@@ -518,11 +687,70 @@ def from_preset(entry, namespace="", existing=None):
             )
             return None
     if not network:
-        network = create(kind_type, driver_node, name)
+        try:
+            network = create(kind_type, driver_node, name)
+        except RuntimeError as error:
+            mgear.log("Collider {}: {}, skipped".format(name, error), mgear.sev_warning)
+            return None
     set_dimensions(network, entry.get("dimensions") or {})
     if entry.get("offset"):
         set_offset(network, entry["offset"])
     return network
+
+
+def collect_preset(springs):
+    """Return the preset blocks of the colliders assigned to springs.
+
+    Args:
+        springs (list): :class:`registry.Spring` records saved in a rig
+            preset.
+
+    Returns:
+        dict: ``colliders`` (entries, see :func:`to_preset`) and
+        ``assignments`` (``{collider name: [spring root controls]}``),
+        empty without colliders.
+    """
+    blocks = {"colliders": [], "assignments": {}}
+    entries = {}
+    for spring in springs:
+        for network in registry.shared_of(spring, constants.KIND_COLLIDER):
+            if network not in entries:
+                entries[network] = to_preset(network)
+                blocks["colliders"].append(entries[network])
+            blocks["assignments"].setdefault(entries[network]["name"], []).append(
+                node_remap.short_name(spring.controls[0])
+            )
+    return blocks if blocks["colliders"] else {}
+
+
+def apply_preset(preset, namespace):
+    """Create or update the colliders of a rig preset and assign them.
+
+    Colliders already in the scene are updated, and springs refusing a
+    collider (see :meth:`SpringBackend.accepts_shared`) are skipped.
+
+    Args:
+        preset (dict): The preset.
+        namespace (str): Target namespace.
+    """
+    if not preset.get("colliders"):
+        return
+    existing = {label(network): network for network in list_colliders()}
+    created = {}
+    for entry in preset["colliders"]:
+        network = from_preset(entry, namespace, existing)
+        if network:
+            created[entry["name"]] = network
+            existing[label(network)] = network
+    with registry.batched_sync():
+        for name, controls in (preset.get("assignments") or {}).items():
+            if name not in created:
+                continue
+            springs = [
+                registry.spring_from_node(node_remap.add_namespace(control, namespace))
+                for control in controls
+            ]
+            registry.assign(created[name], [spring for spring in springs if spring])
 
 
 # -----------------------------------------------------------------------------

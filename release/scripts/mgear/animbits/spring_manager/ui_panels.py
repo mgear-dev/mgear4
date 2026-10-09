@@ -32,6 +32,7 @@ from . import registry
 from . import solver
 from .backends import bone_dynamics
 from .backends import classic
+from .backends import classic_gravity
 from .backends import get_backend
 
 CREATE_PANELS = {}
@@ -157,6 +158,8 @@ class ClassicCreatePanel(CreatePanel):
 
 
 register_create_panel(classic.CLASSIC_BACKEND, ClassicCreatePanel)
+# same rig as Classic: the same direction buttons
+register_create_panel(classic_gravity.CLASSIC_GRAVITY_BACKEND, ClassicCreatePanel)
 
 
 # -----------------------------------------------------------------------------
@@ -557,19 +560,34 @@ def _selected_meshes():
     ]
 
 
-class BoneDynamicsCollidersPanel(QtWidgets.QWidget):
-    """Create, fit, mirror and assign Bone Dynamics colliders.
+class CollidersPanel(QtWidgets.QWidget):
+    """Create, fit, mirror and assign the colliders of a solver's springs.
+
+    Actions the solver can't use (or that need the boneDynamicsNode
+    plug-in) are disabled, with a tooltip saying why.
 
     Attributes:
         springs_fn (callable): Returns the springs selected in the window.
         all_springs_fn (callable): Returns every spring of the window.
     """
 
-    def __init__(self, parent=None):
-        super(BoneDynamicsCollidersPanel, self).__init__(parent)
+    def __init__(self, backend_name=bone_dynamics.BACKEND, parent=None):
+        """Initialize the panel.
+
+        Args:
+            backend_name (str, optional): The solver whose springs are
+                listed in the assignment table.
+            parent (QtWidgets.QWidget, optional): Parent widget.
+        """
+        super(CollidersPanel, self).__init__(parent)
         self.springs_fn = None
         self.all_springs_fn = None
+        self._backend_name = backend_name
+        self._solver = get_backend(backend_name)
+        # the Bone Dynamics backend: sim joints of spring controls, fit radius
         self._backend = get_backend(bone_dynamics.BACKEND)
+        # action widget: its tooltip when enabled, see _update_actions
+        self._tooltips = {}
         self._springs = []
         self._colliders = []
         # settings key: (widget, default), saved by the window
@@ -578,13 +596,21 @@ class BoneDynamicsCollidersPanel(QtWidgets.QWidget):
         # create
         self.create_buttons = {}
         for kind_type, label, tooltip in (
-            (colliders.SPHERE, "Sphere", "Sphere on the selected joint or control"),
-            (colliders.CAPSULE, "Capsule", "Capsule on the selected joint or control"),
-            (colliders.PLANE, "Plane", "Infinite plane (its XZ plane collides)"),
+            (colliders.SPHERE, "Sphere", "A sphere on each selected joint or control"),
+            (
+                colliders.CAPSULE,
+                "Capsule",
+                "A capsule on each selected joint or control",
+            ),
+            (
+                colliders.PLANE,
+                "Plane",
+                "An infinite plane on each selected joint or control (its XZ plane collides)",
+            ),
             (
                 colliders.MESH,
                 "Mesh",
-                "Experimental: collide with the selected mesh. Slow on dense "
+                "Experimental: collide with each selected mesh. Slow on dense "
                 "meshes: a proxy is recommended",
             ),
         ):
@@ -619,8 +645,8 @@ class BoneDynamicsCollidersPanel(QtWidgets.QWidget):
         )
         self.fit_sphere_btn = QtWidgets.QPushButton("Fit Sphere")
         self.fit_sphere_btn.setToolTip(
-            "Select vertices (and optionally the driver), or a joint or "
-            "control to fit the mesh around"
+            "Select vertices (and optionally the driver) for one sphere, or "
+            "joints or controls for a sphere at each"
         )
         self.fit_radius_btn = QtWidgets.QPushButton("Fit Bone Radius")
         self.fit_radius_btn.setToolTip(
@@ -726,13 +752,27 @@ class BoneDynamicsCollidersPanel(QtWidgets.QWidget):
         assign_layout.addWidget(self.assign_btn)
         assign_layout.addWidget(self.unassign_btn)
         assign_layout.addWidget(self.assign_all_btn)
+        create_box = QtWidgets.QGroupBox("Create")
+        create_box.setToolTip(
+            "A collider on each selected joint or control, or one in world "
+            "space without selection"
+        )
+        create_box_layout = QtWidgets.QVBoxLayout(create_box)
+        create_box_layout.addLayout(create_layout)
+        create_box_layout.addLayout(mesh_layout)
+        fit_box = QtWidgets.QGroupBox("Fit")
+        fit_box.setToolTip(
+            "Colliders and bone volumes sized to the Fit mesh, on each "
+            "selected joint or control"
+        )
+        fit_box_layout = QtWidgets.QVBoxLayout(fit_box)
+        fit_box_layout.addLayout(fit_mesh_layout)
+        fit_box_layout.addLayout(fit_layout)
+        fit_box_layout.addLayout(options)
         layout = QtWidgets.QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.addLayout(create_layout)
-        layout.addLayout(mesh_layout)
-        layout.addLayout(fit_mesh_layout)
-        layout.addLayout(fit_layout)
-        layout.addLayout(options)
+        layout.addWidget(create_box)
+        layout.addWidget(fit_box)
         layout.addWidget(self.collider_filter_le)
         layout.addWidget(self.collider_list)
         layout.addWidget(self.collider_grip)
@@ -771,13 +811,51 @@ class BoneDynamicsCollidersPanel(QtWidgets.QWidget):
             end_spheres=self.end_spheres_cb.isChecked(),
         )
 
+    def _update_actions(self):
+        """Enable the actions the solver uses and the plug-ins allow.
+
+        Driven by the solver's ``collider_types`` and ``bone_volume``.
+        """
+        if not self._tooltips:
+            self._tooltips = {
+                widget: widget.toolTip()
+                for widget in list(self.create_buttons.values())
+                + [self.fit_capsules_btn, self.fit_sphere_btn, self.fit_radius_btn]
+            }
+        unused = "Not used by {} springs".format(self._solver.label)
+        no_plugin = "Needs the boneDynamicsNode plug-in"
+        plugin = colliders.plugin_shapes()
+        types = self._solver.collider_types
+        reasons = {}
+        for kind_type, button in self.create_buttons.items():
+            if kind_type not in types:
+                reasons[button] = unused
+            elif kind_type in (colliders.CAPSULE, colliders.MESH) and not plugin:
+                reasons[button] = no_plugin
+        if colliders.CAPSULE not in types:
+            reasons[self.fit_capsules_btn] = unused
+        elif not plugin:
+            reasons[self.fit_capsules_btn] = no_plugin
+        if colliders.SPHERE not in types:
+            reasons[self.fit_sphere_btn] = unused
+        if not self._solver.bone_volume:
+            reasons[self.fit_radius_btn] = unused
+        for widget, tooltip in self._tooltips.items():
+            widget.setEnabled(widget not in reasons)
+            widget.setToolTip(reasons.get(widget, tooltip))
+        # the mesh options follow the Mesh button
+        mesh_enabled = self.create_buttons[colliders.MESH].isEnabled()
+        self.proxy_cb.setEnabled(mesh_enabled)
+        self.reduce_spin.setEnabled(mesh_enabled)
+
     def refresh(self):
         """Rebuild the colliders list and the assignment table."""
+        self._update_actions()
         springs = self.all_springs_fn() if self.all_springs_fn else []
         self._springs = [
             spring
             for spring in springs
-            if spring.backend == bone_dynamics.BACKEND and spring.exists()
+            if spring.backend == self._backend_name and spring.exists()
         ]
         self._colliders = colliders.list_colliders()
         selected = {
@@ -873,8 +951,12 @@ class BoneDynamicsCollidersPanel(QtWidgets.QWidget):
                     float(self.reduce_spin.value()),
                 )
             return
-        selection = cmds.ls(selection=True, long=True, transforms=True)
-        self._run(colliders.create, kind_type, selection[0] if selection else None)
+        # one collider per selected joint or control, or one in world space
+        self._run(
+            colliders.create_many,
+            kind_type,
+            cmds.ls(selection=True, long=True, transforms=True),
+        )
 
     def _pick_fit_mesh(self):
         meshes = _selected_meshes()
@@ -929,9 +1011,12 @@ class BoneDynamicsCollidersPanel(QtWidgets.QWidget):
             )
             return
         if not mesh or not targets:
-            cmds.warning("Select vertices, or set the Fit mesh and select a joint")
+            cmds.warning(
+                "Select vertices, or set the Fit mesh and select joints or controls"
+            )
             return
-        self._run(fit.fit_sphere, mesh, targets[0], None, self.fit_options())
+        # one sphere per selected joint or control
+        self._run(fit.fit_spheres, mesh, targets, self.fit_options())
 
     def _fit_radius(self):
         mesh, targets = self.fit_inputs()
@@ -1010,4 +1095,9 @@ class BoneDynamicsCollidersPanel(QtWidgets.QWidget):
         )
 
 
-register_section_panel(bone_dynamics.BACKEND, "Colliders", BoneDynamicsCollidersPanel)
+register_section_panel(bone_dynamics.BACKEND, "Colliders", CollidersPanel)
+register_section_panel(
+    classic_gravity.CLASSIC_GRAVITY_BACKEND,
+    "Colliders",
+    partial(CollidersPanel, classic_gravity.CLASSIC_GRAVITY_BACKEND),
+)

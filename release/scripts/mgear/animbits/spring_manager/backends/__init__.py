@@ -40,6 +40,10 @@ class SpringBackend(object):
     read_only_message = ""
     hidden = False
     editable = True
+    # collider types its springs can use, see colliders.TYPES
+    collider_types = ()
+    # its springs have a bone volume that colliders on their nodes can set
+    bone_volume = False
 
     def is_available(self):
         """Return True if the backend can be used in this session.
@@ -243,10 +247,56 @@ class SpringBackend(object):
             spring (registry.Spring): The spring.
             shared (str): Shared network node.
 
+        Colliders are refused, with a warning, when their type is outside
+        :attr:`collider_types`, or when they follow the spring itself
+        (driven by one of its nodes, its controls or a child of its
+        controls): the spring would push its own collider, a cycle.
+
         Returns:
-            bool: True by default.
+            bool: True when the spring can use it.
         """
-        return True
+        from .. import colliders
+        from .. import registry
+
+        if registry.node_kind(shared) != constants.KIND_COLLIDER:
+            return True
+        kind_type = colliders.collider_type(shared)
+        if kind_type not in self.collider_types:
+            reason = "{} colliders are not used by {} springs".format(
+                kind_type, self.label
+            )
+        elif follows_spring(spring, colliders.driver(shared)):
+            reason = "it follows the spring itself"
+        else:
+            return True
+        mgear.log(
+            "{}: {}, not assigned to {}".format(
+                colliders.label(shared), reason, spring.label
+            ),
+            mgear.sev_warning,
+        )
+        return False
+
+    def link_collider(self, network):
+        """Let a collider driven by a node of a spring set its volume.
+
+        Called when a collider is created on a node of one of this
+        backend's springs. The default does nothing.
+
+        Args:
+            network (str): Collider network.
+
+        Returns:
+            bool: True when the collider drives the spring volume.
+        """
+        return False
+
+    def unlink_collider(self, network):
+        """Undo :meth:`link_collider` before a collider is deleted.
+
+        Args:
+            network (str): Collider network.
+        """
 
     def shared_changed(self, spring, kind):
         """Rewire the shared nodes of a kind (wind, colliders) of a spring.
@@ -257,30 +307,6 @@ class SpringBackend(object):
         Args:
             spring (registry.Spring): The spring.
             kind (str): Shared kind, e.g. :data:`constants.KIND_COLLIDER`.
-        """
-
-    def get_shared_preset(self, springs):
-        """Return the preset blocks of the shared nodes of springs.
-
-        Args:
-            springs (list): :class:`registry.Spring` records of this backend
-                saved in a rig preset.
-
-        Returns:
-            dict: Preset blocks, e.g. ``colliders`` and ``assignments``.
-            Empty by default.
-        """
-        return {}
-
-    def set_shared_preset(self, preset, namespace):
-        """Create the shared nodes of a rig preset and assign them.
-
-        Called after the preset springs are created. The default does
-        nothing.
-
-        Args:
-            preset (dict): The preset.
-            namespace (str): Target namespace.
         """
 
     def get_solver_settings(self):
@@ -403,6 +429,45 @@ def set_param(plug, spec, value):
 _ATTRIBUTE_TYPES = {constants.PARAM_BOOL: "bool", constants.PARAM_INT: "long"}
 
 
+def follows_spring(spring, node):
+    """Return True if a node is moved by a spring.
+
+    The spring's nodes, its controls and their children move with the
+    spring.
+
+    Args:
+        spring (registry.Spring): The spring.
+        node (str): Node name, or None.
+
+    Returns:
+        bool: True when the node follows the spring.
+    """
+    if not node or not cmds.objExists(node):
+        return False
+    path = cmds.ls(node, long=True)[0]
+    if path in set(cmds.ls(spring.members, long=True)):
+        return True
+    return any(
+        path == control or path.startswith(control + "|")
+        for control in cmds.ls(spring.controls, long=True)
+    )
+
+
+def nodes_of_type(spring, node_type, members=None):
+    """Return the members of a spring of a node type.
+
+    Args:
+        spring (registry.Spring): The spring.
+        node_type (str): Node type.
+        members (list, optional): Members already read from the spring.
+
+    Returns:
+        list: Node names.
+    """
+    nodes = members if members is not None else spring.members
+    return cmds.ls(nodes, type=node_type) or [] if nodes else []
+
+
 def add_settings(control, specs, values):
     """Add the parameter attributes of a spring to its settings control.
 
@@ -428,6 +493,9 @@ def add_settings(control, specs, values):
             keyable=False,
         )
     for spec in specs:
+        if spec.kind == constants.PARAM_VECTOR:
+            _add_vector_setting(control, spec, values.get(spec.attr, spec.default))
+            continue
         kwargs = {}
         if spec.kind != constants.PARAM_BOOL:
             kwargs = {"minValue": spec.minimum, "maxValue": spec.maximum}
@@ -446,6 +514,29 @@ def add_settings(control, specs, values):
             cmds.setAttr(plug, keyable=True)
         else:
             cmds.setAttr(plug, keyable=False, channelBox=True)
+
+
+def _add_vector_setting(control, spec, value):
+    """Add a vector parameter: a double3 with keyable X, Y, Z children.
+
+    Args:
+        control (str): Settings control.
+        spec (constants.ParamSpec): A :data:`constants.PARAM_VECTOR` spec.
+        value (tuple): Initial value.
+    """
+    cmds.addAttr(control, longName=spec.attr, attributeType="double3")
+    for axis, default in zip("XYZ", spec.default):
+        cmds.addAttr(
+            control,
+            longName=spec.attr + axis,
+            attributeType="double",
+            parent=spec.attr,
+            defaultValue=default,
+        )
+    for axis, component in zip("XYZ", clamp(spec, value)):
+        plug = "{}.{}{}".format(control, spec.attr, axis)
+        cmds.setAttr(plug, component)
+        cmds.setAttr(plug, keyable=spec.keyable, channelBox=not spec.keyable)
 
 
 def constraint_skips(node):
@@ -580,8 +671,10 @@ def _register_builtin():
         return
     from . import bone_dynamics
     from . import classic
+    from . import classic_gravity
     from .. import legacy
 
     register_backend(classic.ClassicBackend())
+    register_backend(classic_gravity.ClassicGravityBackend())
     register_backend(bone_dynamics.BoneDynamicsBackend())
     register_backend(legacy.LegacyBackend())

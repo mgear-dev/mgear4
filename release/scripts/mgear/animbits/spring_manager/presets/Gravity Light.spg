@@ -1,0 +1,30 @@
+{
+    "assignments": {},
+    "colliders": [],
+    "description": "Light droop that still follows the motion. Good for ears, hair locks and straps.",
+    "namespaces": [],
+    "solver": {},
+    "springs": [
+        {
+            "backend": "classic_gravity",
+            "controls": [],
+            "options": {
+                "direction": "auto"
+            },
+            "params": {
+                "springCollideSoftness": 0.5,
+                "springGravityStrength": 1.0,
+                "springRotationalDamping": 0.4,
+                "springRotationalIntensity": 1.0,
+                "springRotationalStiffness": 0.45,
+                "springTotalIntensity": 1.0,
+                "springTranslationalDamping": 0.5,
+                "springTranslationalIntensity": 0.0,
+                "springTranslationalStiffness": 0.5,
+                "springUseGround": false
+            }
+        }
+    ],
+    "type": "values",
+    "version": 2
+}

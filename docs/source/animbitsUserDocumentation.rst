@@ -480,6 +480,7 @@ Solver
 The **Solver** menu lists the spring solvers:
 
 * **Classic** - The mGear spring (``mgear_springNode``) included with mGear. One independent spring per control.
+* **Classic Gravity** - The Classic spring with gravity, sphere colliders and a ground (``mgear_springGravityNode``, included with mGear). See `Classic Gravity`_.
 * **Bone Dynamics** - Chain springs using the optional boneDynamicsNode plug-in: gravity, wind, angle limits, target pose and branching. See `Bone Dynamics (optional)`_.
 
 Solvers that need a plug-in that is not installed are shown disabled. The **Create** section shows the options of the selected solver, and a **Solver** section shows its scene-wide settings when it has some.
@@ -546,7 +547,7 @@ Presets are ``.spg`` files. There are two types, shown with a colored badge, in 
 
 Choose the library in the menu:
 
-* **Factory** - Values presets included with mGear (Soft, Stiff, Floppy, Tail, Hair). Read only.
+* **Factory** - Values presets included with mGear: Soft, Stiff, Floppy, Tail and Hair for Classic, Gravity Light and Gravity Hanging for Classic Gravity, and the Chain presets for Bone Dynamics. Read only.
 * **User** - Your presets, in ``<Maya user prefs>/mGear/spring_presets``. The folder is created when you save the first preset.
 * **Custom folders** - Add shared folders with **+** or **Presets > Add Library Folder**.
 
@@ -583,6 +584,37 @@ Bake
 * Springs are simulated frame by frame: play every frame (Playback Speed: Play every frame) when previewing.
 * The spring solver resets when the time jumps, so scrubbing or jumping frames gives a different result than the playback. Use pre-roll frames when the animation is already moving on the first frame.
 * Maya's bake evaluates the start frame in its own order, so the first baked frames can differ slightly from a playback. A few pre-roll frames make the bake start from a settled spring.
+
+Classic Gravity
+---------------
+
+The **Classic Gravity** solver is the Classic spring (same rig, direction buttons and **Auto**, parameters, bake and presets) with three additions. It uses ``mgear_springGravityNode``, included with mGear: no extra plug-in is needed.
+
+.. image:: images/animbits/spring_manager/classic_gravity.png
+    :align: center
+    :scale: 80%
+
+Select the controls and press a direction button in the **Create** section, as for the Classic solver.
+
+Parameters (on the control, keyable), in addition to the Classic ones:
+
+.. image:: images/animbits/spring_manager/classic_gravity_parameters.png
+    :align: center
+    :scale: 80%
+
+* **Gravity** - How strongly the spring is pulled along the gravity direction. It is scaled with the **Rig Scale**, so the same value gives the same droop on small and big rigs. 0 is a Classic spring; 0.5-1 for light pieces (ears, hair locks); 2-5 for heavy, hanging parts (cables, pouches).
+* **Direction** - The gravity direction, in world space. It defaults to the scene down axis (-Y, or -Z in Z-up scenes). Values presets don't change it.
+* **Collide Softness** - How softly colliders and the ground push the spring out: 0 hard, 1 no effect.
+* **Use Ground** - Keep the spring above the ground. It is turned on when a plane collider is assigned.
+
+Collisions use the **Colliders** section (see `Collision`_):
+
+* **Sphere** colliders push the spring out of them.
+* The first assigned **Plane** collider is the ground: the spring stays above its XZ plane, at any height and angle.
+* Capsule and mesh colliders are not used by Classic Gravity springs: assigning them is refused with a warning, and their actions are disabled in the section.
+* A collider that follows the spring itself (created on its control, or a child of it) is never assigned to that spring: the spring would push its own collider. Put colliders on the body, not on the moving part.
+
+Factory presets: **Gravity Light** and **Gravity Hanging**.
 
 Bone Dynamics (optional)
 ------------------------
@@ -675,17 +707,17 @@ Collision
 
 Colliders keep the chains out of the body: hair out of the head and shoulders, skirts out of the legs. They are shared scene objects: one collider can be assigned to many springs, and deleting a spring keeps its colliders. Colliders live under ``spring_colliders_grp`` and follow their *driver* (a joint or control) through a constraint, so the rig is not modified. Move, rotate or resize the collider itself to adjust it; the changes reach the springs live.
 
-The **Colliders** section (Bone Dynamics only):
+The **Colliders** section (Bone Dynamics and Classic Gravity solvers; the table lists the springs of the selected solver, and actions it can't use are disabled):
 
 .. image:: images/animbits/spring_manager/colliders.png
     :align: center
     :scale: 80%
 
-* **Sphere**, **Capsule**, **Plane** - Create a collider on the selected joint or control, or in world space. Capsules lie along their local Y axis; planes collide with their XZ plane (tilted ground, walls).
+* **Sphere**, **Capsule**, **Plane** (Create frame) - Create a collider on each selected joint or control, or one in world space without selection. Capsules lie along their local Y axis; planes collide with their XZ plane (tilted ground, walls). Without the boneDynamicsNode plug-in, spheres and planes use mGear display shapes (resize a sphere with its **Radius** attribute), and capsules can't be created.
 * **Mesh** (experimental) - Collide with the selected mesh. With **Proxy** (recommended), a reduced copy with soft edges follows the mesh through a proximity wrap; the mesh itself is not modified. Mesh collision is slow on dense meshes: a warning shows above 2000 faces.
-* **Fit mesh** - The mesh the fit tools measure. Pick it once with **<**, then the selection only names the targets. Empty: the last selected mesh is used.
+* **Fit mesh** (Fit frame, with the fit buttons and their options) - The mesh the fit tools measure. Pick it once with **<**, then the selection only names the targets. Empty: the last selected mesh is used.
 * **Fit Capsules** - Body colliders: select the joints or controls of one or more chains (spine, neck, arms, legs): one capsule per bone, sized to the mesh. With **End Spheres**, each chain end (head, hands, feet) also gets a sphere. On a spring's controls, the last bone gets a capsule to the chain tip instead, matching the bone volume. Controls are measured by ray casting. Selecting the control of a Bone Dynamics spring uses its simulated joint (hidden in the scene), as if you selected the joint. Colliders on a spring's own joints also set the collision volume of their bone, section by section: the volume other chains collide against is the volume the chain collides with. Resize a capsule to adjust its section. They are never assigned to their own chain.
-* **Fit Sphere** - Select vertices (and optionally the driver), or a joint or control to fit the mesh around.
+* **Fit Sphere** - Select vertices (and optionally the driver) for one sphere around them, or joints or controls for a sphere fitted at each.
 * **Fit Bone Radius** - For the springs selected in the list (or by their controls), with the Fit mesh set to their mesh (hair cards, a tail): sets the spring **Root Radius** and **Tip Radius** from the mesh thickness, and turns **Bone As Capsule** on. This fits the chain's own volume; **Fit Capsules** builds the body colliders the chains bounce off.
 * Fit options: **Method** (**Skin Weights** uses the vertices weighted to each joint, **Ray Cast** works on any mesh, **Auto** uses skin weights when the mesh is skinned to the joints), **Padding** (radius multiplier), **Percentile** (with skin weights: 100 encloses every vertex, 75 ignores the outliers), **Min Radius**.
 * Colliders list - Filter it with the field above it (``*`` wildcard), and drag the bar under it to resize it. Right-click to select colliders or their drivers, **Mirror** them to the other side (by the ``L``/``R`` naming; mesh colliders are not mirrored) or **Delete** them.

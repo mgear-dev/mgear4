@@ -25,6 +25,7 @@ from mgear.core import utils
 
 from . import SpringBackend
 from . import add_settings
+from . import nodes_of_type
 from . import remove_settings
 from . import rest_values
 from . import restore_rest_values
@@ -445,30 +446,12 @@ def find_offset_node(control):
     return None
 
 
-def nodes_of_type(spring, node_type, members=None):
-    """Return the members of a spring of a node type.
-
-    Args:
-        spring (registry.Spring): The spring.
-        node_type (str): Node type.
-        members (list, optional): Members already read from the spring.
-
-    Returns:
-        list: Node names.
-    """
-    nodes = members if members is not None else spring.members
-    return cmds.ls(nodes, type=node_type) or [] if nodes else []
-
-
-# -----------------------------------------------------------------------------
-# Backend
-# -----------------------------------------------------------------------------
-
-
 class BoneDynamicsBackend(SpringBackend):
     """Chain springs solved by the optional boneDynamicsNode plug-in."""
 
     name = BACKEND
+    collider_types = colliders.TYPES
+    bone_volume = True
     label = "Bone Dynamics"
     unavailable_message = (
         "Install the boneDynamicsNode plug-in to use this solver: copy "
@@ -1093,7 +1076,7 @@ class BoneDynamicsBackend(SpringBackend):
         node = self.bone_node(driver_node) if driver_node else None
         if not node or kind_type not in (colliders.SPHERE, colliders.CAPSULE):
             return False
-        shape = colliders.collider_shape(network)
+        shape = colliders.dimension_node(network)
         if kind_type == colliders.CAPSULE:
             links = (("radiusB", "rootRadius"), ("radiusA", "radius"))
             spring = registry.spring_from_node(node)
@@ -1118,7 +1101,7 @@ class BoneDynamicsBackend(SpringBackend):
         Args:
             network (str): Collider network.
         """
-        shape = colliders.collider_shape(network)
+        shape = colliders.dimension_node(network)
         if not shape:
             return
         for plug in (
@@ -1131,24 +1114,6 @@ class BoneDynamicsBackend(SpringBackend):
             ramps = cmds.ls(node + RADIUS_RAMPS.get(attr, ""), type="blendTwoAttr")
             if attr in RADIUS_RAMPS and ramps:
                 cmds.connectAttr(ramps[0] + ".output", plug, force=True)
-
-    def accepts_shared(self, spring, shared):
-        # a collider driven by the spring's own joints would collide with
-        # the chain itself
-        if registry.node_kind(shared) != constants.KIND_COLLIDER:
-            return True
-        driver_node = colliders.driver(shared)
-        if driver_node and cmds.ls(driver_node, long=True)[0] in cmds.ls(
-            spring.members, long=True
-        ):
-            mgear.log(
-                "{} follows {}: not assigned to its own chain".format(
-                    colliders.label(shared), spring.label
-                ),
-                mgear.sev_warning,
-            )
-            return False
-        return True
 
     def shared_changed(self, spring, kind):
         if kind == constants.KIND_WIND:
@@ -1170,15 +1135,19 @@ class BoneDynamicsBackend(SpringBackend):
         nodes = nodes_of_type(spring, NODE_TYPE)
         for node in nodes:
             for array in COLLIDER_ARRAYS:
-                for index in cmds.getAttr(_plug(node, array), multiIndices=True) or []:
-                    cmds.removeMultiInstance(
-                        "{}.{}[{}]".format(node, array, index), **{"break": True}
-                    )
+                attribute.clear_multi(_plug(node, array))
         counters = dict.fromkeys(colliders.TYPES, 0)
-        for network in registry.shared_of(spring, constants.KIND_COLLIDER):
+        for network in colliders.usable(
+            registry.shared_of(spring, constants.KIND_COLLIDER)
+        ):
             kind_type = colliders.collider_type(network)
-            shape = colliders.collider_shape(network)
-            if kind_type not in counters or not shape:
+            # dimensions holder (sphere, capsule) or the mesh shape
+            shape = colliders.dimension_node(network) or colliders.collider_shape(
+                network
+            )
+            if kind_type not in counters or (
+                kind_type != colliders.PLANE and not shape
+            ):
                 continue
             index = counters[kind_type]
             counters[kind_type] += 1
@@ -1356,49 +1325,6 @@ class BoneDynamicsBackend(SpringBackend):
 
     def get_solver_settings(self):
         return solver.get_settings()
-
-    def get_shared_preset(self, springs):
-        blocks = {"colliders": [], "assignments": {}}
-        entries = {}
-        for spring in springs:
-            for network in registry.shared_of(spring, constants.KIND_COLLIDER):
-                if network not in entries:
-                    entries[network] = colliders.to_preset(network)
-                    blocks["colliders"].append(entries[network])
-                blocks["assignments"].setdefault(entries[network]["name"], []).append(
-                    node_remap.short_name(spring.controls[0])
-                )
-        return blocks if blocks["colliders"] else {}
-
-    def set_shared_preset(self, preset, namespace):
-        if not preset.get("colliders"):
-            return
-        if not self.is_available():
-            mgear.log(
-                "Bone Dynamics is not available, preset colliders skipped",
-                mgear.sev_warning,
-            )
-            return
-        existing = {
-            colliders.label(network): network for network in colliders.list_colliders()
-        }
-        created = {}
-        for entry in preset["colliders"]:
-            network = colliders.from_preset(entry, namespace, existing)
-            if network:
-                created[entry["name"]] = network
-                existing[colliders.label(network)] = network
-        with registry.batched_sync():
-            for name, controls in (preset.get("assignments") or {}).items():
-                if name not in created:
-                    continue
-                springs = [
-                    registry.spring_from_node(
-                        node_remap.add_namespace(control, namespace)
-                    )
-                    for control in controls
-                ]
-                registry.assign(created[name], [spring for spring in springs if spring])
 
     def set_solver_settings(self, settings):
         if settings:

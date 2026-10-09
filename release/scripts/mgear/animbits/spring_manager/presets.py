@@ -28,6 +28,7 @@ import mgear
 from mgear.core import node_remap
 from mgear.core import utils
 
+from . import colliders
 from . import constants
 from .backends import classic
 from .backends import editable_springs
@@ -513,12 +514,8 @@ def collect(springs, description=""):
         settings = backend.get_solver_settings()
         if settings:
             preset["solver"][backend.name] = settings
-    for backend in {backend for _, backend in pairs}:
-        blocks = backend.get_shared_preset(
-            [spring for spring, owner in pairs if owner is backend]
-        )
-        preset["colliders"].extend(blocks.get("colliders") or [])
-        preset["assignments"].update(blocks.get("assignments") or {})
+    # colliders are shared by every solver: collected once
+    preset.update(colliders.collect_preset([spring for spring, _ in pairs]))
     return preset
 
 
@@ -584,12 +581,7 @@ def apply_by_name(preset, namespace="", apply_solver=True, apply_colliders=True)
                 if backend and backend.is_available():
                     backend.set_solver_settings(settings)
         if apply_colliders:
-            for backend in {
-                get_backend(entry.get("backend"))
-                for entry in preset.get("springs") or []
-            }:
-                if backend:
-                    backend.set_shared_preset(preset, namespace)
+            colliders.apply_preset(preset, namespace)
     for name in missing:
         mgear.log("Preset control not found: {}".format(name), mgear.sev_warning)
     return springs, missing

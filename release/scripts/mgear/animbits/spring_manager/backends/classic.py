@@ -248,6 +248,8 @@ class ClassicBackend(SpringBackend):
 
     name = CLASSIC_BACKEND
     label = "Classic"
+    # spring node type of the position and direction springs
+    solver_type = "mgear_springNode"
     unavailable_message = (
         "The mgear_solvers plug-in could not be loaded. Check the mGear "
         "installation."
@@ -348,8 +350,8 @@ class ClassicBackend(SpringBackend):
 
         node_utils.createMulNode(settings[RIG_SCALE], sign, _plug(aim, aim_channel))
 
-        position_solver = str(applyop.gear_spring_op(trans))
-        direction_solver = str(applyop.gear_spring_op(goal))
+        position_solver = str(applyop.gear_spring_op(trans, solver=self.solver_type))
+        direction_solver = str(applyop.gear_spring_op(goal, solver=self.solver_type))
         for solver, damping, stiffness in (
             (position_solver, TRANS_DAMPING, TRANS_STIFFNESS),
             (direction_solver, ROT_DAMPING, ROT_STIFFNESS),
@@ -364,6 +366,7 @@ class ClassicBackend(SpringBackend):
             ],
             [position_solver + ".intensity", direction_solver + ".intensity"],
         )
+        self._connect_solvers(settings, (position_solver, direction_solver))
 
         applyop.aimCns(driver, goal, aim_axis, "objectrotation", list(up_vector), trans)
 
@@ -391,6 +394,18 @@ class ClassicBackend(SpringBackend):
         )[0]
         cmds.setAttr(constraint + ".isHistoricallyInteresting", False)
         return root
+
+    def _connect_solvers(self, settings, solvers):
+        """Wire extra parameters into the spring nodes of a new rig.
+
+        Called by :meth:`_build` once the position and direction springs
+        are connected. The default does nothing; subclasses using another
+        :attr:`solver_type` connect their own parameters here.
+
+        Args:
+            settings (dict): ``{parameter: plug}`` on the control.
+            solvers (tuple): ``(position solver, direction solver)`` nodes.
+        """
 
     # delete ---------------------------------------------------------------
 

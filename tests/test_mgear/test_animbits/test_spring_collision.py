@@ -562,7 +562,11 @@ def test_colliders_section_ui(bdn, clean_settings):
     sphere = colliders.create(colliders.SPHERE, name="head_sphereCol")
     window = ui.SpringManager()
     try:
-        _, section, panel = window.backend_sections[0]
+        section, panel = [
+            (section, panel)
+            for backend, section, panel in window.backend_sections
+            if backend == "bone_dynamics"
+        ][0]
         window.solver_combo.setCurrentIndex(window.solver_combo.findData("classic"))
         assert section.isHidden()
         window.solver_combo.setCurrentIndex(
@@ -637,7 +641,11 @@ def test_colliders_fit_inputs(bdn, clean_settings):
         window.solver_combo.setCurrentIndex(
             window.solver_combo.findData("bone_dynamics")
         )
-        _, _, panel = window.backend_sections[0]
+        panel = [
+            panel
+            for backend, _, panel in window.backend_sections
+            if backend == "bone_dynamics"
+        ][0]
         # mesh selected last
         cmds.select(joints[:2] + [cylinder])
         mesh, targets = panel.fit_inputs()
@@ -757,3 +765,22 @@ def test_colliders_set_bone_volume(bdn):
     # deleting the spring keeps its colliders and their radii
     bake.delete([spring])
     assert colliders.get_dimensions(last) == pytest.approx(last_dims)
+
+
+def test_mgear_sphere_with_bone_dynamics(bdn, monkeypatch):
+    from maya import cmds
+
+    from mgear.animbits.spring_manager import colliders
+    from mgear.animbits.spring_manager import registry
+
+    _, controls = build_tail_rig(cmds)
+    spring = bdn.create([controls[0]])[0]
+    monkeypatch.setattr(colliders, "plugin_shapes", lambda: False)
+    sphere = colliders.create(colliders.SPHERE, dimensions={"radius": 2.5})
+    registry.assign(sphere, [spring])
+    node = cmds.ls(spring.members, type="boneDynamicsNode")[0]
+    radius = cmds.listConnections(
+        node + ".sphereCollider[0].sphereColRadius", source=True, plugs=True
+    )
+    assert radius == [colliders.label(sphere) + ".radius"]
+    assert cmds.getAttr(node + ".sphereCollider[0].sphereColRadius") == 2.5

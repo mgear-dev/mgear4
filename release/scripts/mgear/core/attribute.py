@@ -2024,6 +2024,16 @@ def has_input(plug):
     return bool(cmds.listConnections(plug, source=True, destination=False))
 
 
+def clear_multi(plug):
+    """Remove every element of a multi attribute, with its connections.
+
+    Args:
+        plug (str): Multi attribute plug, e.g. ``"node.colliders_list"``.
+    """
+    for index in cmds.getAttr(plug, multiIndices=True) or []:
+        cmds.removeMultiInstance("{}[{}]".format(plug, index), **{"break": True})
+
+
 def disconnect_plug_inputs(plug, keep=None):
     """Disconnect the incoming connections of a plug (cmds version).
 

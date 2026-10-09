@@ -1,0 +1,30 @@
+{
+    "assignments": {},
+    "colliders": [],
+    "description": "Heavy parts hanging down and swinging back slowly: cables, pouches, chains.",
+    "namespaces": [],
+    "solver": {},
+    "springs": [
+        {
+            "backend": "classic_gravity",
+            "controls": [],
+            "options": {
+                "direction": "auto"
+            },
+            "params": {
+                "springCollideSoftness": 0.5,
+                "springGravityStrength": 3.0,
+                "springRotationalDamping": 0.5,
+                "springRotationalIntensity": 1.0,
+                "springRotationalStiffness": 0.25,
+                "springTotalIntensity": 1.0,
+                "springTranslationalDamping": 0.5,
+                "springTranslationalIntensity": 0.0,
+                "springTranslationalStiffness": 0.5,
+                "springUseGround": false
+            }
+        }
+    ],
+    "type": "values",
+    "version": 2
+}

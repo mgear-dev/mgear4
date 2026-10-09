@@ -363,6 +363,26 @@ def fit_sphere(mesh=None, joint=None, vertices=None, options=None):
         return _fit_sphere_at(measure, cmds.ls(joint, long=True)[0], options)
 
 
+def fit_spheres(mesh, joints, options=None):
+    """Create a sphere collider fitted to a mesh at each joint or control.
+
+    Args:
+        mesh (str): Mesh transform.
+        joints (list): Joints or controls, each the driver of its sphere.
+        options (FitOptions, optional): Options.
+
+    Returns:
+        list: The created collider networks (joints without mesh around
+        them are skipped with a warning).
+    """
+    options = options or FitOptions()
+    joints = cmds.ls(joints, long=True)
+    measure = _Measure(mesh, joints, options)
+    with utils.undo_chunk("springManagerFitSpheres"):
+        created = [_fit_sphere_at(measure, joint, options) for joint in joints]
+    return [network for network in created if network]
+
+
 def _dominant_joint(vertices):
     """Return the influence weighting most of the vertices, or None."""
     mesh = vertices[0].split(".")[0]
