@@ -545,6 +545,10 @@ public:
     MTime _previousTime;
     MFloatVector _currentPosition;
     MFloatVector _previousPosition;
+    // state at the start of the current frame: a same-frame evaluation
+    // re-solves from it instead of stepping again
+    MFloatVector _frameStartCurrent;
+    MFloatVector _frameStartPrevious;
 
 };
 
@@ -588,6 +592,10 @@ public:
 	MTime _previousTime;
 	MPoint _currentPosition;
 	MPoint _previousPosition;
+	// state at the start of the current frame: a same-frame evaluation
+	// re-solves from it instead of stepping again
+	MPoint _frameStartCurrent;
+	MPoint _frameStartPrevious;
 
 };
 

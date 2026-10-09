@@ -582,6 +582,7 @@ Bake
 
 * Springs are simulated frame by frame: play every frame (Playback Speed: Play every frame) when previewing.
 * The spring solver resets when the time jumps, so scrubbing or jumping frames gives a different result than the playback. Use pre-roll frames when the animation is already moving on the first frame.
+* Maya's bake evaluates the start frame in its own order, so the first baked frames can differ slightly from a playback. A few pre-roll frames make the bake start from a settled spring.
 
 Bone Dynamics (optional)
 ------------------------

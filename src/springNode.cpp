@@ -166,6 +166,8 @@ MStatus mgear_springNode::compute(const MPlug& plug, MDataBlock& data)
 		//MGlobal::displayInfo( "mc_spring: Initialize the point states" );
 		_previousPosition = goal;
 		_currentPosition = goal;
+		_frameStartPrevious = goal;
+		_frameStartCurrent = goal;
 		_previousTime = currentTime;
 		_initialized = true;
 		//return MS::kSuccess;
@@ -179,6 +181,18 @@ MStatus mgear_springNode::compute(const MPlug& plug, MDataBlock& data)
 		_previousTime = currentTime;
 		//MGlobal::displayInfo( "mc_spring: time checker, reset position" );
 		//return MS::kSuccess;
+	}
+
+	// One step per frame: an evaluation on the same frame (bake, viewport,
+	// attribute editor) solves the frame again from its start state,
+	// instead of advancing the simulation once more
+	if (timeDifference == 0.0) {
+		_previousPosition = _frameStartPrevious;
+		_currentPosition = _frameStartCurrent;
+	}
+	else {
+		_frameStartPrevious = _previousPosition;
+		_frameStartCurrent = _currentPosition;
 	}
 
 	// computation

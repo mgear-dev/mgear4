@@ -250,6 +250,8 @@ MStatus mgear_springGravityNode::compute(const MPlug& plug, MDataBlock& data)
 		//MGlobal::displayInfo( "mc_spring: Initialize the point states" );
 		_previousPosition = goal;
 		_currentPosition = goal;
+		_frameStartPrevious = goal;
+		_frameStartCurrent = goal;
 		_previousTime = currentTime;
     colliderStrength = 1.0;
 		//return MS::kSuccess;
@@ -264,6 +266,18 @@ MStatus mgear_springGravityNode::compute(const MPlug& plug, MDataBlock& data)
 		_previousTime = currentTime;
 		//MGlobal::displayInfo( "mc_spring: time checker, reset position" );
 		//return MS::kSuccess;
+	}
+
+	// One step per frame: an evaluation on the same frame (bake, viewport,
+	// attribute editor) solves the frame again from its start state,
+	// instead of advancing the simulation once more
+	if (timeDifference == 0.0) {
+		_previousPosition = _frameStartPrevious;
+		_currentPosition = _frameStartCurrent;
+	}
+	else {
+		_frameStartPrevious = _previousPosition;
+		_frameStartCurrent = _currentPosition;
 	}
 
 	// computation
@@ -298,13 +312,13 @@ MStatus mgear_springGravityNode::compute(const MPlug& plug, MDataBlock& data)
 
 	MMatrix groundPlaneTransform = data.inputValue(aGroundPlaneTransform, &status).asMatrix();
 	MMatrix groundPlaneInv = groundPlaneTransform.inverse();
-  double groundPlaneHeight = groundPlaneTransform(4, 2);
 
-  // Collide with a general plane
+  // Collide with the XZ plane of the ground transform: in the plane space
+  // the ground is at height 0
 	bool useGroundPlane = data.inputValue(aUseGroundPlane, &status).asBool();
   MPoint transformedPosition = newPosition;
   transformedPosition *= groundPlaneInv;
-	double distFromGround = transformedPosition[1] - groundPlaneHeight;
+	double distFromGround = transformedPosition[1];
 	collideAmount = -1.0f * distFromGround * colliderStrength;
 
   if (useGroundPlane && (collideAmount > 0)) {
