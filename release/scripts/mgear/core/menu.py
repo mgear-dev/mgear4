@@ -78,7 +78,6 @@ def install_utils_menu(m):
     Args:
         m (str): Parent utilities menu.
     """
-    return
 
 
 str_skinCopy = """

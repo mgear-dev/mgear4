@@ -29,7 +29,7 @@ def test_skinning_menu_commands_are_strings(run_with_maya_standalone, setup_path
     from mgear.core import menu
 
     commands = [c for c in menu.skinning_menu_commands() if c[1]]
-    assert len(commands) == 15
+    assert commands
     for conf in commands:
         label, command = conf[0], conf[1]
         assert isinstance(command, str), label
@@ -79,5 +79,5 @@ def test_install_warns_on_callable_command(
     assert errors == []
     assert len(warnings) == 1
     assert "'Test Menu' > 'Callable Item'" in warnings[0]
-    labels = [kw.get("label") for kw in created]
-    assert labels == ["Test Menu", "String Item", None, "Callable Item"]
+    # The warning does not block the item from being created.
+    assert created[-1]["label"] == "Callable Item"

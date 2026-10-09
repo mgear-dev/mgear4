@@ -89,17 +89,16 @@ def install(label, commands, parent=menuId, image=""):
                         tearOff=True,
                         label=label,
                         image=image)
-        menu_label = label
         for conf in commands:
             if len(conf) == 3:
-                label, command, img = conf
+                item_label, command, img = conf
             else:
-                label, command = conf
+                item_label, command = conf
                 img = ""
             if not command:
                 pm.menuItem(divider=True)
                 continue
-            if not label:
+            if not item_label:
                 command(m)
                 pm.setParent(m, menu=True)
                 continue
@@ -107,9 +106,9 @@ def install(label, commands, parent=menuId, image=""):
                 pm.displayWarning(
                     "mGear menu '{}' > '{}' uses a callable command. Use a "
                     "source string so it can be added to a shelf and "
-                    "repeated.".format(menu_label, label))
+                    "repeated.".format(label, item_label))
 
-            pm.menuItem(label=label, command=command, image=img)
+            pm.menuItem(label=item_label, command=command, image=img)
 
         return m
 
