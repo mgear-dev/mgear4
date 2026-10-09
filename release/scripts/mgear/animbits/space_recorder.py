@@ -1,234 +1,278 @@
+"""Space Recorder: record world transforms over time and apply them back.
+
+Records the world matrix of objects on every frame of a range, and keys
+them back at those world positions later, on the same objects (after a
+space switch, a reparent or a parent edit) or on other objects.
+
+The record and apply functions are Qt-free; the window keeps three
+buffers (A, B and C) for the Maya session.
+"""
+
+from mgear.core import anim_utils
 from mgear.core import pyqt
-from mgear.vendor.Qt import QtCore, QtWidgets
+from mgear.core import utils
+
+from mgear.vendor.Qt import QtCore
+from mgear.vendor.Qt import QtWidgets
+
+from maya import cmds
 from maya.app.general.mayaMixin import MayaQWidgetDockableMixin
-import mgear.pymaya as pm
+
+BUFFER_NAMES = ("A", "B", "C")
+EMPTY = "empty"
+
+# recordings of the window buffers, kept for the Maya session
+BUFFERS = {}
+
+
+class Recording(object):
+    """World matrices of objects, by frame number."""
+
+    def __init__(self, objects, frames):
+        """Initialize the recording.
+
+        Args:
+            objects (list): Recorded objects, full DAG paths.
+            frames (dict): ``{frame: [world matrix per object]}``.
+        """
+        self.objects = list(objects)
+        self.frames = dict(frames)
+
+    @property
+    def frame_range(self):
+        """tuple: First and last recorded frame, or None when empty."""
+        if not self.frames:
+            return None
+        return min(self.frames), max(self.frames)
+
+    def describe(self):
+        """Return a short description of the recording.
+
+        Returns:
+            str: e.g. ``"3 objects, frames 1-24"``, or :data:`EMPTY`.
+        """
+        frame_range = self.frame_range
+        if not frame_range:
+            return EMPTY
+        return "{} object{}, frames {:g}-{:g}".format(
+            len(self.objects), "" if len(self.objects) == 1 else "s", *frame_range
+        )
+
+
+def record(objects=None, start=None, end=None):
+    """Record the world matrices of objects on every frame of a range.
+
+    The current time is restored afterwards. Esc cancels; the frames
+    recorded so far are kept.
+
+    Args:
+        objects (list, optional): Transforms. Default: the selection.
+        start (float, optional): First frame. Default: playback start.
+        end (float, optional): Last frame. Default: playback end.
+
+    Returns:
+        Recording: The recording, or None when there is nothing to record.
+    """
+    objects = cmds.ls(objects or cmds.ls(selection=True), long=True, transforms=True)
+    if not objects:
+        cmds.warning("Space Recorder: select the objects to record")
+        return None
+    frames = anim_utils.record_world_matrices(
+        objects, start, end, "Recording world spaces"
+    )
+    return Recording(objects, frames)
+
+
+def apply(recording, targets=None, start=None, end=None):
+    """Key the recorded world matrices on the recorded or other objects.
+
+    Only the recorded frames inside the range are applied. Targets are
+    paired with the recorded objects in order, and parents are applied
+    before their children on each frame. Only the settable translate,
+    rotate and scale channels are keyed. One undo step; the current time
+    is restored and Esc cancels.
+
+    Args:
+        recording (Recording): The recording.
+        targets (list, optional): Objects receiving the motion, paired by
+            order with the recorded objects. Default: the recorded objects.
+        start (float, optional): First frame. Default: playback start.
+        end (float, optional): Last frame. Default: playback end.
+
+    Returns:
+        dict: Report with ``applied_frames`` (list), ``skipped_frames``
+        (frames of the range that were not recorded), ``unused_targets``
+        (targets beyond the recorded objects) and ``missing_objects``
+        (recorded objects that no longer exist).
+    """
+    report = {
+        "applied_frames": [],
+        "skipped_frames": [],
+        "unused_targets": [],
+        "missing_objects": [],
+    }
+    if targets is None:
+        pairs = [
+            (index, node)
+            for index, node in enumerate(recording.objects)
+            if cmds.objExists(node)
+        ]
+        report["missing_objects"] = [
+            node for node in recording.objects if not cmds.objExists(node)
+        ]
+    else:
+        # one by one: the pairing follows the given order
+        resolved = []
+        for node in targets:
+            resolved.extend(cmds.ls(node, long=True, transforms=True)[:1])
+        count = min(len(resolved), len(recording.objects))
+        pairs = list(enumerate(resolved[:count]))
+        report["unused_targets"] = resolved[count:]
+    start, end = anim_utils.get_playback_range(start, end)
+    frames = {}
+    for frame in range(int(round(start)), int(round(end)) + 1):
+        if frame in recording.frames:
+            matrices = recording.frames[frame]
+            frames[frame] = [matrices[index] for index, _ in pairs]
+        else:
+            report["skipped_frames"].append(frame)
+    if not pairs or not frames:
+        return report
+    with utils.undo_chunk("spaceRecorderApply"):
+        report["applied_frames"] = anim_utils.key_world_matrices(
+            [node for _, node in pairs], frames, "Applying world spaces"
+        )
+    return report
+
+
+def warn_report(report):
+    """Show warnings for the skipped parts of an apply report.
+
+    Args:
+        report (dict): Report from :func:`apply`.
+    """
+    if report["skipped_frames"]:
+        frames = report["skipped_frames"]
+        cmds.warning(
+            "Space Recorder: {} frames of the range were not recorded "
+            "({:g}-{:g}), they were skipped".format(len(frames), frames[0], frames[-1])
+        )
+    if report["unused_targets"]:
+        cmds.warning(
+            "Space Recorder: more objects selected than recorded, not used: "
+            "{}".format(", ".join(cmds.ls(report["unused_targets"])))
+        )
+    if report["missing_objects"]:
+        cmds.warning(
+            "Space Recorder: recorded objects not found: {}".format(
+                ", ".join(report["missing_objects"])
+            )
+        )
 
 
 class SpaceRecorderUI(MayaQWidgetDockableMixin, QtWidgets.QDialog):
+    """Space Recorder window with three buffers."""
+
     def __init__(self, parent=None):
         super(SpaceRecorderUI, self).__init__(parent)
-
-        # init 3 different buffers
-        SpaceRecorderUI.world_spaces = [[], [], []]
+        self.record_buttons = {}
+        self.apply_buttons = {}
+        self.apply_selected_buttons = {}
 
         self.setWindowTitle("World Space Recorder")
         self.setMinimumWidth(275)
         self.setWindowFlags(QtCore.Qt.Tool)
-
         # Delete UI on close to avoid winEvent error
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
 
         self.create_widgets()
         self.create_layout()
         self.create_connections()
+        self.update_buttons()
 
     def create_widgets(self):
-        self.record_A_btn = QtWidgets.QPushButton("Record Buffer A")
-        self.apply_A_btn = QtWidgets.QPushButton("Apply Buffer A")
-        self.apply_A_selected_btn = QtWidgets.QPushButton("Apply Sel Buffer A")
-
-        self.record_B_btn = QtWidgets.QPushButton("Record Buffer B")
-        self.apply_B_btn = QtWidgets.QPushButton("Apply Buffer B")
-        self.apply_B_selected_btn = QtWidgets.QPushButton("Apply Sel Buffer B")
-
-        self.record_C_btn = QtWidgets.QPushButton("Record Buffer C")
-        self.apply_C_btn = QtWidgets.QPushButton("Apply Buffer C")
-        self.apply_C_selected_btn = QtWidgets.QPushButton("Apply Sel Buffer C")
+        for name in BUFFER_NAMES:
+            self.record_buttons[name] = QtWidgets.QPushButton(
+                "Record Buffer {}".format(name)
+            )
+            self.apply_buttons[name] = QtWidgets.QPushButton(
+                "Apply Buffer {}".format(name)
+            )
+            self.apply_selected_buttons[name] = QtWidgets.QPushButton(
+                "Apply Sel Buffer {}".format(name)
+            )
 
     def create_layout(self):
-        main_layout = QtWidgets.QVBoxLayout()
+        main_layout = QtWidgets.QVBoxLayout(self)
         main_layout.setContentsMargins(2, 2, 2, 2)
         main_layout.setSpacing(2)
-
-        groupBox = QtWidgets.QGroupBox()
-        groupBox.setTitle("Record World Spaces")
-        record_layout = QtWidgets.QHBoxLayout(groupBox)
-        record_layout.addWidget(self.record_A_btn)
-        record_layout.addWidget(self.record_B_btn)
-        record_layout.addWidget(self.record_C_btn)
-        main_layout.addWidget(groupBox)
-
-        groupBox = QtWidgets.QGroupBox()
-        groupBox.setTitle("Apply World Spaces")
-        apply_layout = QtWidgets.QHBoxLayout(groupBox)
-        apply_layout.addWidget(self.apply_A_btn)
-        apply_layout.addWidget(self.apply_B_btn)
-        apply_layout.addWidget(self.apply_C_btn)
-        main_layout.addWidget(groupBox)
-
-        groupBox = QtWidgets.QGroupBox()
-        groupBox.setTitle("Apply to Selection")
-        apply_sel_layout = QtWidgets.QHBoxLayout(groupBox)
-        apply_sel_layout.addWidget(self.apply_A_selected_btn)
-        apply_sel_layout.addWidget(self.apply_B_selected_btn)
-        apply_sel_layout.addWidget(self.apply_C_selected_btn)
-        main_layout.addWidget(groupBox)
-
+        for title, buttons in (
+            ("Record World Spaces", self.record_buttons),
+            ("Apply World Spaces", self.apply_buttons),
+            ("Apply to Selection", self.apply_selected_buttons),
+        ):
+            group = QtWidgets.QGroupBox(title)
+            layout = QtWidgets.QHBoxLayout(group)
+            for name in BUFFER_NAMES:
+                layout.addWidget(buttons[name])
+            main_layout.addWidget(group)
         main_layout.addStretch()
 
-        self.setLayout(main_layout)
-
     def create_connections(self):
-        self.record_A_btn.clicked.connect(SpaceRecorderUI.record_spaces_A)
-        self.apply_A_btn.clicked.connect(SpaceRecorderUI.apply_spaces_A)
-        self.apply_A_selected_btn.clicked.connect(
-            SpaceRecorderUI.apply_to_selection_A
-        )
-
-        self.record_B_btn.clicked.connect(SpaceRecorderUI.record_spaces_B)
-        self.apply_B_btn.clicked.connect(SpaceRecorderUI.apply_spaces_B)
-        self.apply_B_selected_btn.clicked.connect(
-            SpaceRecorderUI.apply_to_selection_B
-        )
-
-        self.record_C_btn.clicked.connect(SpaceRecorderUI.record_spaces_C)
-        self.apply_C_btn.clicked.connect(SpaceRecorderUI.apply_spaces_C)
-        self.apply_C_selected_btn.clicked.connect(
-            SpaceRecorderUI.apply_to_selection_C
-        )
-
-    @classmethod
-    def record_spaces(cls, buffer=0):
-        """Record the world spaces of the selected object using the timeline range
-
-        Args:
-            buffer (int, optional): the buffer index to archive the spaces
-        """
-        cls.world_spaces[buffer] = []
-        start = pm.playbackOptions(q=True, min=True)
-        end = pm.playbackOptions(q=True, max=True)
-        frame_range = int(end - start) + 1
-        # store
-        oSel = pm.selected()
-        ct = start
-        p_amount = 0
-        increment = 100 / frame_range
-        pm.progressWindow(
-            title="Recording World Spaces", progress=p_amount, max=100
-        )
-        for i in range(frame_range):
-            frame_spaces = []
-            pm.progressWindow(
-                e=True,
-                progress=p_amount,
-                status="Recording Frame:{} ".format(str(i)),
+        for name in BUFFER_NAMES:
+            self.record_buttons[name].clicked.connect(
+                lambda *args, n=name: self.record(n)
             )
-            for x in oSel:
-                pm.currentTime(int(ct))
-                space = []
-                space.append(x)
-                space.append(x.getMatrix(worldSpace=True))
-                frame_spaces.append(space)
-            ct += 1
-            cls.world_spaces[buffer].append(frame_spaces)
-            p_amount += increment
-        pm.progressWindow(e=True, endProgress=True)
-
-    @classmethod
-    def apply_spaces(cls, buffer=0):
-        """Apply the archived world spaces  using the timeline range
-
-        Args:
-            buffer (int, optional): the buffer index to retrieve the spaces
-        """
-        if not cls.world_spaces[buffer]:
-            pm.displayWarning("Space buffer is empty. Please record before")
-            return
-        start = pm.playbackOptions(q=True, min=True)
-        end = pm.playbackOptions(q=True, max=True)
-        frame_range = int(end - start) + 1
-        ct = start
-        p_amount = 0
-        increment = 100 / frame_range
-        pm.progressWindow(
-            title="Apply World Spaces", progress=p_amount, max=100
-        )
-        for i in range(frame_range):
-            pm.currentTime(int(ct))
-            frame_spaces = cls.world_spaces[buffer][i]
-            pm.progressWindow(
-                e=True,
-                progress=p_amount,
-                status="Apply Frame:{} ".format(str(i)),
+            self.apply_buttons[name].clicked.connect(
+                lambda *args, n=name: self.apply(n)
             )
-            for space in frame_spaces:
-                space[0].setMatrix(space[1], worldSpace=True)
-                pm.setKeyframe(space[0])
-            ct += 1
-            p_amount += increment
-        pm.progressWindow(e=True, endProgress=True)
+            self.apply_selected_buttons[name].clicked.connect(
+                lambda *args, n=name: self.apply(n, selection=True)
+            )
 
-    @classmethod
-    def apply_to_selection(cls, buffer=0):
-        """Apply the world spaces to the selected object using the timeline range
-        The order of selection will determine the space used relative to the order
-        of selection at the store time
+    def update_buttons(self):
+        """Show what each buffer holds on its apply buttons."""
+        for name in BUFFER_NAMES:
+            recording = BUFFERS.get(name)
+            text = recording.describe() if recording else EMPTY
+            for buttons in (self.apply_buttons, self.apply_selected_buttons):
+                buttons[name].setEnabled(bool(recording and recording.frames))
+                buttons[name].setToolTip("Buffer {}: {}".format(name, text))
+            self.record_buttons[name].setToolTip(
+                "Record the selection over the playback range "
+                "(buffer {}: {})".format(name, text)
+            )
+
+    def record(self, name):
+        """Record the selection in a buffer.
 
         Args:
-            buffer (int, optional): the buffer index to retrieve the spaces
+            name (str): Buffer name.
         """
-        if not cls.world_spaces[buffer]:
-            pm.displayWarning("Space buffer is empty. Please record before")
+        recording = record()
+        if recording:
+            BUFFERS[name] = recording
+        self.update_buttons()
+
+    def apply(self, name, selection=False):
+        """Apply a buffer to its objects or to the selection.
+
+        Args:
+            name (str): Buffer name.
+            selection (bool, optional): Apply to the selected objects, by
+                order, instead of the recorded objects.
+        """
+        recording = BUFFERS.get(name)
+        if not recording:
+            cmds.warning("Space buffer is empty. Please record before")
             return
-        oSel = pm.selected()
-        if not oSel:
-            pm.displayWarning("Please select object to apply spaces")
-            return
-        start = pm.playbackOptions(q=True, min=True)
-        end = pm.playbackOptions(q=True, max=True)
-        frame_range = int(end - start) + 1
-        ct = start
-        p_amount = 0
-        increment = 100 / frame_range
-        pm.progressWindow(
-            title="Apply To Selection World Spaces", progress=p_amount, max=100
-        )
-        for i in range(frame_range):
-            pm.currentTime(int(ct))
-            frame_spaces = cls.world_spaces[buffer][i]
-            for e, x in enumerate(oSel):
-                frame_spaces[e][1]
-                x.setMatrix(frame_spaces[e][1], worldSpace=True)
-                pm.setKeyframe(x)
-            ct += 1
-            p_amount += increment
-        pm.progressWindow(e=True, endProgress=True)
-
-    @classmethod
-    def record_spaces_A(cls):
-        SpaceRecorderUI.record_spaces(buffer=0)
-
-    @classmethod
-    def record_spaces_B(cls):
-        SpaceRecorderUI.record_spaces(buffer=1)
-
-    @classmethod
-    def record_spaces_C(cls):
-        SpaceRecorderUI.record_spaces(buffer=2)
-
-    @classmethod
-    def apply_spaces_A(cls):
-        SpaceRecorderUI.apply_spaces(buffer=0)
-
-    @classmethod
-    def apply_spaces_B(cls):
-        SpaceRecorderUI.apply_spaces(buffer=1)
-
-    @classmethod
-    def apply_spaces_C(cls):
-        SpaceRecorderUI.apply_spaces(buffer=2)
-
-    @classmethod
-    def apply_to_selection_A(cls):
-        SpaceRecorderUI.apply_to_selection(buffer=0)
-
-    @classmethod
-    def apply_to_selection_B(cls):
-        SpaceRecorderUI.apply_to_selection(buffer=1)
-
-    @classmethod
-    def apply_to_selection_C(cls):
-        SpaceRecorderUI.apply_to_selection(buffer=2)
+        targets = None
+        if selection:
+            targets = cmds.ls(selection=True, transforms=True)
+            if not targets:
+                cmds.warning("Please select object to apply spaces")
+                return
+        warn_report(apply(recording, targets))
 
 
 def open(*args):
@@ -236,5 +280,4 @@ def open(*args):
 
 
 if __name__ == "__main__":
-
-    pyqt.showDialog(SpaceRecorderUI)
+    open()

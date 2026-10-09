@@ -285,6 +285,7 @@ Puts the selected controls back to their default values in one click, for exampl
 **Notes:**
 
 * Locked or connected channels are skipped without error.
+* The reset is one undo step, whatever the number of objects and channels.
 * No key is set. On animated channels the reset value lasts until the time changes: key it to keep it.
 * Works on any number of selected objects; channels that an object doesn't have are skipped.
 
@@ -405,8 +406,8 @@ Records where objects are in the world over the timeline, and puts them back the
 
 **Window:** three buffers, **A**, **B** and **C**, each with:
 
-* **Record Buffer** - Stores the world position, rotation and scale of each selected object on every frame of the playback range.
-* **Apply Buffer** - Puts the recorded objects back at their recorded world positions on every frame of the playback range, and keys them.
+* **Record Buffer** - Stores the world position, rotation and scale of each selected object on every frame of the playback range. Press **Esc** to stop early: the frames recorded so far are kept.
+* **Apply Buffer** - Puts the recorded objects back at their recorded world positions on every recorded frame of the playback range, and keys them. The tooltip shows what the buffer holds (objects and frames); the Apply buttons are disabled while a buffer is empty.
 * **Apply Sel Buffer** - Applies the recording to the **current selection** instead: the first selected object gets the first recorded object's motion, the second the second, and so on (by selection order, not by name).
 
 **Workflow (space switch without pop):**
@@ -418,10 +419,12 @@ Records where objects are in the world over the timeline, and puts them back the
 
 **Notes:**
 
-* Keep the same playback range for recording and applying.
-* Applying keys **every frame**, on all keyable channels of the objects: simplify the curves afterwards if you need sparse keys.
-* For **Apply Sel Buffer**, select at most as many objects as were recorded, in the same order.
-* Buffers live in memory: they are cleared when the window is closed or reopened, and not saved with the scene.
+* Frames are recorded by frame number. Applying uses the recorded frames inside the current playback range; frames of the range that were not recorded are skipped with a warning.
+* Applying keys **every frame**, on the translate, rotate and scale channels only (locked or connected channels and custom attributes are not keyed): simplify the curves afterwards if you need sparse keys.
+* Recorded parents are applied before their children, so a recorded hierarchy lands where it was.
+* Each apply is one undo step, and the current frame is kept.
+* For **Apply Sel Buffer**, extra selected objects (more than were recorded) are skipped with a warning. Recorded objects deleted since are skipped too.
+* Buffers live in memory for the Maya session: they are kept when the window is closed and reopened, but not saved with the scene.
 
 
 Blocking Ghosts
@@ -760,7 +763,7 @@ Bake and clear the springs built **inside Shifter rigs** by the spring component
 These components register their spring nodes in the rig's ``<rig>_PLOT_grp`` set. Each spring node blends between the live spring and its own rotation keys, with the component's **spring intensity** channel: 1 shows the live spring, 0 shows the keys.
 
 * **Bake Spring nodes (Shifter Component)** - Select the rig (or any node of it) and run it. The previous bake is cleared, then the spring rotation is keyed on every frame of the playback range, on every spring node of that rig.
-* **Clear Baked Spring nodes (Shifter Component)** - Select the rig and run it: the baked spring keys are deleted and the spring nodes go back to their rest rotation.
+* **Clear Baked Spring nodes (Shifter Component)** - Select the rig and run it: the baked spring keys are deleted and the spring nodes go back to their rest rotation. Spring nodes that were never baked are skipped; a rig without spring components shows a warning.
 
 **Workflow:**
 

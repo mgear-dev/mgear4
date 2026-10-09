@@ -11,6 +11,7 @@ from maya.api import OpenMaya
 import mgear
 import mgear.pymaya as pm
 import mgear.pymaya.datatypes as datatypes
+from mgear.core import utils
 string_types = str
 
 #############################################
@@ -1272,32 +1273,25 @@ def reset_selected_channels_value(objects=None, attributes=None):
     if not attributes:
         attributes = getSelectedChannels()
 
-    for obj in objects:
-        for attr in attributes:
-            set_default_value(obj, attr)
+    # one undo step for every channel of every object
+    with utils.undo_chunk("resetChannels"):
+        for obj in objects:
+            node = pm.PyNode(obj)
+            for attr in attributes:
+                set_default_value(node, attr)
 
 
-def reset_SRT(
-    objects=None,
-    attributes=[
-        "tx",
-        "ty",
-        "tz",
-        "rx",
-        "ry",
-        "rz",
-        "sx",
-        "sy",
-        "sz",
-        "v",
-        "ro",
-    ],
-):
+# channels reset by reset_SRT and Smart Reset without channel selection
+SRT_CHANNELS = ("tx", "ty", "tz", "rx", "ry", "rz", "sx", "sy", "sz", "v", "ro")
+
+
+def reset_SRT(objects=None, attributes=SRT_CHANNELS):
     """Reset Scale Rotation and translation attributes to default value
 
     Args:
         objects (None, optional): The objects to reset the channels
-        attribute (list): The attribute to reset
+        attributes (list, optional): The attributes to reset. Default:
+            :data:`SRT_CHANNELS`.
     """
     reset_selected_channels_value(objects, attributes)
 
@@ -1982,21 +1976,24 @@ def set_string_attr(node, attr, value):
     cmds.setAttr("{}.{}".format(node, attr), value, type="string")
 
 
-def get_unlocked_channels(node, attrs=("translate", "rotate", "scale")):
+def get_unlocked_channels(node, attrs=("translate", "rotate", "scale"), settable=False):
     """Return the unlocked scalar channels of compound attributes.
 
     Args:
         node (str): Node name.
         attrs (tuple, optional): Compound attributes with X, Y, Z children.
+        settable (bool, optional): Return only the channels that can be set:
+            unlocked and not driven by a connection.
 
     Returns:
         list: Channel names, e.g. ``["translateX", "rotateY"]``.
     """
+    query = {"settable": True} if settable else {"lock": True}
     return [
         attr + axis
         for attr in attrs
         for axis in "XYZ"
-        if not cmds.getAttr("{}.{}{}".format(node, attr, axis), lock=True)
+        if cmds.getAttr("{}.{}{}".format(node, attr, axis), **query) == settable
     ]
 
 

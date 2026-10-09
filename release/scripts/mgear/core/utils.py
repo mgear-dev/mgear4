@@ -440,6 +440,21 @@ def capture_created_nodes():
 
 
 @contextlib.contextmanager
+def current_time_kept():
+    """Context manager - Restore the current time when the block exits.
+
+    Example:
+        >>> with current_time_kept():
+        ...     cmds.currentTime(10)
+    """
+    current = cmds.currentTime(query=True)
+    try:
+        yield
+    finally:
+        cmds.currentTime(current, edit=True)
+
+
+@contextlib.contextmanager
 def keep_selection():
     """Context manager - Restore the selection when the block exits.
 

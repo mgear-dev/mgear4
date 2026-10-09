@@ -211,6 +211,93 @@ def recordNodesMatrices(nodes, desiredTime):
     return nodeToMat_dict
 
 
+def get_playback_range(start=None, end=None):
+    """Return a frame range, defaulting to the playback range.
+
+    Args:
+        start (float, optional): First frame. Default: playback start.
+        end (float, optional): Last frame. Default: playback end.
+
+    Returns:
+        tuple: ``(start, end)``.
+    """
+    if start is None:
+        start = cmds.playbackOptions(query=True, minTime=True)
+    if end is None:
+        end = cmds.playbackOptions(query=True, maxTime=True)
+    return start, end
+
+
+def record_world_matrices(nodes, start=None, end=None, status="Recording"):
+    """Read the world matrix of nodes on every frame of a range.
+
+    The current time is restored afterwards. Esc stops the recording; the
+    frames read so far are returned.
+
+    Args:
+        nodes (list): Transform names.
+        start (float, optional): First frame. Default: playback start.
+        end (float, optional): Last frame. Default: playback end.
+        status (str, optional): Progress bar text.
+
+    Returns:
+        dict: ``{frame: [world matrix as 16 floats, one per node]}``, frames
+        as int.
+    """
+    start, end = (int(round(f)) for f in get_playback_range(start, end))
+    paths = [utils.get_dag_path(node) for node in nodes]
+    frames = {}
+    with utils.current_time_kept(), utils.viewport_suspended():
+        with utils.main_progress_bar(status, end - start + 1, True) as step:
+            for frame in range(start, end + 1):
+                if step("{} frame {}".format(status, frame)):
+                    break
+                cmds.currentTime(frame, edit=True)
+                frames[frame] = [list(path.inclusiveMatrix()) for path in paths]
+    return frames
+
+
+def key_world_matrices(nodes, frames, status="Keying"):
+    """Set and key world matrices on nodes, frame by frame.
+
+    Parents are set before their children on each frame, so a child lands
+    on its world matrix after its parent moved. Only the settable
+    translate, rotate and scale channels are keyed. The current time is
+    restored afterwards; Esc stops.
+
+    Args:
+        nodes (list): Transform names, matching the matrices of each frame.
+        frames (dict): ``{frame: [world matrix per node]}``, e.g. from
+            :func:`record_world_matrices`.
+        status (str, optional): Progress bar text.
+
+    Returns:
+        list: The keyed frames.
+    """
+    nodes = [cmds.ls(node, long=True)[0] for node in nodes]
+    # parents first, by DAG depth
+    order = sorted(range(len(nodes)), key=lambda index: nodes[index].count("|"))
+    plugs = [
+        "{}.{}".format(node, channel)
+        for node in nodes
+        for channel in attribute.get_unlocked_channels(node, settable=True)
+    ]
+    keyed = []
+    with utils.current_time_kept(), utils.viewport_suspended():
+        with utils.main_progress_bar(status, len(frames), True) as step:
+            for frame in sorted(frames):
+                if step("{} frame {:g}".format(status, frame)):
+                    break
+                cmds.currentTime(frame, edit=True)
+                matrices = frames[frame]
+                for index in order:
+                    cmds.xform(nodes[index], worldSpace=True, matrix=matrices[index])
+                if plugs:
+                    cmds.setKeyframe(plugs)
+                keyed.append(frame)
+    return keyed
+
+
 def get_keyframe_times(nodes):
     """Return the sorted, unique keyframe times found on a list of nodes.
 
@@ -417,10 +504,7 @@ def bake_attributes(
     """
     if not nodes:
         return False
-    if start is None:
-        start = cmds.playbackOptions(query=True, minTime=True)
-    if end is None:
-        end = cmds.playbackOptions(query=True, maxTime=True)
+    start, end = get_playback_range(start, end)
     nodes = list(nodes)
     plugs = (
         ["{}.{}".format(node, attr) for node in nodes for attr in attrs]
@@ -534,18 +618,19 @@ def getControlers(model, gSuffix=CTRL_GRP_SUFFIX):
     """Get thr controlers from the set
 
     Args:
-        model (PyNode): Rig root
+        model (PyNode or str): Rig root
         gSuffix (str, optional): set suffix
 
     Returns:
-        list: The members of the group
+        list: The members of the group, None when the rig has no such set
     """
     try:
-        ctl_set = pm.PyNode(model.name() + gSuffix)
+        ctl_set = pm.PyNode(pm.PyNode(model).name() + gSuffix)
         members = ctl_set.members()
 
         return members
-    except TypeError:
+    except (TypeError, pm.MayaNodeError):
+        # no set with this suffix on the rig
         return None
 
 
@@ -2705,6 +2790,37 @@ class IkFkTransfer(AbstractAnimationTransfer):
 # Baker Springs
 
 
+def _spring_nodes(model):
+    """Return the spring nodes of a rig, warning when it has none."""
+    springNodes = getControlers(model, gSuffix=PLOT_GRP_SUFFIX)
+    if not springNodes:
+        pm.displayWarning("No spring nodes found in {}".format(model))
+    return springNodes
+
+
+def _clear_spring_pairblends(springNodes):
+    """Delete the baked rotation curves of spring nodes."""
+    # spring nodes never baked have no pairBlend
+    pairblends = []
+    for sn in springNodes:
+        pairblends.extend(sn.listConnections(type="pairBlend")[:1])
+
+    for pb in pairblends:
+        animCrvs = pb.listConnections(type="animCurveTA")
+        for fcrv in animCrvs:
+            for conn in fcrv.listConnections(
+                connections=True, destination=True, plugs=True
+            ):
+                pm.disconnectAttr(conn)
+        # reset the value to 0
+        for attr in ("inRotateX1", "inRotateY1", "inRotateZ1"):
+            pb.attr(attr).set(0)
+
+        # delete fcurves
+        if animCrvs:
+            pm.delete(animCrvs)
+
+
 @utils.one_undo
 def clearSprings(model=None):
     """Delete baked animation from spring
@@ -2717,31 +2833,17 @@ def clearSprings(model=None):
     if not model:
         model = getRootNode()
 
-    springNodes = getControlers(model, gSuffix=PLOT_GRP_SUFFIX)
-    pairblends = [pm.PyNode(sn).listConnections(type="pairBlend")[0] for sn in springNodes]
-
-    for pb in pairblends:
-        animCrvs = pb.listConnections(type="animCurveTA")
-        for fcrv in animCrvs:
-            for conn in fcrv.listConnections(
-                connections=True, destination=True, plugs=True
-            ):
-                # pm.disconnectAttr(conn[0], conn[1])
-                pm.disconnectAttr(conn)
-        # reset the value to 0
-        attrs = ["inRotateX1", "inRotateY1", "inRotateZ1"]
-        for attr in attrs:
-            pb.attr(attr).set(0)
-
-        # delete fcurves
-        if animCrvs:
-            pm.delete(animCrvs)
+    springNodes = _spring_nodes(model)
+    if springNodes:
+        _clear_spring_pairblends(springNodes)
 
 
 @utils.one_undo
 @utils.viewport_off
 def bakeSprings(model=None):
     """Bake the automatic spring animation to animation curves
+
+    The current time is restored afterwards.
 
     Args:
         model (dagNode): The rig top node
@@ -2751,22 +2853,20 @@ def bakeSprings(model=None):
     if not model:
         model = getRootNode()
 
-    print("Using root: {}".format(model))
+    springNodes = _spring_nodes(model)
+    if not springNodes:
+        return
+    mgear.log("Baking springs of {}".format(model))
 
     # first clear animation
-    clearSprings(model)
+    _clear_spring_pairblends(springNodes)
 
     # bake again
-    springNodes = getControlers(model, gSuffix=PLOT_GRP_SUFFIX)
-    if springNodes:
-
-        start = pm.playbackOptions(q=True, min=True)
-        end = pm.playbackOptions(q=True, max=True)
-        ct = start
-        for i in range(int(end - start) + 1):
-            pm.currentTime(int(ct))
+    start, end = get_playback_range()
+    with utils.current_time_kept():
+        for frame in range(int(start), int(end) + 1):
+            pm.currentTime(frame)
             pm.setKeyframe(springNodes, insertBlend=True, attribute="rotate")
-            ct += 1
 
 
 class SpineIkFkTransfer(AbstractAnimationTransfer):
