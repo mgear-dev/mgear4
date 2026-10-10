@@ -747,6 +747,200 @@ def get_host_from_node(control):
     return "{}:{}".format(namespace, host)
 
 
+# Rig queries -----------------------------------------------------------------
+# Control roles moved by a space switch when the attribute token is not a
+# control role itself. i.e: the "elbowref" attribute moves the "mid" control
+SPACE_CONTROL_MAP = {
+    "elbow": ("mid",),
+    "rot": ("orbit", "fk0"),
+    "knee": ("mid",),
+    "ik": ("headIK",),
+    "head": ("headFree",),
+}
+
+
+def _find_rig_root_path(node):
+    """Find the full path of the rig top node of the given node.
+
+    Args:
+        node (str): Any node of the rig.
+
+    Returns:
+        str: Full path of the rig top node, None if not found.
+    """
+    long_names = cmds.ls(node, long=True)
+    if not long_names:
+        return None
+    parts = long_names[0].split("|")
+    for i in range(len(parts) - 1, 0, -1):
+        path = "|".join(parts[: i + 1])
+        if "controllers_org" in path or "controlBuffer" in parts[i]:
+            continue
+        if cmds.attributeQuery("is_rig", node=path, exists=True):
+            return path
+    return None
+
+
+def find_rig_root(node):
+    """Find the rig top node of the given node.
+
+    Walks up the hierarchy, starting with the node itself, to the first node
+    with an ``is_rig`` attribute. Nodes in the controllers_org group and
+    control buffers are skipped. Works with rigs parented under other groups.
+
+    Args:
+        node (str): Any node of the rig.
+
+    Returns:
+        str: Short name of the rig top node (with namespace), None if not
+            found.
+    """
+    path = _find_rig_root_path(node)
+    if not path:
+        return None
+    return path.split("|")[-1]
+
+
+def _get_ctl_role(control):
+    """Get the ctl_role value of a control.
+
+    Args:
+        control (str): Control name.
+
+    Returns:
+        str: The role, None if the control has no role attribute.
+    """
+    if not cmds.attributeQuery("ctl_role", node=control, exists=True):
+        return None
+    return cmds.getAttr("{}.ctl_role".format(control))
+
+
+def parse_space_attr(attr):
+    """Split a space switch attribute name in component name and token.
+
+    The token is the last name part without its "ref" suffix. i.e:
+    "arm_ikref" gives ("arm", "ik"), "neck_head_ref" gives ("neck_head", "")
+
+    Args:
+        attr (str): Space switch attribute name.
+
+    Returns:
+        tuple: Component attribute name and control token.
+    """
+    parts = attr.split("_")
+    token = parts[-1].split("ref")[0].split("Ref")[0]
+    return "_".join(parts[:-1]) or parts[0], token
+
+
+def get_space_switch_targets(ui_host, attr, control_map=None, fallback_role=None):
+    """Get the controls moved by a space switch attribute.
+
+    The components sharing the attribute are found with the
+    ``<attr_name>_id*_ctl_cnx`` attributes of the ui host. For each component
+    the control whose role matches the attribute token (or a role mapped to
+    it in control_map) is used. When none matches, all the component
+    controls are used, filtered by fallback_role if given. A ``follow``
+    attribute without components resolves to the ui host itself.
+
+    Args:
+        ui_host (str): Node with the space switch attribute.
+        attr (str): Space switch attribute name. i.e: "arm_ikref"
+        control_map (dict, optional): Attribute token to control roles.
+            Defaults to SPACE_CONTROL_MAP.
+        fallback_role (str, optional): Role used to filter the controls of a
+            component without a token match.
+
+    Returns:
+        list: Control names without namespace.
+    """
+    if control_map is None:
+        control_map = SPACE_CONTROL_MAP
+    attr_name, token = parse_space_attr(attr)
+    criteria = attr_name + "_id*_ctl_cnx"
+    cnx_attrs = cmds.listAttr(ui_host, userDefined=True, string=criteria) or []
+
+    targets = []
+    for cnx_attr in cnx_attrs:
+        controls = cmds.listConnections("{}.{}".format(ui_host, cnx_attr)) or []
+        target = None
+        for ctl in controls:
+            role = _get_ctl_role(ctl)
+            if role == token or role in control_map.get(token, ()):
+                target = stripNamespace(ctl)
+                break
+        if target:
+            targets.append(target)
+            continue
+        for ctl in controls:
+            if fallback_role is None or _get_ctl_role(ctl) == fallback_role:
+                targets.append(stripNamespace(ctl))
+
+    if token == "follow" and not targets:
+        # the control holds its own space switch attribute
+        targets.append(stripNamespace(ui_host.split("|")[-1]))
+    return targets
+
+
+def get_ikfk_components(ui_host, blend_attr):
+    """Get the IK and FK controls of the components sharing a blend attribute.
+
+    Supports the ``<name>_blend`` attributes and the ``_Switch`` attributes,
+    which drive all the components connected to the ui host.
+
+    Args:
+        ui_host (str): Node with the IK/FK blend attribute.
+        blend_attr (str): Blend attribute name. i.e: "arm_blend"
+
+    Returns:
+        tuple: FK control list of all components, merged IK controls dict
+            (ik_control, pole_vector, ik_rot and extra roles) and the list of
+            (ik_controls, fk_controls) per component.
+    """
+    if "_Switch" in blend_attr:
+        criteria = "*_id*_ctl_cnx"
+    else:
+        criteria = blend_attr.replace("_blend", "") + "_id*_ctl_cnx"
+    cnx_attrs = cmds.listAttr(ui_host, userDefined=True, string=criteria) or []
+
+    fk_list = []
+    ik_dict = {}
+    components = []
+    for cnx_attr in cnx_attrs:
+        ik_controls, fk_controls = get_ik_fk_controls_by_role(ui_host, cnx_attr)
+        fk_list.extend(fk_controls)
+        ik_dict.update({k: v for k, v in ik_controls.items() if v is not None})
+        components.append((ik_controls, fk_controls))
+    return fk_list, ik_dict, components
+
+
+def toggle_ctl_xray(node):
+    """Toggle the control X-Ray of the rig owning the given control.
+
+    The rig is found through the control's controller tag, else by walking up
+    the hierarchy.
+
+    Args:
+        node (str): A rig control.
+
+    Returns:
+        bool: The new X-Ray state, None if the rig has no ctl_x_ray attribute.
+    """
+    tags = cmds.listConnections("{}.message".format(node), type="controller") or []
+    owners = [
+        owner
+        for tag in tags
+        for owner in cmds.listConnections("{}.message".format(tag)) or []
+        if cmds.attributeQuery("is_rig", node=owner, exists=True)
+    ]
+    root = owners[0] if owners else _find_rig_root_path(node)
+    if not root or not cmds.attributeQuery("ctl_x_ray", node=root, exists=True):
+        return None
+    plug = "{}.ctl_x_ray".format(root)
+    state = not cmds.getAttr(plug)
+    cmds.setAttr(plug, state)
+    return state
+
+
 def getNamespace(modelName):
     """Get the name space from rig root
 

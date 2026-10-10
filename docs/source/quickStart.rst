@@ -158,6 +158,8 @@ This menu is dynamic, and changes based on what kind of controller you have sele
 * **Select all controls**: Selects all the controllers of the rig
 * **Keyframe child controls**: Keyframes all the child controls of the current selection
 
+Tools, custom steps and Shifter components can add their own items to this menu. See :doc:`viewportMenu`.
+
 
 Anim Picker
 -----------

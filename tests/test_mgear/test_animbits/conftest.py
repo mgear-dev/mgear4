@@ -1,19 +1,6 @@
 """Fixtures shared by the Spring Manager tests."""
 
-import os
-
 import pytest
-
-_PLATFORMS = os.path.abspath(
-    os.path.join(
-        os.path.dirname(__file__),
-        os.pardir,
-        os.pardir,
-        os.pardir,
-        "release",
-        "platforms",
-    )
-)
 
 
 @pytest.fixture
@@ -38,7 +25,7 @@ def bdn(scene):
 
 
 @pytest.fixture
-def solvers(run_with_maya_standalone, setup_path):
+def solvers(load_repo_plugin, setup_path):
     """The mgear_solvers plug-in of this repository, in a new scene.
 
     The plug-in built for the running Maya in ``release/platforms`` is
@@ -46,14 +33,7 @@ def solvers(run_with_maya_standalone, setup_path):
     """
     from maya import cmds
 
-    if not cmds.pluginInfo("mgear_solvers", query=True, loaded=True):
-        version = cmds.about(majorVersion=True)
-        path = os.path.join(
-            _PLATFORMS, version, "windows", "x64", "plug-ins", "mgear_solvers.mll"
-        )
-        try:
-            cmds.loadPlugin(path if os.path.exists(path) else "mgear_solvers")
-        except RuntimeError:
-            pytest.skip("mgear_solvers plug-in not available")
+    if not load_repo_plugin("mgear_solvers"):
+        pytest.skip("mgear_solvers plug-in not available")
     cmds.file(new=True, force=True)
     return cmds

@@ -1064,6 +1064,15 @@ class Main(object):
         attribute.addAttribute(
             ctl, "ctl_role", "string", keyable=False, value=role_name
         )
+        # component type, used by the dag menu to find the component tools.
+        # Not named comp_type: tools find guide roots by that attribute
+        attribute.addAttribute(
+            ctl,
+            "ctl_comp_type",
+            "string",
+            keyable=False,
+            value=self.settings["comp_type"],
+        )
 
         # locator reference for quick guide matching
         # TODO: this is a temporal implementation. We should store the full

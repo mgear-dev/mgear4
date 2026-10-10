@@ -20,6 +20,9 @@ import pytest
 _SCRIPTS = os.path.abspath(
     os.path.join(os.path.dirname(__file__), os.pardir, "release", "scripts")
 )
+_PLATFORMS = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), os.pardir, "release", "platforms")
+)
 
 
 def pytest_configure(config):
@@ -63,6 +66,49 @@ def setup_path(run_with_maya_standalone):
     """
     if _SCRIPTS not in sys.path:
         sys.path.insert(0, _SCRIPTS)
+
+
+@pytest.fixture(scope="session")
+def scripts_path():
+    """Path of the release/scripts folder of this repository."""
+    return _SCRIPTS
+
+
+@pytest.fixture(scope="session")
+def load_repo_plugin(run_with_maya_standalone):
+    """Function loading a plug-in built in this repository.
+
+    The plug-in built for the running Maya in ``release/platforms`` is
+    loaded first, else the installed plug-in with the same name.
+
+    Returns:
+        callable: Called with the plug-in name without extension, returns
+            True if the plug-in is loaded.
+    """
+    from maya import cmds
+
+    def load(name):
+        if cmds.pluginInfo(name, query=True, loaded=True):
+            return True
+        version = cmds.about(majorVersion=True)
+        path = os.path.join(
+            _PLATFORMS, version, "windows", "x64", "plug-ins", name + ".mll"
+        )
+        try:
+            cmds.loadPlugin(path if os.path.exists(path) else name)
+        except RuntimeError:
+            return False
+        return True
+
+    return load
+
+
+@pytest.fixture
+def dagmenu(setup_path):
+    """The mgear.core.dagmenu package."""
+    from mgear.core import dagmenu
+
+    return dagmenu
 
 
 @pytest.fixture
