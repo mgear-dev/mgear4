@@ -303,3 +303,133 @@ def test_mirror_control_set_two_rigs(anim_utils, two_biped_rigs):
     assert _rz(cmds, "charA:" + R_LEG) == 4.0
     assert _rz(cmds, "charB:" + R_LEG) == 6.0
     assert _rz(cmds, "charA:" + R_ARM) == 0.0
+
+
+def test_only_changed_values_are_written(anim_utils, biped_rig, monkeypatch):
+    cmds = biped_rig
+    cmds.setAttr(L_ARM + ".rotateZ", 30)
+    written = []
+    set_attr = cmds.setAttr
+
+    def spy(plug, *args, **kwargs):
+        written.append(plug.split("|")[-1])
+        return set_attr(plug, *args, **kwargs)
+
+    monkeypatch.setattr(cmds, "setAttr", spy)
+    anim_utils.flip_full_pose([BODY])
+    assert sorted(written) == [L_ARM + ".rz", R_ARM + ".rz"]
+    assert (_rz(cmds, L_ARM), _rz(cmds, R_ARM)) == (0.0, 30.0)
+
+
+def _mirror_left_arm(anim_utils, cmds, translate, rotate):
+    cmds.setAttr(L_ARM + ".translateY", translate)
+    cmds.setAttr(L_ARM + ".rotateZ", rotate)
+    anim_utils.mirror_controls([L_ARM])
+    return (
+        cmds.getAttr(R_ARM + ".translateY"),
+        cmds.getAttr(R_ARM + ".rotateZ"),
+    )
+
+
+def test_inches_and_radians(anim_utils, biped_rig):
+    cmds = biped_rig
+    linear = cmds.currentUnit(query=True, linear=True)
+    angle = cmds.currentUnit(query=True, angle=True)
+    expected = _mirror_left_arm(anim_utils, cmds, 2.0, 0.5)
+    cmds.currentUnit(linear="inch", angle="radian")
+    try:
+        result = _mirror_left_arm(anim_utils, cmds, 2.0, 0.5)
+    finally:
+        cmds.currentUnit(linear=linear, angle=angle)
+    # same numbers in the scene units: no internal unit leaks
+    assert result == pytest.approx(expected)
+    assert abs(result[0]) == pytest.approx(2.0)
+
+
+def test_custom_side_label_fallback(anim_utils, biped_rig):
+    cmds = biped_rig
+    nodes = {}
+    for side, label in (("L", "Left"), ("R", "Right")):
+        node = cmds.createNode("transform", name="hand_{}_ctl".format(label))
+        for attr, value in (
+            ("side_label", side),
+            ("L_custom_side_label", "Left"),
+            ("R_custom_side_label", "Right"),
+        ):
+            cmds.addAttr(node, longName=attr, dataType="string")
+            cmds.setAttr("{}.{}".format(node, attr), value, type="string")
+        nodes[side] = node
+    cmds.setAttr(nodes["L"] + ".rotateZ", 25)
+    anim_utils.mirror_controls([nodes["L"]])
+    assert _rz(cmds, nodes["R"]) == 25.0
+
+
+def _previous_flip(anim_utils, controls):
+    # the previous algorithm: calculateMirrorData for every control, then
+    # applyMirror for every value
+    import mgear.pymaya as pm
+
+    nodes = [pm.PyNode(c) for c in controls]
+    names = set(str(n) for n in nodes)
+    entries = []
+    for node in nodes:
+        target = anim_utils.getMirrorTarget(node=node)
+        if target is None:
+            continue
+        entries.extend(anim_utils.calculateMirrorData(node, target))
+        if str(target) not in names:
+            entries.extend(anim_utils.calculateMirrorData(target, node))
+    for entry in entries:
+        try:
+            anim_utils.applyMirror(None, entry)
+        except Exception:
+            pass
+
+
+def _pose_eight(cmds):
+    for i in range(8):
+        ns = "c{}:".format(i)
+        cmds.setAttr(ns + L_ARM + ".rotateZ", 30 + i)
+        cmds.setAttr(ns + L_ARM + ".translateY", 0.5)
+        cmds.setAttr(ns + R_LEG + ".rotateX", -12)
+        cmds.setAttr(ns + "spine_C0_fk0_ctl.rotateY", 5)
+
+
+def _trs(anim_utils, cmds, controls):
+    channels = anim_utils._MIRROR_TRANSFORM_ATTRS[:-1]
+    return {
+        "{}.{}".format(c, a): round(cmds.getAttr("{}.{}".format(c, a)), 4)
+        for c in controls
+        for a in channels
+    }
+
+
+def test_eight_bipeds_same_result_and_faster(
+    anim_utils, eight_biped_rigs, biped_rig_file, import_rig_file
+):
+    import time
+
+    cmds = eight_biped_rigs
+    nodes = ["c{}:{}".format(i, BODY) for i in range(8)]
+    controls = anim_utils._get_full_pose_controls(nodes)
+    assert len(controls) == 1000
+
+    _pose_eight(cmds)
+    start = time.time()
+    _previous_flip(anim_utils, controls)
+    previous_time = time.time() - start
+    expected = _trs(anim_utils, cmds, controls)
+
+    import_rig_file(biped_rig_file, ["c{}".format(i) for i in range(8)])
+    _pose_eight(cmds)
+    start = time.time()
+    anim_utils.flip_full_pose(nodes)
+    new_time = time.time() - start
+
+    assert _trs(anim_utils, cmds, controls) == expected
+    print(
+        "flip 1000 controls: previous {:.2f} s, new {:.2f} s ({:.1f}x)".format(
+            previous_time, new_time, previous_time / new_time
+        )
+    )
+    assert new_time < previous_time

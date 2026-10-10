@@ -668,6 +668,23 @@ def get_dag_path(name):
     return selection_list.getDagPath(0)
 
 
+def get_dependency_node(node):
+    """Return the OpenMaya dependency node function set of a node.
+
+    Args:
+        node (str): Node name.
+
+    Returns:
+        OpenMaya.MFnDependencyNode: The function set.
+
+    Raises:
+        RuntimeError: If the node does not exist.
+    """
+    selection_list = OpenMaya.MSelectionList()
+    selection_list.add(node)
+    return OpenMaya.MFnDependencyNode(selection_list.getDependNode(0))
+
+
 def get_plug(node, attr):
     """Return the OpenMaya plug of a node attribute.
 
@@ -681,10 +698,7 @@ def get_plug(node, attr):
     Raises:
         RuntimeError: If the node does not exist.
     """
-    selection_list = OpenMaya.MSelectionList()
-    selection_list.add(node)
-    fn_node = OpenMaya.MFnDependencyNode(selection_list.getDependNode(0))
-    return fn_node.findPlug(attr, False)
+    return get_dependency_node(node).findPlug(attr, False)
 
 
 def get_point_count(shape):

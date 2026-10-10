@@ -7,6 +7,7 @@ PY2 = False
 
 # Maya imports
 from maya import cmds
+import maya.api.OpenMaya as om2
 import mgear.pymaya as pm
 from mgear.pymaya import versions
 
@@ -1984,6 +1985,33 @@ def spine_FKToIK(fkControls, ikControls, matchMatrix_dict=None):
 ##################################################
 
 
+def get_mirror_target_name(name):
+    """Get the long name of the mirror control of a control.
+
+    Standard side names (i.e. "arm_L0_fk0_ctl") are swapped by name. Controls
+    with custom side labels use their side_label attributes. Center controls
+    are their own mirror. The control's namespace is kept.
+
+    Args:
+        name (str): Control name.
+
+    Returns:
+        str: Mirror control long name, None if it doesn't exist.
+    """
+    short_name = name.split("|")[-1]
+    namespace = getNamespace(short_name)
+    base_name = stripNamespace(short_name)
+    swapped = swapSideLabel(base_name)
+    if swapped == base_name:
+        side_plug = "{}.side_label".format(name)
+        if not cmds.objExists(side_plug) or cmds.getAttr(side_plug) not in "LR":
+            # center control mirrors onto itself
+            return (cmds.ls(name, long=True) or [None])[0]
+        swapped = swapSideLabelNode(name)
+    target = "{}:{}".format(namespace, swapped) if namespace else swapped
+    return (cmds.ls(target, long=True) or [None])[0]
+
+
 def getMirrorTarget(nameSpace=None, node=None):
     """Find target control to apply mirroring.
 
@@ -1997,24 +2025,11 @@ def getMirrorTarget(nameSpace=None, node=None):
     """
     if not node:
         return
-    if isinstance(node, str):
-        node = pm.PyNode(node)
-    if not nameSpace:
-        nameSpace = getNamespace(node.name().split("|")[-1])
-
-    if isSideElement(node.name()):
-        nameParts = stripNamespace(node.name()).split("|")[-1]
-        nameParts = swapSideLabelNode(node.name())
-        if nameSpace:
-            nameTarget = ":".join([nameSpace, nameParts])
-        else:
-            nameTarget = nameParts
-        if not cmds.objExists(nameTarget):
-            return None
-        return getNode(nameTarget)
-    else:
-        # Center controls mirror onto self
-        return node
+    name = str(node)
+    if nameSpace:
+        name = "{}:{}".format(nameSpace, stripNamespace(name.split("|")[-1]))
+    target = get_mirror_target_name(name)
+    return getNode(target) if target else None
 
 
 def mirrorPose(flip=False, nodes=None):
@@ -2152,24 +2167,71 @@ def get_control_side(node):
 
 
 _MIRROR_TRANSFORM_ATTRS = ("tx", "ty", "tz", "rx", "ry", "rz", "sx", "sy", "sz", "ro")
-_MIRROR_VALUE_TYPES = (
-    "bool",
-    "byte",
-    "char",
-    "short",
-    "long",
-    "enum",
-    "float",
-    "double",
-    "doubleLinear",
-    "doubleAngle",
-    "floatLinear",
-    "floatAngle",
-    "time",
+_MIRROR_INT_TYPES = frozenset(
+    (
+        om2.MFnNumericData.kBoolean,
+        om2.MFnNumericData.kByte,
+        om2.MFnNumericData.kChar,
+        om2.MFnNumericData.kShort,
+        om2.MFnNumericData.kInt,
+        om2.MFnNumericData.kLong,
+        om2.MFnNumericData.kInt64,
+    )
 )
+_MIRROR_FLOAT_TYPES = frozenset((om2.MFnNumericData.kFloat, om2.MFnNumericData.kDouble))
 
 
-def _get_mirror_channels(node):
+def _get_dependency_node(name, cache):
+    """Get a cached MFnDependencyNode of a node.
+
+    Args:
+        name (str): Node name.
+        cache (dict): Name to MFnDependencyNode cache.
+
+    Returns:
+        MFnDependencyNode: The function set.
+    """
+    if name not in cache:
+        cache[name] = utils.get_dependency_node(name)
+    return cache[name]
+
+
+def _plug_value(plug):
+    """Get the value of a plug to mirror, in Maya UI units.
+
+    The value is the one cmds.getAttr returns.
+
+    Args:
+        plug (MPlug): The plug.
+
+    Returns:
+        float or int: The value, None for plugs that can't be mirrored (not
+            a single numeric, enum, distance, angle or time value).
+    """
+    if plug.isCompound or plug.isArray:
+        return None
+    attr = plug.attribute()
+    if attr.hasFn(om2.MFn.kUnitAttribute):
+        unit_type = om2.MFnUnitAttribute(attr).unitType()
+        if unit_type == om2.MFnUnitAttribute.kAngle:
+            return plug.asMAngle().asUnits(om2.MAngle.uiUnit())
+        if unit_type == om2.MFnUnitAttribute.kDistance:
+            return plug.asMDistance().asUnits(om2.MDistance.uiUnit())
+        if unit_type == om2.MFnUnitAttribute.kTime:
+            return plug.asMTime().asUnits(om2.MTime.uiUnit())
+        return plug.asDouble()
+    if attr.hasFn(om2.MFn.kEnumAttribute):
+        return plug.asInt()
+    if attr.hasFn(om2.MFn.kNumericAttribute):
+        numeric_type = om2.MFnNumericAttribute(attr).numericType()
+        if numeric_type in _MIRROR_INT_TYPES:
+            return plug.asInt()
+        if numeric_type in _MIRROR_FLOAT_TYPES:
+            return plug.asDouble()
+    return None
+
+
+def _get_mirror_channels(node, fn_cache):
     """Get the channels of a control to mirror, with their inversion.
 
     Same channels as listAttrForMirror and calculateMirrorData: the
@@ -2178,10 +2240,12 @@ def _get_mirror_channels(node):
 
     Args:
         node (str): Control long name.
+        fn_cache (dict): Name to MFnDependencyNode cache.
 
     Returns:
-        list: (attribute short name, 1 or -1) tuples.
+        list: (attribute short name, MPlug, 1 or -1) tuples.
     """
+    fn = _get_dependency_node(node, fn_cache)
     user_attrs = cmds.listAttr(node, userDefined=True, shortNames=True) or []
     user_set = set(user_attrs)
     channels = []
@@ -2190,18 +2254,17 @@ def _get_mirror_channels(node):
             continue
         if any(skip in attr for skip in NO_MIRROR_ATTRIBUTES):
             continue
-        plug = "{}.{}".format(node, attr)
-        if attr in user_set:
-            try:
-                if cmds.getAttr(plug, type=True) not in _MIRROR_VALUE_TYPES:
-                    continue
-            except (RuntimeError, ValueError):
-                continue
-        inv_attr = getInvertCheckButtonAttrName(attr)
+        try:
+            plug = fn.findPlug(attr, False)
+        except RuntimeError:
+            continue
+        if _plug_value(plug) is None:
+            continue
         inv = 1
-        if inv_attr in user_set and cmds.getAttr("{}.{}".format(node, inv_attr)):
+        inv_attr = getInvertCheckButtonAttrName(attr)
+        if inv_attr in user_set and fn.findPlug(inv_attr, False).asBool():
             inv = -1
-        channels.append((attr, inv))
+        channels.append((attr, plug, inv))
     return channels
 
 
@@ -2209,8 +2272,9 @@ def _mirror_entries(nodes, flip=False):
     """Compute the mirror values of controls before any value is set.
 
     Each control finds its mirror target in its own namespace. A center
-    control is its own target, so mirroring inverts it. A control that
-    fails is logged and skipped.
+    control is its own target, so mirroring inverts it. Only the values that
+    change are kept. Target channels that are missing, locked or connected
+    are skipped. A control that fails is logged and skipped.
 
     Args:
         nodes (list): Controls, str or PyNode.
@@ -2224,24 +2288,40 @@ def _mirror_entries(nodes, flip=False):
         return []
     names = cmds.ls([str(n) for n in nodes], long=True, type="transform")
     in_list = set(names)
+    fn_cache = {}
     channels = {}
     entries = []
     no_target = []
 
+    swapped_attrs = {}
+
     def add_entries(source, target):
         if source not in channels:
-            channels[source] = _get_mirror_channels(source)
-        for attr, inv in channels[source]:
-            value = cmds.getAttr("{}.{}".format(source, attr))
-            entries.append((target, swapSideLabel(attr), value * inv))
+            channels[source] = _get_mirror_channels(source, fn_cache)
+        target_fn = _get_dependency_node(target, fn_cache)
+        for attr, plug, inv in channels[source]:
+            if attr not in swapped_attrs:
+                swapped_attrs[attr] = swapSideLabel(attr)
+            target_attr = swapped_attrs[attr]
+            try:
+                target_plug = target_fn.findPlug(target_attr, False)
+            except RuntimeError:
+                continue
+            if target_plug.isLocked or target_plug.isDestination:
+                continue
+            current = _plug_value(target_plug)
+            if current is None:
+                continue
+            value = _plug_value(plug) * inv
+            if abs(current - value) > 1e-9:
+                entries.append((target, target_attr, value))
 
     for name in names:
         try:
-            target = getMirrorTarget(node=pm.PyNode(name))
+            target = get_mirror_target_name(name)
             if target is None:
                 no_target.append(name.split("|")[-1])
                 continue
-            target = str(target)
             add_entries(name, target)
             if flip and target not in in_list:
                 add_entries(target, name)
@@ -2263,9 +2343,7 @@ def _mirror_entries(nodes, flip=False):
 def _apply_mirror_entries(entries):
     """Apply mirror entries in one undo step.
 
-    Channels that are locked or connected (i.e. driven controls) are
-    skipped. An entry that fails is logged and skipped, the others are still
-    applied.
+    An entry that fails is logged and skipped, the others are still applied.
 
     Args:
         entries (list): (target, attribute, value) tuples.
@@ -2275,12 +2353,7 @@ def _apply_mirror_entries(entries):
         for target, attr, value in entries:
             plug = "{}.{}".format(target, attr)
             try:
-                if not cmds.getAttr(plug, settable=True):
-                    continue
                 cmds.setAttr(plug, value)
-            except ValueError:
-                # the target has no such attribute
-                continue
             except Exception as e:
                 failed.append("{} ({})".format(plug.split("|")[-1], e))
     if failed:

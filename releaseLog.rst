@@ -28,6 +28,7 @@ Release Log
 	* Core: Menu: Warn when a submenu item uses a callable command instead of a source string
 	* Core: Viewport Menu: Refactored on a section registry, so tools, custom steps and Shifter components (with a dagmenu.py) can add their own right-click items
 	* Core: Viewport Menu: Full Pose submenu to mirror L → R, R → L or flip the whole pose, shared in anim_utils for other tools
+	* Core: Anim Utils: Mirror and flip pose are much faster on large rigs: only changed values are written
 	* Shifter: Build Log: Faster log window that stays responsive across repeated builds
 	* Shifter: Guide Explorer: Skip tree refreshes while a build is running
 	* Shifter: Add is_building() and build_in_progress() to detect a running build

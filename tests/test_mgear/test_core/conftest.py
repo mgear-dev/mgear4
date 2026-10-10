@@ -21,6 +21,12 @@ def _import_with_namespaces(path, namespaces):
 
 
 @pytest.fixture
+def import_rig_file():
+    """Function importing a Maya file once per namespace in a new scene."""
+    return _import_with_namespaces
+
+
+@pytest.fixture
 def anim_utils(setup_path):
     """The mgear.core.anim_utils module."""
     from mgear.core import anim_utils
@@ -215,3 +221,14 @@ def two_biped_rigs(biped_rig_file):
         module: maya.cmds.
     """
     return _import_with_namespaces(biped_rig_file, ("charA", "charB"))
+
+
+@pytest.fixture
+def eight_biped_rigs(biped_rig_file):
+    """The session biped rig imported eight times, "c0" to "c7".
+
+    Returns:
+        module: maya.cmds.
+    """
+    namespaces = ["c{}".format(i) for i in range(8)]
+    return _import_with_namespaces(biped_rig_file, namespaces)
