@@ -142,3 +142,41 @@ def clean_settings(qt_app):
     for key, value in saved.items():
         settings.setValue(key, value)
     settings.sync()
+
+
+@pytest.fixture(scope="session")
+def rig_plugins(load_repo_plugin):
+    """Load the plug-ins a Shifter build needs, or skip the test."""
+    for name in ("mgear_solvers", "mGearWeightDriver"):
+        if not load_repo_plugin(name):
+            pytest.skip("{} plug-in not available".format(name))
+
+
+@pytest.fixture
+def count_calls(monkeypatch):
+    """Function recording the calls made to a patched function.
+
+    Returns:
+        callable: Called with ``owner`` (module, class or object), ``name``
+            (attribute name of the function to patch) and optionally
+            ``record`` (callable taking the call args and kwargs and
+            returning the value to record, or None to skip the call) and
+            ``patcher`` (a monkeypatch to patch with, e.g. from
+            ``monkeypatch.context()``). Returns the list of recorded values,
+            the call args by default.
+    """
+
+    def count(owner, name, record=None, patcher=None):
+        calls = []
+        original = getattr(owner, name)
+
+        def counting(*args, **kwargs):
+            value = record(args, kwargs) if record else args
+            if value is not None:
+                calls.append(value)
+            return original(*args, **kwargs)
+
+        (patcher or monkeypatch).setattr(owner, name, counting)
+        return calls
+
+    return count

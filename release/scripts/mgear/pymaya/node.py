@@ -262,6 +262,12 @@ class _Node(base.Node):
         try:
             return super(_Node, self).__getattribute__(name)
         except AttributeError:
+            # Fast path: an attribute of this node, resolved through the API
+            # (long or short name). Aliases, arrays and shape attributes
+            # fall through to the string checks below.
+            fn_dg = super(_Node, self).__getattribute__("_Node__fn_dg")
+            if fn_dg.hasAttribute(name):
+                return super(_Node, self).__getattribute__("attr")(name)
             nfnc = super(_Node, self).__getattribute__("name")
             node_name = nfnc()  # Cache name() call
             # Use objExists instead of ls - much faster for existence check
@@ -659,9 +665,17 @@ class _NodeTypes(object):
         return _NodeTypes.__Instance
 
     @staticmethod
-    def _getAllNodeTypes():
-        """Get all Maya node types, cached to avoid repeated calls."""
-        if _NodeTypes.__all_node_types is None:
+    def _getAllNodeTypes(refresh=False):
+        """Get all Maya node types, cached to avoid repeated calls.
+
+        Args:
+            refresh (bool, optional): Query Maya again, e.g. after a plug-in
+                that adds node types was loaded.
+
+        Returns:
+            set: The node type names.
+        """
+        if refresh or _NodeTypes.__all_node_types is None:
             from maya import cmds as _cmds
             _NodeTypes.__all_node_types = set(_cmds.allNodeTypes())
         return _NodeTypes.__all_node_types
@@ -679,15 +693,32 @@ class _NodeTypes(object):
             _New.__name__ = clsname
             self.__types[typename] = _New
 
-    def getTypeClass(self, typename):
+    def getTypeClass(self, typename, validate=True):
+        """Get the wrapper class of a Maya node type.
+
+        Args:
+            typename (str): The Maya node type name.
+            validate (bool, optional): Check that the type exists in Maya
+                before registering a class for it. Pass False when the name
+                comes from Maya itself (e.g. cmds.nodeType).
+
+        Returns:
+            type: The wrapper class, or None if the type doesn't exist.
+        """
         self_types = super(_NodeTypes, self).__getattribute__(
             "_NodeTypes__types"
         )
         if typename in self_types:
             return self_types[typename]
 
-        # Use cached allNodeTypes to avoid recursion and repeated calls
-        if typename in _NodeTypes._getAllNodeTypes():
+        # Use cached allNodeTypes to avoid recursion and repeated calls.
+        # On a miss, query Maya again: the type may come from a plug-in
+        # loaded after the cache was filled.
+        if (
+            not validate
+            or typename in _NodeTypes._getAllNodeTypes()
+            or typename in _NodeTypes._getAllNodeTypes(refresh=True)
+        ):
             self.registerClass(typename, cls=None)
             return self_types[typename]
 
@@ -701,6 +732,9 @@ class _NodeTypes(object):
         try:
             return super(_NodeTypes, self).__getattribute__(name)
         except AttributeError:
+            # Python probes (dunders, private names) are never node types.
+            if name.startswith("_"):
+                raise
             tcls = super(_NodeTypes, self).__getattribute__("getTypeClass")(
                 "{}{}".format(name[0].lower(), name[1:])
             )
@@ -1048,4 +1082,6 @@ def BindNode(name):
     if not cmds.objExists(name):
         raise exception.MayaNodeError("No such node '{}'".format(name))
 
-    return nt.getTypeClass(cmds.nodeType(name))(name)
+    # The type comes from Maya, so it exists even if a plug-in that adds it
+    # was loaded after the node type cache was filled.
+    return nt.getTypeClass(cmds.nodeType(name), validate=False)(name)

@@ -2,19 +2,29 @@
 STR_FUNCS = ["capitalize", "casefold", "center", "count", "encode", "endswith", "expandtabs", "find", "format", "format_map", "index", "isalnum", "isalpha", "isascii", "isdecimal", "isdigit", "islower", "isnumeric", "isprintable", "isspace", "istitle", "isupper", "join", "ljust", "lower", "lstrip", "maketrans", "partition", "replace", "rfind", "rindex", "rjust", "rpartition", "rsplit", "rstrip", "split", "splitlines", "startswith", "strip", "swapcase", "title", "upper", "zfill"]
 
 
-def _wrap_str_funcs(base, funcname):
-    def wrapper(*args, **kwargs):
-        return getattr(base.name(), funcname)(*args, **kwargs)
+def _str_method(funcname):
+    """Create a method that calls a str method on the object's name.
 
-    return wrapper
+    Args:
+        funcname (str): Name of the str method to delegate to.
+
+    Returns:
+        function: The method, to be set on a class.
+    """
+
+    def method(self, *args, **kwargs):
+        return getattr(self.name(), funcname)(*args, **kwargs)
+
+    method.__name__ = funcname
+    method.__doc__ = "Call str.{} on the object name.".format(funcname)
+    return method
 
 
 class Base(object):
     def __init__(self, *args, **kwargs):
+        # The STR_FUNCS methods are set once on the class (see below), not
+        # per instance: that made each construction run 41 failing lookups.
         super(Base, self).__init__()
-        for sf in STR_FUNCS:
-            if not hasattr(self, sf):
-                setattr(self, sf, _wrap_str_funcs(self, sf))
 
     def name(self):
         raise NotImplementedError("'name' is not implemented yet")
@@ -72,6 +82,12 @@ class Base(object):
 
     def __sizeof__(self):
         return self.name().__sizeof__()
+
+
+# Subclass overrides (e.g. _Node.startswith, Attribute.index) still win.
+for _funcname in STR_FUNCS:
+    setattr(Base, _funcname, _str_method(_funcname))
+del _funcname
 
 
 class Node(Base):

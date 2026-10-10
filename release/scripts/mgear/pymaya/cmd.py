@@ -7,6 +7,7 @@ from maya.api import OpenMaya
 import functools
 import inspect
 import pprint
+import re
 from . import bind
 from .geometry import MeshEdge, MeshVertex, MeshFace, BindGeometry
 
@@ -14,6 +15,10 @@ from .geometry import MeshEdge, MeshVertex, MeshFace, BindGeometry
 __all__ = []
 __DO_NOT_CAST_FUNCS = set()
 __SCOPE_ATTR_FUNCS = {"listAttr"}
+# Characters that can't be in a node, attribute or component name. Strings
+# holding one (messages such as "Connected a.tx to b.tx", file paths) are
+# returned as they are, without the expensive failing PyNode lookup.
+_NOT_A_NAME = re.compile(r"[\s/\\]")
 
 
 SCOPE_ATTR = 0
@@ -231,6 +236,8 @@ def _name_to_obj(arg, scope=SCOPE_NODE, known_node=None):
         )
 
     if isinstance(arg, str):
+        if _NOT_A_NAME.search(arg):
+            return arg
         node_name = (
             "{}.{}".format(known_node, arg)
             if scope == SCOPE_ATTR and known_node

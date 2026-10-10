@@ -34,10 +34,13 @@ Release Log
 	* Shifter: Add is_building() and build_in_progress() to detect a running build
 	* Shifter: Custom Step: Add Import Lattice, Shrink Wrap and Proximity Wrap Configuration templates
 	* Shifter: Custom Step: Pre and post step lists can be resized by dragging; shared steps use a softer moss green
+	* Shifter: Build: Rig builds are about twice as fast, mainly from faster pymaya node creation and attribute lookups
+	* Shifter: Build: Component build data is collected only when a data collector is on or a custom step reads it
 	* Docs: Document Blocking Ghosts, Lattice / Shrink Wrap / Proximity Wrap IO, Spring Manager, HumanIK Mapper, Anim Picker SVG editor and screen capture, skin namespace support and the build log
 
 **Bug Fix**
 	* Core: Skin: Fix skin pack export file names for clashing or namespaced objects
+	* Core: pymaya: Fix nodes of plug-in types loaded after the first pymaya use not being wrapped, which made Shifter components fail silently
 	* Core: Skin: Fix vertex count mismatch import in batch mode and from the Import Skin menu
 	* Core: Skin and Weights menu: Items can be added to a shelf and repeated with Repeat Last
 	* Core: callbackManager: Fix Python 3 errors when removing callbacks

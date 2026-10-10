@@ -68,6 +68,14 @@ class Attribute(base.Attr):
         try:
             return super(Attribute, self).__getattribute__(name)
         except AttributeError:
+            # Fast path: a child of this compound plug, resolved through the
+            # API. Anything else falls through to the string check below.
+            this_plug = super(Attribute, self).__getattribute__("_Attribute__plug")
+            if this_plug.isCompound:
+                try:
+                    return super(Attribute, self).__getattribute__("attr")(name)
+                except exception.MayaAttributeError:
+                    pass
             nfnc = super(Attribute, self).__getattribute__("name")
             if cmds.ls("{}.{}".format(nfnc(), name)):
                 return super(Attribute, self).__getattribute__("attr")(name)

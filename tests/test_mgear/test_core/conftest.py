@@ -3,13 +3,6 @@
 import pytest
 
 
-def _require_rig_plugins(load_repo_plugin):
-    """Skip the test when the plug-ins a Shifter build needs can't load."""
-    for name in ("mgear_solvers", "mGearWeightDriver"):
-        if not load_repo_plugin(name):
-            pytest.skip("{} plug-in not available".format(name))
-
-
 def _import_with_namespaces(path, namespaces):
     """Import a Maya file once per namespace in a new scene."""
     from maya import cmds
@@ -35,7 +28,7 @@ def anim_utils(setup_path):
 
 
 @pytest.fixture
-def shifter_rig(load_repo_plugin, setup_path):
+def shifter_rig(rig_plugins, setup_path):
     """A small Shifter rig in a new scene.
 
     The guide has a ``control_C0`` root with an ``arm_C0`` (arm_2jnt_01)
@@ -47,8 +40,6 @@ def shifter_rig(load_repo_plugin, setup_path):
         module: maya.cmds.
     """
     from maya import cmds
-
-    _require_rig_plugins(load_repo_plugin)
 
     import mgear.pymaya as pm
     from mgear import shifter
@@ -175,15 +166,13 @@ def menu_recorder(monkeypatch, run_with_maya_standalone):
 
 
 @pytest.fixture(scope="session")
-def biped_rig_file(load_repo_plugin, setup_path, tmp_path_factory):
+def biped_rig_file(rig_plugins, setup_path, tmp_path_factory):
     """A Shifter biped rig built once per session, saved without its guide.
 
     Returns:
         str: Path of the saved Maya ASCII file.
     """
     from maya import cmds
-
-    _require_rig_plugins(load_repo_plugin)
 
     from mgear import shifter
     from mgear.shifter import io

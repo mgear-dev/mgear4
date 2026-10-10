@@ -146,8 +146,10 @@ class Main(object):
 
         self.transform2Lock = []
 
-        # Data collector
-        self.build_data = {}
+        # Data collector. Read through the build_data property, which
+        # collects on first access once the component is built.
+        self._build_data = {}
+        self._build_data_pending = False
 
         # --------------------------------------------------
         # Step
@@ -244,8 +246,36 @@ class Main(object):
         self.postScript()
         if self.rig._checkBuildCancelled():
             return
-        self.collect_build_data()
+        # The data collector output is collected here, at step 05, as it
+        # always was. Otherwise build_data collects on first access (e.g.
+        # from a post custom step), so builds that never read it skip it.
+        if self.options.get("data_collector") or self.options.get(
+            "data_collector_embedded"
+        ):
+            self.collect_build_data()
+        else:
+            self._build_data_pending = True
         return
+
+    @property
+    def build_data(self):
+        """dict: The component build data (joints, controls, relatives...).
+
+        With a data collector option on, the data is collected at the end of
+        the component build (step 05). Otherwise it is collected the first
+        time it is read after the component is built, so it reflects the
+        scene at that moment (e.g. after earlier post custom steps).
+        """
+        if self._build_data_pending:
+            # Cleared first, so reads inside collect_build_data don't recurse
+            self._build_data_pending = False
+            self.collect_build_data()
+        return self._build_data
+
+    @build_data.setter
+    def build_data(self, value):
+        self._build_data = value
+        self._build_data_pending = False
 
     # =========================================
     # Creation methods
