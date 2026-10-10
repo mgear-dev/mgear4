@@ -51,20 +51,6 @@ def on_controls(ctx, controls, command, *args, **kwargs):
     command(getattr(ctx, controls), *args, **kwargs)
 
 
-def mirror_pose(nodes, flip=False):
-    """Mirror or flip the pose of controls, one control at a time.
-
-    The controls are mirrored one by one, so an error on one control (i.e:
-    flipping a proxy blend attribute) doesn't stop the others.
-
-    Args:
-        nodes (list): Controls.
-        flip (bool, optional): Flip instead of mirror.
-    """
-    for node in nodes:
-        anim_utils.mirrorPose(flip=flip, nodes=[pm.PyNode(node)])
-
-
 def reset_transforms(nodes, translate=True, rotate=True, scale=True):
     """Reset the transform channels of nodes.
 
@@ -322,21 +308,44 @@ def _build_reset(builder, ctx):
 
 
 def _build_mirror_flip(builder, ctx):
+    mirror = anim_utils.mirror_controls
     builder.item(
         "Mirror",
-        partial(mirror_pose, ctx.selection, flip=False),
+        partial(mirror, ctx.selection, flip=False),
         image="redrawPaintEffects.png",
     )
     builder.item(
         "Mirror all below",
-        partial(on_controls, ctx, "child_controls", mirror_pose, flip=False),
+        partial(on_controls, ctx, "child_controls", mirror, flip=False),
     )
-    builder.item(
-        "Flip", partial(mirror_pose, ctx.selection, flip=True), image="redo.png"
-    )
+    builder.item("Flip", partial(mirror, ctx.selection, flip=True), image="redo.png")
     builder.item(
         "Flip all below",
-        partial(on_controls, ctx, "child_controls", mirror_pose, flip=True),
+        partial(on_controls, ctx, "child_controls", mirror, flip=True),
+    )
+    with builder.submenu("Full Pose") as sub:
+        _add_full_pose_items(sub, ctx.selection)
+        sub.divider()
+        for control_set in anim_utils.get_rig_control_sets(ctx.selection):
+            with sub.submenu(control_set) as set_menu:
+                _add_full_pose_items(set_menu, ctx.selection, control_set)
+
+
+def _add_full_pose_items(builder, selection, control_set=None):
+    """Add the Mirror L to R, Mirror R to L and Flip full pose items."""
+    for source, target in (("L", "R"), ("R", "L")):
+        builder.item(
+            "Mirror {} → {}".format(source, target),
+            partial(
+                anim_utils.mirror_full_pose,
+                selection,
+                source,
+                control_set=control_set,
+            ),
+        )
+    builder.item(
+        "Flip",
+        partial(anim_utils.flip_full_pose, selection, control_set=control_set),
     )
 
 

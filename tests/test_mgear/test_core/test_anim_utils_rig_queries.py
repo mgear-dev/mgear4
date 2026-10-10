@@ -5,14 +5,6 @@ import inspect
 import pytest
 
 
-@pytest.fixture
-def anim_utils(setup_path):
-    """The mgear.core.anim_utils module."""
-    from mgear.core import anim_utils
-
-    return anim_utils
-
-
 def test_find_rig_root(anim_utils, shifter_rig):
     assert anim_utils.find_rig_root("arm_C0_fk0_ctl") == "rig"
     assert anim_utils.find_rig_root("rig") == "rig"

@@ -143,10 +143,11 @@ This menu is dynamic, and changes based on what kind of controller you have sele
 * **Reset**: Resets the selected control to it's default position (similar to bind pose)
 * **Reset all below**: First does Select Child Controls, and then Reset like above.
 * **Reset translate/rotate/scale**: Same as the normal Reset above, but for translate, rotate and scale specifically.
-* **Mirror**: Mirrors the selected controllers pose over to the opposite side.
-* **Mirror all below**: Same as Mirror, but for all the child controls
+* **Mirror**: Mirrors the selected controllers pose over to the opposite side. Center controls are mirrored onto themselves (flipped).
+* **Mirror all below**: Same as Mirror, for the selected controls and all their child controls. When both sides are included (i.e. from the body control), the sides are swapped, the same as Flip.
 * **Flip**: Flip the selected controllers pose to the other side
-* **Flip all below**: Same as fliip, but for all the child controls
+* **Flip all below**: Same as Flip, for the selected controls and all their child controls
+* **Full Pose**: Mirror L → R, Mirror R → L or Flip the whole pose of every rig with a selected control. Center controls are flipped. When the rig groups its controls in sets (i.e. face, body), each set has its own submenu to mirror or flip only that part.
 * **Rotate Order switch**: Change the rotate order, while attempting to keep animation intact
 
 **Host Viewport Menu**

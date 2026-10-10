@@ -27,6 +27,7 @@ Release Log
 	* Core: Add helpers for undo, progress bar, OM2 callbacks, widgets, settings, smooth scrolling, animation bake and Time Editor
 	* Core: Menu: Warn when a submenu item uses a callable command instead of a source string
 	* Core: Viewport Menu: Refactored on a section registry, so tools, custom steps and Shifter components (with a dagmenu.py) can add their own right-click items
+	* Core: Viewport Menu: Full Pose submenu to mirror L → R, R → L or flip the whole pose, shared in anim_utils for other tools
 	* Shifter: Build Log: Faster log window that stays responsive across repeated builds
 	* Shifter: Guide Explorer: Skip tree refreshes while a build is running
 	* Shifter: Add is_building() and build_in_progress() to detect a running build
@@ -42,6 +43,7 @@ Release Log
 	* Core: Smart Reset: Reset in one undo step
 	* Core: Clear Baked Spring nodes: Fix IndexError on springs without pairBlend
 	* Core: Viewport Menu: Fix IK/FK switch of components sharing a blend, X-Ray toggle acting on the selection, menu failing on non-enum ref attributes, and the Update Selected Components Type label
+	* Core: Viewport Menu: Mirror/Flip all below use every selected control and no longer cancel left/right pairs
 	* PyMaya: PyNode raises MayaNodeError again for missing nodes
 	* Shifter: Build Log: Clear the log at the start of every build and keep it when reopening the window
 	* Shifter: Custom Step: Groups with many steps scroll smoothly and their last steps are reachable

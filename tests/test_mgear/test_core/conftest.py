@@ -3,6 +3,31 @@
 import pytest
 
 
+def _require_rig_plugins(load_repo_plugin):
+    """Skip the test when the plug-ins a Shifter build needs can't load."""
+    for name in ("mgear_solvers", "mGearWeightDriver"):
+        if not load_repo_plugin(name):
+            pytest.skip("{} plug-in not available".format(name))
+
+
+def _import_with_namespaces(path, namespaces):
+    """Import a Maya file once per namespace in a new scene."""
+    from maya import cmds
+
+    cmds.file(new=True, force=True)
+    for namespace in namespaces:
+        cmds.file(path, i=True, namespace=namespace)
+    return cmds
+
+
+@pytest.fixture
+def anim_utils(setup_path):
+    """The mgear.core.anim_utils module."""
+    from mgear.core import anim_utils
+
+    return anim_utils
+
+
 @pytest.fixture
 def shifter_rig(load_repo_plugin, setup_path):
     """A small Shifter rig in a new scene.
@@ -17,9 +42,7 @@ def shifter_rig(load_repo_plugin, setup_path):
     """
     from maya import cmds
 
-    for name in ("mgear_solvers", "mGearWeightDriver"):
-        if not load_repo_plugin(name):
-            pytest.skip("{} plug-in not available".format(name))
+    _require_rig_plugins(load_repo_plugin)
 
     import mgear.pymaya as pm
     from mgear import shifter
@@ -53,9 +76,7 @@ def namespaced_rig(shifter_rig, tmp_path):
     path = str(tmp_path / "rig.ma").replace("\\", "/")
     cmds.delete("guide")
     cmds.file(path, exportAll=True, type="mayaAscii", force=True)
-    cmds.file(new=True, force=True)
-    cmds.file(path, i=True, namespace="char")
-    return cmds
+    return _import_with_namespaces(path, ("char",))
 
 
 class MenuRecorder(object):
@@ -145,3 +166,52 @@ def menu_recorder(monkeypatch, run_with_maya_standalone):
     monkeypatch.setattr(cmds, "menuItem", recorder.menu_item)
     monkeypatch.setattr(cmds, "radioMenuItemCollection", lambda *args, **kwargs: None)
     return recorder
+
+
+@pytest.fixture(scope="session")
+def biped_rig_file(load_repo_plugin, setup_path, tmp_path_factory):
+    """A Shifter biped rig built once per session, saved without its guide.
+
+    Returns:
+        str: Path of the saved Maya ASCII file.
+    """
+    from maya import cmds
+
+    _require_rig_plugins(load_repo_plugin)
+
+    from mgear import shifter
+    from mgear.shifter import io
+
+    cmds.file(new=True, force=True)
+    io.import_sample_template("biped.sgt")
+    cmds.select("guide")
+    shifter.Rig().buildFromSelection()
+    cmds.delete("guide")
+    path = str(tmp_path_factory.mktemp("biped") / "biped.ma").replace("\\", "/")
+    cmds.file(rename=path)
+    cmds.file(save=True, type="mayaAscii", force=True)
+    return path
+
+
+@pytest.fixture
+def biped_rig(biped_rig_file):
+    """The session biped rig, opened in a new scene.
+
+    Returns:
+        module: maya.cmds.
+    """
+    from maya import cmds
+
+    cmds.file(biped_rig_file, open=True, force=True)
+    cmds.select(clear=True)
+    return cmds
+
+
+@pytest.fixture
+def two_biped_rigs(biped_rig_file):
+    """The session biped rig imported twice, as "charA" and "charB".
+
+    Returns:
+        module: maya.cmds.
+    """
+    return _import_with_namespaces(biped_rig_file, ("charA", "charB"))

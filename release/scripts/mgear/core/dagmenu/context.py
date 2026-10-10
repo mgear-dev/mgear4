@@ -5,7 +5,7 @@ from functools import cached_property
 from maya import cmds
 
 from mgear.core import anim_utils
-from mgear.core.pickWalk import get_all_tag_children
+from mgear.core.pickWalk import get_controls_with_children
 
 IKFK_SUFFIXES = ("_blend", "_switch")
 SPACE_SUFFIXES = ("ref", "follow")
@@ -123,29 +123,13 @@ class MenuContext(object):
 
     @cached_property
     def child_controls(self):
-        """list: Controls below the selected controls, and the node itself."""
-        children = []
-        seen = set()
-        for ctl in self.selection:
-            for child in get_all_tag_children(ctl):
-                if child not in seen:
-                    seen.add(child)
-                    children.append(child)
-        children.append(self.node)
-        return children
+        """list: The selected controls, the node, and all their children."""
+        return get_controls_with_children(self.selection + [self.node])
 
     @cached_property
     def all_controls(self):
-        """list: Controls of the rig, from its controllers set."""
-        if self.rig_root:
-            ctl_set = self.rig_root + anim_utils.CTRL_GRP_SUFFIX
-            if cmds.objExists(ctl_set):
-                return cmds.sets(ctl_set, query=True) or []
-        # rigs without the standard controllers set name
-        sets = cmds.ls(cmds.listConnections(self.node) or [], type="objectSet")
-        if not sets:
-            return []
-        return cmds.sets(sets, query=True) or []
+        """list: Controls of the rig."""
+        return anim_utils.get_rig_controls(self.node)
 
     @cached_property
     def rig_root(self):

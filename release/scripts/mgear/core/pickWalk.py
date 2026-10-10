@@ -41,6 +41,24 @@ def get_all_tag_children(node):
     return children
 
 
+def get_controls_with_children(controls):
+    """Get controls and all their child tag controls, without duplicates.
+
+    Args:
+        controls (list): Controller objects with tag.
+
+    Returns:
+        list: Long names of the controls and their children, in scene
+            order.
+    """
+    if not controls:
+        return []
+    nodes = list(controls)
+    for ctl in controls:
+        nodes.extend(get_all_tag_children(ctl))
+    return cmds.ls(nodes, long=True)
+
+
 def getWalkTag(node):
     """Get Controller tag
 

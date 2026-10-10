@@ -1988,16 +1988,19 @@ def getMirrorTarget(nameSpace=None, node=None):
     """Find target control to apply mirroring.
 
     Args:
-        nameSpace (str): Namespace
+        nameSpace (str): Namespace. Defaults to the namespace of the node.
         node (PyNode): Node to mirror
 
     Returns:
-        PyNode: Mirror target
+        PyNode: Mirror target, None when the side control has no
+            counterpart.
     """
     if not node:
         return
     if isinstance(node, str):
         node = pm.PyNode(node)
+    if not nameSpace:
+        nameSpace = getNamespace(node.name().split("|")[-1])
 
     if isSideElement(node.name()):
         nameParts = stripNamespace(node.name()).split("|")[-1]
@@ -2006,6 +2009,8 @@ def getMirrorTarget(nameSpace=None, node=None):
             nameTarget = ":".join([nameSpace, nameParts])
         else:
             nameTarget = nameParts
+        if not cmds.objExists(nameTarget):
+            return None
         return getNode(nameTarget)
     else:
         # Center controls mirror onto self
@@ -2013,7 +2018,9 @@ def getMirrorTarget(nameSpace=None, node=None):
 
 
 def mirrorPose(flip=False, nodes=None):
-    """Summary
+    """Mirror or flip the pose of controls.
+
+    Same as mirror_controls, defaulting to the selected controls.
 
     Args:
         flip (bool, options): Set the function behaviour to flip
@@ -2021,41 +2028,9 @@ def mirrorPose(flip=False, nodes=None):
     """
     if nodes is None:
         nodes = pm.selected()
-
     if not nodes:
         return
-
-    pm.undoInfo(ock=1)
-    try:
-        nameSpace = False
-        nameSpace = getNamespace(nodes[0])
-
-        mirrorEntries = []
-        for oSel in nodes:
-            target = getMirrorTarget(nameSpace, oSel)
-            mirrorEntries.extend(calculateMirrorData(oSel, target))
-
-            # To flip a pose, do mirroring both ways.
-            if target not in nodes and flip:
-                mirrorEntries.extend(calculateMirrorData(target, oSel))
-
-        for dat in mirrorEntries:
-            applyMirror(nameSpace, dat)
-
-    except Exception as e:
-        pm.displayWarning("Flip/Mirror pose fail")
-        pm.displayWarning(
-            "If you are using Custom naming rules in controls. "
-            "It is possible that the name configuration makes hard to track "
-            "the correct object to mirror for {}".format(oSel.name())
-        )
-        import traceback
-
-        traceback.print_exc()
-        print(e)
-
-    finally:
-        pm.undoInfo(cck=1)
+    mirror_controls(nodes, flip=flip)
 
 
 def applyMirror(nameSpace, mirrorEntry):
@@ -2142,6 +2117,361 @@ def calculateMirrorData(srcNode, targetNode, flip=False):
             }
         )
     return results
+
+
+# Mirror pose -----------------------------------------------------------------
+
+
+def get_control_side(node):
+    """Get the side of a control.
+
+    Uses the side_label attribute of the control when it has one, else the
+    Shifter naming (i.e: "arm_L0_fk0_ctl").
+
+    Args:
+        node (str or PyNode): Control.
+
+    Returns:
+        str: "L" or "R", None for center controls.
+    """
+    node = str(node)
+    if cmds.objExists("{}.side_label".format(node)):
+        side = cmds.getAttr("{}.side_label".format(node))
+        return side if side in ("L", "R") else None
+    name = stripNamespace(node.split("|")[-1])
+    for part in name.split("_"):
+        if EXPR_LEFT_SIDE.match(part):
+            return "L"
+        if EXPR_RIGHT_SIDE.match(part):
+            return "R"
+    if "_L_" in name:
+        return "L"
+    if "_R_" in name:
+        return "R"
+    return None
+
+
+_MIRROR_TRANSFORM_ATTRS = ("tx", "ty", "tz", "rx", "ry", "rz", "sx", "sy", "sz", "ro")
+_MIRROR_VALUE_TYPES = (
+    "bool",
+    "byte",
+    "char",
+    "short",
+    "long",
+    "enum",
+    "float",
+    "double",
+    "doubleLinear",
+    "doubleAngle",
+    "floatLinear",
+    "floatAngle",
+    "time",
+)
+
+
+def _get_mirror_channels(node):
+    """Get the channels of a control to mirror, with their inversion.
+
+    Same channels as listAttrForMirror and calculateMirrorData: the
+    transform channels and the user attributes, without the inv*
+    attributes, the NO_MIRROR_ATTRIBUTES and the non numeric attributes.
+
+    Args:
+        node (str): Control long name.
+
+    Returns:
+        list: (attribute short name, 1 or -1) tuples.
+    """
+    user_attrs = cmds.listAttr(node, userDefined=True, shortNames=True) or []
+    user_set = set(user_attrs)
+    channels = []
+    for attr in _MIRROR_TRANSFORM_ATTRS + tuple(user_attrs):
+        if attr.startswith("inv"):
+            continue
+        if any(skip in attr for skip in NO_MIRROR_ATTRIBUTES):
+            continue
+        plug = "{}.{}".format(node, attr)
+        if attr in user_set:
+            try:
+                if cmds.getAttr(plug, type=True) not in _MIRROR_VALUE_TYPES:
+                    continue
+            except (RuntimeError, ValueError):
+                continue
+        inv_attr = getInvertCheckButtonAttrName(attr)
+        inv = 1
+        if inv_attr in user_set and cmds.getAttr("{}.{}".format(node, inv_attr)):
+            inv = -1
+        channels.append((attr, inv))
+    return channels
+
+
+def _mirror_entries(nodes, flip=False):
+    """Compute the mirror values of controls before any value is set.
+
+    Each control finds its mirror target in its own namespace. A center
+    control is its own target, so mirroring inverts it. A control that
+    fails is logged and skipped.
+
+    Args:
+        nodes (list): Controls, str or PyNode.
+        flip (bool, optional): Also mirror each target back onto its
+            control when the target is not in the list.
+
+    Returns:
+        list: (target long name, attribute, value) tuples.
+    """
+    if not nodes:
+        return []
+    names = cmds.ls([str(n) for n in nodes], long=True, type="transform")
+    in_list = set(names)
+    channels = {}
+    entries = []
+    no_target = []
+
+    def add_entries(source, target):
+        if source not in channels:
+            channels[source] = _get_mirror_channels(source)
+        for attr, inv in channels[source]:
+            value = cmds.getAttr("{}.{}".format(source, attr))
+            entries.append((target, swapSideLabel(attr), value * inv))
+
+    for name in names:
+        try:
+            target = getMirrorTarget(node=pm.PyNode(name))
+            if target is None:
+                no_target.append(name.split("|")[-1])
+                continue
+            target = str(target)
+            add_entries(name, target)
+            if flip and target not in in_list:
+                add_entries(target, name)
+        except Exception as e:
+            mgear.log(
+                "Mirror: skipped {}: {}".format(name.split("|")[-1], e),
+                mgear.sev_warning,
+            )
+    if no_target:
+        mgear.log(
+            "Mirror: skipped {} controls without a mirror control: {}".format(
+                len(no_target), ", ".join(no_target)
+            ),
+            mgear.sev_warning,
+        )
+    return entries
+
+
+def _apply_mirror_entries(entries):
+    """Apply mirror entries in one undo step.
+
+    Channels that are locked or connected (i.e. driven controls) are
+    skipped. An entry that fails is logged and skipped, the others are still
+    applied.
+
+    Args:
+        entries (list): (target, attribute, value) tuples.
+    """
+    failed = []
+    with utils.undo_chunk("mgearMirrorPose"):
+        for target, attr, value in entries:
+            plug = "{}.{}".format(target, attr)
+            try:
+                if not cmds.getAttr(plug, settable=True):
+                    continue
+                cmds.setAttr(plug, value)
+            except ValueError:
+                # the target has no such attribute
+                continue
+            except Exception as e:
+                failed.append("{} ({})".format(plug.split("|")[-1], e))
+    if failed:
+        mgear.log(
+            "Mirror: could not set {} attributes: {}".format(
+                len(failed), ", ".join(failed[:20])
+            ),
+            mgear.sev_warning,
+        )
+
+
+def mirror_controls(nodes, flip=False):
+    """Mirror or flip the pose of controls, in one undo step.
+
+    All the values are read before any value is set, so a left/right pair
+    in the list is computed from the original pose. Mirroring both sides of
+    a pair swaps them, the same as a flip. Center controls are inverted.
+    Controls of several rigs (namespaces) can be mixed.
+
+    Args:
+        nodes (list): Controls, str or PyNode.
+        flip (bool, optional): Flip instead of mirror. The controls whose
+            counterpart is not in the list are swapped with it.
+    """
+    _apply_mirror_entries(_mirror_entries(nodes, flip=flip))
+
+
+def mirror_side(nodes, source_side):
+    """Mirror the pose of one side of the controls to the other side.
+
+    The controls of the source side are copied to their counterparts and
+    the center controls are inverted. The controls of the other side only
+    receive values.
+
+    Args:
+        nodes (list): Controls, str or PyNode.
+        source_side (str): "L" or "R".
+    """
+    sources = [n for n in nodes if get_control_side(n) in (source_side, None)]
+    _apply_mirror_entries(_mirror_entries(sources))
+
+
+def get_set_members(sets):
+    """Get the members of object sets, including the members of sub-sets.
+
+    Args:
+        sets (list): Object sets.
+
+    Returns:
+        list: Member names without the sets, without duplicates.
+    """
+    members = []
+    seen = set()
+    pending = list(sets)
+    while pending:
+        current = pending.pop(0)
+        if current in seen:
+            continue
+        seen.add(current)
+        for member in cmds.sets(current, query=True) or []:
+            if cmds.objectType(member, isAType="objectSet"):
+                pending.append(member)
+            elif member not in seen:
+                seen.add(member)
+                members.append(member)
+    return members
+
+
+def get_rig_controls(node):
+    """Get the controls of the rig of a node.
+
+    Uses the rig controllers set, else the object sets connected to the
+    node. Controls in sub-sets (i.e. Shifter control sub-groups) are
+    included.
+
+    Args:
+        node (str or PyNode): Any node of the rig.
+
+    Returns:
+        list: Control names.
+    """
+    node = str(node)
+    root = _find_rig_root_path(node)
+    if root:
+        ctl_set = root.split("|")[-1] + CTRL_GRP_SUFFIX
+        if cmds.objExists(ctl_set):
+            return get_set_members([ctl_set])
+    return get_set_members(cmds.ls(cmds.listConnections(node) or [], type="objectSet"))
+
+
+def _get_rig_sub_sets(root):
+    """Get the sets directly inside the controllers set of a rig.
+
+    Args:
+        root (str): Rig top node.
+
+    Returns:
+        dict: Short label (i.e. "face") to object set name.
+    """
+    root_name = stripNamespace(root.split("|")[-1])
+    ctl_set = root.split("|")[-1] + CTRL_GRP_SUFFIX
+    if not cmds.objExists(ctl_set):
+        return {}
+    sub_sets = {}
+    for member in cmds.sets(ctl_set, query=True) or []:
+        if not cmds.objectType(member, isAType="objectSet"):
+            continue
+        label = stripNamespace(member)
+        if label.startswith(root_name + "_"):
+            label = label[len(root_name) + 1 :]
+        if label.endswith("_grp"):
+            label = label[: -len("_grp")]
+        sub_sets[label] = member
+    return sub_sets
+
+
+def get_rig_control_sets(nodes):
+    """Get the control sets of the rigs of the nodes.
+
+    These are the sets directly inside each rig controllers set (Shifter
+    control sub-groups), named without the rig prefix and the "_grp"
+    suffix. Sets with the same name in several rigs are listed once.
+
+    Args:
+        nodes (list): Any nodes of the rigs.
+
+    Returns:
+        list: Control set labels. i.e: ["face", "body"]
+    """
+    # one node per namespace is enough to find the rigs, and much faster
+    # with large selections
+    samples = {}
+    for node in nodes:
+        samples.setdefault(getNamespace(str(node).split("|")[-1]), node)
+    labels = []
+    for root in _get_rig_roots(samples.values()):
+        for label in _get_rig_sub_sets(root):
+            if label not in labels:
+                labels.append(label)
+    return labels
+
+
+def _get_rig_roots(nodes):
+    """Get the unique rig top nodes of the nodes."""
+    roots = [_find_rig_root_path(str(node)) for node in nodes]
+    return list(dict.fromkeys(r for r in roots if r))
+
+
+def _get_full_pose_controls(nodes, control_set=None):
+    """Get the controls of every rig with one of the nodes.
+
+    Args:
+        nodes (list): Any nodes of the rigs.
+        control_set (str, optional): Only the controls of this control set
+            label of each rig. See get_rig_control_sets.
+
+    Returns:
+        list: Control names.
+    """
+    controls = []
+    for root in _get_rig_roots(nodes):
+        if control_set is None:
+            controls.extend(get_rig_controls(root))
+            continue
+        sub_set = _get_rig_sub_sets(root).get(control_set)
+        if sub_set:
+            controls.extend(get_set_members([sub_set]))
+    return controls
+
+
+def mirror_full_pose(nodes, source_side="L", control_set=None):
+    """Mirror the full pose of the rigs from one side to the other.
+
+    Args:
+        nodes (list): Any nodes of the rigs to mirror.
+        source_side (str, optional): "L" or "R", the side to copy.
+        control_set (str, optional): Only mirror the controls of this
+            control set (i.e. "face"). See get_rig_control_sets.
+    """
+    mirror_side(_get_full_pose_controls(nodes, control_set), source_side)
+
+
+def flip_full_pose(nodes, control_set=None):
+    """Flip the full pose of the rigs.
+
+    Args:
+        nodes (list): Any nodes of the rigs to flip.
+        control_set (str, optional): Only flip the controls of this control
+            set (i.e. "face"). See get_rig_control_sets.
+    """
+    mirror_controls(_get_full_pose_controls(nodes, control_set), flip=True)
 
 
 def mirrorPoseOld(flip=False, nodes=False):

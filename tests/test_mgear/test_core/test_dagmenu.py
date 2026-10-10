@@ -24,6 +24,10 @@ CONTROL_MENU_LABELS = (
     "Mirror all below",
     "Flip",
     "Flip all below",
+    "Full Pose",
+    "Full Pose/Mirror L → R",
+    "Full Pose/Mirror R → L",
+    "Full Pose/Flip",
     "Rotate Order switch",
     "Rotate Order switch/xyz",
     "Rotate Order switch/yzx",
@@ -294,7 +298,7 @@ def test_menu_context_arm_fk(dagmenu, shifter_rig):
         ("global_C0_ctl", "control_ikref"),
     ]
     assert ctx.rig_root == "rig"
-    assert "arm_C0_fk1_ctl" in ctx.child_controls
+    assert shifter_rig.ls("arm_C0_fk1_ctl", long=True)[0] in ctx.child_controls
     assert "arm_C0_ik_ctl" in ctx.all_controls
 
 
@@ -502,3 +506,100 @@ def test_reset_commands(dagmenu, shifter_rig, menu_recorder):
     assert cmds.getAttr("arm_C0_fk0_ctl.translateX") == pytest.approx(2.0)
     menu_recorder.entry("Reset")["command"](False)
     assert cmds.getAttr("arm_C0_fk0_ctl.translateX") == pytest.approx(0.0)
+
+
+# =============================================================================
+# mirror and flip (biped)
+# =============================================================================
+
+
+def _arm_rz(cmds):
+    return (
+        round(cmds.getAttr("arm_L0_fk0_ctl.rotateZ"), 3),
+        round(cmds.getAttr("arm_R0_fk0_ctl.rotateZ"), 3),
+    )
+
+
+def _pose_arms(cmds):
+    cmds.setAttr("arm_L0_fk0_ctl.rotateZ", 30)
+    cmds.setAttr("arm_R0_fk0_ctl.rotateZ", -10)
+
+
+def _fill(dagmenu, cmds, selection):
+    cmds.select(selection)
+    dagmenu.mgear_dagmenu_fill("menu", cmds.ls(selection[0], long=True)[0])
+
+
+def test_child_controls_use_whole_selection(dagmenu, biped_rig):
+    from mgear.core.dagmenu.context import MenuContext
+
+    cmds = biped_rig
+    selection = ["arm_L0_fk0_ctl", "arm_R0_fk0_ctl"]
+    ctx = MenuContext(cmds.ls(selection[0], long=True)[0], selection=selection)
+    children = ctx.child_controls
+    expected = selection + ["arm_L0_fk1_ctl", "arm_R0_fk1_ctl"]
+    for ctl in cmds.ls(expected, long=True):
+        assert ctl in children
+    assert len(children) == len(set(children))
+
+
+def test_flip_all_below_from_center(dagmenu, biped_rig, menu_recorder):
+    cmds = biped_rig
+    _pose_arms(cmds)
+    _fill(dagmenu, cmds, ["body_C0_ctl"])
+    menu_recorder.entry("Flip all below")["command"](False)
+    assert _arm_rz(cmds) == (-10.0, 30.0)
+
+
+def test_mirror_all_below_from_center_is_flip(dagmenu, biped_rig, menu_recorder):
+    cmds = biped_rig
+    _pose_arms(cmds)
+    _fill(dagmenu, cmds, ["body_C0_ctl"])
+    menu_recorder.entry("Mirror all below")["command"](False)
+    assert _arm_rz(cmds) == (-10.0, 30.0)
+
+
+def test_mirror_all_below_multi_selection(dagmenu, biped_rig, menu_recorder):
+    cmds = biped_rig
+    cmds.setAttr("arm_L0_fk1_ctl.rotateZ", 20)
+    cmds.setAttr("leg_L0_fk0_ctl.rotateZ", 5)
+    _fill(dagmenu, cmds, ["arm_L0_fk0_ctl", "leg_L0_fk0_ctl"])
+    menu_recorder.entry("Mirror all below")["command"](False)
+    # the second selected control itself and the children of the first
+    assert round(cmds.getAttr("leg_R0_fk0_ctl.rotateZ"), 3) == 5.0
+    assert round(cmds.getAttr("arm_R0_fk1_ctl.rotateZ"), 3) == 20.0
+
+
+def test_full_pose_commands(dagmenu, biped_rig, menu_recorder):
+    cmds = biped_rig
+    _fill(dagmenu, cmds, ["spine_C0_fk0_ctl"])
+
+    cmds.setAttr("leg_L0_fk0_ctl.rotateZ", 5)
+    menu_recorder.entry("Full Pose/Mirror L → R")["command"](False)
+    assert round(cmds.getAttr("leg_R0_fk0_ctl.rotateZ"), 3) == 5.0
+
+    cmds.setAttr("leg_R0_fk0_ctl.rotateZ", 9)
+    menu_recorder.entry("Full Pose/Mirror R → L")["command"](False)
+    assert round(cmds.getAttr("leg_L0_fk0_ctl.rotateZ"), 3) == 9.0
+
+    _pose_arms(cmds)
+    menu_recorder.entry("Full Pose/Flip")["command"](False)
+    assert _arm_rz(cmds) == (-10.0, 30.0)
+
+
+def test_full_pose_control_set_items(dagmenu, biped_rig, menu_recorder):
+    cmds = biped_rig
+    legs = ["leg_L0_fk0_ctl", "leg_R0_fk0_ctl"]
+    sub_set = cmds.sets(legs, name="rig_legs_grp")
+    cmds.sets(legs, remove="rig_controllers_grp")
+    cmds.sets(sub_set, add="rig_controllers_grp")
+    _fill(dagmenu, cmds, ["spine_C0_fk0_ctl"])
+    paths = menu_recorder.paths(dividers=False)
+    for label in ("Mirror L → R", "Mirror R → L", "Flip"):
+        assert "Full Pose/legs/" + label in paths
+
+    _pose_arms(cmds)
+    cmds.setAttr("leg_L0_fk0_ctl.rotateZ", 5)
+    menu_recorder.entry("Full Pose/legs/Flip")["command"](False)
+    assert round(cmds.getAttr("leg_R0_fk0_ctl.rotateZ"), 3) == 5.0
+    assert _arm_rz(cmds) == (30.0, -10.0)
