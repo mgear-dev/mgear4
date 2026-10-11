@@ -36,6 +36,7 @@ Release Log
 	* Shifter: Custom Step: Pre and post step lists can be resized by dragging; shared steps use a softer moss green
 	* Shifter: Build: Rig builds are about twice as fast, mainly from faster pymaya node creation and attribute lookups
 	* Shifter: Build: Component build data is collected only when a data collector is on or a custom step reads it
+	* Shifter: Build: Warn when a slow plug-in such as bluePencil is loaded
 	* Docs: Document Blocking Ghosts, Lattice / Shrink Wrap / Proximity Wrap IO, Spring Manager, HumanIK Mapper, Anim Picker SVG editor and screen capture, skin namespace support and the build log
 
 **Bug Fix**

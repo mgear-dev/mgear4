@@ -213,6 +213,52 @@ class Rig(object):
         self.stopBuild = False
         self._cancelEnabled = False
 
+        # Known slow plug-ins found in this build: name -> when it was loaded
+        self._slow_plugins_found = {}
+
+    def _check_slow_plugins(self, source, warn=True):
+        """Record, and warn once per build about, loaded known slow plug-ins.
+
+        Args:
+            source (str): When it was loaded, one of the
+                core_utils.SLOW_PLUGIN_* texts.
+            warn (bool, optional): Log a warning for each newly found one.
+        """
+        for name in core_utils.get_loaded_slow_plugins():
+            if name not in self._slow_plugins_found:
+                self._slow_plugins_found[name] = source
+                if warn:
+                    mgear.log(
+                        core_utils.slow_plugin_message(name, source),
+                        mgear.sev_warning,
+                    )
+
+    def _begin_build(self):
+        """Reset the per-build state at the start of a build entry point."""
+        self.stopBuild = False
+        self._slow_plugins_found = {}
+        self._check_slow_plugins(core_utils.SLOW_PLUGIN_BEFORE_BUILD)
+
+    def _log_build_done(self, startTime):
+        """Log the build time, then the slow plug-in summary if any.
+
+        Args:
+            startTime (datetime.datetime): When the build started.
+        """
+        finalTime = datetime.datetime.now() - startTime
+        mgear.log(
+            "\n"
+            + "= SHIFTER BUILD RIG DONE {} [ {} ] {}".format(
+                "=" * 16, finalTime, "=" * 7
+            )
+        )
+        # Plug-ins first found now are only listed in the summary, so the
+        # summary stays right after the build time line.
+        self._check_slow_plugins(core_utils.SLOW_PLUGIN_DURING_BUILD, warn=False)
+        summary = core_utils.slow_plugins_summary(self._slow_plugins_found)
+        if summary:
+            mgear.log(summary, mgear.sev_warning)
+
     def buildJointCache(self):
         """Build a cache of all joint names in the scene for fast lookups.
 
@@ -298,7 +344,7 @@ class Rig(object):
         startTime = datetime.datetime.now()
         mgear.log("\n" + "= SHIFTER RIG SYSTEM " + "=" * 46)
 
-        self.stopBuild = False
+        self._begin_build()
 
         self.guide.set_from_dict(conf_dict)
         endTime = datetime.datetime.now()
@@ -329,14 +375,7 @@ class Rig(object):
         else:
             build_data = None
 
-        endTime = datetime.datetime.now()
-        finalTime = endTime - startTime
-        mgear.log(
-            "\n"
-            + "= SHIFTER BUILD RIG DONE {} [ {} ] {}".format(
-                "=" * 16, finalTime, "=" * 7
-            )
-        )
+        self._log_build_done(startTime)
 
         return build_data
 
@@ -348,7 +387,7 @@ class Rig(object):
         startTime = datetime.datetime.now()
         mgear.log("\n" + "= SHIFTER RIG SYSTEM " + "=" * 46)
 
-        self.stopBuild = False
+        self._begin_build()
         build_data = None
         selection = pm.ls(selection=True)
         if not selection:
@@ -390,14 +429,7 @@ class Rig(object):
             if self.options["data_collector_embedded"] or self.options["data_collector"]:
                 build_data = self.collect_build_data()
 
-            endTime = datetime.datetime.now()
-            finalTime = endTime - startTime
-            mgear.log(
-                "\n"
-                + "= SHIFTER BUILD RIG DONE {} [ {} ] {}".format(
-                    "=" * 16, finalTime, "=" * 7
-                )
-            )
+            self._log_build_done(startTime)
 
         return build_data
 
@@ -618,6 +650,9 @@ class Rig(object):
                 if not self.stopBuild:
                     self.stopBuild = custom_step_widget.runStep(
                         step, self.customStepDic
+                    )
+                    self._check_slow_plugins(
+                        core_utils.SLOW_PLUGIN_BY_STEP.format(step)
                     )
                 else:
                     pm.displayWarning("Build Stopped")

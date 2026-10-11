@@ -722,6 +722,21 @@ def get_point_count(shape):
 _FAILED_PLUGINS = set()
 
 
+def is_plugin_loaded(name):
+    """Return True if a Maya plug-in is loaded. Never loads it, never raises.
+
+    Args:
+        name (str): Plug-in name, with or without the file extension.
+
+    Returns:
+        bool: True if the plug-in is loaded.
+    """
+    try:
+        return bool(cmds.pluginInfo(name, query=True, loaded=True))
+    except RuntimeError:
+        return False
+
+
 def is_plugin_available(name):
     """Return True if a Maya plug-in is loaded or can be loaded quietly.
 
@@ -735,11 +750,8 @@ def is_plugin_available(name):
     Returns:
         bool: True if the plug-in is loaded.
     """
-    try:
-        if cmds.pluginInfo(name, query=True, loaded=True):
-            return True
-    except RuntimeError:
-        pass
+    if is_plugin_loaded(name):
+        return True
     if name in _FAILED_PLUGINS:
         return False
     try:
@@ -769,6 +781,96 @@ def ensure_plugin(name):
             "Check that it is installed in a MAYA_PLUG_IN_PATH "
             "folder.".format(name)
         )
+
+
+# Plug-ins known to make DAG edits much slower while loaded. Maya 2026
+# bluePencil (2.6.1) makes createNode/parent ~50x slower, scaling with scene
+# size, and is auto-loaded by the "requires -dataType ... bluePencil" line
+# Maya writes into any .ma saved while it is loaded.
+SLOW_PLUGINS = ("bluePencil",)
+# Extra slow plug-in names, separated by os.pathsep or commas.
+SLOW_PLUGINS_ENV = "MGEAR_SLOW_PLUGINS"
+
+# When a slow plug-in was loaded, for slow_plugin_message sources
+SLOW_PLUGIN_BEFORE_BUILD = "loaded before the build started"
+SLOW_PLUGIN_BY_STEP = "loaded by custom step: {}"
+SLOW_PLUGIN_DURING_BUILD = "loaded during the build (not by a custom step)"
+
+
+def get_slow_plugins():
+    """Get the names of the known slow plug-ins.
+
+    The SLOW_PLUGINS defaults, extended by the names in the
+    MGEAR_SLOW_PLUGINS environment variable.
+
+    Returns:
+        tuple: The plug-in names, defaults first, without duplicates.
+    """
+    names = list(SLOW_PLUGINS)
+    extra = os.environ.get(SLOW_PLUGINS_ENV, "")
+    for name in extra.replace(os.pathsep, ",").split(","):
+        name = name.strip()
+        if name and name not in names:
+            names.append(name)
+    return tuple(names)
+
+
+def get_loaded_slow_plugins(names=None):
+    """Get the known slow plug-ins that are loaded.
+
+    Only the given names are queried, never the full plug-in list.
+
+    Args:
+        names (list of str, optional): Plug-in names to check. Defaults to
+            get_slow_plugins().
+
+    Returns:
+        tuple: The loaded plug-in names, in the given order.
+    """
+    if names is None:
+        names = get_slow_plugins()
+    return tuple(name for name in names if is_plugin_loaded(name))
+
+
+def slow_plugin_message(name, source):
+    """Build the warning message for a loaded slow plug-in.
+
+    Args:
+        name (str): The plug-in name.
+        source (str): When it was loaded, one of the SLOW_PLUGIN_* texts.
+
+    Returns:
+        str: The message.
+    """
+    return (
+        "Slow plug-in '{name}' is loaded ({source}). While it is loaded, "
+        "creating and parenting nodes can be many times slower. If nothing "
+        'in the scene needs it, unload it (cmds.unloadPlugin("{name}")) or '
+        "turn off its auto-load. Files saved while it was loaded may carry "
+        'a "requires ... {name}" line that loads it again on '
+        "import.".format(name=name, source=source)
+    )
+
+
+def slow_plugins_summary(found):
+    """Build a summary of the slow plug-ins found, one line per plug-in.
+
+    Args:
+        found (dict): Plug-in name to when it was loaded (SLOW_PLUGIN_*
+            text), in report order.
+
+    Returns:
+        str: The summary, or an empty string if nothing was found.
+    """
+    if not found:
+        return ""
+    lines = ["Slow plug-ins detected in this build (they can make builds much slower):"]
+    lines += ["  - {}: {}".format(name, source) for name, source in found.items()]
+    lines.append(
+        "Unload them if nothing in the scene needs them. See the warnings "
+        "above for details."
+    )
+    return "\n".join(lines)
 
 
 def get_os():

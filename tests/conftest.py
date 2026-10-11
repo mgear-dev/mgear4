@@ -180,3 +180,30 @@ def count_calls(monkeypatch):
         return calls
 
     return count
+
+
+@pytest.fixture
+def blue_pencil(run_with_maya_standalone):
+    """Function loading the bluePencil plug-in, a known slow plug-in.
+
+    bluePencil is unloaded before and after the test, so it can't slow down
+    the rest of the suite. Skips the test when it can't load.
+
+    Returns:
+        callable: Loads bluePencil.
+    """
+    from maya import cmds
+
+    def unload():
+        if cmds.pluginInfo("bluePencil", query=True, loaded=True):
+            cmds.unloadPlugin("bluePencil", force=True)
+
+    def load():
+        try:
+            cmds.loadPlugin("bluePencil", quiet=True)
+        except RuntimeError:
+            pytest.skip("bluePencil plug-in not available")
+
+    unload()
+    yield load
+    unload()

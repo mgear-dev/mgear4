@@ -2311,6 +2311,20 @@ Building and deleting a rig many times in one Maya session can make Maya gradual
 - **Undo queue.** Each build, and each rig deletion, is kept in Maya's undo queue. A deleted rig stays in memory for as long as its deletion can be undone, so with an unlimited undo queue every deleted rig stays loaded. If you don't need to undo your builds, run ``cmds.flushUndo()`` between builds to release them, or set a finite undo queue length in Maya's preferences.
 - **Script Editor history.** Every build prints its log to the Script Editor as well, and its history grows for the whole session. Clear it with **Edit > Clear History** in the Script Editor, or keep the Script Editor closed while building.
 
+**Slow Plug-in Warnings**
+
+Some Maya plug-ins make every node creation much slower while they are loaded, and the cost grows with the size of the scene. Maya 2026's **Blue Pencil** plug-in (``bluePencil``) is one: with it loaded, creating and parenting nodes can be about 50 times slower, so a build can take several times longer. It is easy to load by accident. Maya writes a ``requires ... "bluePencil"`` line into any ``.ma`` file saved while it is loaded, and importing that file (for example from a custom step) loads it again.
+
+Shifter checks for known slow plug-ins at the start of the build and after each custom step, and writes a warning that says when the plug-in was loaded:
+
+- ``loaded before the build started``
+- ``loaded by custom step: <step path>``
+- ``loaded during the build (not by a custom step)``
+
+Right after the build time line, a summary lists every slow plug-in found in the build, one per line. Shifter never unloads plug-ins itself. If nothing in your scene needs the plug-in, unload it with ``cmds.unloadPlugin("bluePencil")``, turn off its auto-load in the Plug-in Manager, and re-save files that carry the ``requires`` line from a session without it.
+
+To have Shifter warn about other plug-ins, add their names to the ``MGEAR_SLOW_PLUGINS`` environment variable, separated by commas or the path separator (for example in ``Maya.env``: ``MGEAR_SLOW_PLUGINS = studioNodes,otherPlugin``). These names are added to the built-in list.
+
 Toggle Log
 -----------
 

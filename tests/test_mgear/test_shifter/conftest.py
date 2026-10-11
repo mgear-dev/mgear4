@@ -12,11 +12,12 @@ def build_rig(rig_plugins, setup_path):
 
     Returns:
         callable: Called with ``data_collector_path`` (str, optional) to turn
-            the data collector on and ``post_step`` (str, optional) as the
-            path of a post custom step. Returns the built shifter.Rig.
+            the data collector on, and ``pre_step`` / ``post_step`` (str,
+            optional) as pre / post custom step paths (comma separated for
+            several steps). Returns the built shifter.Rig.
     """
 
-    def build(data_collector_path=None, post_step=None):
+    def build(data_collector_path=None, post_step=None, pre_step=None):
         from maya import cmds
 
         import mgear.pymaya as pm
@@ -34,6 +35,9 @@ def build_rig(rig_plugins, setup_path):
                 data_collector_path,
                 type="string",
             )
+        if pre_step:
+            cmds.setAttr("guide.doPreCustomStep", True)
+            cmds.setAttr("guide.preCustomStep", pre_step, type="string")
         if post_step:
             cmds.setAttr("guide.doPostCustomStep", True)
             cmds.setAttr("guide.postCustomStep", post_step, type="string")
