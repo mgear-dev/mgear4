@@ -3,7 +3,14 @@ import mgear.menu
 
 def install():
     """Install Skinning submenu"""
+    # bookmarks list the Animbits Hub tools in their "Show In Tools" menu
+    from mgear.utilbits.bookmarks import core as bookmarks_core
+
+    bookmarks_core.register_bookmark_tool("tweener", "Tweener")
+
     commands = (
+        ("Animbits Hub", str_animbits_hub, "mgear_sliders.svg"),
+        ("-----", None),
         ("Channel Master", str_openChannelMaster, "mgear_channel_master.svg"),
         ("-----", None),
         ("Soft Tweaks", str_openSoftTweakManager, "mgear_soft_tweaks.svg"),
@@ -50,6 +57,11 @@ run_cache_mamanger()
 str_smart_reset = """
 from mgear.core import attribute
 attribute.smart_reset()
+"""
+
+str_animbits_hub = """
+from mgear.animbits import animbits_hub
+animbits_hub.toggle()
 """
 
 str_blocking_ghosts = """

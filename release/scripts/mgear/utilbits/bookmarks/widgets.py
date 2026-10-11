@@ -3,6 +3,8 @@
 ChipButton for bookmark chips and FlowLayout for grid arrangement.
 """
 
+from functools import partial
+
 from mgear.vendor.Qt import QtCore
 from mgear.vendor.Qt import QtGui
 from mgear.vendor.Qt import QtWidgets
@@ -141,7 +143,8 @@ class ChipButton(QtWidgets.QPushButton):
     """Chip button representing a single bookmark.
 
     Left-click recalls the bookmark. Shift+click adds to selection,
-    Ctrl+click deselects. Right-click opens context menu.
+    Ctrl+click deselects. Middle-click keys the members of a selection
+    bookmark. Right-click opens context menu.
 
     Args:
         bookmark (dict): Bookmark data dictionary.
@@ -158,6 +161,8 @@ class ChipButton(QtWidgets.QPushButton):
     delete_requested = QtCore.Signal(object)
     toggle_menu_requested = QtCore.Signal()
     toggle_namespace_mode_requested = QtCore.Signal(object)
+    tool_toggled = QtCore.Signal(object, str, bool)
+    key_members_requested = QtCore.Signal(object)
     drag_reorder = QtCore.Signal(object, object)
 
     def __init__(self, bookmark, parent=None):
@@ -294,6 +299,9 @@ class ChipButton(QtWidgets.QPushButton):
         if event.button() == QtCore.Qt.LeftButton:
             self._drag_start_pos = None
             self.chip_clicked.emit(self.bookmark)
+        elif event.button() == QtCore.Qt.MiddleButton:
+            if self.bookmark["type"] == core.BOOKMARK_SELECTION:
+                self.key_members_requested.emit(self.bookmark)
         super(ChipButton, self).mouseReleaseEvent(event)
 
     def contextMenuEvent(self, event):
@@ -322,6 +330,19 @@ class ChipButton(QtWidgets.QPushButton):
         ns_action.setChecked(
             bool(self.bookmark.get("use_selected_namespace", False))
         )
+        if self.bookmark["type"] == core.BOOKMARK_SELECTION:
+            tools_menu = menu.addMenu("Show In Tools")
+            tools = core.registered_bookmark_tools()
+            for tool_id, label in tools:
+                tool_action = tools_menu.addAction(label)
+                tool_action.setCheckable(True)
+                tool_action.setChecked(
+                    core.is_tool_enabled(self.bookmark, tool_id)
+                )
+                tool_action.triggered.connect(
+                    partial(self._on_tool_triggered, tool_id, tool_action)
+                )
+            tools_menu.setEnabled(bool(tools))
         menu.addSeparator()
         shelf_action = menu.addAction("Add to Shelf")
         menu.addSeparator()
@@ -349,3 +370,16 @@ class ChipButton(QtWidgets.QPushButton):
             self.toggle_menu_requested.emit()
         elif action == delete_action:
             self.delete_requested.emit(self.bookmark)
+
+    def _on_tool_triggered(self, tool_id, action, *args):
+        """Emit tool_toggled for a "Show In Tools" action.
+
+        The state is read from the action: PySide does not pass the
+        ``checked`` argument of ``triggered`` to a ``partial`` slot.
+
+        Args:
+            tool_id (str): The tool id.
+            action (QAction): The triggered action.
+            *args: Signal arguments, ignored.
+        """
+        self.tool_toggled.emit(self.bookmark, tool_id, action.isChecked())

@@ -185,6 +185,8 @@ Features
 - **Save Selection**: Store the current Maya selection as a named bookmark
 - **Restore Selection**: Click a bookmark to select those objects in the scene
 - **Rename and Delete**: Right-click on bookmarks for management options
+- **Key Members**: Middle-click a selection bookmark to key all its controls on the current frame, without changing the selection. A viewport message confirms how many controls were keyed. Components and non-keyable items are skipped.
+- **Show In Tools**: Right-click a selection bookmark and check a tool, e.g. **Tweener**, to list the bookmark in that tool (see the Animbits Hub)
 
 **Isolate View**
 
@@ -203,7 +205,7 @@ Right-click a bookmark and toggle **Use Selected Object's Namespace** to control
 - **Off (default)**: The bookmark uses the namespace embedded when it was created. ``char01:body`` always selects ``char01:body``.
 - **On**: At recall time, the namespace is taken from whatever object you currently have selected, and the bookmark's stored namespaces are *replaced*. This lets one bookmark drive the same selection set across multiple character instances — create a bookmark on ``char01``, select any object in ``char02``, click the bookmark, and the equivalent ``char02:`` items are selected. The tooltip shows ``Namespace: from current selection`` when this mode is on.
 
-If the toggle is on but nothing is selected when you click the bookmark, the tool warns and does nothing rather than guessing.
+The namespace taken from the selection is remembered, also between Maya sessions. If the toggle is on but nothing is selected when you click the bookmark, the last namespace used is taken. Only when no namespace was ever used does the tool warn and do nothing.
 
 **Ambiguous short names**
 

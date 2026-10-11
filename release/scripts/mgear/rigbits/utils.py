@@ -341,3 +341,12 @@ fbx_exporter.openFBXExporter()
 
 '''
     createRunTimeCommand("mGear_fbxExporter", rCmd, ann="")
+
+    # Animbits Hub
+    rCmd = """
+from mgear.animbits import animbits_hub
+animbits_hub.toggle()
+"""
+    createRunTimeCommand(
+        "mGear_animbitsHubToggle", rCmd, ann="Show or hide the Animbits Hub"
+    )

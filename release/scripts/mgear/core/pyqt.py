@@ -627,6 +627,23 @@ def text_badge(text, size, color, text_color=None):
     return pixmap
 
 
+def text_color_for_background(color):
+    """Return a readable text color for a background color.
+
+    Uses relative luminance: 0.299*R + 0.587*G + 0.114*B.
+
+    Args:
+        color (tuple): RGB 0-1 tuple.
+
+    Returns:
+        tuple: (1, 1, 1) for white or (0.1, 0.1, 0.1) for dark.
+    """
+    luminance = 0.299 * color[0] + 0.587 * color[1] + 0.114 * color[2]
+    if luminance > 0.5:
+        return (0.1, 0.1, 0.1)
+    return (1.0, 1.0, 1.0)
+
+
 class CoalescedCall(object):
     """Callable that runs a function once on the next event loop pass.
 

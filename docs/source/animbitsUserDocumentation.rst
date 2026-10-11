@@ -8,6 +8,56 @@ Tools for animators.
     :scale: 95%
 
 
+Animbits Hub
+============
+
+Quick animation tools in a small, transparent overlay over the viewport. Show and hide it with a hotkey, use a tool, and keep animating. The first tool is the **Tweener**.
+
+.. image:: images/animbits/animbits_hub/tweener.png
+    :align: center
+
+**Setup:**
+
+1. **mGear > Rigbits > Create mGear Hotkeys** creates the ``mGear_animbitsHubToggle`` runtime command
+2. Bind it to a key in the Maya **Hotkey Editor** (category **mGear**)
+3. Press the key to show the hub, press it again to hide it. **Animbits > Animbits Hub** does the same.
+
+The hub never takes keyboard focus, so all Maya hotkeys keep working while it is open.
+
+Tweener
+-------
+
+One slider row for the current selection, then one row for each selection bookmark you enabled for the Tweener. Bookmark rows use the bookmark's color and tween the bookmark's controls without selecting them.
+
+* **Drag the TW handle** - keys the animated attributes between their previous key (left end, 0%) and next key (right end, 100%), on the current frame. On release the handle springs back to the center. Each drag is one undo step.
+* **Click a tick** - keys that percentage directly (10% steps)
+* While you drag, the other rows hide to keep the view clear
+* Attributes without animation, or without a key on both sides of the current frame, are skipped. Components and non-keyable items in a bookmark are ignored.
+
+**Adding bookmark rows:** in the **Bookmarks** tool, right-click a selection bookmark and check **Show In Tools > Tweener**.
+
+.. image:: images/animbits/animbits_hub/bookmark_tweener.png
+    :align: center
+    :scale: 75%
+
+**Namespace:** bookmarks with **Use Selected Object's Namespace** on follow the namespace shown at the top of the hub. It is taken from the selection when the hub opens, otherwise the last one used is kept, also between Maya sessions. Click it to pick another namespace of the scene. When that namespace is not in the scene, it is marked **(missing)** and those rows are disabled.
+
+Settings
+--------
+
+Right-click the hub (between the sliders) for its settings. They are saved between Maya sessions.
+
+.. image:: images/animbits/animbits_hub/tweener_settings.png
+    :align: center
+
+* **Show Names** - **Hover** shows a row's name when the cursor is over it; **Always** shows it next to the row
+* **Placement** - **Under Cursor** opens the hub with the first TW handle under the mouse pointer, so you can drag right away; **Fixed Position** opens it where you left it, moved with the grip handle at its top-left
+* **Selection Color** - color of the selection row (pastel green by default)
+* **Scale** - **-** / **+** resize the hub; **Ctrl+Mouse Wheel** over the hub does the same
+* **Namespace** - the namespace for namespace-following bookmarks
+* **Close** - hide the hub
+
+
 Channel Master
 ==============
 

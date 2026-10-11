@@ -1,4 +1,5 @@
 # Stdlib imports
+import bisect
 import re
 import traceback
 from contextlib import contextmanager
@@ -449,6 +450,94 @@ def set_or_key(plug, value):
         return False
     cmds.setAttr(plug, value)
     return True
+
+
+def keyable_nodes(items):
+    """Return the nodes of a list of items that have keyable attributes.
+
+    Components (``mesh.f[0:10]``), plugs and missing names are dropped.
+    The order is kept and duplicates are removed.
+
+    Args:
+        items (list): Node, component or plug names, e.g. from a selection.
+
+    Returns:
+        list: Node names with at least one keyable, unlocked attribute.
+    """
+    nodes = []
+    seen = set()
+    for item in items or []:
+        if "." in item or item in seen:
+            continue
+        seen.add(item)
+        if not cmds.objExists(item):
+            continue
+        if cmds.listAttr(item, keyable=True, unlocked=True):
+            nodes.append(item)
+    return nodes
+
+
+def get_tween_cache(nodes, time=None):
+    """Return the previous and next key values of the animated attributes.
+
+    Each keyable, unlocked attribute of the nodes that has keys strictly
+    before and strictly after ``time`` gives one entry. Attributes that
+    are not animated, or that miss a key on either side, are skipped.
+    Collect the cache once and pass it to :func:`apply_tween` as often as
+    needed, e.g. on every mouse move of a slider drag.
+
+    Args:
+        nodes (list): Node names.
+        time (float, optional): Frame to tween at. Defaults to the current
+            time.
+
+    Returns:
+        list: ``(plug, prev_value, next_value)`` tuples.
+    """
+    if time is None:
+        time = cmds.currentTime(query=True)
+    cache = []
+    for node in nodes:
+        for attr in cmds.listAttr(node, keyable=True, unlocked=True) or []:
+            plug = "{}.{}".format(node, attr)
+            try:
+                times = cmds.keyframe(plug, query=True, timeChange=True)
+            except RuntimeError:
+                continue
+            if not times:
+                continue
+            # keys strictly before and after: a key on ``time`` is skipped
+            prev_index = bisect.bisect_left(times, time) - 1
+            next_index = bisect.bisect_right(times, time)
+            if prev_index < 0 or next_index >= len(times):
+                continue
+            values = cmds.keyframe(plug, query=True, valueChange=True)
+            cache.append((plug, values[prev_index], values[next_index]))
+    return cache
+
+
+def apply_tween(cache, fraction, time=None):
+    """Key the tween of the cached attributes at a fraction between keys.
+
+    The keyed value is ``prev + (next - prev) * fraction``, with the
+    fraction clamped to [0, 1].
+
+    Args:
+        cache (list): ``(plug, prev_value, next_value)`` tuples from
+            :func:`get_tween_cache`.
+        fraction (float): 0 for the previous key value, 1 for the next.
+        time (float, optional): Frame to key. Defaults to the current time.
+    """
+    if time is None:
+        time = cmds.currentTime(query=True)
+    fraction = min(max(fraction, 0.0), 1.0)
+    for plug, prev_value, next_value in cache:
+        value = prev_value + (next_value - prev_value) * fraction
+        cmds.setKeyframe(plug, time=time, value=value)
+    if cache:
+        # a key set with a value on the current frame does not update the
+        # evaluated value, so the pose would not change until a time change
+        cmds.dgdirty([plug for plug, _prev, _next in cache])
 
 
 def get_play_every_frame():

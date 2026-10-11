@@ -5,6 +5,7 @@ and shelf button generation. No UI code.
 """
 
 import colorsys
+import copy
 import json
 import logging
 import random
@@ -12,7 +13,12 @@ import random
 import maya.mel as mel
 from maya import cmds
 
+from mgear.core import anim_utils
 from mgear.core.pyqt import get_icon_path
+from mgear.core.pyqt import get_user_settings
+
+# moved to mgear.core.pyqt, kept here for backward compatibility
+from mgear.core.pyqt import text_color_for_background  # noqa: F401
 
 logger = logging.getLogger("mgear.utilbits.bookmarks")
 
@@ -31,6 +37,12 @@ SCENE_NODE_DATA_ATTR = "bookmarks_data"
 
 LAYOUT_NAMES = ("horizontal", "vertical", "grid")
 LAYOUT_MAP = {name: i for i, name in enumerate(LAYOUT_NAMES)}
+
+LAST_NAMESPACE_KEY = "sel_bookmarks/last_namespace"
+
+# Tools that read bookmarks, as {tool_id: label}, filled by the tools
+# themselves through register_bookmark_tool
+_registered_tools = {}
 
 
 #############################################
@@ -73,6 +85,7 @@ def create_bookmark(name, bookmark_type, items, color=None):
         "type": bookmark_type,
         "items": list(items),
         "use_selected_namespace": False,
+        "tools": {},
     }
 
 
@@ -177,21 +190,86 @@ def build_tooltip(bookmark):
     return "\n".join(lines)
 
 
-def text_color_for_background(color):
-    """Determine readable text color for a given background.
+#############################################
+# TOOL SETTINGS
+#############################################
 
-    Uses relative luminance: 0.299*R + 0.587*G + 0.114*B.
+
+def register_bookmark_tool(tool_id, label):
+    """Register a tool that reads bookmarks.
+
+    Registered tools are listed in the "Show In Tools" menu of each
+    selection bookmark. Registering an id again updates its label.
 
     Args:
-        color (tuple): RGB 0-1 tuple.
+        tool_id (str): Key of the tool in the bookmark ``tools`` dict.
+        label (str): Name shown in the menu.
+    """
+    _registered_tools[tool_id] = label
+
+
+def registered_bookmark_tools():
+    """Return the registered tools that read bookmarks.
 
     Returns:
-        tuple: (1, 1, 1) for white or (0.1, 0.1, 0.1) for dark.
+        list: ``(tool_id, label)`` tuples in registration order.
     """
-    luminance = 0.299 * color[0] + 0.587 * color[1] + 0.114 * color[2]
-    if luminance > 0.5:
-        return (0.1, 0.1, 0.1)
-    return (1.0, 1.0, 1.0)
+    return list(_registered_tools.items())
+
+
+def get_tool_config(bookmark, tool_id):
+    """Return the settings of a tool stored on a bookmark.
+
+    Args:
+        bookmark (dict): The bookmark dictionary.
+        tool_id (str): The tool id.
+
+    Returns:
+        dict: The tool settings, empty when the tool has none.
+    """
+    return bookmark.get("tools", {}).get(tool_id, {})
+
+
+def set_tool_config(bookmark, tool_id, **values):
+    """Merge settings of a tool into a bookmark.
+
+    Args:
+        bookmark (dict): The bookmark dictionary to modify.
+        tool_id (str): The tool id.
+        **values: Settings to set, e.g. ``enabled=True``.
+    """
+    tools = bookmark.setdefault("tools", {})
+    tools.setdefault(tool_id, {}).update(values)
+
+
+def is_tool_enabled(bookmark, tool_id):
+    """Return True when a tool is enabled on a bookmark.
+
+    Args:
+        bookmark (dict): The bookmark dictionary.
+        tool_id (str): The tool id.
+
+    Returns:
+        bool: The ``enabled`` setting of the tool.
+    """
+    return bool(get_tool_config(bookmark, tool_id).get("enabled", False))
+
+
+def bookmarks_for_tool(bookmarks, tool_id):
+    """Return the selection bookmarks a tool is enabled on.
+
+    Args:
+        bookmarks (list): Bookmark dictionaries.
+        tool_id (str): The tool id.
+
+    Returns:
+        list: The enabled selection bookmarks, in order.
+    """
+    return [
+        bm
+        for bm in bookmarks
+        if bm.get("type") == BOOKMARK_SELECTION and is_tool_enabled(bm, tool_id)
+    ]
 
 
 #############################################
@@ -267,12 +345,92 @@ def swap_namespace(stored_item, new_ns):
     return bare
 
 
-def resolve_bookmark_items(bookmark):
+def get_last_namespace():
+    """Return the last namespace used by namespace-following bookmarks.
+
+    The value is kept in the mGear user settings, so it survives Maya
+    sessions.
+
+    Returns:
+        str: The namespace (empty string for the root namespace), or None
+            when none was stored.
+    """
+    value = get_user_settings().value(LAST_NAMESPACE_KEY)
+    if value is None:
+        return None
+    return str(value)
+
+
+def set_last_namespace(namespace):
+    """Store the last namespace used by namespace-following bookmarks.
+
+    Args:
+        namespace (str): The namespace, empty string for the root.
+    """
+    settings = get_user_settings()
+    settings.setValue(LAST_NAMESPACE_KEY, namespace)
+    settings.sync()
+
+
+def scene_namespaces():
+    """Return the namespaces of the scene, nested ones included.
+
+    Maya's own ``UI`` and ``shared`` namespaces are left out.
+
+    Returns:
+        list: Sorted namespace names, without leading colon.
+    """
+    namespaces = (
+        cmds.namespaceInfo(
+            ":", listOnlyNamespaces=True, recurse=True, absoluteName=True
+        )
+        or []
+    )
+    names = [ns.lstrip(":") for ns in namespaces]
+    return sorted(ns for ns in names if ns and ns not in ("UI", "shared"))
+
+
+def namespace_exists(namespace):
+    """Return True when a namespace exists in the scene.
+
+    Args:
+        namespace (str): Namespace name, empty string for the root.
+
+    Returns:
+        bool: True for the root and for existing namespaces.
+    """
+    if namespace is None:
+        return False
+    return not namespace or cmds.namespace(exists=":" + namespace)
+
+
+def selection_namespace():
+    """Return the namespace of the first selected object and store it.
+
+    The namespace becomes the last namespace, see
+    :func:`get_last_namespace`.
+
+    Returns:
+        str: The namespace (empty string for the root namespace), or None
+            when nothing is selected.
+    """
+    sel = cmds.ls(selection=True, long=True) or []
+    if not sel:
+        return None
+    namespace = extract_namespace(sel[0])
+    if namespace != get_last_namespace():
+        set_last_namespace(namespace)
+    return namespace
+
+
+def resolve_bookmark_items(bookmark, namespace=None):
     """Resolve a bookmark's items to long DAG paths in the current scene.
 
     Honors the ``use_selected_namespace`` toggle: when on, every item's
-    stored namespace is replaced with the namespace of the currently
-    selected object before lookup.
+    stored namespace is replaced before lookup with, in order, the
+    ``namespace`` argument, the namespace of the currently selected
+    object (which is then stored as the last namespace), or the last
+    stored namespace.
 
     Components like ``ns:body.f[0:10]`` are resolved by looking up the
     parent transform first (so ambiguity is detected on the transform),
@@ -280,6 +438,8 @@ def resolve_bookmark_items(bookmark):
 
     Args:
         bookmark (dict): The bookmark dictionary.
+        namespace (str, optional): Namespace to use for a bookmark with
+            ``use_selected_namespace`` on, instead of the selection's.
 
     Returns:
         tuple: ``(resolved, missing)`` where ``resolved`` is a list of
@@ -288,16 +448,20 @@ def resolve_bookmark_items(bookmark):
 
     Raises:
         RuntimeError: If any item is ambiguous, or if
-            ``use_selected_namespace`` is on with no current selection.
+            ``use_selected_namespace`` is on with no namespace argument,
+            no current selection and no stored last namespace.
     """
     items = bookmark.get("items", [])
     if bookmark.get("use_selected_namespace"):
-        sel = cmds.ls(selection=True, long=True) or []
-        if not sel:
+        new_ns = namespace
+        if new_ns is None:
+            new_ns = selection_namespace()
+        if new_ns is None:
+            new_ns = get_last_namespace()
+        if new_ns is None:
             raise RuntimeError(
                 "'Use selected namespace' is on but nothing is selected."
             )
-        new_ns = extract_namespace(sel[0])
         items = [swap_namespace(i, new_ns) for i in items]
 
     resolved = []
@@ -407,6 +571,40 @@ def remove_selected_from_bookmark(bookmark):
     return original_count - len(bookmark["items"])
 
 
+def key_bookmark_members(bookmark, namespace=None):
+    """Key all keyable attributes of a selection bookmark's nodes.
+
+    Components and nodes without keyable attributes are skipped. The
+    selection does not change, and the keying is one undo step.
+
+    Args:
+        bookmark (dict): The bookmark dictionary.
+        namespace (str, optional): Namespace for a bookmark with
+            ``use_selected_namespace`` on, see
+            :func:`resolve_bookmark_items`.
+
+    Returns:
+        list: The keyed nodes.
+    """
+    if bookmark.get("type") != BOOKMARK_SELECTION:
+        return []
+    try:
+        valid, _missing = resolve_bookmark_items(bookmark, namespace)
+    except RuntimeError as e:
+        cmds.warning(str(e))
+        return []
+    nodes = anim_utils.keyable_nodes(valid)
+    if not nodes:
+        cmds.warning("No keyable bookmark items found in scene")
+        return []
+    cmds.undoInfo(openChunk=True, chunkName="keyBookmarkMembers")
+    try:
+        cmds.setKeyframe(nodes)
+    finally:
+        cmds.undoInfo(closeChunk=True)
+    return nodes
+
+
 #############################################
 # ISOLATE LOGIC
 #############################################
@@ -499,6 +697,8 @@ def bookmarks_to_config(bookmarks, layout="horizontal"):
                 "use_selected_namespace": bool(
                     bm.get("use_selected_namespace", False)
                 ),
+                # copied whole, so settings of unknown tools are kept
+                "tools": copy.deepcopy(bm.get("tools", {})),
             }
             for bm in bookmarks
         ],
@@ -531,6 +731,7 @@ def config_to_bookmarks(config):
             "use_selected_namespace": bool(
                 raw.get("use_selected_namespace", False)
             ),
+            "tools": copy.deepcopy(raw.get("tools", {})),
         })
     return bookmarks, layout
 

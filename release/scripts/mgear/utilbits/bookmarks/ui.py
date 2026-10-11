@@ -263,6 +263,8 @@ class BookmarksUI(
         chip.toggle_namespace_mode_requested.connect(
             self._on_toggle_namespace_mode
         )
+        chip.tool_toggled.connect(self._on_tool_toggled)
+        chip.key_members_requested.connect(self._on_key_members)
 
     def _insert_chip_widget(self, chip):
         """Insert chip widget into the current layout.
@@ -557,6 +559,33 @@ class BookmarksUI(
         if chip:
             chip.update_bookmark(bookmark)
         self._auto_save()
+
+    def _on_tool_toggled(self, bookmark, tool_id, enabled):
+        """Enable or disable a tool on a bookmark.
+
+        Args:
+            bookmark (dict): The bookmark to modify.
+            tool_id (str): The tool id.
+            enabled (bool): The new state.
+        """
+        core.set_tool_config(bookmark, tool_id, enabled=enabled)
+        self._auto_save()
+
+    def _on_key_members(self, bookmark):
+        """Key the members of a selection bookmark.
+
+        Args:
+            bookmark (dict): The bookmark to key.
+        """
+        nodes = core.key_bookmark_members(bookmark)
+        if nodes:
+            cmds.inViewMessage(
+                amg="Keyed <hl>{}</hl>: {} control(s)".format(
+                    bookmark["name"], len(nodes)
+                ),
+                pos="topCenter",
+                fade=True,
+            )
 
     def _on_add_to_shelf(self, bookmark):
         """Add bookmark to Maya's current shelf.
