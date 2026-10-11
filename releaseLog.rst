@@ -9,6 +9,7 @@ Release Log
 	* Rigbits: Lattice IO: New tool to export and import ffd lattices (.lat) with settings, membership, weights and deformer order. Replaces the standalone lattice serializer script
 	* Rigbits: Shrink Wrap IO: New tool to export and import shrinkWrap deformers (.shw) with settings, connections, membership and weights
 	* Rigbits: Proximity Wrap IO: New tool to export and import proximityWrap deformers (.pxw) with drivers, falloff ramps, membership and weights
+	* Shifter: Mirror Config: New tool that sets up the mirror pose flags of all rig controls from the rig itself, with verify, .smc import/export and an Import Mirror Config custom step template
 
 **Enhancements**
 	* Animbits: Spring Manager 2.0: Refactored on solver backends, with live multi-spring editing, presets v2 with thumbnails and libraries, and improved bake options
@@ -23,7 +24,7 @@ Release Log
 	* Core: Skin: importSkin / importSkinPack gain namespace, on_missing and mapping arguments
 	* Core: Deformer: create_proximity_wrap gains an optional wrap_mode argument. Supersedes PR #650 (thanks evilbeanz13)
 	* Core: Add deformer_io, a generic layer to save and rebuild deformers, plus deformer stack, weights and lattice helpers
-	* Core: Add screen_capture, vector_path, svg_export, shading and node_remap modules
+	* Core: Add screen_capture, vector_path, svg_export, shading, node_remap and config_io modules
 	* Core: Add helpers for undo, progress bar, OM2 callbacks, widgets, settings, smooth scrolling, animation bake and Time Editor
 	* Core: Menu: Warn when a submenu item uses a callable command instead of a source string
 	* Core: Viewport Menu: Refactored on a section registry, so tools, custom steps and Shifter components (with a dagmenu.py) can add their own right-click items
@@ -37,7 +38,7 @@ Release Log
 	* Shifter: Build: Rig builds are about twice as fast, mainly from faster pymaya node creation and attribute lookups
 	* Shifter: Build: Component build data is collected only when a data collector is on or a custom step reads it
 	* Shifter: Build: Warn when a slow plug-in such as bluePencil is loaded
-	* Docs: Document Blocking Ghosts, Lattice / Shrink Wrap / Proximity Wrap IO, Spring Manager, HumanIK Mapper, Anim Picker SVG editor and screen capture, skin namespace support and the build log
+	* Docs: Document Blocking Ghosts, Lattice / Shrink Wrap / Proximity Wrap IO, Mirror Config, Spring Manager, HumanIK Mapper, Anim Picker SVG editor and screen capture, skin namespace support and the build log
 
 **Bug Fix**
 	* Core: Skin: Fix skin pack export file names for clashing or namespaced objects

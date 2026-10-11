@@ -732,17 +732,7 @@ def setInvertMirror(node, invList=None):
 
     """
 
-    aDic = {
-        "tx": "invTx",
-        "ty": "invTy",
-        "tz": "invTz",
-        "rx": "invRx",
-        "ry": "invRy",
-        "rz": "invRz",
-        "sx": "invSx",
-        "sy": "invSy",
-        "sz": "invSz",
-    }
+    aDic = {attr[3:].lower(): attr for attr in MIRROR_CONFIG_CHANNELS}
 
     for axis in invList:
         if axis not in aDic:
@@ -1737,84 +1727,49 @@ def get_alias_for_attr(full_attr_name):
 ##########################################################
 
 
-def add_mirror_config_channels(ctl, conf=[0, 0, 0, 0, 0, 0, 0, 0, 0]):
+MIRROR_CONFIG_CHANNELS = (
+    "invTx",
+    "invTy",
+    "invTz",
+    "invRx",
+    "invRy",
+    "invRz",
+    "invSx",
+    "invSy",
+    "invSz",
+)
+
+
+def add_mirror_config_channels(ctl, conf=None):
     """Add channels to configure the mirror posing
 
+    Channels that the control already has are kept with their value, so it
+    is safe on controls that have only some of them.
+
     Args:
-     ctl (dagNode): Control Object
+        ctl (str or dagNode): Control Object
+        conf (list, optional): Default value of the nine channels, in the
+            order tx, ty, tz, rx, ry, rz, sx, sy, sz. All off by default.
+
+    Returns:
+        list: Names of the created channels.
     """
-    addAttribute(
-        ctl,
-        "invTx",
-        "bool",
-        conf[0],
-        keyable=False,
-        niceName="Invert Mirror TX",
-    )
-    addAttribute(
-        ctl,
-        "invTy",
-        "bool",
-        conf[1],
-        keyable=False,
-        niceName="Invert Mirror TY",
-    )
-    addAttribute(
-        ctl,
-        "invTz",
-        "bool",
-        conf[2],
-        keyable=False,
-        niceName="Invert Mirror TZ",
-    )
-    addAttribute(
-        ctl,
-        "invRx",
-        "bool",
-        conf[3],
-        keyable=False,
-        niceName="Invert Mirror RX",
-    )
-    addAttribute(
-        ctl,
-        "invRy",
-        "bool",
-        conf[4],
-        keyable=False,
-        niceName="Invert Mirror RY",
-    )
-    addAttribute(
-        ctl,
-        "invRz",
-        "bool",
-        conf[5],
-        keyable=False,
-        niceName="Invert Mirror RZ",
-    )
-    addAttribute(
-        ctl,
-        "invSx",
-        "bool",
-        conf[6],
-        keyable=False,
-        niceName="Invert Mirror SX",
-    )
-    addAttribute(
-        ctl,
-        "invSy",
-        "bool",
-        conf[7],
-        keyable=False,
-        niceName="Invert Mirror SY",
-    )
-    addAttribute(
-        ctl,
-        "invSz",
-        "bool",
-        conf[8],
-        keyable=False,
-        niceName="Invert Mirror SZ",
-    )
+    conf = conf or [0] * len(MIRROR_CONFIG_CHANNELS)
+    ctl = str(ctl)
+    created = []
+    for attr, value in zip(MIRROR_CONFIG_CHANNELS, conf):
+        if cmds.attributeQuery(attr, node=ctl, exists=True):
+            continue
+        cmds.addAttr(
+            ctl,
+            longName=attr,
+            niceName="Invert Mirror {}".format(attr[3:].upper()),
+            attributeType="bool",
+            defaultValue=bool(value),
+            keyable=False,
+        )
+        created.append(attr)
+    return created
 
 
 def toggle_bool_attr(attr):

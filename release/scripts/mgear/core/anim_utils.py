@@ -1,6 +1,7 @@
 # Stdlib imports
 import re
 import traceback
+from contextlib import contextmanager
 from functools import partial
 
 PY2 = False
@@ -2489,15 +2490,22 @@ def get_rig_control_sets(nodes):
     for node in nodes:
         samples.setdefault(getNamespace(str(node).split("|")[-1]), node)
     labels = []
-    for root in _get_rig_roots(samples.values()):
+    for root in get_rig_roots(samples.values()):
         for label in _get_rig_sub_sets(root):
             if label not in labels:
                 labels.append(label)
     return labels
 
 
-def _get_rig_roots(nodes):
-    """Get the unique rig top nodes of the nodes."""
+def get_rig_roots(nodes):
+    """Get the unique rig top nodes of the nodes.
+
+    Args:
+        nodes (list): Any nodes, str or PyNode.
+
+    Returns:
+        list: Full paths of the rig top nodes, in the order found.
+    """
     roots = [_find_rig_root_path(str(node)) for node in nodes]
     return list(dict.fromkeys(r for r in roots if r))
 
@@ -2514,7 +2522,7 @@ def _get_full_pose_controls(nodes, control_set=None):
         list: Control names.
     """
     controls = []
-    for root in _get_rig_roots(nodes):
+    for root in get_rig_roots(nodes):
         if control_set is None:
             controls.extend(get_rig_controls(root))
             continue
@@ -2638,6 +2646,50 @@ def resetSelTrans():
     with pm.UndoChunk():
         for obj in pm.selected():
             transform.resetTransform(obj)
+
+
+@contextmanager
+def default_pose(nodes):
+    """Context manager - Put nodes at their default values for the block.
+
+    The keyable, unlocked channels of the nodes are set to their default
+    value, and the changed ones are set back on exit, even if the block
+    raises. Channels that can't be set (i.e. connected) are left alone.
+    Nothing is recorded in the undo queue.
+
+    Args:
+        nodes (list): Transforms, i.e. all the controls of a rig.
+
+    Example:
+        >>> with default_pose(get_rig_controls("rig")):
+        ...     matrix = cmds.getAttr("arm_L0_fk0_ctl.worldMatrix")
+    """
+    names = cmds.ls([str(n) for n in nodes], long=True, type="transform") or []
+    changed = []
+    with utils.undo_disabled():
+        try:
+            for node in dict.fromkeys(names):
+                attrs = cmds.listAttr(node, keyable=True, unlocked=True, scalar=True)
+                for attr in attrs or []:
+                    plug = "{}.{}".format(node, attr)
+                    try:
+                        value = cmds.getAttr(plug)
+                        default = cmds.attributeQuery(
+                            attr, node=node, listDefault=True
+                        )
+                        if not default or value == default[0]:
+                            continue
+                        cmds.setAttr(plug, default[0])
+                    except (RuntimeError, ValueError):
+                        continue
+                    changed.append((plug, value))
+            yield
+        finally:
+            for plug, value in reversed(changed):
+                try:
+                    cmds.setAttr(plug, value)
+                except RuntimeError:
+                    continue
 
 
 def reset_all_keyable_attributes(dagnodes, *args):  # @unusedVariable

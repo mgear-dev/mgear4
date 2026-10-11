@@ -910,6 +910,8 @@ When creating a new custom step, mGear provides a template selection dialog that
 
 - **Import Proximity Wrap Configuration**: Rebuilds proximityWrap deformers from a Proximity Wrap IO ``.pxw`` file (see :ref:`proximitywrap-io`), with their drivers, ramps and driving controls. Options to import only some proximity wraps, replace existing ones and override the stored deformer order. Run it at bind pose.
 
+- **Import Mirror Config**: Sets the mirror pose flags of the rig controls from a Mirror Config ``.smc`` file (see :ref:`mirror-config`). Options for the controls' namespace and to create the missing inv attributes.
+
 **Template Configuration Options:**
 
 Each template provides three ways to configure file paths:
@@ -2048,6 +2050,60 @@ Use this to:
 - Create a library of control designs
 
 Access from: **Shifter > Extract Controls**
+
+.. _mirror-config:
+
+Mirror Config
+-----------------
+
+Sets up the mirror pose of all the controls of a rig in one step. Mirror and flip pose copy each channel value to the mirror control, and invert it when the source control has its inv attribute on (``invTx`` ... ``invSz``, under **Invert Mirror** in the Attribute Editor). Each component presets these flags for the way it is usually built, so a component used in another way, or a control added by a custom step, can mirror wrong.
+
+Mirror Config works out the right translate and rotate flags from the rig itself. It compares the frame each control's channels act in (its parent frame, or the jointOrient frame for joints) with the frame of its mirror control, mirrored about world X. A parent with a negative scale, used for full mirror behaviour, is part of that frame, so the result is right whether the R side is built with negative scale or rotated. Center controls are compared with themselves. Scale flags are always proposed off. User attribute flags (``invRoll`` ...) are not changed.
+
+The rig is put at its default pose during the analysis and set back afterwards, so it can be posed.
+
+Access from: **Shifter > Mirror Config**
+
+.. image:: images/shifter/mirror_config.png
+    :align: center
+
+**Workflow**
+
+1. Select any node of the rig and click **Analyze** (or choose **Selected controls** to analyze only the selected controls).
+2. Review the table. The flags that differ from the scene are highlighted. Click a checkbox to change a flag: the row becomes **Manual**.
+3. Click **Apply All** or **Apply Selected**.
+4. Click **Verify** to mirror a test pose with the scene flags and see the error of each control. 0.00° / 0.000 is a perfect mirror.
+5. **Export** the flags to a ``.smc`` file, and apply them in the build with the **Import Mirror Config** custom step template.
+
+**Status**
+
+- **OK**: the scene flags are the proposed ones.
+- **Changed**: the scene flags differ from the proposal.
+- **Missing attrs**: the control doesn't have all the inv attributes. Apply or **Create Missing** adds them.
+- **Not mirrorable**: the frames of the control and its mirror control are not related by axis flips (i.e. swapped axes or asymmetric guides), so channel flips can't mirror it. The error column shows how far off it is, in degrees, and the flags are left as they are. Raise the **Tolerance** to accept small asymmetries.
+- **No pair**: a side control without mirror control.
+- **Manual**: flags edited in the table.
+
+**Create Missing** adds the inv attributes to the controls of the rig controllers set that don't have them. **Import** applies a ``.smc`` file to the rig of the selection, using its namespace.
+
+**File Format**
+
+``.smc`` files are JSON. The ``type`` key is ``"mirror_config"``, and ``controls`` maps each control name, without namespace, to its nine inv flags.
+
+**Scripting Access**
+
+.. code-block:: python
+
+    from mgear.core import mirror_config
+
+    analysis = mirror_config.analyze(["global_C0_ctl"])
+    mirror_config.apply_config(mirror_config.config_from_analysis(analysis))
+    errors = mirror_config.verify(["global_C0_ctl"])
+
+    # Export the scene flags, apply them to a referenced rig
+    config = mirror_config.get_config(["global_C0_ctl"])
+    path = mirror_config.export_config("C:/rig/data/hero.smc", config)
+    mirror_config.import_config(path, namespace="hero01")
 
 .. _build-operations:
 

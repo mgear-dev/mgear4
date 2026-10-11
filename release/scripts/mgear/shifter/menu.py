@@ -20,6 +20,7 @@ def install():
         ("Duplicate", str_duplicate, "mgear_copy.svg"),
         ("Duplicate Sym", str_duplicateSym, "mgear_duplicate_sym.svg"),
         ("Extract Controls", str_extract_controls, "mgear_move.svg"),
+        ("Mirror Config", str_mirror_config, "mgear_mirror_config.svg"),
         ("-----", None),
         ("Build from Selection", str_build_from_selection, "mgear_play.svg"),
         (
@@ -272,6 +273,11 @@ guide_manager.duplicate(True)
 str_extract_controls = """
 from mgear.shifter import guide_manager
 guide_manager.extract_controls()
+"""
+
+str_mirror_config = """
+from mgear.shifter import mirror_config_ui
+mirror_config_ui.show()
 """
 
 str_build_from_selection = """

@@ -22,9 +22,7 @@ Example:
     >>> targets, geo_map = deformer_io.resolve_geometry(geometry)
 """
 
-import json
 import logging
-import os
 import re
 
 from maya import cmds
@@ -32,6 +30,11 @@ from maya import cmds
 from mgear.core import deformer
 from mgear.core import node_remap
 from mgear.core import utils
+
+# file helpers, moved to config_io and kept here for backward compatibility
+from mgear.core.config_io import file_path  # noqa: F401
+from mgear.core.config_io import load_file  # noqa: F401
+from mgear.core.config_io import write_file  # noqa: F401
 
 logger = logging.getLogger(__name__)
 
@@ -146,72 +149,6 @@ def resolve_order(stored, name, order=None):
         mode = order
     validate_order(mode)
     return mode
-
-
-# =============================================================================
-# FILES
-# =============================================================================
-
-
-def file_path(path, ext):
-    """Return a file path with an extension when it has none.
-
-    Args:
-        path (str): File path.
-        ext (str): Extension with the dot, e.g. ``".lat"``.
-
-    Returns:
-        str: The path, with ``ext`` added if it had no extension.
-    """
-    if not os.path.splitext(path)[1]:
-        path += ext
-    return path
-
-
-def write_file(path, file_type, schema_version, items_key, items):
-    """Write a deformer configuration file.
-
-    Args:
-        path (str): Output file path.
-        file_type (str): File type id, checked by :func:`load_file`.
-        schema_version (int): Schema version of the items.
-        items_key (str): Key of the items list, e.g. ``"lattices"``.
-        items (list): Serializable deformer configurations.
-
-    Returns:
-        dict: The written data.
-    """
-    data = {
-        "type": file_type,
-        "schema_version": schema_version,
-        "maya_version": cmds.about(version=True),
-        "scene": cmds.file(query=True, sceneName=True),
-        items_key: items,
-    }
-    with open(path, "w") as f:
-        json.dump(data, f, indent=2)
-    return data
-
-
-def load_file(path, file_type, label=None):
-    """Load and validate a deformer configuration file.
-
-    Args:
-        path (str): File path.
-        file_type (str): Expected file type id.
-        label (str, optional): Readable file kind for the error message.
-
-    Returns:
-        dict: The loaded data.
-
-    Raises:
-        ValueError: If the file is not of the expected type.
-    """
-    with open(path, "r") as f:
-        data = json.load(f)
-    if not isinstance(data, dict) or data.get("type") != file_type:
-        raise ValueError("Not a {} file: {}".format(label or file_type, path))
-    return data
 
 
 # =============================================================================

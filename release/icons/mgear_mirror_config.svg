@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <!-- Mirror line -->
+  <line x1="12" y1="2" x2="12" y2="22" stroke-dasharray="2 2.5"></line>
+  <!-- Left axis gizmo: Y up, X out to the left -->
+  <path d="M8.5 17V5"></path>
+  <path d="M8.5 17H2.5"></path>
+  <path d="M4.5 15l-2 2l2 2"></path>
+  <!-- Right axis gizmo: Y up -->
+  <path d="M21.5 17V5"></path>
+  <!-- Right X axis inverted, pointing back to the mirror line (colored) -->
+  <g stroke="#7cb5a0">
+    <path d="M21.5 17h-6"></path>
+    <path d="M17.5 15l-2 2l2 2"></path>
+  </g>
+</svg>

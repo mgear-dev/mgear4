@@ -61,6 +61,11 @@ TEMPLATES = {
         "description": "Rebuild proximityWrap deformers from a Proximity Wrap IO .pxw file",
         "module": "import_proximitywrap_config",
     },
+    "import_mirror_config": {
+        "name": "Import Mirror Config",
+        "description": "Apply the mirror pose flags of a Mirror Config .smc file",
+        "module": "import_mirror_config",
+    },
 }
 
 
