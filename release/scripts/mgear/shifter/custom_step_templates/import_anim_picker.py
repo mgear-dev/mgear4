@@ -6,7 +6,6 @@ reparenting under the rig root.
 
 TEMPLATE = r'''import mgear.shifter.custom_step as cstp
 from mgear.anim_picker import picker_node
-from mgear.anim_picker.handlers import file_handlers
 from maya import cmds
 
 
@@ -65,44 +64,20 @@ class CustomShifterStep(cstp.customShifterMainStep):
                 return
             file_path = file_path[0]
 
-        # Read the picker data from file
+        # Create the picker data node from the file
         try:
-            picker_data = file_handlers.read_data_file(file_path)
-        except Exception as e:
-            self.log(
-                "Failed to read picker file: {{}}".format(e), level="error"
+            node_name = picker_node.create_picker_from_file(
+                file_path, node_name=self.picker_node_name
             )
-            raise
-
-        # Create the picker data node
-        try:
-            node_name = self.picker_node_name or picker_node.DataNode.__NODE__
-            data_node = picker_node.DataNode(node_name)
-
-            # Create the node if it doesn't exist
-            if not data_node.exists():
-                data_node.create()
-
-            # Write the data to the node
-            data_node.set_data(picker_data)
-            data_node.write_data(to_node=True, to_file=False)
-
-            # Store the file path reference
-            if hasattr(data_node, "_set_str_attr"):
-                data_node._set_str_attr(
-                    data_node.__FILE_ATTR__,
-                    file_handlers.replace_path_with_token(file_path),
-                )
-
             self.log(
                 "Anim Picker node '{{}}' created from: {{}}".format(
-                    data_node.name, file_path
+                    node_name, file_path
                 )
             )
 
             # Reparent to rig root if requested
             if self.reparent_to_rig:
-                self._reparent_to_rig(data_node.name)
+                self._reparent_to_rig(node_name)
 
         except Exception as e:
             self.log(

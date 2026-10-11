@@ -34,3 +34,17 @@ def show(*args):
     _window = BookmarksUI()
     _window.show(dockable=True)
     return _window
+
+
+def drop_file(file_path):
+    """Open the Bookmarks window and load a .sbk file dropped on Maya.
+
+    Args:
+        file_path (str): Bookmarks (.sbk) file path.
+
+    Returns:
+        BookmarksUI: The window.
+    """
+    window = show()
+    window.load_file(file_path)
+    return window

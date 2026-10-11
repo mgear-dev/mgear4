@@ -108,6 +108,61 @@ def getSkinCluster(obj, first_SC=False):
     return skinCluster
 
 
+def get_off_bind_pose_influences(nodes, tolerance=1e-4):
+    """Get the skin influences that are not at their bind pose.
+
+    An influence is at bind pose when its world matrix times its skin
+    cluster ``bindPreMatrix`` is the identity. This doesn't need a dagPose
+    node, and checks exactly what the skin uses.
+
+    Args:
+        nodes (list of str): Skinned geometry transforms. Geometry without a
+            skin cluster is ignored.
+        tolerance (float, optional): Largest matrix value difference.
+
+    Returns:
+        list of str: Influences off their bind pose, without duplicates.
+    """
+    identity = om2.MMatrix()
+    seen = set()
+    off_pose = []
+    existing = [n for n in nodes if cmds.objExists(n)]
+    history = cmds.listHistory(existing, pruneDagObjects=True) if existing else []
+    for skin_cluster in cmds.ls(history or [], type="skinCluster"):
+        selection = om2.MSelectionList()
+        selection.add(skin_cluster)
+        skin_fn = oma2.MFnSkinCluster(selection.getDependNode(0))
+        for path in skin_fn.influenceObjects():
+            if path.fullPathName() in seen:
+                continue
+            seen.add(path.fullPathName())
+            pre = om2.MMatrix(
+                cmds.getAttr(
+                    "{}.bindPreMatrix[{}]".format(
+                        skin_cluster, skin_fn.indexForInfluenceObject(path)
+                    )
+                )
+            )
+            if not (path.inclusiveMatrix() * pre).isEquivalent(identity, tolerance):
+                off_pose.append(path.partialPathName())
+    return off_pose
+
+
+def is_at_bind_pose(nodes, tolerance=1e-4):
+    """Check if skinned geometry is at its bind pose.
+
+    Args:
+        nodes (list of str): Skinned geometry transforms. Geometry without a
+            skin cluster is ignored.
+        tolerance (float, optional): Largest matrix value difference.
+
+    Returns:
+        bool: True when every influence of their skin clusters is at its
+            bind pose.
+    """
+    return not get_off_bind_pose_influences(nodes, tolerance)
+
+
 def get_mesh_components_from_tag_expression(skinCls, tag="*"):
     """Get the mesh components from the  component tag expression
 
@@ -3011,3 +3066,18 @@ def get_dominant_influence_vertices(
         if weights[offset + best] >= threshold and paths[best] in names:
             result[names[paths[best]]].append(vertex)
     return result
+
+
+def drop_file(path):
+    """Import a skin or skin pack file dropped on Maya.
+
+    Used by the mGear file drop. The remap dialog opens for missing objects
+    or joints.
+
+    Args:
+        path (str): ``.gSkinPack``, ``.gSkin`` or ``.jSkin`` file path.
+    """
+    if path.lower().endswith(PACK_EXT.lower()):
+        importSkinPack(path, on_missing="ui")
+    else:
+        importSkin(path, on_missing="ui")

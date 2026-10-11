@@ -1118,3 +1118,45 @@ def import_configuration(filepath, target_mesh=None):
         "mesh": mesh,
         "conversion_settings": config.get("conversion_settings"),
     }
+
+
+def drop_file(filepath):
+    """Import a .wts file dropped on Maya, after asking the user.
+
+    The selected mesh is used as target, or the mesh name stored in the
+    file when no mesh is selected.
+
+    Args:
+        filepath (str): Wire to Skinning configuration (.wts) file path.
+    """
+    mesh = None
+    for sel in cmds.ls(selection=True, type="transform") or []:
+        if cmds.listRelatives(sel, shapes=True, type="mesh"):
+            mesh = sel
+            break
+
+    if mesh:
+        message = (
+            "Import wire configuration to selected mesh?\n\n"
+            "Mesh: {}\nFile: {}".format(mesh, filepath)
+        )
+        buttons = ["Import", "Cancel"]
+    else:
+        message = (
+            "No mesh selected.\n\n"
+            "Select a mesh and try again, or import using the stored mesh "
+            "name from the configuration file.\n\n"
+            "File: {}".format(filepath)
+        )
+        buttons = ["Import (use stored mesh)", "Cancel"]
+
+    result = cmds.confirmDialog(
+        title="Wire to Skinning",
+        message=message,
+        button=buttons,
+        defaultButton=buttons[0],
+        cancelButton="Cancel",
+        dismissString="Cancel",
+    )
+    if result != "Cancel":
+        import_configuration(filepath, target_mesh=mesh)

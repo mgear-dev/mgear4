@@ -54,7 +54,7 @@ The top bar drives which picker is loaded and how it behaves:
 * **Sync Namespace:** when on, the picker resolves its controls in the
   namespace of your current selection, so one picker drives any referenced
   instance of the rig.
-* **Load / Refresh:** load a picker from a ``.pkr`` file, or re-read the data
+* **Load / Refresh:** load a picker from a ``.pkr`` file (or drop the file into Maya with mGear file drop enabled, see :ref:`file-drop`), or re-read the data
   node and re-sync the widgets to the rig.
 * **View:** **Tabbed** shows one tab at a time; **Tiled** shows several tabs
   side by side (the spinbox sets the column count).

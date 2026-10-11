@@ -63,6 +63,8 @@ Channel Master
 
 Channel Master is an alternative ChannelBox, but allowing the user to create custom configurations and store it.
 
+With mGear file drop enabled (see :ref:`file-drop`), dropping a ``.cmc`` file into Maya creates its node and opens Channel Master on it.
+
 .. image:: images/animbits/channel_master.png
     :align: center
     :scale: 95%

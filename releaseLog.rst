@@ -25,11 +25,14 @@ Release Log
 	* Core: Deformer: create_proximity_wrap gains an optional wrap_mode argument. Supersedes PR #650 (thanks evilbeanz13)
 	* Core: Add deformer_io, a generic layer to save and rebuild deformers, plus deformer stack, weights and lattice helpers
 	* Core: Add screen_capture, vector_path, svg_export, shading, node_remap and config_io modules
-	* Core: Add helpers for undo, progress bar, OM2 callbacks, widgets, settings, smooth scrolling, animation bake and Time Editor
+	* Core: Add helpers for undo, progress bar, OM2 callbacks, widgets, settings, smooth scrolling, animation bake, Time Editor, skin bind pose check and scene namespaces
+	* Core: File Drop: Drop Lattice, Shrink Wrap, Proximity Wrap, Channel Wrangler, Channel Master, Anim Picker and Bookmarks files onto Maya
+	* Core: File Drop: register_drop_handler lets studio tools handle their own file types
 	* Core: Menu: Warn when a submenu item uses a callable command instead of a source string
 	* Core: Viewport Menu: Refactored on a section registry, so tools, custom steps and Shifter components (with a dagmenu.py) can add their own right-click items
 	* Core: Viewport Menu: Full Pose submenu to mirror L → R, R → L or flip the whole pose, shared in anim_utils for other tools
 	* Core: Anim Utils: Mirror and flip pose are much faster on large rigs: only changed values are written
+	* Rigbits: Proximity Wrap IO: Warn when importing off the bind pose
 	* Rigbits: Gimmick Joints: Rebuilt as a tool window with mirror, select, flip, .gst import/export and an Import Gimmick Joints Configuration custom step template, replacing the Gimmick Joints submenu #279
 	* Shifter: Build Log: Faster log window that stays responsive across repeated builds
 	* Shifter: Guide Explorer: Skip tree refreshes while a build is running
@@ -39,7 +42,7 @@ Release Log
 	* Shifter: Build: Rig builds are about twice as fast, mainly from faster pymaya node creation and attribute lookups
 	* Shifter: Build: Component build data is collected only when a data collector is on or a custom step reads it
 	* Shifter: Build: Warn when a slow plug-in such as bluePencil is loaded
-	* Docs: Document Blocking Ghosts, Lattice / Shrink Wrap / Proximity Wrap IO, Mirror Config, Spring Manager, HumanIK Mapper, Anim Picker SVG editor and screen capture, skin namespace support and the build log
+	* Docs: Document Blocking Ghosts, Lattice / Shrink Wrap / Proximity Wrap IO, Mirror Config, Spring Manager, HumanIK Mapper, Anim Picker SVG editor and screen capture, skin namespace support, the build log and file drop
 
 **Bug Fix**
 	* Core: Skin: Fix skin pack export file names for clashing or namespaced objects
@@ -54,8 +57,10 @@ Release Log
 	* PyMaya: PyNode raises MayaNodeError again for missing nodes
 	* PyMaya: A missing node error is also a TypeError, as in PyMEL, so old fallbacks that catch TypeError work again
 	* Rigbits: Add Joint, Add Blended Joint and Add Support Joint work in scenes without rig_deformers_grp or jnt_org
+	* Core: File Drop: Fix paths with quotes and upper-case extensions
 	* Shifter: Build Log: Clear the log at the start of every build and keep it when reopening the window
 	* Shifter: Custom Step: Groups with many steps scroll smoothly and their last steps are reachable
+	* Anim Picker: Fix Load Picker in scenes without namespaces
 	* Anim Picker: Fix SVG badge size, default opacity of new vector items and the dead "Toggle handles" entry
 	* Solvers: Spring nodes no longer step twice on the same frame; Gravity node ground follows the ground_transform plane
 	* Animbits: Spring Manager: Fix search filter on PySide6, preset crashes and settings saving

@@ -38,6 +38,7 @@ Welcome to mGear: Rigging Framework for Autodesk Maya
    skinningUserDocumentation
    shifterComponentReference
    viewportMenu
+   fileDrop
    framework
    solvers
    videoTutorials

@@ -342,3 +342,36 @@ class DataNode(object):
         attrPlug = "{}.{}".format(self.name, self.__VERSION_ATTR__)
         cmds.setAttr(attrPlug, k=False, l=False)
         cmds.setAttr(attrPlug, str(version), l=True, type="string")
+
+
+def create_picker_from_file(path, namespace=None, node_name=None):
+    """Create or update a picker data node from a .pkr file.
+
+    No dialog is shown. The file path is kept in the data, so images saved
+    next to the .pkr are found, and in the node's file attribute (with the
+    path tokens of ``file_handlers``).
+
+    Args:
+        path (str): Anim Picker (.pkr) file path.
+        namespace (str, optional): Namespace of the rig the picker drives.
+            None or "Root" for no namespace.
+        node_name (str, optional): Picker node name. Default is
+            ``DataNode.__NODE__``.
+
+    Returns:
+        str: The picker data node name.
+    """
+    data = file_handlers.read_data_file(path)
+    data["source_file_path"] = path
+    name = node_name or DataNode.__NODE__
+    if namespace and namespace != "Root" and cmds.namespace(exists=namespace):
+        name = "{}:{}".format(namespace, name)
+    data_node = DataNode(name=name)
+    if not data_node.exists():
+        data_node.create()
+    data_node.set_data(data)
+    data_node.write_data(to_node=True, to_file=False)
+    data_node._set_str_attr(
+        DataNode.__FILE_ATTR__, file_handlers.replace_path_with_token(path)
+    )
+    return data_node.name

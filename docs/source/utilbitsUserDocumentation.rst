@@ -174,6 +174,8 @@ Bookmarks
 
 Bookmarks is a tool for saving and restoring object selections in Maya. It allows you to create named bookmarks that store a set of selected objects, and quickly recall them later. It also provides an isolate view mode for focusing on specific objects.
 
+With mGear file drop enabled (see :ref:`file-drop`), dropping a ``.sbk`` file into Maya opens Bookmarks and loads it, replacing or appending to the current bookmarks.
+
 .. image:: images/utilbits/bookmarks.png
     :align: center
 

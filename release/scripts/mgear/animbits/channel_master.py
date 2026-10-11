@@ -1291,6 +1291,20 @@ def openChannelMaster(*args):
     return pyqt.showDialog(ChannelMaster, dockable=True)
 
 
+def show_node(node):
+    """Open Channel Master with a node selected in its node list.
+
+    Args:
+        node (str): Channel Master node name.
+
+    Returns:
+        ChannelMaster: The window.
+    """
+    window = openChannelMaster()
+    window.set_active_node(node)
+    return window
+
+
 class channelOrderDialog(QtWidgets.QDialog):
 
     """Dialog to edit table channel order"""

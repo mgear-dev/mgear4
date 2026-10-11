@@ -255,3 +255,44 @@ def set_external_config_path(node, filePath=None):
 
 def remove_external_config_path(node):
     cmds.setAttr("{}.external_data".format(node), "", type="string")
+
+
+def drop_file(filePath):
+    """Import a .cmc file dropped on Maya and open Channel Master on it.
+
+    When a Channel Master node with the file's node name exists, the user
+    chooses to replace its configuration, add the file's tabs to it, or
+    create another node.
+
+    Args:
+        filePath (str): Channel Master configuration (.cmc) file path.
+
+    Returns:
+        str: The Channel Master node, None if cancelled.
+    """
+    with open(filePath) as f:
+        name = string.normalize(json.load(f)["node_name"])
+    node = None
+    add_data = False
+    if name in list_channel_master_nodes():
+        result = cmds.confirmDialog(
+            title="Channel Master",
+            message="The Channel Master node '{}' exists.\n\n"
+            "Replace its configuration, add the file's tabs to it, or "
+            "create a new node?".format(name),
+            button=["Replace", "Add Tabs", "New Node", "Cancel"],
+            defaultButton="Add Tabs",
+            cancelButton="Cancel",
+            dismissString="Cancel",
+        )
+        if result == "Cancel":
+            return None
+        if result in ("Replace", "Add Tabs"):
+            node = name
+            add_data = result == "Add Tabs"
+    node = import_data(filePath, node=node, add_data=add_data)
+
+    from . import channel_master
+
+    channel_master.show_node(node)
+    return node

@@ -14,6 +14,7 @@ import maya.mel as mel
 from maya import cmds
 
 from mgear.core import anim_utils
+from mgear.core import node_remap
 from mgear.core.pyqt import get_icon_path
 from mgear.core.pyqt import get_user_settings
 
@@ -372,22 +373,8 @@ def set_last_namespace(namespace):
     settings.sync()
 
 
-def scene_namespaces():
-    """Return the namespaces of the scene, nested ones included.
-
-    Maya's own ``UI`` and ``shared`` namespaces are left out.
-
-    Returns:
-        list: Sorted namespace names, without leading colon.
-    """
-    namespaces = (
-        cmds.namespaceInfo(
-            ":", listOnlyNamespaces=True, recurse=True, absoluteName=True
-        )
-        or []
-    )
-    names = [ns.lstrip(":") for ns in namespaces]
-    return sorted(ns for ns in names if ns and ns not in ("UI", "shared"))
+# Moved to mgear.core.node_remap, kept for the callers of this module
+scene_namespaces = node_remap.scene_namespaces
 
 
 def namespace_exists(namespace):

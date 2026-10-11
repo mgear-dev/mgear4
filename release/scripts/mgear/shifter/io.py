@@ -321,6 +321,29 @@ def build_from_file(filePath=None, conf=False, *args):
         return rig
 
 
+def guide_file_drop(filePath):
+    """Ask what to do with a guide template file dropped on Maya.
+
+    Used by the mGear file drop: Import draws the guide, Build builds the
+    rig without drawing the guide.
+
+    Args:
+        filePath (str): Guide template (.sgt) file path.
+    """
+    result = cmds.confirmDialog(
+        title="mGear guide file",
+        message="Import or Build guide file?",
+        button=["Import", "Build", "Cancel"],
+        defaultButton="Import",
+        cancelButton="Cancel",
+        dismissString="Cancel",
+    )
+    if result == "Import":
+        import_guide_template(filePath=filePath)
+    elif result == "Build":
+        build_from_file(filePath=filePath)
+
+
 # Sample import command
 def import_sample_template(name, *args):
     """Import the sample guide templates from _template folder

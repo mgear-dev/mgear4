@@ -678,6 +678,17 @@ class BookmarksUI(
         )
         if not file_path:
             return
+        self.load_file(file_path)
+
+    def load_file(self, file_path):
+        """Load bookmarks from a .sbk file.
+
+        When there are bookmarks already, asks to replace or append them.
+        The result is saved to the scene.
+
+        Args:
+            file_path (str): Path to the .sbk file.
+        """
         config = core.import_bookmarks(file_path)
         if not config:
             return

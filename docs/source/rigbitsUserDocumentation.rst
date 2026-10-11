@@ -73,7 +73,7 @@ Import and Export
 
 The **File** menu imports and exports gimmick joints to a ``.gst`` file: all of them, or only the selected ones (with the support joints of the selected blended joints). Import rebuilds the blended joints on their source joints and then the support joints, and skips the ones whose joint is missing in the scene.
 
-With mGear file drop enabled (mGear > Utilities > Enable mGear file drop), dragging a ``.gst`` file into Maya's viewport imports it.
+With mGear file drop enabled (see :ref:`file-drop`), dragging a ``.gst`` file into Maya's viewport imports it.
 
 .. note::
     Blended and support joints made by older mGear versions are recognised by the tool and can be mirrored, selected and exported. The Rigbits commands ``rigbits.addBlendedJoint()`` and ``rigbits.addSupportJoint()`` keep working in custom steps and create the same joints as the window.
@@ -385,6 +385,8 @@ Channel Wrangler
 ================
 
 Move or proxy channels between nodes with a visual table interface.
+
+With mGear file drop enabled (see :ref:`file-drop`), dropping a ``.cwc`` file into Maya applies its channel rules.
 
 .. image:: images/rigbits/channel_wrangler.png
     :align: center
@@ -847,7 +849,7 @@ Save and load wire configurations for reuse across scenes or characters.
 
 .. Tip::
 
-    Enable mGear file drop (mGear > Utilities > Enable mGear file drop) to import ``.wts`` files by dragging them into Maya's viewport.
+    Enable mGear file drop (see :ref:`file-drop`) to import ``.wts`` files by dragging them into Maya's viewport.
 
 Scripting Access
 ----------------
@@ -1149,6 +1151,8 @@ Lattice IO exports ffd lattice deformers to a ``.lat`` file and rebuilds them, s
 
 Access from the menu: **mGear > Rigbits > Lattice IO**
 
+With mGear file drop enabled (see :ref:`file-drop`), dropping a ``.lat`` file into Maya rebuilds its lattices.
+
 What is Saved
 -------------
 
@@ -1251,6 +1255,8 @@ Shrink Wrap IO exports Maya shrinkWrap deformers to a ``.shw`` file and rebuilds
 
 Access from the menu: **mGear > Rigbits > Shrink Wrap IO**
 
+With mGear file drop enabled (see :ref:`file-drop`), dropping a ``.shw`` file into Maya rebuilds its shrink wraps.
+
 What is Saved
 -------------
 
@@ -1334,6 +1340,8 @@ Proximity Wrap IO
 Proximity Wrap IO exports Maya proximityWrap deformers to a ``.pxw`` file and rebuilds them, so the proximity wraps used for clothing, accessories, proxies or partitioned meshes survive a rig rebuild. It works the same way as :ref:`lattice-io` and :ref:`shrinkwrap-io`: export with the tool, then rebuild the proximity wraps in the Shifter build with the **Import Proximity Wrap Configuration** custom step template.
 
 Access from the menu: **mGear > Rigbits > Proximity Wrap IO**
+
+With mGear file drop enabled (see :ref:`file-drop`), dropping a ``.pxw`` file into Maya rebuilds its proximity wraps, with a warning when the skinned meshes are not at their bind pose.
 
 What is Saved
 -------------

@@ -9,6 +9,7 @@ import mgear
 from mgear.vendor.Qt import QtGui
 from mgear.vendor.Qt import QtCore
 from mgear.vendor.Qt import QtWidgets
+from mgear.core import node_remap
 from mgear.core import string
 
 # module
@@ -522,10 +523,8 @@ class LoadOverlayWidget(OverlayWidget):
             msgA = "Path or file does not exist!"
             basic.promptAcceptance(self, msgA, "")
             return
-        pkr_data = file_handlers.read_data_file(file_path)
-        pkr_data["source_file_path"] = file_path
         namespace = self.namespace_cbox.currentText()
-        self.new_picker_node(data=pkr_data, namespace=namespace)
+        self.new_picker_node(file_path, namespace)
 
     def update_namespaces(self):
         self.namespace_cbox.blockSignals(True)
@@ -534,11 +533,7 @@ class LoadOverlayWidget(OverlayWidget):
         self.namespace_cbox.blockSignals(False)
 
     def get_namespaces(self):
-        remove_defaults = ["UI", "shared"]
-        namespaces = cmds.namespaceInfo(listOnlyNamespaces=True, recurse=True)
-        [namespaces.remove(x) for x in remove_defaults]
-        namespaces.extend(["Root", "-Refresh-"])
-        return namespaces
+        return node_remap.scene_namespaces() + ["Root", "-Refresh-"]
 
     def check_selection(self, index):
         if self.namespace_cbox.currentText() == "-Refresh-":
@@ -576,7 +571,7 @@ class LoadOverlayWidget(OverlayWidget):
 
         return file_path
 
-    def new_picker_node(self, data, namespace):
+    def new_picker_node(self, file_path, namespace):
         name, ok = QtWidgets.QInputDialog.getText(
             self,
             "New character",
@@ -589,11 +584,8 @@ class LoadOverlayWidget(OverlayWidget):
             return
 
         # Create new data node
-        if namespace != "Root" and cmds.namespace(ex=namespace):
-            name = "{}:{}".format(namespace, name)
-        data_node = picker_node.DataNode(name=str(name))
-        data_node.create()
-        data_node.write_data(data=data)
-        data_node.read_data()
+        picker_node.create_picker_from_file(
+            file_path, namespace=namespace, node_name=str(name)
+        )
         self.parent().refresh()
         self.hide()

@@ -53,6 +53,24 @@ def short_name(path):
     return strip_namespace_path(path).split("|")[-1]
 
 
+def scene_namespaces():
+    """Return the namespaces of the scene, nested ones included.
+
+    Maya's own ``UI`` and ``shared`` namespaces are left out.
+
+    Returns:
+        list: Sorted namespace names, without leading colon.
+    """
+    namespaces = (
+        cmds.namespaceInfo(
+            ":", listOnlyNamespaces=True, recurse=True, absoluteName=True
+        )
+        or []
+    )
+    names = [ns.lstrip(":") for ns in namespaces]
+    return sorted(ns for ns in names if ns and ns not in ("UI", "shared"))
+
+
 def get_namespace(path):
     """Return the namespace of a node name or DAG path leaf.
 

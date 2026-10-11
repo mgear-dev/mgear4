@@ -328,11 +328,14 @@ def build_proximitywrap(config, replace=True, order=None):
     return node
 
 
-def import_proximitywraps(path, names=None, replace=True, order=None):
+def import_proximitywraps(
+    path, names=None, replace=True, order=None, check_bind_pose=True
+):
     """Import proximityWrap configurations from a file.
 
     The whole import is a single undo step. Drivers are bound again at
-    their current shape, so import with the rig at bind pose.
+    their current shape, so import with the rig at bind pose: a warning is
+    shown when the skinned meshes involved are not.
 
     Args:
         path (str): ``.pxw`` file path.
@@ -343,6 +346,8 @@ def import_proximitywraps(path, names=None, replace=True, order=None):
             the mode stored for each proximity wrap, a str (``"current"``,
             ``"front"`` or ``"last"``) applies to every proximity wrap and
             a ``{name: mode}`` dict applies per proximity wrap.
+        check_bind_pose (bool, optional): Warn when the deformed meshes or
+            the drivers are skinned and not at their bind pose.
 
     Returns:
         list: Created proximityWrap names.
@@ -350,7 +355,32 @@ def import_proximitywraps(path, names=None, replace=True, order=None):
     Raises:
         ValueError: If the file is not valid or an order mode is unknown.
     """
+    if check_bind_pose:
+        warn_off_bind_pose(path)
     return FORMAT.import_file(path, names, replace, order)
+
+
+def warn_off_bind_pose(path):
+    """Warn when the skinned meshes of a file are not at their bind pose.
+
+    Args:
+        path (str): ``.pxw`` file path.
+
+    Returns:
+        list: The influences off their bind pose.
+    """
+    from mgear.core import skin
+
+    off_pose = skin.get_off_bind_pose_influences(get_skinned_meshes(path))
+    if off_pose:
+        msg = (
+            "Proximity wraps imported off the bind pose ({} moved, i.e. {}). "
+            "The result depends on the current pose".format(len(off_pose), off_pose[0])
+        )
+        cmds.warning(msg)
+        if not cmds.about(batch=True):
+            cmds.inViewMessage(assistMessage=msg, position="topCenter", fade=True)
+    return off_pose
 
 
 FORMAT = deformer_io.DeformerFormat(
@@ -364,3 +394,48 @@ FORMAT = deformer_io.DeformerFormat(
     schema_version=SCHEMA_VERSION,
     log=logger,
 )
+
+
+def get_skinned_meshes(path):
+    """Return the scene meshes of a file's deformed geometry and drivers.
+
+    Args:
+        path (str): ``.pxw`` file path.
+
+    Returns:
+        list: Transforms found in the scene, without duplicates.
+    """
+    meshes = []
+    for config in load_file(path)[ITEMS_KEY]:
+        entries = list(config.get("geometry") or [])
+        entries += list(config.get("drivers") or [])
+        for entry in entries:
+            shape = deformer_io.resolve_shape(entry)
+            if not shape:
+                continue
+            transform = deformer_io.get_parent(shape)
+            if transform and transform not in meshes:
+                meshes.append(transform)
+    return meshes
+
+
+def get_skinned_meshes(path):
+    """Return the scene meshes of a file's deformed geometry and drivers.
+
+    Args:
+        path (str): ``.pxw`` file path.
+
+    Returns:
+        list: Transforms found in the scene, without duplicates.
+    """
+    entries = {}
+    for config in load_file(path)[ITEMS_KEY]:
+        for entry in (config.get("geometry") or []) + (config.get("drivers") or []):
+            entries[(entry.get("shape"), entry.get("transform"))] = entry
+    meshes = []
+    for entry in entries.values():
+        shape = deformer_io.resolve_shape(entry)
+        transform = deformer_io.get_parent(shape) if shape else None
+        if transform and transform not in meshes:
+            meshes.append(transform)
+    return meshes
