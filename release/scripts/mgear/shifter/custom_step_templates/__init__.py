@@ -66,6 +66,11 @@ TEMPLATES = {
         "description": "Apply the mirror pose flags of a Mirror Config .smc file",
         "module": "import_mirror_config",
     },
+    "import_gimmick_joints_config": {
+        "name": "Import Gimmick Joints Configuration",
+        "description": "Rebuild blend and support joints from a Gimmick Joints .gst file",
+        "module": "import_gimmick_joints_config",
+    },
 }
 
 

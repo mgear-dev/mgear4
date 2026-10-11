@@ -131,6 +131,8 @@ def addJnt(
         pyNode: The New created joint.
 
     """
+    from mgear.rigbits.gimmick_tool import core
+
     if not obj:
         oSel = pm.selected()
     else:
@@ -154,13 +156,7 @@ def addJnt(
         if grp:
             grp.add(jnt)
         else:
-            try:
-                defSet = pm.PyNode("rig_deformers_grp")
-                pm.sets(defSet, add=jnt)
-            except TypeError:
-                pm.sets(n="rig_deformers_grp")
-                defSet = pm.PyNode("rig_deformers_grp")
-                pm.sets(defSet, add=jnt)
+            core.add_to_deformers_set([jnt.longName()])
 
         jnt.setAttr("segmentScaleCompensate", False)
         jnt.setAttr("jointOrient", 0, 0, 0)
@@ -564,7 +560,7 @@ def addBlendedJoint(
     """Create and gimmick blended joint
 
     Create a joint that rotate 50% of the selected joint. This operation is
-    done using a pairBlend node.
+    done using a pairBlend node. See ``mgear.rigbits.gimmick_tool.core``.
 
     Args:
         oSel (None or joint, optional): If None will use the selected joints.
@@ -572,64 +568,26 @@ def addBlendedJoint(
             joint. Default is True.
         blend (float, optional): blend rotation value
         name (None, optional): Name for the blended o_node
+        select (bool, optional): Select the blended joints.
         *args: Maya's dummy
 
     Returns:
         list: blended joints list
 
     """
+    from mgear.rigbits.gimmick_tool import core
+
     if not oSel:
         oSel = pm.selected()
     elif not isinstance(oSel, list):
         oSel = [oSel]
     jnt_list = []
     for x in oSel:
-        if isinstance(x, pm.nodetypes.Joint):
-            parent = x.getParent()
-            if name:
-                bname = "blend_" + name
-            else:
-                bname = "blend_" + x.name()
-
-            jnt = pm.createNode("joint", n=bname, p=x)
-            jnt_list.append(jnt)
-            jnt.attr("radius").set(1.5)
-            pm.parent(jnt, parent)
-            o_node = pm.createNode("pairBlend")
-            o_node.attr("rotInterpolation").set(1)
-            pm.setAttr(o_node + ".weight", blend)
-            pm.connectAttr(x + ".translate", o_node + ".inTranslate1")
-            pm.connectAttr(x + ".translate", o_node + ".inTranslate2")
-            pm.connectAttr(x + ".rotate", o_node + ".inRotate1")
-
-            pm.connectAttr(o_node + ".outRotateX", jnt + ".rotateX")
-            pm.connectAttr(o_node + ".outRotateY", jnt + ".rotateY")
-            pm.connectAttr(o_node + ".outRotateZ", jnt + ".rotateZ")
-
-            pm.connectAttr(o_node + ".outTranslateX", jnt + ".translateX")
-            pm.connectAttr(o_node + ".outTranslateY", jnt + ".translateY")
-            pm.connectAttr(o_node + ".outTranslateZ", jnt + ".translateZ")
-
-            pm.connectAttr(x + ".scale", jnt + ".scale")
-
-            jnt.attr("overrideEnabled").set(1)
-            jnt.attr("overrideColor").set(17)
-
-            jnt.attr("segmentScaleCompensate").set(compScale)
-
-            try:
-                defSet = pm.PyNode("rig_deformers_grp")
-
-            except TypeError:
-                pm.sets(n="rig_deformers_grp")
-                defSet = pm.PyNode("rig_deformers_grp")
-
-            pm.sets(defSet, add=jnt)
-        else:
-            pm.displayWarning(
-                "Blended Joint can't be added to: %s. Because "
-                "is not ot type Joint" % x.name()
-            )
+        jnt = core.create_blend_joint(
+            pm.PyNode(x).longName(), blend=blend, comp_scale=compScale, name=name
+        )
+        if jnt:
+            jnt_list.append(pm.PyNode(jnt))
 
     if jnt_list and select:
         pm.select(jnt_list)
@@ -640,17 +598,21 @@ def addBlendedJoint(
 def addSupportJoint(oSel=None, select=True, *args):
     """Add an extra joint to the blended joint.
 
-    This is meant to be use with SDK for game style deformation.
+    This is meant to be use with SDK for game style deformation. See
+    ``mgear.rigbits.gimmick_tool.core``.
 
     Args:
         oSel (None or blended joint, optional): If None will use the current
             selection.
+        select (bool, optional): Select the support joints.
         *args: Mays's dummy
 
     Returns:
         list: blended joints list
 
     """
+    from mgear.rigbits.gimmick_tool import core
+
     if not oSel:
         oSel = pm.selected()
     elif not isinstance(oSel, list):
@@ -658,34 +620,9 @@ def addSupportJoint(oSel=None, select=True, *args):
 
     jnt_list = []
     for x in oSel:
-        if x.name().split("_")[0] == "blend":
-            children = [
-                item
-                for item in pm.selected()[0].listRelatives(
-                    ad=True, type="joint"
-                )
-            ]
-            i = len(children)
-            name = x.name().replace("blend", "blendSupport_%s" % str(i))
-            jnt = pm.createNode("joint", n=name, p=x)
-            jnt_list.append(jnt)
-            jnt.attr("radius").set(1.5)
-            jnt.attr("overrideEnabled").set(1)
-            jnt.attr("overrideColor").set(17)
-            try:
-                defSet = pm.PyNode("rig_deformers_grp")
-
-            except pm.MayaNodeError:
-                pm.sets(n="rig_deformers_grp")
-                defSet = pm.PyNode("rig_deformers_grp")
-
-            pm.sets(defSet, add=jnt)
-
-        else:
-            pm.displayWarning(
-                "Support Joint can't be added to: %s. Because "
-                "is not blend joint" % x.name()
-            )
+        jnt = core.create_support_joint(pm.PyNode(x).longName())
+        if jnt:
+            jnt_list.append(pm.PyNode(jnt))
 
     if jnt_list and select:
         pm.select(jnt_list)

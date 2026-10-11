@@ -30,6 +30,7 @@ Release Log
 	* Core: Viewport Menu: Refactored on a section registry, so tools, custom steps and Shifter components (with a dagmenu.py) can add their own right-click items
 	* Core: Viewport Menu: Full Pose submenu to mirror L → R, R → L or flip the whole pose, shared in anim_utils for other tools
 	* Core: Anim Utils: Mirror and flip pose are much faster on large rigs: only changed values are written
+	* Rigbits: Gimmick Joints: Rebuilt as a tool window with mirror, select, flip, .gst import/export and an Import Gimmick Joints Configuration custom step template, replacing the Gimmick Joints submenu #279
 	* Shifter: Build Log: Faster log window that stays responsive across repeated builds
 	* Shifter: Guide Explorer: Skip tree refreshes while a build is running
 	* Shifter: Add is_building() and build_in_progress() to detect a running build
@@ -51,6 +52,8 @@ Release Log
 	* Core: Viewport Menu: Fix IK/FK switch of components sharing a blend, X-Ray toggle acting on the selection, menu failing on non-enum ref attributes, and the Update Selected Components Type label
 	* Core: Viewport Menu: Mirror/Flip all below use every selected control and no longer cancel left/right pairs
 	* PyMaya: PyNode raises MayaNodeError again for missing nodes
+	* PyMaya: A missing node error is also a TypeError, as in PyMEL, so old fallbacks that catch TypeError work again
+	* Rigbits: Add Joint, Add Blended Joint and Add Support Joint work in scenes without rig_deformers_grp or jnt_org
 	* Shifter: Build Log: Clear the log at the start of every build and keep it when reopening the window
 	* Shifter: Custom Step: Groups with many steps scroll smoothly and their last steps are reachable
 	* Anim Picker: Fix SVG badge size, default opacity of new vector items and the dead "Toggle handles" entry

@@ -18,6 +18,7 @@ from mgear.shifter import io
 from mgear.core import skin
 from mgear.rigbits import rbf_io
 from mgear.rigbits import wire_to_skinning
+from mgear.rigbits import gimmick_tool
 
 # mel override procs
 MEL_OVERRIDE_CMD = r"""
@@ -120,6 +121,9 @@ def mgear_file_drop_action(theFile):
     elif theFile.endswith(wire_to_skinning.CONFIG_FILE_EXT):
         print("Import Wire to Skinning config file: {}".format(theFile))
         wire_to_skinning_file_prompt(theFile)
+    elif theFile.endswith(gimmick_tool.FILE_EXT):
+        print("Import mGear Gimmick Joints file: {}".format(theFile))
+        gimmick_file_import(theFile)
     else:
         mel.eval('performFileImportAction("{}");'.format(theFile))
     return 1
@@ -189,6 +193,22 @@ def wire_to_skinning_file_prompt(wts_filePath):
 
     if results != "Cancel":
         wire_to_skinning.import_configuration(wts_filePath, target_mesh=mesh)
+
+
+def gimmick_file_import(gst_filePath):
+    """Import a .gst gimmick joints file in one undo step.
+
+    The gimmick module is imported here, so loading this module doesn't
+    load it.
+
+    Args:
+        gst_filePath (str): filepath to .gst gimmick joints file
+    """
+    from mgear.core import utils
+    from mgear.rigbits.gimmick_tool import core
+
+    with utils.undo_chunk("importGimmickJoints"):
+        core.import_file(gst_filePath)
 
 
 def install_utils_menu(m):

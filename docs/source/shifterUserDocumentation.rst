@@ -912,6 +912,8 @@ When creating a new custom step, mGear provides a template selection dialog that
 
 - **Import Mirror Config**: Sets the mirror pose flags of the rig controls from a Mirror Config ``.smc`` file (see :ref:`mirror-config`). Options for the controls' namespace and to create the missing inv attributes.
 
+- **Import Gimmick Joints Configuration**: Rebuilds blend and support joints from a Gimmick Joints ``.gst`` file (see :ref:`gimmick-joints`). Option to replace existing gimmick joints. Use it as a post custom step.
+
 **Template Configuration Options:**
 
 Each template provides three ways to configure file paths:

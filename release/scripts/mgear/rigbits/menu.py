@@ -14,8 +14,7 @@ def install():
     commands = (
         ("Add NPO", str_add_NPO, "mgear_add_npo.svg"),
         ("-----", None),
-        (None, gimmick_submenu),
-        # ("Gimmick Setup Tool", str_gimmick_tool),
+        ("Gimmick Joints", str_gimmick_tool, "mgear_gimmick_joints.svg"),
         ("-----", None),
         ("Mirror Controls Shape", str_mirror_ctls, "mgear_mirror_controls.svg"),
         ("Replace Shape", str_replace_shape, "mgear_replace_shape.svg"),
@@ -73,22 +72,6 @@ def connect_submenu(parent_menu_id):
     )
 
     mgear.menu.install("Connect Local SRT", commands, parent_menu_id)
-
-
-def gimmick_submenu(parent_menu_id):
-    """Create the gimmick joint submenu
-
-    Args:
-        parent_menu_id (str): Parent menu. i.e: "MayaWindow|mGear|menuItem355"
-    """
-    commands = (
-        ("Add Joint", str_addJnt),
-        ("-----", None),
-        ("Add Blended Joint", str_addBlendedJoint),
-        ("Add Support Joint", str_addSupportJoint),
-    )
-
-    mgear.menu.install("Gimmick Joints", commands, parent_menu_id)
 
 
 def _ctl_submenu(parent_menu_id, name, cCtl=False):
@@ -307,22 +290,6 @@ proximitywrap_io.show()
 """
 
 # Gimmick joints str commands
-
-str_addJnt = """
-from mgear import rigbits
-rigbits.addJnt()
-"""
-
-str_addBlendedJoint = """
-from mgear import rigbits
-rigbits.addBlendedJoint()
-"""
-
-str_addSupportJoint = """
-from mgear import rigbits
-rigbits.addSupportJoint()
-"""
-
 
 # hotkeys str command
 

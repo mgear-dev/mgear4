@@ -850,26 +850,8 @@ SPACE_CONTROL_MAP = {
 }
 
 
-def _find_rig_root_path(node):
-    """Find the full path of the rig top node of the given node.
-
-    Args:
-        node (str): Any node of the rig.
-
-    Returns:
-        str: Full path of the rig top node, None if not found.
-    """
-    long_names = cmds.ls(node, long=True)
-    if not long_names:
-        return None
-    parts = long_names[0].split("|")
-    for i in range(len(parts) - 1, 0, -1):
-        path = "|".join(parts[: i + 1])
-        if "controllers_org" in path or "controlBuffer" in parts[i]:
-            continue
-        if cmds.attributeQuery("is_rig", node=path, exists=True):
-            return path
-    return None
+# Moved to mgear.core.dag, kept for the callers of this module
+_find_rig_root_path = dag.find_rig_root_path
 
 
 def find_rig_root(node):

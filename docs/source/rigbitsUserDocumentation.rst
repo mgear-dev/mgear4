@@ -26,32 +26,132 @@ Add a transform as parent of each selected object in order to neutralize the loc
     All the local transform values are reset
 
 
+.. _gimmick-joints:
+
 Gimmick Joints
 ==============
 
-Joint helper tools.
+Rigbits > Gimmick Joints opens a window to add helper joints for deformation, mirror them to the other side, and save them to a file.
 
-Add Joint
----------------------
+.. image:: images/rigbits/gimmick_joint_tool.png
+    :align: center
+    :scale: 95%
 
-Add a deformer joint to each selected object.
+Gimmick joints don't need a built Shifter rig. When the joints belong to a Shifter rig, the rig's joint naming rules are used to find the side of each joint, so custom side names work. Otherwise the usual side tokens are used (``L0_``, ``_L_``, ``_L`` and the right side ones).
 
-This command will try to add the joint to "rig_deformers_grp" or create it if doesn't exist.
-Also will parent the joint under "jnt_org" if exist. If doesn't exist will parent the joint under the corresponding object.
+All the new joints are added to the ``rig_deformers_grp`` set, which is created if it doesn't exist.
 
-Add Blended Joint
----------------------
+Create
+------
 
-Add a blended joint under a chain of joints. This joint will rotat 50% between 2 joints.
+- **Add Joint**: Adds a deformer joint driven by each selected object. The joint is parented under ``jnt_org`` if it exists, otherwise under the object.
+- **Add Blended Joint**: Adds a ``blend_<joint>`` joint for each selected joint. The blended joint follows the joint's translation and a part of its rotation, set with the **Blend** value (0.5 rotates it half way). It is placed under the joint's parent.
 
 .. image:: images/rigbits/gimmick_joints.png
     :align: center
     :scale: 95%
 
-Add Support Joint
----------------------
+- **Add Support Joint**: Adds a ``blendSupport_<index>_<joint>`` joint under each selected blended joint. Support joints help with deformation and are usually driven later with SDK or RBF.
 
-Support joint are created under a blended joint and are design to help with deformation. Typically this kind of joints will also be driven by a SDK or similar.
+Mirror
+------
+
+Mirrors the blended joints, and their support joints, from Left to Right or from Right to Left. With nothing selected, all the gimmick joints of the side are mirrored; otherwise only the selected ones. Each mirrored blended joint is created for the mirrored joint with the same blend value, and each support joint keeps its index and gets the mirrored position and orientation. Mirrored joints that already exist are kept, unless **Replace** is on.
+
+Flip Support Orientation
+------------------------
+
+Adds 180 degrees to the joint orient of the selected support joints on X, Y or Z.
+
+Select / Delete
+---------------
+
+Selects or deletes the gimmick joints of the checked sides. Deleting a blended joint also deletes its support joints and its pairBlend node.
+
+Import and Export
+-----------------
+
+The **File** menu imports and exports gimmick joints to a ``.gst`` file: all of them, or only the selected ones (with the support joints of the selected blended joints). Import rebuilds the blended joints on their source joints and then the support joints, and skips the ones whose joint is missing in the scene.
+
+With mGear file drop enabled (mGear > Utilities > Enable mGear file drop), dragging a ``.gst`` file into Maya's viewport imports it.
+
+.. note::
+    Blended and support joints made by older mGear versions are recognised by the tool and can be mirrored, selected and exported. The Rigbits commands ``rigbits.addBlendedJoint()`` and ``rigbits.addSupportJoint()`` keep working in custom steps and create the same joints as the window.
+
+Shifter Custom Step
+-------------------
+
+To rebuild the gimmick joints with the rig, export them to a ``.gst`` file, then create a post custom step from the **Import Gimmick Joints Configuration** template (see :ref:`custom-step-templates`) and set its options in ``setup()``:
+
+- ``self.gimmick_path``: the ``.gst`` file. Leave it as ``None`` to pick the file when the step runs.
+- ``self.replace``: delete gimmick joints with the same names before rebuilding them.
+
+The step can also be written by hand. A minimal post custom step:
+
+.. code-block:: python
+
+    import mgear.shifter.custom_step as cstp
+    from mgear.rigbits.gimmick_tool import core
+
+
+    class CustomShifterStep(cstp.customShifterMainStep):
+        def setup(self):
+            self.name = "gimmick_joints"
+
+        def run(self):
+            core.import_file("C:/rig/data/hero.gst")
+
+To create the joints in code instead of from a file, use the Rigbits functions or the gimmick core:
+
+.. code-block:: python
+
+    from maya import cmds
+
+    import mgear.shifter.custom_step as cstp
+    from mgear.rigbits.gimmick_tool import core
+
+
+    class CustomShifterStep(cstp.customShifterMainStep):
+        def setup(self):
+            self.name = "elbow_gimmicks"
+
+        def run(self):
+            for side in ("L", "R"):
+                blend = core.create_blend_joint("arm_{}0_1_jnt".format(side), blend=0.5)
+                support = core.create_support_joint(blend)
+                cmds.setAttr(support + ".translateY", 1.0)
+
+File Format
+-----------
+
+``.gst`` files are JSON. The ``type`` key is ``"gimmick_joints"`` and the ``joints`` list holds the blended joints (source joint, blend value, comp scale, radius and color) and then the support joints (blended joint, local translate, rotate, joint orient, scale, rotate order, radius and color). Files exported by the old Gimmick Setup Tool can also be imported.
+
+Scripting Access
+----------------
+
+.. code-block:: python
+
+    from mgear.rigbits.gimmick_tool import core
+
+    # Create
+    blend = core.create_blend_joint("arm_L0_1_jnt", blend=0.5)
+    support = core.create_support_joint(blend)
+
+    # Find
+    core.list_gimmick_joints()                            # all
+    core.list_gimmick_joints(kind=core.BLEND, side=core.LEFT)
+    core.get_source_joint(blend)                          # "arm_L0_1_jnt"
+
+    # Mirror all the Left gimmick joints to the Right side
+    core.mirror_gimmick_joints(direction=core.LEFT_TO_RIGHT)
+
+    # Export and import
+    core.export_file("C:/rig/data/hero.gst")
+    core.import_file("C:/rig/data/hero.gst", replace=True)
+
+    # Open the window
+    from mgear.rigbits.gimmick_tool import ui
+    ui.show()
 
 
 Replace Shape

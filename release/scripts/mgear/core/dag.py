@@ -359,3 +359,29 @@ def get_top_nodes(nodes):
         if not ancestors & selected:
             tops.append(node)
     return tops
+
+
+def find_rig_root_path(node):
+    """Find the full path of the rig top node of the given node.
+
+    Walks up the hierarchy, starting with the node itself, to the first node
+    with an ``is_rig`` attribute. Nodes in the controllers_org group and
+    control buffers are skipped.
+
+    Args:
+        node (str): Any node of the rig.
+
+    Returns:
+        str: Full path of the rig top node, None if not found.
+    """
+    long_names = cmds.ls(node, long=True)
+    if not long_names:
+        return None
+    parts = long_names[0].split("|")
+    for i in range(len(parts) - 1, 0, -1):
+        path = "|".join(parts[: i + 1])
+        if "controllers_org" in path or "controlBuffer" in parts[i]:
+            continue
+        if cmds.attributeQuery("is_rig", node=path, exists=True):
+            return path
+    return None
