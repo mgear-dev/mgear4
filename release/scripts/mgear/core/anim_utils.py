@@ -10,6 +10,7 @@ PY2 = False
 # Maya imports
 from maya import cmds
 import maya.api.OpenMaya as om2
+import maya.mel as mel
 import mgear.pymaya as pm
 from mgear.pymaya import versions
 
@@ -790,6 +791,168 @@ def apply_blend(cache, weight, time=None):
         # a key set with a value on the current frame does not update the
         # evaluated value, so the pose would not change until a time change
         cmds.dgdirty(keyed)
+
+
+def get_timeline_range():
+    """Return the range highlighted on the time slider.
+
+    Returns:
+        tuple: ``(start, end)`` frames, end included, or None when no range
+            is highlighted or there is no time slider (batch mode).
+    """
+    slider = mel.eval("global string $gPlayBackSlider; $_tmp = $gPlayBackSlider")
+    if not slider or not cmds.timeControl(slider, exists=True):
+        return None
+    if not cmds.timeControl(slider, query=True, rangeVisible=True):
+        return None
+    start, end = cmds.timeControl(slider, query=True, rangeArray=True)
+    # the range array end is exclusive
+    return start, end - 1
+
+
+def has_selected_keys():
+    """Return True when keys are selected (Graph Editor or Dope Sheet).
+
+    Returns:
+        bool: The key selection state.
+    """
+    return bool(cmds.keyframe(query=True, selected=True, name=True))
+
+
+def _nudge_moved_times(curve, times, moved, offset, ripple):
+    """Return the key times of a curve that a nudge moves.
+
+    Args:
+        curve (str): Anim curve name, for the error message.
+        times (list): All key times of the curve.
+        moved (list): Key times picked to move.
+        offset (float): Nudge in frames.
+        ripple (bool): Also move the keys after the moved ones.
+
+    Returns:
+        list: The sorted key times to move.
+
+    Raises:
+        ValueError: When a moved key would land on or pass a key that does
+            not move.
+    """
+    moved = set(moved)
+    if ripple:
+        last = max(moved)
+        moved.update(t for t in times if t > last)
+    unmoved = sorted(t for t in times if t not in moved)
+    for t in moved:
+        # the unmoved key nearest to t in the nudge direction
+        if offset > 0:
+            index = bisect.bisect_right(unmoved, t)
+            blocked = index < len(unmoved) and unmoved[index] <= t + offset
+        else:
+            index = bisect.bisect_left(unmoved, t) - 1
+            blocked = index >= 0 and unmoved[index] >= t + offset
+        if blocked:
+            raise ValueError(
+                "Nudge blocked: keys of {} would overlap other keys".format(curve)
+            )
+    return sorted(moved)
+
+
+def nudge_keys(nodes, start, end, offset, ripple=False, attributes=None):
+    """Move the keys of nodes inside a frame range in time.
+
+    Nothing moves when a key would land on or pass a key that does not
+    move: Maya would clamp it to a sub-frame time or reorder the curve.
+
+    Args:
+        nodes (list): Node names.
+        start (float): First frame of the keys to move.
+        end (float): Last frame of the keys to move, included.
+        offset (float): Frames to move by, negative to move back.
+        ripple (bool, optional): Also move every later key of the curves.
+        attributes (list, optional): Only move the keys of these
+            attributes.
+
+    Returns:
+        int: Number of moved keys.
+
+    Raises:
+        ValueError: When the nudge is blocked by other keys.
+    """
+    if not offset or not nodes:
+        return 0
+    if attributes:
+        targets = ["{}.{}".format(n, a) for n in nodes for a in attributes]
+        targets = [t for t in targets if cmds.objExists(t)]
+    else:
+        targets = list(nodes)
+    curves = cmds.keyframe(targets, query=True, name=True) if targets else None
+    plan = []
+    for curve in dict.fromkeys(curves or []):
+        times = cmds.keyframe(curve, query=True, timeChange=True) or []
+        picked = [t for t in times if start - 1e-6 <= t <= end + 1e-6]
+        if picked:
+            moved = _nudge_moved_times(curve, times, picked, offset, ripple)
+            plan.append((curve, moved))
+    for curve, moved in plan:
+        cmds.keyframe(
+            curve,
+            edit=True,
+            relative=True,
+            timeChange=offset,
+            time=(moved[0], moved[-1]),
+            option="over",
+        )
+    return sum(len(moved) for _curve, moved in plan)
+
+
+def nudge_selected_keys(offset, ripple=False):
+    """Move the selected keys in time, keeping them selected.
+
+    Same rules as :func:`nudge_keys`.
+
+    Args:
+        offset (float): Frames to move by, negative to move back.
+        ripple (bool, optional): Also move every later key of the curves.
+
+    Returns:
+        int: Number of moved keys.
+
+    Raises:
+        ValueError: When the nudge is blocked by other keys.
+    """
+    curves = cmds.keyframe(query=True, selected=True, name=True) or []
+    if not offset or not curves:
+        return 0
+    plan = []
+    for curve in dict.fromkeys(curves):
+        times = cmds.keyframe(curve, query=True, timeChange=True) or []
+        selected = cmds.keyframe(curve, query=True, selected=True, timeChange=True)
+        moved = _nudge_moved_times(curve, times, selected, offset, ripple)
+        last_selected = max(selected)
+        tail = [t for t in moved if t > last_selected]
+        plan.append((curve, moved, tail))
+    for curve, _moved, tail in plan:
+        if tail:
+            cmds.selectKey(curve, add=True, time=(tail[0], tail[-1]))
+    cmds.keyframe(edit=True, relative=True, timeChange=offset, option="over")
+    for curve, _moved, tail in plan:
+        if tail:
+            cmds.selectKey(
+                curve, remove=True, time=(tail[0] + offset, tail[-1] + offset)
+            )
+    return sum(len(moved) for _curve, moved, _tail in plan)
+
+
+def get_world_matrices(nodes):
+    """Return the world matrix of nodes on the current frame.
+
+    Args:
+        nodes (list): Transform names.
+
+    Returns:
+        list: One world matrix (16 floats) per node, in order, as used by
+            :func:`key_world_matrices`.
+    """
+    return [list(utils.get_dag_path(node).inclusiveMatrix()) for node in nodes]
 
 
 def get_play_every_frame():

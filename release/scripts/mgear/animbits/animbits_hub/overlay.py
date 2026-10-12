@@ -14,7 +14,6 @@ from mgear.vendor.Qt import QtWidgets
 from mgear.core import callbackManager
 from mgear.core import node_remap
 from mgear.core import pyqt
-from mgear.core.widgets import FlowLayout
 from mgear.utilbits.bookmarks import core as bm_core
 
 from . import geometry
@@ -65,6 +64,7 @@ class HubOverlay(QtWidgets.QWidget):
         self.namespace = None
         self.namespace_valid = False
         self.rows = []
+        self.tool_rows = []
         self._callbacks = callbackManager.CallbackManager()
         self._refresh_later = pyqt.CoalescedCall(self._on_scene_changed)
         self._pos_before_drag = None
@@ -82,9 +82,9 @@ class HubOverlay(QtWidgets.QWidget):
         top_layout.addWidget(self.namespace_label)
         top_layout.addStretch()
 
-        # button tools, wrapped to the width of the slider column
+        # rows of button tools, e.g. the key tools
         self.tool_area = QtWidgets.QWidget()
-        self.tool_layout = FlowLayout(self.tool_area)
+        self.tool_layout = QtWidgets.QVBoxLayout(self.tool_area)
         self.tool_layout.setContentsMargins(0, 0, 0, 0)
 
         self.mode_bar = ModeBar(modes.MODES)
@@ -128,20 +128,28 @@ class HubOverlay(QtWidgets.QWidget):
         self.hide()
 
     def refresh(self):
-        """Rebuild the rows from the registered tools."""
+        """Rebuild the rows and tool widgets from the registered tools."""
         for row in self.rows:
             self.rows_layout.removeWidget(row)
             row.deleteLater()
         self.rows = []
+        while self.tool_layout.count():
+            self.tool_layout.takeAt(0).widget().deleteLater()
+        self.tool_rows = []
         context = registry.HubContext(
             self.settings, self.namespace, self.namespace_valid
         )
-        for _tool_id, factory in registry.registered_tools():
+        for _tool_id, factory in registry.registered_tools(registry.AREA_TOOLS):
+            for row in factory(context):
+                row.set_namespace(self.namespace, self.namespace_valid)
+                self.tool_layout.addWidget(row, 0, QtCore.Qt.AlignLeft)
+                self.tool_rows.append(row)
+        for _tool_id, factory in registry.registered_tools(registry.AREA_ROWS):
             for row in factory(context):
                 row.drag_started.connect(self._on_drag_started)
                 row.drag_finished.connect(self._on_drag_finished)
                 row.set_namespace(self.namespace, self.namespace_valid)
-                self.rows_layout.addWidget(row)
+                self.rows_layout.addWidget(row, 0, QtCore.Qt.AlignLeft)
                 self.rows.append(row)
         self._apply_settings()
 
@@ -160,28 +168,67 @@ class HubOverlay(QtWidgets.QWidget):
         mode = modes.get_mode(self.settings.slider_mode)
         self.mode_bar.set_mode(mode.mode_id)
         self.mode_bar.set_show_tooltips(show_tooltips)
-        for row in self.rows:
+        for row in self._all_rows():
             row.set_unit(unit)
             row.set_show_names(show_names)
             row.set_show_tooltips(show_tooltips)
             row.set_mode(mode)
+        self.tool_layout.setSpacing(spacing)
         self._update_top_bar()
+        self._align_column()
+
+    def _activate_layouts(self):
+        """Polish and lay out every widget of the hub, top-down.
+
+        Child layouts are not active until the hub is shown, so positions
+        inside rows (e.g. after the buffer gutter) are only right after
+        this.
+        """
+        self.ensurePolished()
         self.main_layout.activate()
+        for widget in self.findChildren(QtWidgets.QWidget):
+            widget.ensurePolished()
+            layout = widget.layout()
+            if layout:
+                layout.activate()
+        self.main_layout.activate()
+
+    def _align_column(self):
+        """Start the tool rows and the mode bar at the sliders' 0% square.
+
+        The buffer circles of the slider rows stay in the gutter on the
+        left of that edge.
+        """
+        # the slider rows are not indented, so one pass measures them
+        self._activate_layouts()
+        indent = self.rows[0].content_left() if self.rows else 0
+        for row in self.tool_rows:
+            row.set_indent(indent)
+        self.mode_bar.set_indent(indent)
+        self.main_layout.activate()
+
+    def _all_rows(self):
+        """Return the slider rows and the tool rows.
+
+        Returns:
+            list: HubRow widgets.
+        """
+        return self.rows + self.tool_rows
 
     def _update_top_bar(self):
         fixed = self.settings.placement == hub_settings.PLACEMENT_FIXED
-        needs_namespace = any(row.uses_namespace for row in self.rows)
+        needs_namespace = any(row.uses_namespace for row in self._all_rows())
         self.grip.setVisible(fixed)
         self.namespace_label.setVisible(needs_namespace)
         self.top_bar.setVisible(fixed or needs_namespace)
-        self.tool_area.setVisible(self.tool_layout.count() > 0)
+        self.tool_area.setVisible(bool(self.tool_rows))
         self.mode_bar.show()
 
     # placement --------------------------------------------------------
 
     def place(self):
         """Move the hub to the fixed position, or under the cursor."""
-        self.main_layout.activate()
+        self._activate_layouts()
         size = _size_tuple(self.size())
         fixed_pos = self.settings.fixed_pos
         if self.settings.placement == hub_settings.PLACEMENT_FIXED and fixed_pos:
@@ -270,7 +317,7 @@ class HubOverlay(QtWidgets.QWidget):
         self.namespace = namespace
         self.namespace_valid = bm_core.namespace_exists(namespace)
         self.namespace_label.set_namespace(namespace, self.namespace_valid)
-        for row in self.rows:
+        for row in self._all_rows():
             row.set_namespace(namespace, self.namespace_valid)
 
     def _fill_namespace_menu(self, menu):

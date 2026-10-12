@@ -179,6 +179,13 @@ def tweener(setup_path):
     return tweener
 
 
+@pytest.fixture
+def common(setup_path):
+    from mgear.animbits.animbits_hub.tools import common
+
+    return common
+
+
 def test_tweener_registered(setup_path):
     from mgear.animbits.animbits_hub import registry
     from mgear.animbits.animbits_hub.tools import tweener
@@ -189,7 +196,7 @@ def test_tweener_registered(setup_path):
     assert tweener.TOOL_ID == "tweener"
 
 
-def test_row_specs(tweener):
+def test_row_specs(tweener, common):
     from mgear.utilbits.bookmarks import core as bm_core
 
     def bookmark(name, bm_type, enabled):
@@ -203,7 +210,7 @@ def test_row_specs(tweener):
         bookmark("face", bm_core.BOOKMARK_SELECTION, True),
         bookmark("iso", bm_core.BOOKMARK_ISOLATE, True),
     ]
-    specs = tweener.row_specs(bookmarks, (0.6, 0.85, 0.6))
+    specs = common.row_specs(bookmarks, (0.6, 0.85, 0.6), tweener.TOOL_ID)
     assert [spec["name"] for spec in specs] == ["Selection", "arm", "face"]
     assert specs[0]["bookmark"] is None
     assert specs[0]["color"] == (0.6, 0.85, 0.6)
@@ -211,7 +218,7 @@ def test_row_specs(tweener):
     assert specs[1]["color"] == (0.2, 0.4, 0.6)
 
 
-def test_tween_targets(tweener):
+def test_tween_targets(tweener, common):
     from maya import cmds
     from mgear.utilbits.bookmarks import core as bm_core
 
@@ -221,11 +228,11 @@ def test_tween_targets(tweener):
     mesh = cmds.polyCube(name="body")[0]
 
     cmds.select([a, mesh + ".f[0]"])
-    assert tweener.tween_targets() == ["|a_ctl"]
+    assert common.row_targets() == ["|a_ctl"]
 
     cmds.select(clear=True)
     bm = bm_core.create_bookmark("bm", bm_core.BOOKMARK_SELECTION, [b], (1, 1, 1))
-    assert tweener.tween_targets(bm) == ["|b_ctl"]
+    assert common.row_targets(bm) == ["|b_ctl"]
     assert cmds.ls(selection=True) == []
 
 
@@ -253,7 +260,7 @@ def test_slider_tick_press_shows_handle(setup_path):
     slider = TweenSlider((0.6, 0.85, 0.6))
     clicked = []
     slider.stop_clicked.connect(clicked.append)
-    pos = QtCore.QPoint(int(round(slider._x_at(0.3))), slider.height() // 2)
+    pos = QtCore.QPoint(int(round(slider.x_at(0.3))), slider.height() // 2)
 
     slider.mousePressEvent(_MouseEvent(pos))
     assert slider._fraction == pytest.approx(0.3)
@@ -435,6 +442,281 @@ def test_tweener_buffer_empty(tweener, tween_scene):
     assert tweener.build_cache("buffer") == []
 
 
-def test_row_key(tweener):
-    assert tweener.row_key() == "selection"
-    assert tweener.row_key({"name": "Arms"}) == "bookmark:Arms"
+def test_row_key(common):
+    assert common.row_key() == "selection"
+    assert common.row_key({"name": "Arms"}) == "bookmark:Arms"
+
+
+# tool area registry and settings ------------------------------------------
+
+
+def test_registry_areas(registry):
+    def rows(context):
+        return []
+
+    def tools(context):
+        return []
+
+    registry.register_tool("rows_tool", rows)
+    registry.register_tool("late_tools", tools, order=50, area="tools")
+    registry.register_tool("early_tools", tools, order=5, area="tools")
+    assert [t for t, _f in registry.registered_tools()] == ["rows_tool"]
+    assert [t for t, _f in registry.registered_tools("tools")] == [
+        "early_tools",
+        "late_tools",
+    ]
+
+
+def test_settings_nudge(hub_settings, qsettings):
+    settings = hub_settings.HubSettings(qsettings())
+    assert settings.nudge_amount_for("selection") == 1
+    assert settings.nudge_ripple_for("selection") is False
+    settings.set_nudge_amount("selection", 4)
+    settings.set_nudge_ripple("selection", True)
+    restored = hub_settings.HubSettings(qsettings())
+    assert restored.nudge_amount_for("selection") == 4
+    assert restored.nudge_ripple_for("selection") is True
+    settings.set_nudge_amount("selection", 500)
+    assert settings.nudge_amount_for("selection") == 100
+    settings.set_nudge_amount("selection", 0)
+    assert settings.nudge_amount_for("selection") == 1
+    raw = qsettings()
+    raw.setValue("animbits_hub/nudge/selection/amount", "lots")
+    raw.sync()
+    assert hub_settings.HubSettings(qsettings()).nudge_amount_for("selection") == 1
+
+
+# key tools ---------------------------------------------------------------
+
+
+@pytest.fixture
+def key_tools(setup_path, monkeypatch):
+    """The key tools module, in a scene with ctl keyed at 1, 5 and 10."""
+    from maya import cmds
+    from mgear.animbits.animbits_hub import buffers
+    from mgear.animbits.animbits_hub.tools import key_tools
+    from mgear.core import anim_utils
+
+    cmds.file(new=True, force=True)
+    buffers.clear_all()
+    ctl = cmds.spaceLocator(name="ctl")[0]
+    for frame in (1, 5, 10):
+        cmds.setKeyframe(ctl, attribute="translateX", time=frame, value=frame)
+    cmds.selectKey(clear=True)
+    cmds.currentTime(5)
+    cmds.select(ctl)
+    monkeypatch.setattr(anim_utils, "get_timeline_range", lambda: None)
+    monkeypatch.setattr(key_tools, "channel_box_attributes", lambda: None)
+    yield key_tools
+    buffers.clear_all()
+
+
+def _times(plug="ctl.translateX"):
+    from maya import cmds
+
+    return cmds.keyframe(plug, query=True, timeChange=True)
+
+
+def test_resolve_priority(key_tools, monkeypatch):
+    from maya import cmds
+    from mgear.core import anim_utils
+
+    kind, payload = key_tools.resolve_nudge_target()
+    assert kind == "frame"
+    assert payload[0] == ["|ctl"]
+    assert payload[1] == 5
+    monkeypatch.setattr(anim_utils, "get_timeline_range", lambda: (3.0, 8.0))
+    assert key_tools.resolve_nudge_target() == ("range", (["|ctl"], 3.0, 8.0))
+    cmds.selectKey("ctl.translateX", time=(10, 10))
+    assert key_tools.resolve_nudge_target() == ("keys", None)
+    cmds.selectKey(clear=True)
+    cmds.select(clear=True)
+    assert key_tools.resolve_nudge_target() == (None, None)
+
+
+def test_nudge_frame_time_follows(key_tools):
+    from maya import cmds
+
+    assert key_tools.nudge(2) == 1
+    assert _times() == [1.0, 7.0, 10.0]
+    assert cmds.currentTime(query=True) == 7
+    cmds.undo()
+    assert _times() == [1.0, 5.0, 10.0]
+    assert cmds.currentTime(query=True) == 5
+
+
+def test_nudge_selected_keys_first(key_tools):
+    from maya import cmds
+
+    cmds.selectKey("ctl.translateX", time=(10, 10))
+    key_tools.nudge(1)
+    assert _times() == [1.0, 5.0, 11.0]
+
+
+def test_nudge_channel_box_filter(key_tools, monkeypatch):
+    from maya import cmds
+
+    cmds.setKeyframe("ctl", attribute="translateY", time=5, value=1)
+    monkeypatch.setattr(key_tools, "channel_box_attributes", lambda: ["ty"])
+    key_tools.nudge(1)
+    assert _times("ctl.translateY") == [6.0]
+    assert _times() == [1.0, 5.0, 10.0]
+
+
+def test_nudge_blocked(key_tools):
+    from maya import cmds
+
+    assert key_tools.nudge(5) == 0
+    assert _times() == [1.0, 5.0, 10.0]
+    assert cmds.currentTime(query=True) == 5
+
+
+def test_nudge_nothing(key_tools):
+    from maya import cmds
+
+    cmds.select(clear=True)
+    assert key_tools.nudge(1) == 0
+
+
+def _matrix(node):
+    from maya import cmds
+
+    return cmds.xform(node, query=True, worldSpace=True, matrix=True)
+
+
+def test_copy_paste_world_current_frame(key_tools):
+    from maya import cmds
+
+    foot = cmds.spaceLocator(name="foot_ctl")[0]
+    cmds.setAttr(foot + ".translate", 1, 2, 3)
+    cmds.setAttr(foot + ".rotateY", 30)
+    cmds.select(foot)
+    copied = _matrix(foot)
+    key_tools.copy_world_pose()
+    cmds.setAttr(foot + ".translate", 0, 0, 0)
+    cmds.setAttr(foot + ".rotateY", 0)
+    assert key_tools.paste_world_pose() == ["|foot_ctl"]
+    assert _matrix(foot) == pytest.approx(copied)
+    assert cmds.keyframe(foot + ".translateX", query=True, timeChange=True) == [5.0]
+
+
+def test_paste_world_over_range(key_tools, monkeypatch):
+    from maya import cmds
+    from mgear.core import anim_utils
+
+    parent = cmds.group(empty=True, name="hip")
+    foot = cmds.spaceLocator(name="foot_ctl")[0]
+    cmds.parent(foot, parent)
+    cmds.setKeyframe(parent, attribute="translateX", time=10, value=0)
+    cmds.setKeyframe(parent, attribute="translateX", time=15, value=5)
+    cmds.currentTime(10)
+    cmds.select(foot)
+    key_tools.copy_world_pose()
+    copied = _matrix(foot)
+    monkeypatch.setattr(anim_utils, "get_timeline_range", lambda: (10.0, 15.0))
+    key_tools.paste_world_pose()
+    times = cmds.keyframe("|hip|foot_ctl.translateX", query=True, timeChange=True)
+    assert times == [10.0, 11.0, 12.0, 13.0, 14.0, 15.0]
+    for frame in (12, 15):
+        cmds.currentTime(frame)
+        assert _matrix(foot) == pytest.approx(copied, abs=1e-6)
+
+
+def test_paste_world_other_namespace(key_tools):
+    from maya import cmds
+
+    cmds.namespace(add="chrA")
+    cmds.namespace(add="chrB", parent=":")
+    a = cmds.spaceLocator(name="chrA:hand_ctl")[0]
+    b = cmds.spaceLocator(name="chrB:hand_ctl")[0]
+    cmds.setAttr(a + ".translate", 4, 5, 6)
+    cmds.select(a)
+    key_tools.copy_world_pose()
+    cmds.select(b)
+    assert key_tools.paste_world_pose() == ["|chrB:hand_ctl"]
+    assert _matrix(b) == pytest.approx(_matrix(a))
+
+
+def test_paste_world_nothing_selected(key_tools):
+    from maya import cmds
+
+    foot = cmds.spaceLocator(name="foot_ctl")[0]
+    cmds.setAttr(foot + ".translateX", 3)
+    cmds.select(foot)
+    key_tools.copy_world_pose()
+    cmds.setAttr(foot + ".translateX", 0)
+    cmds.select(clear=True)
+    key_tools.paste_world_pose()
+    assert cmds.getAttr(foot + ".translateX") == pytest.approx(3.0)
+
+
+def test_paste_world_empty_buffer(key_tools):
+    assert key_tools.paste_world_pose() == []
+
+
+def test_copy_world_nothing_selected(key_tools):
+    from maya import cmds
+
+    cmds.select(clear=True)
+    assert key_tools.copy_world_pose() is None
+
+
+# key tool rows -----------------------------------------------------------
+
+
+def test_settings_nudge_per_row(hub_settings, qsettings):
+    settings = hub_settings.HubSettings(qsettings())
+    settings.set_nudge_amount("selection", 2)
+    settings.set_nudge_amount("bookmark:Arms", 5)
+    settings.set_nudge_ripple("bookmark:Arms", True)
+    restored = hub_settings.HubSettings(qsettings())
+    assert restored.nudge_amount_for("selection") == 2
+    assert restored.nudge_amount_for("selection") == 2
+    assert restored.nudge_amount_for("bookmark:Arms") == 5
+    assert restored.nudge_ripple_for("bookmark:Arms") is True
+    assert restored.nudge_ripple_for("selection") is False
+    assert restored.nudge_amount_for("bookmark:body") == 1
+
+
+def test_key_tool_row_specs(setup_path):
+    from mgear.animbits.animbits_hub.tools import common
+    from mgear.animbits.animbits_hub.tools import key_tools
+    from mgear.utilbits.bookmarks import core as bm_core
+
+    arms = bm_core.create_bookmark("Arms", "selection", [], (1, 0, 1))
+    body = bm_core.create_bookmark("body", "selection", [], (0, 1, 1))
+    bm_core.set_tool_config(arms, "key_tools", enabled=True)
+    bm_core.set_tool_config(body, "tweener", enabled=True)
+    specs = common.row_specs([arms, body], (0.6, 0.85, 0.6), key_tools.TOOL_ID)
+    assert [spec["name"] for spec in specs] == ["Selection", "Arms"]
+    assert ("key_tools", "Key Tools") in bm_core.registered_bookmark_tools()
+
+
+def test_bookmark_row_nudge_ignores_selected_keys(key_tools):
+    from maya import cmds
+    from mgear.utilbits.bookmarks import core as bm_core
+
+    bookmark = bm_core.create_bookmark("Arms", "selection", ["ctl"], (1, 0, 1))
+    cmds.selectKey("ctl.translateX", time=(10, 10))
+    cmds.select(clear=True)
+    kind, payload = key_tools.resolve_nudge_target(bookmark)
+    assert kind == "frame"
+    assert payload[2] is None
+    key_tools.nudge(1, bookmark=bookmark)
+    assert _times() == [1.0, 6.0, 10.0]
+
+
+def test_world_buffers_per_row(key_tools):
+    from maya import cmds
+    from mgear.animbits.animbits_hub import buffers
+    from mgear.utilbits.bookmarks import core as bm_core
+
+    bookmark = bm_core.create_bookmark("Arms", "selection", ["ctl"], (1, 0, 1))
+    cmds.select(clear=True)
+    key_tools.copy_world_pose(bookmark)
+    assert buffers.get_buffer(key_tools.world_buffer_key(bookmark)) is not None
+    assert buffers.get_buffer(key_tools.world_buffer_key()) is None
+    cmds.setAttr("ctl.translateY", 3)
+    assert key_tools.paste_world_pose(bookmark) == ["|ctl"]
+    assert cmds.getAttr("ctl.translateY") == pytest.approx(0.0)
+    assert key_tools.paste_world_pose() == []

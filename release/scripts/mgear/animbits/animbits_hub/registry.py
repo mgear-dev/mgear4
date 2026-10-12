@@ -1,9 +1,13 @@
 """Registry of the tools shown in the Animbits Hub.
 
-A tool registers a factory that builds its rows. The hub calls every
-factory each time it is shown, in ``order``, so rows always reflect the
-current scene. No Qt code, so tools and tests can import it freely.
+A tool registers a factory that builds its slider rows, or its widgets
+for the tool area above the sliders. The hub calls every factory each
+time it is shown, in ``order``, so the hub always reflects the current
+scene. No Qt code, so tools and tests can import it freely.
 """
+
+AREA_ROWS = "rows"
+AREA_TOOLS = "tools"
 
 _tools = {}
 
@@ -22,9 +26,11 @@ class HubContext(object):
         self.settings = settings
         self.namespace = namespace
         self.namespace_valid = namespace_valid
+        # scene bookmarks, loaded once per hub refresh by the first tool
+        self.bookmarks = None
 
 
-def register_tool(tool_id, factory, order=100):
+def register_tool(tool_id, factory, order=100, area=AREA_ROWS):
     """Register a tool, or replace the one registered with the same id.
 
     Tool ids of Shifter components or custom scripts should be
@@ -34,10 +40,13 @@ def register_tool(tool_id, factory, order=100):
     Args:
         tool_id (str): Unique tool id.
         factory (callable): Called with a :class:`HubContext`, returns a
-            list of ``HubRow`` widgets.
+            list of ``HubRow`` widgets (e.g. ``HubToolRow`` for the tool
+            area).
         order (int, optional): Tools with a lower order come first.
+        area (str, optional): Where the rows go: ``"rows"`` with the
+            sliders, ``"tools"`` in the tool area above the mode bar.
     """
-    _tools[tool_id] = (factory, order)
+    _tools[tool_id] = (factory, order, area)
 
 
 def unregister_tool(tool_id):
@@ -49,13 +58,19 @@ def unregister_tool(tool_id):
     _tools.pop(tool_id, None)
 
 
-def registered_tools():
-    """Return the registered tools sorted by order.
+def registered_tools(area=AREA_ROWS):
+    """Return the tools registered for an area, sorted by order.
 
     Tools with the same order keep their registration order.
+
+    Args:
+        area (str, optional): ``"rows"`` or ``"tools"``.
 
     Returns:
         list: ``(tool_id, factory)`` tuples.
     """
-    items = sorted(_tools.items(), key=lambda item: item[1][1])
-    return [(tool_id, factory) for tool_id, (factory, _order) in items]
+    items = sorted(
+        (item for item in _tools.items() if item[1][2] == area),
+        key=lambda item: item[1][1],
+    )
+    return [(tool_id, factory) for tool_id, (factory, _order, _area) in items]

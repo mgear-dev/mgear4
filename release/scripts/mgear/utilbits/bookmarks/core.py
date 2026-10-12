@@ -824,6 +824,18 @@ def load_from_scene():
         return None
 
 
+def load_scene_bookmarks():
+    """Return the bookmarks stored in the scene.
+
+    Returns:
+        list: Bookmark dictionaries, empty when the scene has none.
+    """
+    config = load_from_scene()
+    if not config:
+        return []
+    return config_to_bookmarks(config)[0]
+
+
 def _get_or_create_scene_node():
     """Get existing or create new network node for storage.
 

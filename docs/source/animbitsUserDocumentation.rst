@@ -59,6 +59,35 @@ When blending to a buffer, the stored controls are matched to the row's controls
 
 **Namespace:** bookmarks with **Use Selected Object's Namespace** on follow the namespace shown at the top of the hub. It is taken from the selection when the hub opens, otherwise the last one used is kept, also between Maya sessions. Click it to pick another namespace of the scene. When that namespace is not in the scene, it is marked **(missing)** and those rows are disabled.
 
+Key Tools
+---------
+
+Rows of buttons above the slider mode bar, for timing and world poses. Like the sliders, the first row works on the selection, and you can add one row per selection bookmark: right-click the bookmark in the **Bookmarks** tool and check **Show In Tools > Key Tools**. Bookmark rows use the bookmark color and work on the bookmark's controls without selecting them. Each row keeps its own nudge amount, ripple and copied world pose.
+
+The key tool rows, the mode bar and the sliders line up on the left; in **BB** mode the pose buffer circles sit in the margin on their left.
+
+**Nudge Keys** - ``<``  amount  ``>``  ripple
+
+* Click **<** or **>** to shift keys earlier or later by the number of frames in the field. The current time follows, and each nudge is one undo step.
+* On the **Selection** row, what moves, in this order:
+
+  1. the selected keys, in the Graph Editor or Dope Sheet
+  2. otherwise, the keys of the selected controls inside the timeline range selection (Shift+drag on the time slider)
+  3. otherwise, the keys of the selected controls on the current frame; only the selected Channel Box attributes when there are some
+
+* On a **bookmark** row, the keys of the bookmark controls move: inside the timeline range selection, otherwise on the current frame. Selected keys and the Channel Box selection don't apply.
+* Scroll over the number to change the amount (1 to 100), or click it to type a value. Each row remembers its amount.
+* **Ripple** also moves all the keys after the nudged ones, to make room or close a gap.
+* A nudge that would make keys land on or jump over other keys is blocked with a warning, and nothing moves.
+
+**Copy / Paste World Pose**
+
+* **Copy** stores the world position, rotation and scale of the row's controls: the selected controls, or the bookmark's controls.
+* **Paste** keys that world pose back: on every frame of the timeline range selection when there is one, so a hand or a foot stays planted, otherwise on the current frame. Parents are pasted before their children, and the whole paste is one undo step.
+* On the Selection row with nothing selected, the pose goes back on the copied controls. Otherwise controls are matched by name, then by the same name in another namespace (paste one character's pose on another), then by selection order.
+* The Paste button is dim while nothing is copied; hover it to see the frame and controls of the copied pose. The copy is kept while Maya is open and cleared when a new scene is created or opened.
+
+
 Settings
 --------
 

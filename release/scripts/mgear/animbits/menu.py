@@ -7,6 +7,7 @@ def install():
     from mgear.utilbits.bookmarks import core as bookmarks_core
 
     bookmarks_core.register_bookmark_tool("tweener", "Tweener")
+    bookmarks_core.register_bookmark_tool("key_tools", "Key Tools")
 
     commands = (
         ("Animbits Hub", str_animbits_hub, "mgear_sliders.svg"),

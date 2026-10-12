@@ -24,6 +24,9 @@ SCALE_MIN = 0.5
 SCALE_MAX = 3.0
 SCALE_STEP = 0.1
 
+NUDGE_MIN = 1
+NUDGE_MAX = 100
+
 
 def clamp_scale(value):
     """Clamp a scale to the allowed range, rounded to the scale step.
@@ -35,6 +38,18 @@ def clamp_scale(value):
         float: The scale in [SCALE_MIN, SCALE_MAX], rounded to 0.1.
     """
     return round(min(max(float(value), SCALE_MIN), SCALE_MAX), 1)
+
+
+def clamp_nudge(value):
+    """Clamp a nudge amount to a whole number of frames, 1 to 100.
+
+    Args:
+        value (float): The amount.
+
+    Returns:
+        int: The clamped amount.
+    """
+    return int(min(max(round(float(value)), NUDGE_MIN), NUDGE_MAX))
 
 
 def _to_floats(value, count):
@@ -150,3 +165,48 @@ class HubSettings(object):
     @show_tooltips.setter
     def show_tooltips(self, value):
         self._set("show_tooltips", "1" if value else "0")
+
+    @staticmethod
+    def _nudge_key(row_key, name):
+        return "nudge/{}/{}".format(row_key, name)
+
+    def nudge_amount_for(self, row_key):
+        """Return the nudge amount of a key tool row.
+
+        Args:
+            row_key (str): Row key, e.g. ``"selection"``.
+
+        Returns:
+            int: Frames, 1 to 100.
+        """
+        value = _to_floats(self._get(self._nudge_key(row_key, "amount")), 1)
+        return clamp_nudge(value[0]) if value else NUDGE_MIN
+
+    def set_nudge_amount(self, row_key, value):
+        """Save the nudge amount of a key tool row.
+
+        Args:
+            row_key (str): Row key.
+            value (int): Frames, clamped to 1-100.
+        """
+        self._set(self._nudge_key(row_key, "amount"), str(clamp_nudge(value)))
+
+    def nudge_ripple_for(self, row_key):
+        """Return the ripple state of a key tool row.
+
+        Args:
+            row_key (str): Row key.
+
+        Returns:
+            bool: True when ripple is on.
+        """
+        return self._get(self._nudge_key(row_key, "ripple")) == "1"
+
+    def set_nudge_ripple(self, row_key, value):
+        """Save the ripple state of a key tool row.
+
+        Args:
+            row_key (str): Row key.
+            value (bool): The ripple state.
+        """
+        self._set(self._nudge_key(row_key, "ripple"), "1" if value else "0")

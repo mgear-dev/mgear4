@@ -645,6 +645,24 @@ def text_color_for_background(color):
     return (1.0, 1.0, 1.0)
 
 
+def tint_pixmap(pixmap, color):
+    """Return a copy of a pixmap drawn in one color, its alpha kept.
+
+    Args:
+        pixmap (QtGui.QPixmap): The pixmap, e.g. from :func:`get_icon`.
+        color (QtGui.QColor): The color.
+
+    Returns:
+        QtGui.QPixmap: The tinted copy.
+    """
+    image = pixmap.toImage()
+    painter = QtGui.QPainter(image)
+    painter.setCompositionMode(QtGui.QPainter.CompositionMode_SourceIn)
+    painter.fillRect(image.rect(), color)
+    painter.end()
+    return QtGui.QPixmap.fromImage(image)
+
+
 TOOLTIP_COLOR = "#4a90d9"
 
 

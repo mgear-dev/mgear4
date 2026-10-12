@@ -41,6 +41,20 @@ def mode_tooltip(mode, title=None):
     return pyqt.rich_tooltip(title or mode.title, mode.text, mode.bullets, mode.color)
 
 
+_icon_cache = {}
+
+
+def _icon(name, size, tint=None):
+    """Return an icon pixmap, tinted, rendered once per name, size and tint."""
+    key = (name, size, tint)
+    if key not in _icon_cache:
+        pixmap = pyqt.get_icon(name, size)
+        if tint:
+            pixmap = pyqt.tint_pixmap(pixmap, _qcolor(tint))
+        _icon_cache[key] = pixmap
+    return _icon_cache[key]
+
+
 def _no_focus(widget):
     """Keep a widget from taking keyboard focus."""
     widget.setFocusPolicy(QtCore.Qt.NoFocus)
@@ -107,6 +121,23 @@ class HubRow(QtWidgets.QWidget):
             widget (QWidget): The widget, e.g. a BufferButton.
         """
         self._layout.insertWidget(0, widget)
+
+    def content_left(self):
+        """Return where the row content starts, for column alignment.
+
+        Returns:
+            int: X position in row coordinates. Rows with a leading gutter
+                (e.g. the buffer circle) return the start after it.
+        """
+        return 0
+
+    def set_indent(self, indent):
+        """Indent the row content, to align it with other rows.
+
+        Args:
+            indent (int): Left margin in pixels.
+        """
+        self._layout.setContentsMargins(indent, 0, 0, 0)
 
     def anchor(self):
         """Return the point to put under the cursor when the hub opens.
@@ -255,13 +286,26 @@ class TweenSlider(QtWidgets.QWidget):
         self.setFixedSize(int(round(width)), int(round(height)))
         self.update()
 
+    @property
+    def unit(self):
+        """float: Size unit in pixels."""
+        return self._unit
+
     def _left(self):
         return self.HANDLE_WIDTH * self._unit / 2.0
 
     def _track_width(self):
         return self.STEP * self._unit * (geometry.STOP_COUNT - 1)
 
-    def _x_at(self, fraction):
+    def x_at(self, fraction):
+        """Return the x position of a fraction on the slider.
+
+        Args:
+            fraction (float): 0 at the left square, 1 at the right one.
+
+        Returns:
+            float: X position in slider coordinates.
+        """
         return self._left() + fraction * self._track_width()
 
     def _handle_rect(self, fraction=None):
@@ -270,7 +314,7 @@ class TweenSlider(QtWidgets.QWidget):
         w = self.HANDLE_WIDTH * self._unit
         h = self.HANDLE_HEIGHT * self._unit
         return QtCore.QRectF(
-            self._x_at(fraction) - w / 2.0, (self.height() - h) / 2.0, w, h
+            self.x_at(fraction) - w / 2.0, (self.height() - h) / 2.0, w, h
         )
 
     def set_label(self, label):
@@ -294,7 +338,7 @@ class TweenSlider(QtWidgets.QWidget):
         """Return the index of the stop under a point, or None."""
         radius = self.STEP * self._unit / 2.0
         for index, fraction in enumerate(geometry.stop_fractions()):
-            if abs(pos.x() - self._x_at(fraction)) <= radius:
+            if abs(pos.x() - self.x_at(fraction)) <= radius:
                 return index
         return None
 
@@ -317,7 +361,7 @@ class TweenSlider(QtWidgets.QWidget):
             # the idle handle covers the 50% stop
             if index == center and self._fraction == 0.5:
                 continue
-            x = self._x_at(fraction)
+            x = self.x_at(fraction)
             if index in (0, last):
                 size = self.SQUARE * self._unit
                 painter.drawRect(
@@ -348,7 +392,7 @@ class TweenSlider(QtWidgets.QWidget):
         pos = event.pos()
         if self._handle_rect().contains(QtCore.QPointF(pos)):
             self._press_x = pos.x()
-            self._grab_offset = pos.x() - self._x_at(self._fraction)
+            self._grab_offset = pos.x() - self.x_at(self._fraction)
             self.pressed.emit()
         else:
             self._pressed_stop = self._stop_at(pos)
@@ -630,6 +674,14 @@ class ModeBar(QtWidgets.QWidget):
             button.set_unit(unit)
         self._layout.setSpacing(int(round(unit * 0.3)))
 
+    def set_indent(self, indent):
+        """Indent the buttons, to align them with the rows.
+
+        Args:
+            indent (int): Left margin in pixels.
+        """
+        self._layout.setContentsMargins(indent, 0, 0, 0)
+
     def set_show_tooltips(self, show):
         """Use rich tooltips, or the mode titles only.
 
@@ -724,6 +776,442 @@ class BufferButton(QtWidgets.QWidget):
             self.clear_requested.emit()
         else:
             self.store_requested.emit()
+
+
+#############################################
+# TOOL AREA
+#############################################
+
+
+class HubToolWidget(QtWidgets.QWidget):
+    """Base class of the widgets that tools add to the hub tool area.
+
+    The hub calls :meth:`set_unit` and :meth:`set_show_tooltips` like it
+    does for the rows.
+
+    Args:
+        parent (QWidget, optional): Parent widget.
+    """
+
+    def __init__(self, parent=None):
+        super(HubToolWidget, self).__init__(parent)
+        _no_focus(self)
+        self._unit = 10.0
+        self._show_tooltips = True
+        self._row_name = None
+
+    def set_unit(self, unit):
+        """Scale the widget.
+
+        Args:
+            unit (float): Size unit in pixels.
+        """
+        self._unit = float(unit)
+        self.update()
+
+    def set_row_name(self, name):
+        """Name the row in the tooltip titles, e.g. ``Nudge forward · Arms``.
+
+        Args:
+            name (str): Row name, None to leave it out.
+        """
+        self._row_name = name
+        self.update_tooltip()
+
+    def update_tooltip(self):
+        """Rebuild the tooltips. Subclasses with tooltips implement it."""
+
+    def build_tooltip(self, title, text, bullets=None, color=None, state=None):
+        """Return a rich or short tooltip, per the tooltip setting.
+
+        Args:
+            title (str): Tool title; the row name is added when set.
+            text (str): What the tool does.
+            bullets (tuple, optional): Usage notes.
+            color (str, optional): Rich tooltip title color.
+            state (str, optional): State line, always shown.
+
+        Returns:
+            str: The tooltip.
+        """
+        title = self.tooltip_title(title)
+        if self._show_tooltips:
+            text = "{} {}".format(state, text) if state else text
+            return pyqt.rich_tooltip(title, text, bullets, color)
+        return "{}: {}".format(title, state) if state else title
+
+    def tooltip_title(self, title):
+        """Return a tooltip title with the row name, when it is set.
+
+        Args:
+            title (str): Tool title.
+
+        Returns:
+            str: ``"<title> · <row name>"`` or the title.
+        """
+        if self._row_name:
+            return "{} · {}".format(title, self._row_name)
+        return title
+
+    def set_show_tooltips(self, show):
+        """Use rich help tooltips, or short ones.
+
+        Args:
+            show (bool): True for rich tooltips.
+        """
+        self._show_tooltips = show
+        self.update_tooltip()
+
+
+class HubToolButton(HubToolWidget):
+    """Square button with an icon, for the hub tool area.
+
+    Args:
+        icon (str): mGear icon name, e.g. ``"mgear_copy"``.
+        title (str): Tool name, the short tooltip.
+        text (str): What the tool does, for the rich tooltip.
+        bullets (tuple, optional): Usage notes for the rich tooltip.
+        color (str, optional): Rich tooltip title color.
+        state (callable, optional): Returns a state line always shown in
+            the tooltip, e.g. what a buffer holds.
+        tint (tuple, optional): RGB 0-1 color to draw the icon in, e.g.
+            the row color.
+        parent (QWidget, optional): Parent widget.
+    """
+
+    clicked = QtCore.Signal()
+
+    def __init__(
+        self,
+        icon,
+        title,
+        text,
+        bullets=None,
+        color=None,
+        state=None,
+        tint=None,
+        parent=None,
+    ):
+        super(HubToolButton, self).__init__(parent)
+        self.icon = icon
+        self.title = title
+        self.text = text
+        self.bullets = bullets
+        self.color = color
+        self.state = state
+        self.tint = tint
+        self.dim = False
+        self._pixmap = None
+        self.set_unit(10.0)
+
+    def set_unit(self, unit):
+        """Scale the button.
+
+        Args:
+            unit (float): Size unit in pixels.
+        """
+        super(HubToolButton, self).set_unit(unit)
+        size = int(round(unit * 2.2))
+        self.setFixedSize(size, size)
+        self._pixmap = _icon(self.icon, int(round(unit * 1.5)), self.tint)
+
+    def set_dim(self, dim):
+        """Draw the button dim, e.g. while there is nothing to paste.
+
+        Args:
+            dim (bool): True to draw it dim.
+        """
+        self.dim = dim
+        self.update()
+
+    def update_tooltip(self):
+        """Rebuild the tooltip, e.g. after the state changed."""
+        state = self.state() if self.state else None
+        self.setToolTip(
+            self.build_tooltip(self.title, self.text, self.bullets, self.color, state)
+        )
+
+    def paintEvent(self, event):
+        """Paint the background, lighter on hover, and the icon."""
+        painter = QtGui.QPainter(self)
+        painter.setRenderHint(QtGui.QPainter.Antialiasing)
+        rect = QtCore.QRectF(self.rect()).adjusted(1, 1, -1, -1)
+        alpha = 220 if self.underMouse() else 160
+        painter.setPen(QtCore.Qt.NoPen)
+        painter.setBrush(QtGui.QColor(30, 30, 30, alpha))
+        corner = 0.3 * self._unit
+        painter.drawRoundedRect(rect, corner, corner)
+        if self._pixmap:
+            painter.setOpacity(DISABLED_ALPHA if self.dim else 1.0)
+            x = (self.width() - self._pixmap.width()) / 2.0
+            y = (self.height() - self._pixmap.height()) / 2.0
+            painter.drawPixmap(QtCore.QPointF(x, y), self._pixmap)
+        painter.end()
+
+    def enterEvent(self, event):
+        """Repaint for the hover highlight."""
+        self.update()
+        super(HubToolButton, self).enterEvent(event)
+
+    def leaveEvent(self, event):
+        """Repaint without the hover highlight."""
+        self.update()
+        super(HubToolButton, self).leaveEvent(event)
+
+    def mousePressEvent(self, event):
+        """Emit ``clicked`` on a left click."""
+        if event.button() == QtCore.Qt.LeftButton:
+            self.clicked.emit()
+        else:
+            event.ignore()
+
+
+class NudgeWidget(HubToolWidget):
+    """Nudge Keys controls: ``[<] amount [>] ripple``.
+
+    The mouse wheel over the amount changes it by one; clicking it opens a
+    popup to type a value. Popups can take the keyboard focus, the hub
+    can't.
+
+    Args:
+        amount (int): The nudge amount.
+        ripple (bool): The ripple state.
+        tint (tuple, optional): RGB 0-1 color of the icons and the amount.
+        parent (QWidget, optional): Parent widget.
+    """
+
+    nudge_requested = QtCore.Signal(int)
+    amount_changed = QtCore.Signal(int)
+    ripple_changed = QtCore.Signal(bool)
+
+    TITLE = "Nudge Keys"
+    TEXT = (
+        "Shift keys earlier or later by the number of frames in the field. "
+        "The current time moves with them."
+    )
+    BULLETS = (
+        "Moves the selected keys (Graph Editor, Dope Sheet) first.",
+        "Else the keys in the timeline range selection (Shift+drag).",
+        "Else the keys on the current frame (Channel Box attributes only "
+        "when some are selected).",
+        "Wheel over the number to change it, click it to type a value.",
+        "Ripple also moves all the later keys.",
+        "Blocked when keys would overlap other keys.",
+    )
+    COLOR = "#8a9bd9"
+
+    def __init__(self, amount, ripple, tint=None, parent=None):
+        super(NudgeWidget, self).__init__(parent)
+        self.amount = amount
+        self.ripple = ripple
+        self.tint = tint
+        layout = QtWidgets.QHBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        self._layout = layout
+        self.left_button = HubToolButton(
+            "mgear_chevron-left",
+            "Nudge back",
+            self.TEXT,
+            self.BULLETS,
+            self.COLOR,
+            tint=tint,
+        )
+        self.right_button = HubToolButton(
+            "mgear_chevron-right",
+            "Nudge forward",
+            self.TEXT,
+            self.BULLETS,
+            self.COLOR,
+            tint=tint,
+        )
+        self.amount_label = QtWidgets.QLabel()
+        self.amount_label.setAlignment(QtCore.Qt.AlignCenter)
+        self.amount_label.setCursor(QtCore.Qt.PointingHandCursor)
+        self.ripple_button = HubToolButton(
+            "mgear_chevrons-right",
+            "Ripple",
+            "Also move all the keys after the nudged keys.",
+            color=self.COLOR,
+            tint=tint,
+        )
+        for widget in (
+            self.left_button,
+            self.amount_label,
+            self.right_button,
+            self.ripple_button,
+        ):
+            _no_focus(widget)
+            layout.addWidget(widget)
+        self.left_button.clicked.connect(
+            lambda: self.nudge_requested.emit(-self.amount)
+        )
+        self.right_button.clicked.connect(
+            lambda: self.nudge_requested.emit(self.amount)
+        )
+        self.ripple_button.clicked.connect(self._toggle_ripple)
+        self.amount_label.installEventFilter(self)
+        color = _qcolor(self.tint).name() if self.tint else "#dddddd"
+        self.amount_label.setStyleSheet(
+            "QLabel {{ color: {}; background: rgba(30, 30, 30, 160);"
+            " border-radius: 3px; }}".format(color)
+        )
+        self._update_amount()
+        self._update_ripple()
+        self.set_unit(10.0)
+
+    def set_unit(self, unit):
+        """Scale the controls.
+
+        Args:
+            unit (float): Size unit in pixels.
+        """
+        super(NudgeWidget, self).set_unit(unit)
+        for button in (self.left_button, self.right_button, self.ripple_button):
+            button.set_unit(unit)
+        font = self.amount_label.font()
+        font.setPixelSize(max(1, int(round(unit * 1.2))))
+        font.setBold(True)
+        self.amount_label.setFont(font)
+        self.amount_label.setFixedSize(int(round(unit * 3.0)), int(round(unit * 2.2)))
+        self._layout.setSpacing(int(round(unit * 0.3)))
+
+    def set_show_tooltips(self, show):
+        """Use rich help tooltips, or short ones.
+
+        Args:
+            show (bool): True for rich tooltips.
+        """
+        for button in (self.left_button, self.right_button, self.ripple_button):
+            button.set_show_tooltips(show)
+        super(NudgeWidget, self).set_show_tooltips(show)
+
+    def set_row_name(self, name):
+        """Name the row in the tooltip titles.
+
+        Args:
+            name (str): Row name, None to leave it out.
+        """
+        for button in (self.left_button, self.right_button, self.ripple_button):
+            button.set_row_name(name)
+        super(NudgeWidget, self).set_row_name(name)
+
+    def update_tooltip(self):
+        """Rebuild the tooltip of the amount."""
+        self.amount_label.setToolTip(
+            self.build_tooltip(self.TITLE, self.TEXT, self.BULLETS, self.COLOR)
+        )
+
+    def set_amount(self, amount):
+        """Set the nudge amount, clamped to 1-100, and emit the change.
+
+        Args:
+            amount (int): Frames.
+        """
+        amount = hub_settings.clamp_nudge(amount)
+        if amount == self.amount:
+            return
+        self.amount = amount
+        self._update_amount()
+        self.amount_changed.emit(amount)
+
+    def _update_amount(self):
+        self.amount_label.setText(str(self.amount))
+
+    def _toggle_ripple(self):
+        self.ripple = not self.ripple
+        self._update_ripple()
+        self.ripple_changed.emit(self.ripple)
+
+    def _update_ripple(self):
+        self.ripple_button.set_dim(not self.ripple)
+
+    def _edit_amount(self):
+        menu = QtWidgets.QMenu(self)
+        spin = QtWidgets.QSpinBox()
+        spin.setRange(hub_settings.NUDGE_MIN, hub_settings.NUDGE_MAX)
+        spin.setValue(self.amount)
+        action = QtWidgets.QWidgetAction(menu)
+        action.setDefaultWidget(spin)
+        menu.addAction(action)
+        spin.editingFinished.connect(menu.close)
+        menu.aboutToShow.connect(spin.setFocus)
+        menu.exec_(QtGui.QCursor.pos())
+        self.set_amount(spin.value())
+
+    def eventFilter(self, watched, event):
+        """Wheel and click on the amount."""
+        if watched is self.amount_label:
+            if event.type() == QtCore.QEvent.Wheel:
+                step = 1 if event.angleDelta().y() > 0 else -1
+                self.set_amount(self.amount + step)
+                return True
+            if event.type() == QtCore.QEvent.MouseButtonPress:
+                if event.button() == QtCore.Qt.LeftButton:
+                    self._edit_amount()
+                    return True
+        return super(NudgeWidget, self).eventFilter(watched, event)
+
+
+class HubToolRow(HubRow):
+    """Row of tool widgets for the hub tool area, e.g. the key tools.
+
+    Args:
+        name (str): Row name, e.g. the bookmark name.
+        color (tuple): RGB 0-1 row color.
+        widgets (list): HubToolWidget widgets, left to right.
+        parent (QWidget, optional): Parent widget.
+    """
+
+    def __init__(self, name, color, widgets, parent=None):
+        super(HubToolRow, self).__init__(name, color, parent)
+        self.widgets = list(widgets)
+        content = QtWidgets.QWidget()
+        _no_focus(content)
+        self._content_layout = QtWidgets.QHBoxLayout(content)
+        self._content_layout.setContentsMargins(0, 0, 0, 0)
+        for widget in self.widgets:
+            self._content_layout.addWidget(widget)
+        self.set_content(content)
+
+    def set_unit(self, unit):
+        """Scale the row and its widgets.
+
+        Args:
+            unit (float): Size unit in pixels.
+        """
+        super(HubToolRow, self).set_unit(unit)
+        for widget in self.widgets:
+            widget.set_unit(unit)
+        self._content_layout.setSpacing(int(round(unit * 0.3)))
+
+    def set_show_tooltips(self, show):
+        """Use rich help tooltips on the widgets, or short ones.
+
+        Args:
+            show (bool): True for rich tooltips.
+        """
+        super(HubToolRow, self).set_show_tooltips(show)
+        for widget in self.widgets:
+            widget.set_show_tooltips(show)
+
+    def set_show_names(self, mode):
+        """Show the name next to the row, or in the tooltip titles.
+
+        Args:
+            mode (str): ``"hover"`` or ``"always"``.
+        """
+        super(HubToolRow, self).set_show_names(mode)
+        name = self.name if mode == hub_settings.SHOW_NAMES_HOVER else None
+        for widget in self.widgets:
+            widget.set_row_name(name)
+
+    def hover_tooltip(self):
+        """Return None: the tool widgets name the row in their tooltips.
+
+        Returns:
+            None: No row tooltip.
+        """
+        return None
 
 
 class ScaleMenuRow(QtWidgets.QWidget):

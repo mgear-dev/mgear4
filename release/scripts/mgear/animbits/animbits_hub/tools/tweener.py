@@ -8,11 +8,14 @@ and pull the pose (see ``modes``).
 
 from maya import cmds
 
+from mgear.vendor.Qt import QtCore
+
 from mgear.core import anim_utils
 from mgear.core import pyqt
 from mgear.core import utils
 from mgear.utilbits.bookmarks import core as bm_core
 
+from . import common
 from .. import buffers
 from .. import modes
 from .. import registry
@@ -24,90 +27,10 @@ from ..widgets import mode_tooltip
 
 TOOL_ID = "tweener"
 TOOL_LABEL = "Tweener"
-SELECTION_ROW_NAME = "Selection"
 NOTHING_TO_TWEEN = "Nothing to tween: no animated attribute with keys on both sides"
 NOTHING_TO_BLEND = "Nothing to blend: the controls are already at the target"
 NO_BUFFER = "No pose stored on {}: click the circle on the left of the row"
 UNDO_CHUNK = "animbitsHubBlend"
-
-
-def scene_bookmarks():
-    """Return the bookmarks stored in the scene.
-
-    Returns:
-        list: Bookmark dictionaries.
-    """
-    config = bm_core.load_from_scene()
-    if not config:
-        return []
-    return bm_core.config_to_bookmarks(config)[0]
-
-
-def row_specs(bookmarks, selection_color):
-    """Return the rows of the tweener, the selection row first.
-
-    Args:
-        bookmarks (list): Bookmark dictionaries.
-        selection_color (tuple): RGB 0-1 color of the selection row.
-
-    Returns:
-        list: ``{"name", "color", "bookmark"}`` dicts. ``bookmark`` is
-            None for the selection row.
-    """
-    specs = [
-        {
-            "name": SELECTION_ROW_NAME,
-            "color": tuple(selection_color),
-            "bookmark": None,
-        }
-    ]
-    for bookmark in bm_core.bookmarks_for_tool(bookmarks, TOOL_ID):
-        specs.append(
-            {
-                "name": bookmark["name"],
-                "color": tuple(bookmark["color"]),
-                "bookmark": bookmark,
-            }
-        )
-    return specs
-
-
-def tween_targets(bookmark=None, namespace=None):
-    """Return the keyable nodes a row tweens.
-
-    Args:
-        bookmark (dict, optional): The row bookmark. None for the
-            selection.
-        namespace (str, optional): Hub namespace, for a bookmark with
-            ``use_selected_namespace`` on.
-
-    Returns:
-        list: Node names.
-    """
-    if bookmark is None:
-        items = cmds.ls(selection=True, long=True) or []
-    else:
-        try:
-            items, _missing = bm_core.resolve_bookmark_items(bookmark, namespace)
-        except RuntimeError as e:
-            cmds.warning(str(e))
-            return []
-    return anim_utils.keyable_nodes(items)
-
-
-def row_key(bookmark=None):
-    """Return the key of a row, e.g. for its pose buffer.
-
-    Args:
-        bookmark (dict, optional): The row bookmark. None for the
-            selection row.
-
-    Returns:
-        str: ``"selection"`` or ``"bookmark:<name>"``.
-    """
-    if bookmark is None:
-        return "selection"
-    return "bookmark:{}".format(bookmark["name"])
 
 
 def build_cache(mode_id, bookmark=None, namespace=None):
@@ -123,11 +46,11 @@ def build_cache(mode_id, bookmark=None, namespace=None):
     Returns:
         list: ``(plug, a, b, animated)`` tuples.
     """
-    nodes = tween_targets(bookmark, namespace)
+    nodes = common.row_targets(bookmark, namespace)
     mode = modes.get_mode(mode_id)
     if mode.build_cache:
         return mode.build_cache(nodes)
-    buffer = buffers.get_buffer(row_key(bookmark))
+    buffer = buffers.get_buffer(common.row_key(bookmark))
     if buffer is None:
         return []
     # nothing selected on the selection row: paste on the stored controls
@@ -142,14 +65,14 @@ class TweenRow(HubRow):
     circle on the left stores the pose of the row.
 
     Args:
-        spec (dict): Row spec from :func:`row_specs`.
+        spec (dict): Row spec from ``common.row_specs``.
         parent (QWidget, optional): Parent widget.
     """
 
     def __init__(self, spec, parent=None):
         super(TweenRow, self).__init__(spec["name"], spec["color"], parent)
         self.bookmark = spec["bookmark"]
-        self.row_key = row_key(self.bookmark)
+        self.row_key = common.row_key(self.bookmark)
         self.uses_namespace = bool(
             self.bookmark and self.bookmark.get("use_selected_namespace")
         )
@@ -184,6 +107,19 @@ class TweenRow(HubRow):
         self.slider.set_label(mode.label)
         self.buffer_button.set_active(mode.mode_id == modes.BUFFER)
         self._update_buffer_button()
+
+    def content_left(self):
+        """Return the left edge of the 0% square, for column alignment.
+
+        Returns:
+            int: X position in row coordinates, after the buffer gutter.
+        """
+        square = self.slider.SQUARE * self.slider.unit
+        left = self.slider.mapTo(
+            self,
+            QtCore.QPoint(int(round(self.slider.x_at(0.0) - square / 2.0)), 0),
+        )
+        return left.x()
 
     def set_unit(self, unit):
         """Scale the row, buffer button included.
@@ -220,7 +156,7 @@ class TweenRow(HubRow):
 
     def store_buffer(self):
         """Store the pose of the row targets as the row buffer."""
-        nodes = tween_targets(self.bookmark, self.namespace)
+        nodes = common.row_targets(self.bookmark, self.namespace)
         buffer = buffers.capture_pose(nodes) if nodes else None
         if not buffer or not buffer.values:
             cmds.warning("Nothing to store: no keyable control in {}".format(self.name))
@@ -312,7 +248,9 @@ def build_rows(context):
     Returns:
         list: TweenRow widgets.
     """
-    specs = row_specs(scene_bookmarks(), context.settings.selection_color)
+    specs = common.row_specs(
+        common.context_bookmarks(context), context.settings.selection_color, TOOL_ID
+    )
     return [TweenRow(spec) for spec in specs]
 
 

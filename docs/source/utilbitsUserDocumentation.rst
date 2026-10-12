@@ -188,7 +188,7 @@ Features
 - **Restore Selection**: Click a bookmark to select those objects in the scene
 - **Rename and Delete**: Right-click on bookmarks for management options
 - **Key Members**: Middle-click a selection bookmark to key all its controls on the current frame, without changing the selection. A viewport message confirms how many controls were keyed. Components and non-keyable items are skipped.
-- **Show In Tools**: Right-click a selection bookmark and check a tool, e.g. **Tweener**, to list the bookmark in that tool (see the Animbits Hub)
+- **Show In Tools**: Right-click a selection bookmark and check a tool, **Tweener** (a slider row) or **Key Tools** (a row of nudge and world pose buttons), to list the bookmark in that tool (see the Animbits Hub)
 
 **Isolate View**
 

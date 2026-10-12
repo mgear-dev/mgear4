@@ -14,16 +14,18 @@ from mgear.core import anim_utils
 from mgear.core import callbackManager
 from mgear.core import node_remap
 
+WORLD_POSE = "world_pose"
+
 _buffers = {}
 _callbacks = None
 
 
 class PoseBuffer(object):
-    """A stored pose: attribute values of a list of nodes.
+    """A stored pose of a list of nodes.
 
     Args:
-        values (dict): ``{node: {attribute: value}}``, nodes in stored
-            order.
+        values (dict): ``{node: data}`` in stored order, e.g. attribute
+            values ``{attribute: value}`` or a world matrix.
         frame (float): Frame the pose was stored on.
         namespace (str): Namespace of the first node, empty for the root.
         created (float, optional): Store time, seconds since the epoch.
@@ -63,9 +65,22 @@ def capture_pose(nodes, frame=None):
     Returns:
         PoseBuffer: The buffer, empty when no node has a keyable value.
     """
+    return new_buffer(anim_utils.get_pose_values(nodes), frame)
+
+
+def new_buffer(values, frame=None):
+    """Return a buffer of values, its namespace taken from the first node.
+
+    Args:
+        values (dict): ``{node: data}`` in stored order.
+        frame (float, optional): Frame to record in the buffer. Defaults to
+            the current time.
+
+    Returns:
+        PoseBuffer: The buffer.
+    """
     if frame is None:
         frame = cmds.currentTime(query=True)
-    values = anim_utils.get_pose_values(nodes)
     namespace = node_remap.get_namespace(next(iter(values), "")).rstrip(":")
     return PoseBuffer(values, frame, namespace)
 
