@@ -6,7 +6,6 @@ def install():
     commands = (
         ("xPlorer", str_open_xplorer, "xplorer_icon.svg"),
         ("Random Colors", str_open_random_colors, "mgear_random_colors.svg"),
-        ("Bookmarks", str_open_bookmarks, "mgear_bookmark.svg"),
         ("Matcap Viewer", str_open_matcap_viewer, "mgear_circle.svg"),
     )
 
@@ -22,11 +21,6 @@ xplorer_win.show(dockable=True)
 str_open_random_colors = """
 from mgear.utilbits import random_colors
 random_colors.show()
-"""
-
-str_open_bookmarks = """
-from mgear.utilbits import bookmarks
-bookmarks.show()
 """
 
 str_open_matcap_viewer = """

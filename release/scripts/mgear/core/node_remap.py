@@ -53,6 +53,40 @@ def short_name(path):
     return strip_namespace_path(path).split("|")[-1]
 
 
+def split_component(name):
+    """Split a node or component name into the node and the component.
+
+    Component ranges hold colons (``f[0:10]``), so read namespaces from
+    the node part only.
+
+    Args:
+        name (str): Node, DAG path or component, e.g. ``|grp|ns:body.f[0:10]``.
+
+    Returns:
+        tuple: ``(node leaf name, component)``, e.g.
+            ``("ns:body", ".f[0:10]")``; the component is ``""`` for a node.
+    """
+    leaf = leaf_name(name)
+    if "." in leaf:
+        node, component = leaf.split(".", 1)
+        return node, "." + component
+    return leaf, ""
+
+
+def swap_namespace(name, namespace):
+    """Move a node or component name to another namespace.
+
+    Args:
+        name (str): Node or component, e.g. ``chrA:body.f[0:10]``.
+        namespace (str): New namespace, ``""`` or None for the root.
+
+    Returns:
+        str: E.g. ``chrB:body.f[0:10]``, the component kept.
+    """
+    node, component = split_component(name)
+    return add_namespace(short_name(node), namespace) + component
+
+
 def scene_namespaces():
     """Return the namespaces of the scene, nested ones included.
 

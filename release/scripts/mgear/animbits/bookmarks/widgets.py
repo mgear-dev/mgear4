@@ -1,7 +1,6 @@
 """Bookmarks widgets.
 
-ChipButton for bookmark chips. FlowLayout is re-exported from
-mgear.core.widgets.
+ChipButton for bookmark chips.
 """
 
 from functools import partial
@@ -10,14 +9,14 @@ from mgear.vendor.Qt import QtCore
 from mgear.vendor.Qt import QtGui
 from mgear.vendor.Qt import QtWidgets
 
+from mgear.core import pyqt
 from mgear.core.pyqt import dpi_scale
 from mgear.core.pyqt import get_icon
 
-# moved to mgear.core.widgets, kept here for backward compatibility
-from mgear.core.widgets import FlowLayout  # noqa: F401
 
-from . import core
+from mgear.core import selection_bookmarks
 
+from . import helpers
 
 #############################################
 # CHIP BUTTON
@@ -67,7 +66,7 @@ class ChipButton(QtWidgets.QPushButton):
 
     def _update_display(self):
         """Refresh text, tooltip, and stylesheet."""
-        if self.bookmark["type"] == core.BOOKMARK_ISOLATE:
+        if self.bookmark["type"] == selection_bookmarks.BOOKMARK_ISOLATE:
             self.setText("  " + self.bookmark["name"])
             icon_size = int(dpi_scale(14))
             pixmap = get_icon("mgear_eye", icon_size)
@@ -85,7 +84,7 @@ class ChipButton(QtWidgets.QPushButton):
         r_int = int(r * 255)
         g_int = int(g * 255)
         b_int = int(b * 255)
-        tr, tg, tb = core.text_color_for_background((r, g, b))
+        tr, tg, tb = pyqt.text_color_for_background((r, g, b))
         text_color = "rgb({}, {}, {})".format(
             int(tr * 255), int(tg * 255), int(tb * 255)
         )
@@ -137,7 +136,7 @@ class ChipButton(QtWidgets.QPushButton):
 
     def _update_tooltip(self):
         """Set tooltip with bookmark details."""
-        self.setToolTip(core.build_tooltip(self.bookmark))
+        self.setToolTip(helpers.build_tooltip(self.bookmark))
 
     def mousePressEvent(self, event):
         """Record drag start position.
@@ -185,7 +184,7 @@ class ChipButton(QtWidgets.QPushButton):
             self._drag_start_pos = None
             self.chip_clicked.emit(self.bookmark)
         elif event.button() == QtCore.Qt.MiddleButton:
-            if self.bookmark["type"] == core.BOOKMARK_SELECTION:
+            if self.bookmark["type"] == selection_bookmarks.BOOKMARK_SELECTION:
                 self.key_members_requested.emit(self.bookmark)
         super(ChipButton, self).mouseReleaseEvent(event)
 
@@ -198,7 +197,7 @@ class ChipButton(QtWidgets.QPushButton):
         menu = QtWidgets.QMenu(self)
 
         # Secondary action: the other type's action on this bookmark's items.
-        if self.bookmark["type"] == core.BOOKMARK_ISOLATE:
+        if self.bookmark["type"] == selection_bookmarks.BOOKMARK_ISOLATE:
             secondary_action = menu.addAction("Select Items")
         else:
             secondary_action = menu.addAction("Isolate Selection")
@@ -212,17 +211,15 @@ class ChipButton(QtWidgets.QPushButton):
         menu.addSeparator()
         ns_action = menu.addAction("Use Selected Object's Namespace")
         ns_action.setCheckable(True)
-        ns_action.setChecked(
-            bool(self.bookmark.get("use_selected_namespace", False))
-        )
-        if self.bookmark["type"] == core.BOOKMARK_SELECTION:
+        ns_action.setChecked(bool(self.bookmark.get("use_selected_namespace", False)))
+        if self.bookmark["type"] == selection_bookmarks.BOOKMARK_SELECTION:
             tools_menu = menu.addMenu("Show In Tools")
-            tools = core.registered_bookmark_tools()
+            tools = selection_bookmarks.registered_bookmark_tools()
             for tool_id, label in tools:
                 tool_action = tools_menu.addAction(label)
                 tool_action.setCheckable(True)
                 tool_action.setChecked(
-                    core.is_tool_enabled(self.bookmark, tool_id)
+                    selection_bookmarks.is_tool_enabled(self.bookmark, tool_id)
                 )
                 tool_action.triggered.connect(
                     partial(self._on_tool_triggered, tool_id, tool_action)

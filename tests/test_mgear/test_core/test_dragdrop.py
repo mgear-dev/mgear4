@@ -111,7 +111,7 @@ def test_dragdrop_loads_no_tool(scripts_path):
         "mgear.rigbits.channelWrangler",
         "mgear.animbits.channel_master_node",
         "mgear.anim_picker",
-        "mgear.utilbits.bookmarks",
+        "mgear.animbits.bookmarks",
     )
     code = (
         "import sys; sys.path.insert(0, {!r});"
@@ -396,8 +396,8 @@ def test_import_anim_picker_template(dragdrop, tmp_path):
 
 @pytest.mark.parametrize("answer, count", (("No", 3), ("Yes", 1)))
 def test_bookmarks_load_file(dragdrop, qt_app, monkeypatch, tmp_path, answer, count):
-    from mgear.utilbits import bookmarks
-    from mgear.utilbits.bookmarks import core
+    from mgear.animbits import bookmarks
+    from mgear.core import selection_bookmarks as core
     from mgear.vendor.Qt import QtWidgets
 
     path = str(tmp_path / "one.sbk")
@@ -485,10 +485,8 @@ def test_bind_pose_no_skin(dragdrop):
 def test_scene_namespaces_moved_to_core(dragdrop):
     from maya import cmds
     from mgear.core import node_remap
-    from mgear.utilbits.bookmarks import core as bookmarks_core
 
     assert node_remap.scene_namespaces() == []
     cmds.namespace(add="hero")
     cmds.namespace(add="prop", parent="hero")
     assert node_remap.scene_namespaces() == ["hero", "hero:prop"]
-    assert bookmarks_core.scene_namespaces is node_remap.scene_namespaces

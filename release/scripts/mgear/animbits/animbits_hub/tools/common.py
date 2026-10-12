@@ -7,7 +7,7 @@ enabled for the tool in the bookmark "Show In Tools" menu.
 from maya import cmds
 
 from mgear.core import anim_utils
-from mgear.utilbits.bookmarks import core as bm_core
+from mgear.core import selection_bookmarks
 
 SELECTION_ROW_NAME = "Selection"
 SELECTION_ROW_KEY = "selection"
@@ -23,7 +23,7 @@ def context_bookmarks(context):
         list: Bookmark dictionaries.
     """
     if context.bookmarks is None:
-        context.bookmarks = bm_core.load_scene_bookmarks()
+        context.bookmarks = selection_bookmarks.load_scene_bookmarks()
     return context.bookmarks
 
 
@@ -46,7 +46,7 @@ def row_specs(bookmarks, selection_color, tool_id):
             "bookmark": None,
         }
     ]
-    for bookmark in bm_core.bookmarks_for_tool(bookmarks, tool_id):
+    for bookmark in selection_bookmarks.bookmarks_for_tool(bookmarks, tool_id):
         specs.append(
             {
                 "name": bookmark["name"],
@@ -88,7 +88,9 @@ def row_targets(bookmark=None, namespace=None):
         items = cmds.ls(selection=True, long=True) or []
     else:
         try:
-            items, _missing = bm_core.resolve_bookmark_items(bookmark, namespace)
+            items, _missing = selection_bookmarks.resolve_bookmark_items(
+                bookmark, namespace
+            )
         except RuntimeError as e:
             cmds.warning(str(e))
             return []

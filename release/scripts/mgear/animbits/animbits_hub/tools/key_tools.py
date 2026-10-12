@@ -16,7 +16,7 @@ from mgear.core import attribute
 from mgear.core import node_remap
 from mgear.core import temp_pivot
 from mgear.core import utils
-from mgear.utilbits.bookmarks import core as bm_core
+from mgear.core import selection_bookmarks
 
 from . import common
 from .. import buffers
@@ -479,4 +479,4 @@ def build_tool_rows(context):
 
 
 registry.register_tool(TOOL_ID, build_tool_rows, order=10, area=registry.AREA_TOOLS)
-bm_core.register_bookmark_tool(TOOL_ID, TOOL_LABEL)
+selection_bookmarks.register_bookmark_tool(TOOL_ID, TOOL_LABEL)

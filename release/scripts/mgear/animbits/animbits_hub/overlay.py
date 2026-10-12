@@ -14,7 +14,7 @@ from mgear.vendor.Qt import QtWidgets
 from mgear.core import callbackManager
 from mgear.core import node_remap
 from mgear.core import pyqt
-from mgear.utilbits.bookmarks import core as bm_core
+from mgear.core import selection_bookmarks
 
 from . import geometry
 from . import modes
@@ -300,9 +300,9 @@ class HubOverlay(QtWidgets.QWidget):
 
     def update_namespace(self):
         """Take the namespace of the selection, or the last stored one."""
-        namespace = bm_core.selection_namespace()
+        namespace = selection_bookmarks.selection_namespace()
         if namespace is None:
-            namespace = bm_core.get_last_namespace()
+            namespace = selection_bookmarks.get_last_namespace()
         self.set_namespace(namespace)
 
     def set_namespace(self, namespace, store=False):
@@ -313,9 +313,9 @@ class HubOverlay(QtWidgets.QWidget):
             store (bool, optional): Also store it as the last namespace.
         """
         if store and namespace is not None:
-            bm_core.set_last_namespace(namespace)
+            selection_bookmarks.set_last_namespace(namespace)
         self.namespace = namespace
-        self.namespace_valid = bm_core.namespace_exists(namespace)
+        self.namespace_valid = selection_bookmarks.namespace_exists(namespace)
         self.namespace_label.set_namespace(namespace, self.namespace_valid)
         for row in self._all_rows():
             row.set_namespace(namespace, self.namespace_valid)

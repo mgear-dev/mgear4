@@ -189,26 +189,26 @@ def common(setup_path):
 def test_tweener_registered(setup_path):
     from mgear.animbits.animbits_hub import registry
     from mgear.animbits.animbits_hub.tools import tweener
-    from mgear.utilbits.bookmarks import core as bm_core
+    from mgear.core import selection_bookmarks
 
     assert "tweener" in dict(registry.registered_tools())
-    assert ("tweener", "Tweener") in bm_core.registered_bookmark_tools()
+    assert ("tweener", "Tweener") in selection_bookmarks.registered_bookmark_tools()
     assert tweener.TOOL_ID == "tweener"
 
 
 def test_row_specs(tweener, common):
-    from mgear.utilbits.bookmarks import core as bm_core
+    from mgear.core import selection_bookmarks
 
     def bookmark(name, bm_type, enabled):
-        bm = bm_core.create_bookmark(name, bm_type, [], (0.2, 0.4, 0.6))
-        bm_core.set_tool_config(bm, "tweener", enabled=enabled)
+        bm = selection_bookmarks.create_bookmark(name, bm_type, [], (0.2, 0.4, 0.6))
+        selection_bookmarks.set_tool_config(bm, "tweener", enabled=enabled)
         return bm
 
     bookmarks = [
-        bookmark("arm", bm_core.BOOKMARK_SELECTION, True),
-        bookmark("leg", bm_core.BOOKMARK_SELECTION, False),
-        bookmark("face", bm_core.BOOKMARK_SELECTION, True),
-        bookmark("iso", bm_core.BOOKMARK_ISOLATE, True),
+        bookmark("arm", selection_bookmarks.BOOKMARK_SELECTION, True),
+        bookmark("leg", selection_bookmarks.BOOKMARK_SELECTION, False),
+        bookmark("face", selection_bookmarks.BOOKMARK_SELECTION, True),
+        bookmark("iso", selection_bookmarks.BOOKMARK_ISOLATE, True),
     ]
     specs = common.row_specs(bookmarks, (0.6, 0.85, 0.6), tweener.TOOL_ID)
     assert [spec["name"] for spec in specs] == ["Selection", "arm", "face"]
@@ -220,7 +220,7 @@ def test_row_specs(tweener, common):
 
 def test_tween_targets(tweener, common):
     from maya import cmds
-    from mgear.utilbits.bookmarks import core as bm_core
+    from mgear.core import selection_bookmarks
 
     cmds.file(new=True, force=True)
     a = cmds.spaceLocator(name="a_ctl")[0]
@@ -231,7 +231,9 @@ def test_tween_targets(tweener, common):
     assert common.row_targets() == ["|a_ctl"]
 
     cmds.select(clear=True)
-    bm = bm_core.create_bookmark("bm", bm_core.BOOKMARK_SELECTION, [b], (1, 1, 1))
+    bm = selection_bookmarks.create_bookmark(
+        "bm", selection_bookmarks.BOOKMARK_SELECTION, [b], (1, 1, 1)
+    )
     assert common.row_targets(bm) == ["|b_ctl"]
     assert cmds.ls(selection=True) == []
 
@@ -681,22 +683,24 @@ def test_settings_nudge_per_row(hub_settings, qsettings):
 def test_key_tool_row_specs(setup_path):
     from mgear.animbits.animbits_hub.tools import common
     from mgear.animbits.animbits_hub.tools import key_tools
-    from mgear.utilbits.bookmarks import core as bm_core
+    from mgear.core import selection_bookmarks
 
-    arms = bm_core.create_bookmark("Arms", "selection", [], (1, 0, 1))
-    body = bm_core.create_bookmark("body", "selection", [], (0, 1, 1))
-    bm_core.set_tool_config(arms, "key_tools", enabled=True)
-    bm_core.set_tool_config(body, "tweener", enabled=True)
+    arms = selection_bookmarks.create_bookmark("Arms", "selection", [], (1, 0, 1))
+    body = selection_bookmarks.create_bookmark("body", "selection", [], (0, 1, 1))
+    selection_bookmarks.set_tool_config(arms, "key_tools", enabled=True)
+    selection_bookmarks.set_tool_config(body, "tweener", enabled=True)
     specs = common.row_specs([arms, body], (0.6, 0.85, 0.6), key_tools.TOOL_ID)
     assert [spec["name"] for spec in specs] == ["Selection", "Arms"]
-    assert ("key_tools", "Key Tools") in bm_core.registered_bookmark_tools()
+    assert ("key_tools", "Key Tools") in selection_bookmarks.registered_bookmark_tools()
 
 
 def test_bookmark_row_nudge_ignores_selected_keys(key_tools):
     from maya import cmds
-    from mgear.utilbits.bookmarks import core as bm_core
+    from mgear.core import selection_bookmarks
 
-    bookmark = bm_core.create_bookmark("Arms", "selection", ["ctl"], (1, 0, 1))
+    bookmark = selection_bookmarks.create_bookmark(
+        "Arms", "selection", ["ctl"], (1, 0, 1)
+    )
     cmds.selectKey("ctl.translateX", time=(10, 10))
     cmds.select(clear=True)
     kind, payload = key_tools.resolve_nudge_target(bookmark)
@@ -709,9 +713,11 @@ def test_bookmark_row_nudge_ignores_selected_keys(key_tools):
 def test_world_buffers_per_row(key_tools):
     from maya import cmds
     from mgear.animbits.animbits_hub import buffers
-    from mgear.utilbits.bookmarks import core as bm_core
+    from mgear.core import selection_bookmarks
 
-    bookmark = bm_core.create_bookmark("Arms", "selection", ["ctl"], (1, 0, 1))
+    bookmark = selection_bookmarks.create_bookmark(
+        "Arms", "selection", ["ctl"], (1, 0, 1)
+    )
     cmds.select(clear=True)
     key_tools.copy_world_pose(bookmark)
     assert buffers.get_buffer(key_tools.world_buffer_key(bookmark)) is not None
@@ -731,14 +737,16 @@ def pivot_rows(key_tools, qsettings):
     from maya import cmds
     from mgear.animbits.animbits_hub import registry
     from mgear.animbits.animbits_hub import settings as hub_settings
-    from mgear.utilbits.bookmarks import core as bm_core
+    from mgear.core import selection_bookmarks
 
     arm = cmds.spaceLocator(name="arm_ctl")[0]
     for frame in (1, 10):
         cmds.setKeyframe(arm, attribute="translateX", time=frame, value=frame)
-    arms = bm_core.create_bookmark("Arms", "selection", ["arm_ctl"], (1, 0, 1))
-    bm_core.set_tool_config(arms, "key_tools", enabled=True)
-    bm_core.save_to_scene([arms])
+    arms = selection_bookmarks.create_bookmark(
+        "Arms", "selection", ["arm_ctl"], (1, 0, 1)
+    )
+    selection_bookmarks.set_tool_config(arms, "key_tools", enabled=True)
+    selection_bookmarks.save_to_scene([arms])
     context = registry.HubContext(hub_settings.HubSettings(qsettings()))
     rows = key_tools.build_tool_rows(context)
     return {row.name: row for row in rows}

@@ -13,7 +13,7 @@ from mgear.vendor.Qt import QtCore
 from mgear.core import anim_utils
 from mgear.core import pyqt
 from mgear.core import utils
-from mgear.utilbits.bookmarks import core as bm_core
+from mgear.core import selection_bookmarks
 
 from . import common
 from .. import buffers
@@ -255,4 +255,4 @@ def build_rows(context):
 
 
 registry.register_tool(TOOL_ID, build_rows, order=10)
-bm_core.register_bookmark_tool(TOOL_ID, TOOL_LABEL)
+selection_bookmarks.register_bookmark_tool(TOOL_ID, TOOL_LABEL)

@@ -169,57 +169,6 @@ All operations support Maya's undo system, allowing you to easily revert changes
 
 .. _bookmarks:
 
-Bookmarks
-=========
-
-Bookmarks is a tool for saving and restoring object selections in Maya. It allows you to create named bookmarks that store a set of selected objects, and quickly recall them later. It also provides an isolate view mode for focusing on specific objects.
-
-With mGear file drop enabled (see :ref:`file-drop`), dropping a ``.sbk`` file into Maya opens Bookmarks and loads it, replacing or appending to the current bookmarks.
-
-.. image:: images/utilbits/bookmarks.png
-    :align: center
-
-Features
---------
-
-**Selection Bookmarks**
-
-- **Save Selection**: Store the current Maya selection as a named bookmark
-- **Restore Selection**: Click a bookmark to select those objects in the scene
-- **Rename and Delete**: Right-click on bookmarks for management options
-- **Key Members**: Middle-click a selection bookmark to key all its controls on the current frame, without changing the selection. A viewport message confirms how many controls were keyed. Components and non-keyable items are skipped.
-- **Show In Tools**: Right-click a selection bookmark and check a tool, **Tweener** (a slider row) or **Key Tools** (a row of nudge and world pose buttons), to list the bookmark in that tool (see the Animbits Hub)
-
-**Isolate View**
-
-- **Isolate Bookmark**: Show only the bookmarked objects in the viewport, hiding everything else
-- **Toggle**: Click again to restore full scene visibility
-
-Name Resolution and Namespaces
-------------------------------
-
-As of bookmark schema **v2.0**, items are stored as **short names with their namespace** (``char01:body``, ``char01:body.f[0:10]``) rather than full DAG paths. This means a bookmark survives DAG reorganization — moving the rig under a new group, renaming a parent, etc. no longer breaks the bookmark.
-
-**Per-bookmark namespace mode**
-
-Right-click a bookmark and toggle **Use Selected Object's Namespace** to control how the bookmark resolves at recall time:
-
-- **Off (default)**: The bookmark uses the namespace embedded when it was created. ``char01:body`` always selects ``char01:body``.
-- **On**: At recall time, the namespace is taken from whatever object you currently have selected, and the bookmark's stored namespaces are *replaced*. This lets one bookmark drive the same selection set across multiple character instances — create a bookmark on ``char01``, select any object in ``char02``, click the bookmark, and the equivalent ``char02:`` items are selected. The tooltip shows ``Namespace: from current selection`` when this mode is on.
-
-The namespace taken from the selection is remembered, also between Maya sessions. If the toggle is on but nothing is selected when you click the bookmark, the last namespace used is taken. Only when no namespace was ever used does the tool warn and do nothing.
-
-**Ambiguous short names**
-
-If a stored short name (after any namespace swap) matches **more than one** object in the scene, the bookmark refuses to select anything and shows a warning listing every match. Rename the conflicting nodes to disambiguate, or namespace them.
-
-Backwards Compatibility
------------------------
-
-- Existing v1.0 ``.sbk`` files (which store full DAG paths) still load. Each item is trimmed to its storage form on load.
-- Re-saving a v1.0 file writes it out as v2.0 automatically; ``Use Selected Object's Namespace`` defaults to **off** on migrated bookmarks so behavior matches the original.
-- Bookmarks stored in the Maya scene (network node) follow the same migration rules.
-
 .. _matcap-viewer:
 
 Matcap Viewer

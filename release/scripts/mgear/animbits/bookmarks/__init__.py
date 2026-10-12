@@ -2,10 +2,10 @@
 
 Save and recall object/component selections and isolate visibility
 states in Maya. Bookmarks persist in the scene and can be exported
-to .sbk files.
+to .sbk files. The data layer is ``mgear.core.selection_bookmarks``.
 
 Example:
-    from mgear.utilbits import bookmarks
+    from mgear.animbits import bookmarks
     bookmarks.show()
 """
 

@@ -322,7 +322,7 @@ _BUILTIN_HANDLERS = (
         "Channel Master config",
     ),
     (".pkr", "mgear.anim_picker:drop_file", "Anim Picker"),
-    (".sbk", "mgear.utilbits.bookmarks:drop_file", "Bookmarks", False),
+    (".sbk", "mgear.animbits.bookmarks:drop_file", "Bookmarks", False),
 )
 
 for _args in _BUILTIN_HANDLERS:

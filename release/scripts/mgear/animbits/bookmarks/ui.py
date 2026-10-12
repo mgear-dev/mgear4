@@ -11,23 +11,21 @@ from mgear.vendor.Qt import QtGui
 from mgear.vendor.Qt import QtWidgets
 
 from mgear.core import pyqt
+from mgear.core import selection_bookmarks
 from mgear.core.pyqt import dpi_scale
+from mgear.core.widgets import FlowLayout
 
 from maya.app.general.mayaMixin import MayaQWidgetDockableMixin
 
-from . import core
+from . import helpers
 from .widgets import ChipButton
-from .widgets import FlowLayout
-
 
 LAYOUT_HORIZONTAL = 0
 LAYOUT_VERTICAL = 1
 LAYOUT_GRID = 2
 
 
-class BookmarksUI(
-    MayaQWidgetDockableMixin, QtWidgets.QDialog, pyqt.SettingsMixin
-):
+class BookmarksUI(MayaQWidgetDockableMixin, QtWidgets.QDialog, pyqt.SettingsMixin):
     """Main UI for Bookmarks Tool.
 
     Args:
@@ -121,9 +119,7 @@ class BookmarksUI(
         """Connect signals to slots."""
         self.add_sel_action.triggered.connect(self._on_add_selection)
         self.add_iso_action.triggered.connect(self._on_add_isolate)
-        self._layout_action_group.triggered.connect(
-            self._on_layout_changed
-        )
+        self._layout_action_group.triggered.connect(self._on_layout_changed)
         self.export_action.triggered.connect(self._on_export)
         self.import_action.triggered.connect(self._on_import)
 
@@ -145,7 +141,7 @@ class BookmarksUI(
         Returns:
             str: Layout name for serialization.
         """
-        return core.LAYOUT_NAMES[self._layout_index]
+        return selection_bookmarks.LAYOUT_NAMES[self._layout_index]
 
     def _apply_layout(self):
         """Apply the current layout mode to the chip container."""
@@ -157,9 +153,7 @@ class BookmarksUI(
 
         new_container = QtWidgets.QWidget()
         new_container.setAcceptDrops(True)
-        new_container.setContextMenuPolicy(
-            QtCore.Qt.CustomContextMenu
-        )
+        new_container.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
         new_container.customContextMenuRequested.connect(
             self._on_container_context_menu
         )
@@ -200,8 +194,8 @@ class BookmarksUI(
             action (QAction): The triggered layout action.
         """
         key = action.text().lower()
-        if key in core.LAYOUT_MAP:
-            self._layout_index = core.LAYOUT_MAP[key]
+        if key in selection_bookmarks.LAYOUT_MAP:
+            self._layout_index = selection_bookmarks.LAYOUT_MAP[key]
         self._apply_layout()
         self._auto_save()
 
@@ -220,11 +214,11 @@ class BookmarksUI(
 
     def _on_add_selection(self):
         """Create a selection bookmark from current Maya selection."""
-        self._add_bookmark(core.BOOKMARK_SELECTION)
+        self._add_bookmark(selection_bookmarks.BOOKMARK_SELECTION)
 
     def _on_add_isolate(self):
         """Create an isolate bookmark from current Maya selection."""
-        self._add_bookmark(core.BOOKMARK_ISOLATE)
+        self._add_bookmark(selection_bookmarks.BOOKMARK_ISOLATE)
 
     def _add_bookmark(self, bookmark_type):
         """Create a bookmark of the given type from current selection.
@@ -232,7 +226,7 @@ class BookmarksUI(
         Args:
             bookmark_type (str): BOOKMARK_SELECTION or BOOKMARK_ISOLATE.
         """
-        bookmark = core.bookmark_from_selection(
+        bookmark = selection_bookmarks.bookmark_from_selection(
             self._next_name(), bookmark_type
         )
         if not bookmark:
@@ -260,9 +254,7 @@ class BookmarksUI(
         chip.add_to_shelf_requested.connect(self._on_add_to_shelf)
         chip.delete_requested.connect(self._on_delete)
         chip.toggle_menu_requested.connect(self._toggle_menu_bar)
-        chip.toggle_namespace_mode_requested.connect(
-            self._on_toggle_namespace_mode
-        )
+        chip.toggle_namespace_mode_requested.connect(self._on_toggle_namespace_mode)
         chip.tool_toggled.connect(self._on_tool_toggled)
         chip.key_members_requested.connect(self._on_key_members)
 
@@ -437,19 +429,19 @@ class BookmarksUI(
             bookmark (dict): The clicked bookmark.
         """
         modifiers = QtWidgets.QApplication.keyboardModifiers()
-        if bookmark["type"] == core.BOOKMARK_SELECTION:
+        if bookmark["type"] == selection_bookmarks.BOOKMARK_SELECTION:
             cmds.undoInfo(openChunk=True)
             try:
                 if modifiers & QtCore.Qt.ShiftModifier:
-                    core.recall_selection(bookmark, mode="add")
+                    selection_bookmarks.recall_selection(bookmark, mode="add")
                 elif modifiers & QtCore.Qt.ControlModifier:
-                    core.recall_selection(bookmark, mode="deselect")
+                    selection_bookmarks.recall_selection(bookmark, mode="deselect")
                 else:
-                    core.recall_selection(bookmark, mode="replace")
+                    selection_bookmarks.recall_selection(bookmark, mode="replace")
             finally:
                 cmds.undoInfo(closeChunk=True)
-        elif bookmark["type"] == core.BOOKMARK_ISOLATE:
-            core.toggle_isolate(bookmark)
+        elif bookmark["type"] == selection_bookmarks.BOOKMARK_ISOLATE:
+            selection_bookmarks.toggle_isolate(bookmark)
 
     def _on_secondary_action(self, bookmark):
         """Run the bookmark's secondary action (the other type's action).
@@ -460,14 +452,14 @@ class BookmarksUI(
         Args:
             bookmark (dict): The bookmark whose menu item was triggered.
         """
-        if bookmark["type"] == core.BOOKMARK_ISOLATE:
+        if bookmark["type"] == selection_bookmarks.BOOKMARK_ISOLATE:
             cmds.undoInfo(openChunk=True)
             try:
-                core.recall_selection(bookmark, mode="replace")
+                selection_bookmarks.recall_selection(bookmark, mode="replace")
             finally:
                 cmds.undoInfo(closeChunk=True)
         else:
-            core.toggle_isolate(bookmark)
+            selection_bookmarks.toggle_isolate(bookmark)
 
     # ---------------------------------------------------------
     # Context menu handlers
@@ -522,7 +514,7 @@ class BookmarksUI(
         Args:
             bookmark (dict): The bookmark to modify.
         """
-        added = core.add_selected_to_bookmark(bookmark)
+        added = selection_bookmarks.add_selected_to_bookmark(bookmark)
         if added:
             chip = self._find_chip_for_bookmark(bookmark)
             if chip:
@@ -537,7 +529,7 @@ class BookmarksUI(
         Args:
             bookmark (dict): The bookmark to modify.
         """
-        removed = core.remove_selected_from_bookmark(bookmark)
+        removed = selection_bookmarks.remove_selected_from_bookmark(bookmark)
         if removed:
             chip = self._find_chip_for_bookmark(bookmark)
             if chip:
@@ -568,7 +560,7 @@ class BookmarksUI(
             tool_id (str): The tool id.
             enabled (bool): The new state.
         """
-        core.set_tool_config(bookmark, tool_id, enabled=enabled)
+        selection_bookmarks.set_tool_config(bookmark, tool_id, enabled=enabled)
         self._auto_save()
 
     def _on_key_members(self, bookmark):
@@ -577,7 +569,7 @@ class BookmarksUI(
         Args:
             bookmark (dict): The bookmark to key.
         """
-        nodes = core.key_bookmark_members(bookmark)
+        nodes = selection_bookmarks.key_bookmark_members(bookmark)
         if nodes:
             cmds.inViewMessage(
                 amg="Keyed <hl>{}</hl>: {} control(s)".format(
@@ -593,12 +585,10 @@ class BookmarksUI(
         Args:
             bookmark (dict): The bookmark to add.
         """
-        result = core.add_bookmark_to_shelf(bookmark)
+        result = helpers.add_bookmark_to_shelf(bookmark)
         if result:
             cmds.inViewMessage(
-                amg="Added <hl>{}</hl> to shelf".format(
-                    bookmark["name"]
-                ),
+                amg="Added <hl>{}</hl> to shelf".format(bookmark["name"]),
                 pos="topCenter",
                 fade=True,
             )
@@ -618,9 +608,7 @@ class BookmarksUI(
 
     def _load_layout_setting(self):
         """Restore layout choice from QSettings."""
-        idx = int(
-            self.settings.value("sel_bookmarks/layout", defaultValue=0)
-        )
+        idx = int(self.settings.value("sel_bookmarks/layout", defaultValue=0))
         if 0 <= idx <= LAYOUT_GRID:
             self._layout_index = idx
         actions = (
@@ -632,24 +620,22 @@ class BookmarksUI(
 
     def _save_layout_setting(self):
         """Persist layout choice to QSettings."""
-        self.settings.setValue(
-            "sel_bookmarks/layout", self._get_layout_index()
-        )
+        self.settings.setValue("sel_bookmarks/layout", self._get_layout_index())
         self.settings.sync()
 
     def _auto_save(self):
         """Auto-save bookmarks to the scene node."""
         self._save_layout_setting()
-        core.save_to_scene(self._bookmarks, self._get_layout_name())
+        selection_bookmarks.save_to_scene(self._bookmarks, self._get_layout_name())
 
     def _load_from_scene(self):
         """Load bookmarks from scene on startup."""
-        config = core.load_from_scene()
+        config = selection_bookmarks.load_from_scene()
         if not config:
             return
-        bookmarks, layout = core.config_to_bookmarks(config)
+        bookmarks, layout = selection_bookmarks.config_to_bookmarks(config)
         self._bookmarks = bookmarks
-        self._layout_index = core.LAYOUT_MAP.get(layout, 0)
+        self._layout_index = selection_bookmarks.LAYOUT_MAP.get(layout, 0)
         self._apply_layout()
         self._bookmark_counter = len(bookmarks)
         self._rebuild_chips()
@@ -660,19 +646,19 @@ class BookmarksUI(
 
     def _on_export(self):
         """Export bookmarks to a .sbk file."""
-        file_filter = "Bookmarks (*{})".format(core.CONFIG_FILE_EXT)
+        file_filter = "Bookmarks (*{})".format(selection_bookmarks.CONFIG_FILE_EXT)
         file_path, _ = QtWidgets.QFileDialog.getSaveFileName(
             self, "Export Bookmarks", "", file_filter
         )
         if not file_path:
             return
-        core.export_bookmarks(
+        selection_bookmarks.export_bookmarks(
             file_path, self._bookmarks, self._get_layout_name()
         )
 
     def _on_import(self):
         """Import bookmarks from a .sbk file."""
-        file_filter = "Bookmarks (*{})".format(core.CONFIG_FILE_EXT)
+        file_filter = "Bookmarks (*{})".format(selection_bookmarks.CONFIG_FILE_EXT)
         file_path, _ = QtWidgets.QFileDialog.getOpenFileName(
             self, "Import Bookmarks", "", file_filter
         )
@@ -689,18 +675,17 @@ class BookmarksUI(
         Args:
             file_path (str): Path to the .sbk file.
         """
-        config = core.import_bookmarks(file_path)
+        config = selection_bookmarks.import_bookmarks(file_path)
         if not config:
             return
 
-        bookmarks, layout = core.config_to_bookmarks(config)
+        bookmarks, layout = selection_bookmarks.config_to_bookmarks(config)
         append = False
         if self._bookmarks:
             result = QtWidgets.QMessageBox.question(
                 self,
                 "Import Bookmarks",
-                "Replace existing bookmarks?\n\n"
-                "Yes = Replace, No = Append",
+                "Replace existing bookmarks?\n\n" "Yes = Replace, No = Append",
                 QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No,
                 QtWidgets.QMessageBox.Yes,
             )
@@ -711,7 +696,7 @@ class BookmarksUI(
                 self._add_chip(bm)
         else:
             self._bookmarks = bookmarks
-            self._layout_index = core.LAYOUT_MAP.get(layout, 0)
+            self._layout_index = selection_bookmarks.LAYOUT_MAP.get(layout, 0)
             self._apply_layout()
             self._rebuild_chips()
 

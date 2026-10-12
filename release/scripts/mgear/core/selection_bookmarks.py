@@ -1,7 +1,14 @@
-"""Bookmarks core logic.
+"""Selection bookmarks: the data layer of the bookmarks tool.
 
-Data model, scene storage, export/import, selection/isolate recall,
-and shelf button generation. No UI code.
+Named, colored sets of objects or components, stored in the scene and in
+``.sbk`` files. Recall, isolate and key them, and let other tools (e.g.
+the Animbits Hub) list bookmarks enabled for them. The window lives in
+``mgear.animbits.bookmarks``. No Qt widgets.
+
+Example:
+    >>> from mgear.core import selection_bookmarks
+    >>> for bookmark in selection_bookmarks.load_scene_bookmarks():
+    ...     selection_bookmarks.recall_selection(bookmark)
 """
 
 import colorsys
@@ -14,14 +21,12 @@ import maya.mel as mel
 from maya import cmds
 
 from mgear.core import anim_utils
+from mgear.core import attribute
+from mgear.core import config_io
 from mgear.core import node_remap
-from mgear.core.pyqt import get_icon_path
 from mgear.core.pyqt import get_user_settings
 
-# moved to mgear.core.pyqt, kept here for backward compatibility
-from mgear.core.pyqt import text_color_for_background  # noqa: F401
-
-logger = logging.getLogger("mgear.utilbits.bookmarks")
+logger = logging.getLogger(__name__)
 
 #############################################
 # CONSTANTS
@@ -132,65 +137,6 @@ def validate_bookmark_items(bookmark):
     return resolved
 
 
-def build_tooltip(bookmark):
-    """Build a detailed tooltip string for a bookmark.
-
-    Lists objects (truncated at 50) and summarizes components
-    by type per object.
-
-    Args:
-        bookmark (dict): The bookmark dictionary.
-
-    Returns:
-        str: Multi-line tooltip text.
-    """
-    if bookmark["type"] == BOOKMARK_SELECTION:
-        type_label = "Selection Bookmark"
-    else:
-        type_label = "Isolate Bookmark"
-
-    items = bookmark["items"]
-    objects = []
-    components = {}
-    for item in items:
-        if "." in item and "[" in item:
-            obj, comp = item.split(".", 1)
-            comp_type = comp.split("[")[0]
-            if obj not in components:
-                components[obj] = {}
-            components[obj].setdefault(comp_type, 0)
-            components[obj][comp_type] += 1
-        else:
-            objects.append(item)
-
-    lines = [type_label]
-    lines.append("{} items total".format(len(items)))
-    lines.append("")
-
-    if objects:
-        lines.append("Objects ({}):".format(len(objects)))
-        for obj in objects[:50]:
-            lines.append("  " + obj)
-        if len(objects) > 50:
-            lines.append("  ... +{} more".format(len(objects) - 50))
-
-    if components:
-        if objects:
-            lines.append("")
-        lines.append("Components:")
-        for obj, types in sorted(components.items()):
-            parts = []
-            for comp_type, count in sorted(types.items()):
-                parts.append("{} {}".format(count, comp_type))
-            lines.append("  {}: {}".format(obj, ", ".join(parts)))
-
-    if bookmark.get("use_selected_namespace"):
-        lines.append("")
-        lines.append("Namespace: from current selection")
-
-    return "\n".join(lines)
-
-
 #############################################
 # TOOL SETTINGS
 #############################################
@@ -289,61 +235,13 @@ def to_storage_form(name):
     Returns:
         str: Storage-form name.
     """
-    return name.rsplit("|", 1)[-1]
+    return node_remap.leaf_name(name)
 
 
-def extract_namespace(name):
-    """Return the namespace prefix of a node name (without trailing colon).
-
-    Handles nested namespaces (``char01:rig:body`` -> ``char01:rig``).
-    Returns an empty string if the node has no namespace.
-
-    Args:
-        name (str): Node name (long path, short, or with components).
-
-    Returns:
-        str: Namespace string, possibly nested, or empty string.
-    """
-    short = name.rsplit("|", 1)[-1]
-    obj = short.split(".", 1)[0]
-    if ":" not in obj:
-        return ""
-    return obj.rsplit(":", 1)[0]
-
-
-def strip_namespace(name):
-    """Return the node's bare short name with no DAG path or namespace.
-
-    Components are preserved (``char01:body.f[0:10]`` -> ``body.f[0:10]``).
-
-    Args:
-        name (str): Node name (long path, short, or with components).
-
-    Returns:
-        str: Short name without namespace.
-    """
-    short = name.rsplit("|", 1)[-1]
-    if "." in short:
-        obj, comp = short.split(".", 1)
-        return obj.rsplit(":", 1)[-1] + "." + comp
-    return short.rsplit(":", 1)[-1]
-
-
-def swap_namespace(stored_item, new_ns):
-    """Replace the namespace prefix of a v2.0 storage-form item.
-
-    Args:
-        stored_item (str): Item in storage form (``ns:short[.comp]``).
-        new_ns (str): New namespace, possibly nested. Empty string
-            means root namespace.
-
-    Returns:
-        str: Item with the namespace replaced.
-    """
-    bare = strip_namespace(stored_item)
-    if new_ns:
-        return "{}:{}".format(new_ns, bare)
-    return bare
+def _namespace_of(item):
+    """Return the namespace of an item, without trailing colon."""
+    node, _component = node_remap.split_component(item)
+    return node_remap.get_namespace(node).rstrip(":")
 
 
 def get_last_namespace():
@@ -373,10 +271,6 @@ def set_last_namespace(namespace):
     settings.sync()
 
 
-# Moved to mgear.core.node_remap, kept for the callers of this module
-scene_namespaces = node_remap.scene_namespaces
-
-
 def namespace_exists(namespace):
     """Return True when a namespace exists in the scene.
 
@@ -404,7 +298,7 @@ def selection_namespace():
     sel = cmds.ls(selection=True, long=True) or []
     if not sel:
         return None
-    namespace = extract_namespace(sel[0])
+    namespace = _namespace_of(sel[0])
     if namespace != get_last_namespace():
         set_last_namespace(namespace)
     return namespace
@@ -449,7 +343,7 @@ def resolve_bookmark_items(bookmark, namespace=None):
             raise RuntimeError(
                 "'Use selected namespace' is on but nothing is selected."
             )
-        items = [swap_namespace(i, new_ns) for i in items]
+        items = [node_remap.swap_namespace(i, new_ns) for i in items]
 
     resolved = []
     ambiguous = []
@@ -476,12 +370,9 @@ def resolve_bookmark_items(bookmark, namespace=None):
 
     if ambiguous:
         details = "\n".join(
-            "  '{}' -> {}".format(name, ", ".join(m))
-            for name, m in ambiguous
+            "  '{}' -> {}".format(name, ", ".join(m)) for name, m in ambiguous
         )
-        raise RuntimeError(
-            "Bookmark items are ambiguous:\n{}".format(details)
-        )
+        raise RuntimeError("Bookmark items are ambiguous:\n{}".format(details))
     return resolved, missing
 
 
@@ -506,9 +397,7 @@ def recall_selection(bookmark, mode="replace"):
         cmds.warning("No bookmark items found in scene")
         return
     if missing:
-        cmds.warning(
-            "{} bookmark item(s) not found in scene".format(len(missing))
-        )
+        cmds.warning("{} bookmark item(s) not found in scene".format(len(missing)))
     if mode == "add":
         cmds.select(valid, add=True)
     elif mode == "deselect":
@@ -531,8 +420,7 @@ def add_selected_to_bookmark(bookmark):
         return 0
     existing = set(bookmark["items"])
     new_items = [
-        item for item in (to_storage_form(s) for s in sel)
-        if item not in existing
+        item for item in (to_storage_form(s) for s in sel) if item not in existing
     ]
     bookmark["items"].extend(new_items)
     return len(new_items)
@@ -552,9 +440,7 @@ def remove_selected_from_bookmark(bookmark):
         return 0
     sel_storage = {to_storage_form(s) for s in sel}
     original_count = len(bookmark["items"])
-    bookmark["items"] = [
-        i for i in bookmark["items"] if i not in sel_storage
-    ]
+    bookmark["items"] = [i for i in bookmark["items"] if i not in sel_storage]
     return original_count - len(bookmark["items"])
 
 
@@ -617,9 +503,7 @@ def toggle_isolate(bookmark):
         cmds.warning("No bookmark items found in scene")
         return
     if missing:
-        cmds.warning(
-            "{} bookmark item(s) not found in scene".format(len(missing))
-        )
+        cmds.warning("{} bookmark item(s) not found in scene".format(len(missing)))
 
     panel = _get_active_model_panel()
     if not panel:
@@ -681,9 +565,7 @@ def bookmarks_to_config(bookmarks, layout="horizontal"):
                 "color": list(bm["color"]),
                 "type": bm["type"],
                 "items": list(bm["items"]),
-                "use_selected_namespace": bool(
-                    bm.get("use_selected_namespace", False)
-                ),
+                "use_selected_namespace": bool(bm.get("use_selected_namespace", False)),
                 # copied whole, so settings of unknown tools are kept
                 "tools": copy.deepcopy(bm.get("tools", {})),
             }
@@ -710,16 +592,18 @@ def config_to_bookmarks(config):
             # Legacy schema stored full DAG paths; trim to storage form
             # (namespace:short[.component]) so the resolver can match.
             items = [to_storage_form(i) for i in items]
-        bookmarks.append({
-            "name": raw.get("name", "Bookmark"),
-            "color": list(raw.get("color", random_pastel_color())),
-            "type": raw.get("type", BOOKMARK_SELECTION),
-            "items": items,
-            "use_selected_namespace": bool(
-                raw.get("use_selected_namespace", False)
-            ),
-            "tools": copy.deepcopy(raw.get("tools", {})),
-        })
+        bookmarks.append(
+            {
+                "name": raw.get("name", "Bookmark"),
+                "color": list(raw.get("color", random_pastel_color())),
+                "type": raw.get("type", BOOKMARK_SELECTION),
+                "items": items,
+                "use_selected_namespace": bool(
+                    raw.get("use_selected_namespace", False)
+                ),
+                "tools": copy.deepcopy(raw.get("tools", {})),
+            }
+        )
     return bookmarks, layout
 
 
@@ -739,8 +623,7 @@ def export_bookmarks(file_path, bookmarks, layout="horizontal"):
     Returns:
         bool: True if successful.
     """
-    if not file_path.endswith(CONFIG_FILE_EXT):
-        file_path += CONFIG_FILE_EXT
+    file_path = config_io.file_path(file_path, CONFIG_FILE_EXT)
     config = bookmarks_to_config(bookmarks, layout)
     try:
         with open(file_path, "w") as f:
@@ -794,11 +677,7 @@ def save_to_scene(bookmarks, layout="horizontal"):
     config = bookmarks_to_config(bookmarks, layout)
     try:
         node = _get_or_create_scene_node()
-        cmds.setAttr(
-            "{}.{}".format(node, SCENE_NODE_DATA_ATTR),
-            json.dumps(config),
-            type="string",
-        )
+        attribute.set_string_attr(node, SCENE_NODE_DATA_ATTR, json.dumps(config))
         return True
     except Exception as e:
         cmds.warning("Failed to save bookmarks to scene: {}".format(e))
@@ -815,7 +694,7 @@ def load_from_scene():
     if not node:
         return None
     try:
-        data = cmds.getAttr("{}.{}".format(node, SCENE_NODE_DATA_ATTR))
+        data = attribute.get_string_attr(node, SCENE_NODE_DATA_ATTR)
         if not data:
             return None
         return json.loads(data)
@@ -852,7 +731,6 @@ def _get_or_create_scene_node():
         attributeType="bool",
         defaultValue=True,
     )
-    cmds.addAttr(node, longName=SCENE_NODE_DATA_ATTR, dataType="string")
     global _scene_node_cache
     _scene_node_cache = node
     return node
@@ -872,84 +750,13 @@ def _find_scene_node():
 
     # Fast path: check well-known name
     if cmds.objExists(SCENE_NODE_NAME):
-        if cmds.attributeQuery(
-            SCENE_NODE_TYPE_ATTR, node=SCENE_NODE_NAME, exists=True
-        ):
+        if cmds.attributeQuery(SCENE_NODE_TYPE_ATTR, node=SCENE_NODE_NAME, exists=True):
             _scene_node_cache = SCENE_NODE_NAME
             return SCENE_NODE_NAME
 
     # Slow path: scan all network nodes (handles renamed nodes)
     for node in cmds.ls(type="network") or []:
-        if cmds.attributeQuery(
-            SCENE_NODE_TYPE_ATTR, node=node, exists=True
-        ):
+        if cmds.attributeQuery(SCENE_NODE_TYPE_ATTR, node=node, exists=True):
             _scene_node_cache = node
             return node
     return None
-
-
-#############################################
-# SHELF
-#############################################
-
-
-def add_bookmark_to_shelf(bookmark):
-    """Add a bookmark as a button on Maya's current shelf.
-
-    The shelf button calls core functions directly via a compact
-    Python command.
-
-    Args:
-        bookmark (dict): The bookmark dictionary.
-
-    Returns:
-        str: The shelf button name, or None if failed.
-    """
-    try:
-        current_shelf = mel.eval(
-            "tabLayout -query -selectTab $gShelfTopLevel"
-        )
-    except Exception:
-        cmds.warning("Could not find current shelf")
-        return None
-
-    name = bookmark["name"]
-    r, g, b = bookmark["color"]
-    bm_data = json.dumps(bookmark)
-    is_selection = bookmark["type"] == BOOKMARK_SELECTION
-
-    command = (
-        "from mgear.utilbits.bookmarks import core\n"
-        "import json\n"
-        "bm = json.loads({data!r})\n"
-    ).format(data=bm_data)
-
-    if is_selection:
-        command += (
-            "import maya.cmds as cmds\n"
-            "mods = cmds.getModifiers()\n"
-            "if mods & 1:\n"
-            "    core.recall_selection(bm, 'add')\n"
-            "elif mods & 4:\n"
-            "    core.recall_selection(bm, 'deselect')\n"
-            "else:\n"
-            "    core.recall_selection(bm, 'replace')\n"
-        )
-        icon = get_icon_path("mgear_mouse-pointer.svg")
-    else:
-        command += "core.toggle_isolate(bm)\n"
-        icon = get_icon_path("mgear_eye.svg")
-
-    btn = cmds.shelfButton(
-        parent=current_shelf,
-        label=name,
-        annotation=build_tooltip(bookmark),
-        imageOverlayLabel=name,
-        image1=icon,
-        overlayLabelColor=[0, 0, 0],
-        overlayLabelBackColor=list(bookmark["color"]) + [0.5],
-        command=command,
-        sourceType="python",
-        backgroundColor=[r, g, b],
-    )
-    return btn

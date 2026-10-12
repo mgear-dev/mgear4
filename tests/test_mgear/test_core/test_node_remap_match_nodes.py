@@ -62,3 +62,15 @@ def test_ambiguous_short_name_takes_first(node_remap):
         ["chrA:hand_ctl", "chrB:hand_ctl"], ["chrC:hand_ctl"]
     )
     assert result == {"chrA:hand_ctl": "chrC:hand_ctl"}
+
+
+def test_split_component(node_remap):
+    assert node_remap.split_component("|grp|ns:body.f[0:10]") == ("ns:body", ".f[0:10]")
+    assert node_remap.split_component("a:b:arm_ctl") == ("a:b:arm_ctl", "")
+
+
+def test_swap_namespace(node_remap):
+    assert node_remap.swap_namespace("chrA:body.f[0:10]", "chrB") == "chrB:body.f[0:10]"
+    assert node_remap.swap_namespace("a:b:arm_ctl", "c") == "c:arm_ctl"
+    assert node_remap.swap_namespace("chrA:arm_ctl", "") == "arm_ctl"
+    assert node_remap.swap_namespace("arm_ctl", "chrA:") == "chrA:arm_ctl"

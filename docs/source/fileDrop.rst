@@ -57,7 +57,7 @@ Supported Files
       - Creates the picker node and opens the Anim Picker. When the scene has namespaces, asks which one the picker drives.
     * - ``.sbk``
       - Bookmarks
-      - Opens the Bookmarks window and loads the file. When there are bookmarks already, asks to **Replace** or **Append** them.
+      - Opens the Bookmarks window (**Animbits > Bookmarks**) and loads the file. When there are bookmarks already, asks to **Replace** or **Append** them.
 
 Adding Your Own Files
 =====================

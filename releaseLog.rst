@@ -21,7 +21,8 @@ Release Log
 	* Anim Picker: SVG editor to draw and edit vector items in the picker, with path tools, booleans and layers
 	* Anim Picker: Create new vector items, convert polygons to vectors and export SVG
 	* Anim Picker: Capture a screen region as a background layer
-	* Utilbits: Bookmarks: Show In Tools menu to use a bookmark in the Animbits Hub, middle-click to key a bookmark, and the last namespace is remembered
+	* Animbits: Bookmarks: Moved from Utilbits to the Animbits menu, with a Show In Tools menu for the Animbits Hub, middle-click to key a bookmark, and the last namespace is remembered. Scripts and shelf buttons using mgear.utilbits.bookmarks need updating
+	* Core: Selection Bookmarks: Bookmark data, actions and storage moved to mgear.core.selection_bookmarks so any tool can use them
 	* Core: Anim Utils: Add blend caches, key nudging, timeline range and world matrix helpers, plus node name matching and rich tooltips
 	* Core: Skin: Skin import supports namespaces and opens a remap dialog for missing objects or joints, with .gSkinMap mapping files. Supersedes PR #223 (thanks aurorafreir), mgear4#172
 	* Core: Skin: importSkin / importSkinPack gain namespace, on_missing and mapping arguments

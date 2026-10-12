@@ -207,3 +207,25 @@ def blue_pencil(run_with_maya_standalone):
     unload()
     yield load
     unload()
+
+
+@pytest.fixture
+def selection_bookmarks(setup_path, tmp_path, monkeypatch):
+    """The selection bookmarks module in a new scene.
+
+    Its settings go to a temporary INI file and its tool registry starts
+    empty, so tests never touch the user's settings.
+    """
+    from maya import cmds
+    from mgear.vendor.Qt import QtCore
+    from mgear.core import selection_bookmarks as module
+
+    cmds.file(new=True, force=True)
+    ini = str(tmp_path / "settings.ini")
+    monkeypatch.setattr(
+        module,
+        "get_user_settings",
+        lambda: QtCore.QSettings(ini, QtCore.QSettings.IniFormat),
+    )
+    monkeypatch.setattr(module, "_registered_tools", {})
+    return module
