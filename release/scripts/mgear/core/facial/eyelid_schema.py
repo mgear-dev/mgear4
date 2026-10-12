@@ -106,7 +106,7 @@ SCHEMA = [
         1,
         label="Loop Type",
         choices=LOOP_TYPES,
-        tooltip="Pick the closed loop around the eyelid as edges or as " "vertices.",
+        tooltip="Pick the closed loop around the eyelid as edges or as vertices.",
     ),
     Param(
         "edgeLoop",
@@ -205,7 +205,7 @@ SCHEMA = [
         0.02,
         minimum=0.0,
         label="Upper Vertical",
-        tooltip="How much the upper eyelid follows the eye looking up and " "down.",
+        tooltip="How much the upper eyelid follows the eye looking up and down.",
     ),
     Param(
         "upperHTrack",
@@ -221,7 +221,7 @@ SCHEMA = [
         0.02,
         minimum=0.0,
         label="Lower Vertical",
-        tooltip="How much the lower eyelid follows the eye looking up and " "down.",
+        tooltip="How much the lower eyelid follows the eye looking up and down.",
     ),
     Param(
         "lowerHTrack",
@@ -274,7 +274,7 @@ SCHEMA = [
         minimum=0,
         maximum=30,
         label="Rigid Loops",
-        tooltip="Vertex rings around the loop fully weighted to the eyelid " "joints.",
+        tooltip="Vertex rings around the loop fully weighted to the eyelid joints.",
     ),
     Param(
         "falloffLoops",

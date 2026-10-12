@@ -254,9 +254,11 @@ def eye_face(setup_path, load_repo_plugin):
 
     Returns:
         dict: "mesh", "head_jnt", and per side ("L", "R") the eyeball,
-            "vertices" (loop vertices) and "edges" (loop edges).
+            "vertices" and "edges" (loop indices), and "vertex_loop" and
+            "edge_loop" (component strings).
     """
     from maya import cmds
+    from mgear.core import meshNavigation
 
     cmds.file(new=True, force=True)
     if not load_repo_plugin("mgear_solvers"):
@@ -264,7 +266,9 @@ def eye_face(setup_path, load_repo_plugin):
     parts = []
     for x in (1.0, -1.0):
         part = cmds.polySphere(
-            radius=1, subdivisionsAxis=20, subdivisionsHeight=20,
+            radius=1,
+            subdivisionsAxis=20,
+            subdivisionsHeight=20,
             constructionHistory=False,
         )[0]
         cmds.setAttr(part + ".rotateX", 90)
@@ -287,9 +291,16 @@ def eye_face(setup_path, load_repo_plugin):
             ),
             flatten=True,
         )
+        edge_indices = [int(e.split("[")[1][:-1]) for e in edges]
         face[side] = {
             "eyeball": eyeball,
             "vertices": vertices,
-            "edges": [int(e.split("[")[1][:-1]) for e in edges],
+            "edges": edge_indices,
+            "edge_loop": meshNavigation.format_component_string(
+                mesh, "edge", edge_indices
+            ),
+            "vertex_loop": meshNavigation.format_component_string(
+                mesh, "vertex", vertices
+            ),
         }
     return face

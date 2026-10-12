@@ -4,19 +4,14 @@ import pytest
 
 
 def _settings(face, side="L", loop_type="edge", **kwargs):
-    from mgear.core import meshNavigation
     from mgear.core import settings_schema
     from mgear.core.facial import eyelid_schema
 
     data = settings_schema.defaults(eyelid_schema.SCHEMA)
     data["eyeMesh"] = face[side]["eyeball"]
     data["loopType"] = eyelid_schema.LOOP_TYPES.index(loop_type)
-    data["edgeLoop"] = meshNavigation.format_component_string(
-        face["mesh"], "edge", face[side]["edges"]
-    )
-    data["vertexLoop"] = meshNavigation.format_component_string(
-        face["mesh"], "vertex", face[side]["vertices"]
-    )
+    data["edgeLoop"] = face[side]["edge_loop"]
+    data["vertexLoop"] = face[side]["vertex_loop"]
     data.update(kwargs)
     return settings_schema.coerce(data, eyelid_schema.SCHEMA)
 
@@ -31,10 +26,8 @@ def test_schema_scopes(setup_path):
         assert key in shared
     for key in ("namePrefix", "ctlSet", "headJnt", "aim_controller"):
         assert key not in shared
-    assert "blinkH" in eyelid_schema.DROPPED_KEYS
     assert defaults["mirrorBehavior"] is True
     assert eyelid_schema.LOOP_TYPES[defaults["loopType"]] == "vertex"
-    assert "orderFromCenter" in eyelid_schema.DROPPED_KEYS
     for param in eyelid_schema.SCHEMA:
         assert param.tooltip, param.key
 

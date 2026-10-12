@@ -6,22 +6,16 @@ import pytest
 
 
 def _kwargs(face, side="L", loop_type="edge", **kwargs):
-    from mgear.core import meshNavigation
-
     data = {
         "eyeMesh": face[side]["eyeball"],
         "headJnt": face["head_jnt"],
         "doSkin": False,
     }
     if loop_type == "edge":
-        data["edgeLoop"] = meshNavigation.format_component_string(
-            face["mesh"], "edge", face[side]["edges"]
-        )
+        data["edgeLoop"] = face[side]["edge_loop"]
     else:
         data["loopType"] = 1
-        data["vertexLoop"] = meshNavigation.format_component_string(
-            face["mesh"], "vertex", face[side]["vertices"]
-        )
+        data["vertexLoop"] = face[side]["vertex_loop"]
     data.update(kwargs)
     return data
 
@@ -366,13 +360,12 @@ def test_simplified_mode(eye_face):
 
 
 def _driver_points(cmds):
-    import mgear.pymaya as pm
-
-    return [
-        [p[0], p[1], p[2]]
-        for name in ("eye_L_upDriver_crv", "eye_L_lowDriver_crv")
-        for p in pm.PyNode(name).getCVs(space="world")
-    ]
+    flat = []
+    for name in ("eye_L_upDriver_crv", "eye_L_lowDriver_crv"):
+        flat += cmds.xform(
+            name + ".cv[*]", query=True, worldSpace=True, translation=True
+        )
+    return [flat[i : i + 3] for i in range(0, len(flat), 3)]
 
 
 def test_contact_is_smooth(eye_face):
@@ -421,12 +414,7 @@ def test_aim_does_not_mirror(eye_face):
     for side in "LR":
         assert (
             cmds.getAttr("eye_{}_aimTrigger_ref.worldMatrix".format(side))[12]
-            > cmds.xform(
-                "eye_{}_aim_npo".format(side),
-                query=True,
-                worldSpace=True,
-                translation=True,
-            )[0]
+            > _position(cmds, "eye_{}_aim_npo".format(side))[0]
         )
 
 
@@ -439,12 +427,8 @@ def test_legacy_order_from_center_dropped(eye_face, count_calls):
     eye.rig(**_kwargs(eye_face, "R", orderFromCenter=True))
     assert any("orderFromCenter" in warning for warning in warnings)
     # numbered from the inner corner, like the left side
-    first = cmds.xform(
-        "eye_R0_upEyelid_jnt", query=True, worldSpace=True, translation=True
-    )
-    last = cmds.xform(
-        "eye_R10_upEyelid_jnt", query=True, worldSpace=True, translation=True
-    )
+    first = _position(cmds, "eye_R0_upEyelid_jnt")
+    last = _position(cmds, "eye_R10_upEyelid_jnt")
     assert first[0] > last[0]
 
 

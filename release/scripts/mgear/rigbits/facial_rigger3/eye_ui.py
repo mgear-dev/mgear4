@@ -50,6 +50,9 @@ GROUPS = (
     ("Skin", ["doSkin", "rigidLoops", "falloffLoops"]),
 )
 
+# settings showing or hiding other rows
+ROW_KEYS = ("loopType", "customCorner", "fixedJoints", "doSkin")
+
 FILE_FILTER = "Eye Rigger Configuration (*{})".format(eyelid_schema.FILE_EXT)
 
 
@@ -86,12 +89,17 @@ class EyeRiggerTab(QtWidgets.QWidget):
 
     def create_connections(self):
         """Connect the buttons and the rows depending on other settings."""
-        self.form.valueChanged.connect(self.update_rows)
+        self.form.valueChanged.connect(self._value_changed)
+        self.form.settingsChanged.connect(self.update_rows)
         self.build_button.clicked.connect(self.build)
         self.import_button.clicked.connect(self.import_settings)
         self.export_button.clicked.connect(self.export_settings)
 
-    def update_rows(self, *args):
+    def _value_changed(self, key, value):
+        if key in ROW_KEYS:
+            self.update_rows()
+
+    def update_rows(self):
         """Show the rows that apply to the current settings."""
         vertex = eyelid_schema.LOOP_TYPES[self.form.value("loopType")] == "vertex"
         self.form.set_row_visible("edgeLoop", not vertex)
@@ -134,7 +142,6 @@ class EyeRiggerTab(QtWidgets.QWidget):
             return
         self.last_path = path
         self.form.set_settings(settings)
-        self.update_rows()
 
     def export_settings(self, path=None):
         """Save the form settings to a ``.eyes`` file.

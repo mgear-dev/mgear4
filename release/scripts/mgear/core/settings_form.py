@@ -21,6 +21,7 @@ from mgear.vendor.Qt import QtCore
 from mgear.vendor.Qt import QtWidgets
 
 from mgear.core import meshNavigation
+from mgear.core import pyqt
 from mgear.core import settings_schema
 
 SPIN_RANGE = 1000000
@@ -81,6 +82,7 @@ class SettingsForm(QtWidgets.QWidget):
     """
 
     valueChanged = QtCore.Signal(str, object)
+    settingsChanged = QtCore.Signal()
 
     def __init__(self, schema, groups=None, parent=None):
         super(SettingsForm, self).__init__(parent)
@@ -210,18 +212,17 @@ class SettingsForm(QtWidgets.QWidget):
     def set_settings(self, settings):
         """Set the values of the form settings found in a dict.
 
-        A bulk set doesn't emit ``valueChanged``.
+        A bulk set emits ``settingsChanged`` once instead of
+        ``valueChanged`` per setting.
 
         Args:
             settings (dict): Settings, other keys are ignored.
         """
-        blocked = self.blockSignals(True)
-        try:
+        with pyqt.block_signals(self):
             for key, value in settings.items():
                 if key in self.fields:
                     self.set_value(key, value)
-        finally:
-            self.blockSignals(blocked)
+        self.settingsChanged.emit()
 
     def set_row_visible(self, key, visible):
         """Show or hide the row of a setting.

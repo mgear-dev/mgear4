@@ -20,6 +20,7 @@ from maya import cmds
 import mgear.pymaya as pm
 
 from mgear.core import settings_schema
+from mgear.core import utils
 from mgear.core.facial import eyelid_schema
 from mgear.core.facial import eyelid_solver
 from mgear.core.facial._eyelid_build import EyelidBuilder
@@ -42,9 +43,10 @@ def get_settings(**kwargs):
         dict: The settings.
     """
     settings, warnings = settings_schema.migrate(
-        eyelid_schema.legacy_loop_type(dict(kwargs)),
+        kwargs,
         eyelid_schema.SCHEMA,
         eyelid_schema.DROPPED_KEYS,
+        upgrade=eyelid_schema.legacy_loop_type,
     )
     _display_warnings(warnings)
     return settings_schema.coerce(settings, eyelid_schema.SCHEMA)
@@ -61,9 +63,20 @@ def rig(**kwargs):
     Returns:
         PyNode: The rig root, or None if the rig wasn't built.
     """
-    settings = get_settings(**kwargs)
-    own_aim = eyelid_schema.uses_own_aim(settings)
-    if not own_aim and not settings["aim_controller"]:
+    return _rig(get_settings(**kwargs))
+
+
+def _rig(settings):
+    """Build an eye rig from complete, coerced settings.
+
+    Args:
+        settings (dict): Eye settings.
+
+    Returns:
+        PyNode: The rig root, or None if the rig wasn't built.
+    """
+    source = eyelid_schema.TRACKING_SOURCES[settings["trackingSource"]]
+    if source == "external" and not settings["aim_controller"]:
         pm.displayError("Eye Rigger: set the aim controller for external tracking")
         return None
     if not settings["namePrefix"]:
@@ -82,8 +95,7 @@ def rig(**kwargs):
         )
         return None
 
-    cmds.undoInfo(openChunk=True, chunkName="eyeRigger")
-    try:
+    with utils.undo_chunk("eyeRigger"):
         backend = tool_backend.ToolBackend(
             settings["namePrefix"],
             geometry.side,
@@ -98,14 +110,12 @@ def rig(**kwargs):
         builder.build_objects()
         builder.build_attributes()
         builder.build_operators()
-        if own_aim:
+        if builder.own_aim:
             builder.connect_tracking(builder.aim_ctl)
         else:
             builder.connect_tracking(pm.PyNode(settings["aim_controller"]))
         builder.build_skin()
         backend.finalize()
-    finally:
-        cmds.undoInfo(closeChunk=True)
     return backend.root
 
 
@@ -118,15 +128,13 @@ def settings_from_data(data):
     Returns:
         dict: The settings.
     """
-    if isinstance(data, dict) and "settings" not in data:
-        # Eye Rigger 2.1 file
-        data = eyelid_schema.legacy_loop_type(dict(data))
     settings, warnings = settings_schema.settings_from_data(
         data,
         eyelid_schema.FILE_TYPE,
         eyelid_schema.SCHEMA,
         eyelid_schema.DROPPED_KEYS,
         label="Eye Rigger",
+        upgrade=eyelid_schema.legacy_loop_type,
     )
     _display_warnings(warnings)
     return settings
@@ -166,7 +174,7 @@ def rig_from_data(data):
     Returns:
         PyNode: The rig root, or None if the rig wasn't built.
     """
-    return rig(**settings_from_data(data))
+    return _rig(settings_from_data(data))
 
 
 def rig_from_file(path):
@@ -178,4 +186,4 @@ def rig_from_file(path):
     Returns:
         PyNode: The rig root, or None if the rig wasn't built.
     """
-    return rig(**load_settings(path))
+    return _rig(load_settings(path))

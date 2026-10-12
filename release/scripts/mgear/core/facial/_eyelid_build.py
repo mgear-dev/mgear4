@@ -158,6 +158,32 @@ class EyelidBuilder(object):
         """Create a utility node with the rig naming."""
         return pm.PyNode(cmds.createNode(node_type, name=self.backend.name(name)))
 
+    def _smooth_remap(
+        self, name, input_attr, input_min=0.0, input_max=1.0, outputs=(0.0, 1.0)
+    ):
+        """Create a remapValue easing its input in and out.
+
+        Read ``outValue``: the smooth interpolation is on the value ramp.
+
+        Args:
+            name (str): Short node name.
+            input_attr (Attribute): Input plug.
+            input_min (float, optional): Input start.
+            input_max (float, optional): Input end.
+            outputs (tuple, optional): Output at the input start and end.
+
+        Returns:
+            PyNode: The remapValue node.
+        """
+        remap = self._create_node("remapValue", name)
+        pm.connectAttr(input_attr, remap.attr("inputValue"))
+        remap.attr("value[0].value_Interp").set(2)
+        remap.attr("inputMin").set(input_min)
+        remap.attr("inputMax").set(input_max)
+        remap.attr("outputMin").set(outputs[0])
+        remap.attr("outputMax").set(outputs[1])
+        return remap
+
     def _name_node(self, utility, name, idx=None):
         """Rename a utility node made by a :mod:`mgear.core.node` helper."""
         return pm.PyNode(utility).rename(self.backend.name(name, idx))
@@ -385,21 +411,34 @@ class EyelidBuilder(object):
         rig_m = datatypes.Matrix(g.rig_matrix)
         drivers_root = b.add_transform(b.root, "joints", rig_m)
         targets_root = b.add_transform(b.setup_root, "targets", datatypes.Matrix())
-        for crv, vertices, prefix, base_name in (
-            (self.up_crv, g.upper, "upEyelid", "upEyelid_jnt_base"),
-            (self.low_crv, g.lower, "lowEyelid", "lowEyelid_base"),
+        # the lower lid shares the corner points with the upper lid
+        for crv, vertices, points, prefix, base_name, skip_ends in (
+            (
+                self.up_crv,
+                g.upper,
+                g.upper_points,
+                "upEyelid",
+                "upEyelid_jnt_base",
+                False,
+            ),
+            (
+                self.low_crv,
+                g.lower,
+                g.lower_points,
+                "lowEyelid",
+                "lowEyelid_base",
+                True,
+            ),
         ):
-            count = len(vertices)
             picks = select_joint_indices(
-                count,
+                len(vertices),
                 s["everyNVertex"],
                 s["fixedJoints"],
                 s["fixedJointsNumber"],
-                skip_ends=crv is self.low_crv,
+                skip_ends=skip_ends,
             )
             info = node.createCurveInfoNode(crv)
             self._name_node(info, prefix + "_curveInfo")
-            points = _curve_points(crv)
             for point_index, joint_index in picks:
                 position = points[point_index]
                 target = b.add_transform(
@@ -528,16 +567,15 @@ class EyelidBuilder(object):
         applyop.gear_curvecns_op(self.up_ctl_crv, self.up_controls)
         applyop.gear_curvecns_op(self.low_ctl_crv, self.low_controls)
 
-        wires = []
-        for crv, driver, name in (
-            (self.up_crv, self.up_driver_crv, "upEyelid_wire"),
-            (self.low_crv, self.low_driver_crv, "lowEyelid_wire"),
-            (self.up_profile_crv, self.up_ctl_crv, "upProfile_wire"),
-            (self.low_profile_crv, self.low_ctl_crv, "lowProfile_wire"),
-        ):
+        def add_wire(crv, driver, name):
             wire = cmds.wire(str(crv), wire=str(driver), name=b.name(name))[0]
             cmds.setAttr(wire + ".dropoffDistance[0]", 100)
-            wires.append(wire)
+            return wire
+
+        up_wire = add_wire(self.up_crv, self.up_driver_crv, "upEyelid_wire")
+        low_wire = add_wire(self.low_crv, self.low_driver_crv, "lowEyelid_wire")
+        add_wire(self.up_profile_crv, self.up_ctl_crv, "upProfile_wire")
+        add_wire(self.low_profile_crv, self.low_ctl_crv, "lowProfile_wire")
 
         up_ty = self.up_ctl.attr("ty")
         low_ty = self.low_ctl.attr("ty")
@@ -560,16 +598,13 @@ class EyelidBuilder(object):
         # 0 at rest, which moved the lower lid off the mesh. Both lids now
         # mirror each other.
         for ty, input_max, wire, prefix in (
-            (up_ty, rest / 8.0, wires[0], "up"),
-            (low_ty, -rest / 8.0, wires[1], "low"),
+            (up_ty, rest / 8.0, up_wire, "up"),
+            (low_ty, -rest / 8.0, low_wire, "low"),
         ):
-            remap = self._create_node("remapValue", prefix + "Wire_remap")
-            pm.connectAttr(ty, remap.attr("inputValue"))
-            remap.attr("value[0].value_Interp").set(2)
-            remap.attr("inputMax").set(input_max)
-            reverse = node.createReverseNode(remap.attr("outColorR"))
-            self._name_node(reverse, prefix + "Wire_reverse")
-            pm.connectAttr(reverse.attr("outputX"), wire + ".scale[0]")
+            remap = self._smooth_remap(
+                prefix + "Wire_remap", ty, input_max=input_max, outputs=(1.0, 0.0)
+            )
+            pm.connectAttr(remap.attr("outValue"), wire + ".scale[0]")
 
         def blend_shape(targets, base, name):
             return cmds.blendShape(
@@ -613,24 +648,22 @@ class EyelidBuilder(object):
         # shape, which already averages both profiles. Eye Rigger 2.1
         # switched at contact and added the profiles again, so the lids
         # jumped.
-        close_weight = self._create_node("remapValue", "closeBlink_remap")
-        pm.connectAttr(
-            self.contact_div.attr("outputX"), close_weight.attr("inputValue")
-        )
-        close_weight.attr("inputMin").set(1.0 - CONTACT_BLEND)
-        close_weight.attr("value[0].value_Interp").set(2)
-        open_weight = node.createReverseNode(close_weight.attr("outColorR"))
+        close_weight = self._smooth_remap(
+            "closeBlink_remap",
+            self.contact_div.attr("outputX"),
+            input_min=1.0 - CONTACT_BLEND,
+        ).attr("outValue")
+        open_weight = node.createReverseNode(close_weight)
         self._name_node(open_weight, "closeBlink_reverse")
-        for div, blend, prefix in (
-            (up_div, up_blink, "up"),
-            (low_div, low_blink, "low"),
-        ):
-            rest_weight = node.createMulNode(
-                open_weight.attr("outputX"), div.attr("outputX")
-            )
-            self._name_node(rest_weight, prefix + "Blink_mult")
-            pm.connectAttr(rest_weight.attr("outputX"), blend + ".weight[0]")
-            pm.connectAttr(close_weight.attr("outColorR"), blend + ".weight[1]")
+        # rest target weight of each lid: X upper, Y lower
+        rest_weight = node.createMulNode(
+            [open_weight.attr("outputX"), open_weight.attr("outputX")],
+            [up_div.attr("outputX"), low_div.attr("outputX")],
+        )
+        self._name_node(rest_weight, "blinkRest_mult")
+        for axis, blend in (("X", up_blink), ("Y", low_blink)):
+            pm.connectAttr(rest_weight.attr("output" + axis), blend + ".weight[0]")
+            pm.connectAttr(close_weight, blend + ".weight[1]")
             pm.connectAttr(open_weight.attr("outputX"), blend + ".weight[2]")
 
     def _build_tracking_network(self):
@@ -654,13 +687,10 @@ class EyelidBuilder(object):
             (up_mult, self.track_levels[0], "upVTrack_remap"),
             (low_mult, self.track_levels[1], "lowVTrack_remap"),
         ):
-            remap = self._create_node("remapValue", name)
-            pm.connectAttr(contact, remap.attr("inputValue"))
-            remap.attr("value[0].value_Interp").set(2)
-            remap.attr("inputMin").set(0.9)
+            remap = self._smooth_remap(name, contact, input_min=1.0 - CONTACT_BLEND)
             pm.connectAttr(mult.attr("outputX"), remap.attr("outputMin"))
             pm.connectAttr(lead.attr("outColorR"), remap.attr("outputMax"))
-            pm.connectAttr(remap.attr("outColorR"), level.attr("ty"))
+            pm.connectAttr(remap.attr("outValue"), level.attr("ty"))
 
         for store, level, name in (
             (self.up_tracking, self.track_levels[0], "upHTrack_mult"),

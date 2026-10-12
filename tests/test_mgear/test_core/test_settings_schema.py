@@ -112,3 +112,30 @@ def test_legacy_flat_file(ss, schema, tmp_path):
     )
     assert settings["everyNVertex"] == 1
     assert len(warnings) == 1
+
+
+def test_upgrade_hook(ss, schema, tmp_path):
+    import json
+
+    def upgrade(data):
+        if "loopType" not in data:
+            data["loopType"] = 0
+        return data
+
+    settings, _ = ss.migrate({"edgeLoop": "m.e[1]"}, schema, upgrade=upgrade)
+    assert settings["loopType"] == 0
+    path = str(tmp_path / "legacy.eyes")
+    with open(path, "w") as f:
+        json.dump({"edgeLoop": "m.e[1]"}, f)
+    schema_vertex = [
+        (
+            param
+            if param.key != "loopType"
+            else ss.Param("loopType", "enum", 1, choices=("edge", "vertex"))
+        )
+        for param in schema
+    ]
+    settings, _ = ss.load_settings(path, "eye_rigger", schema_vertex)
+    assert settings["loopType"] == 1
+    settings, _ = ss.load_settings(path, "eye_rigger", schema_vertex, upgrade=upgrade)
+    assert settings["loopType"] == 0

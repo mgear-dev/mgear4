@@ -90,7 +90,7 @@ def defaults(schema):
     return {param.key: param.default for param in schema}
 
 
-def migrate(data, schema, dropped_keys=()):
+def migrate(data, schema, dropped_keys=(), upgrade=None):
     """Bring saved settings up to date with a schema.
 
     Legacy keys are renamed, dropped and unknown keys removed and missing
@@ -101,10 +101,15 @@ def migrate(data, schema, dropped_keys=()):
         schema (list): Schema params.
         dropped_keys (tuple, optional): Keys that older versions used and
             this one ignores.
+        upgrade (callable, optional): Called with a copy of the saved
+            settings before migrating, returning them updated. For legacy
+            rules that renaming keys can't express.
 
     Returns:
         tuple: (settings dict, list of warning strings)
     """
+    if upgrade:
+        data = upgrade(dict(data))
     renames = {}
     for param in schema:
         for legacy in param.legacy_keys:
@@ -213,7 +218,7 @@ def save_settings(path, file_type, schema_version, data):
     return config_io.write_file(path, file_type, schema_version, "settings", data)
 
 
-def load_settings(path, file_type, schema, dropped_keys=(), label=None):
+def load_settings(path, file_type, schema, dropped_keys=(), label=None, upgrade=None):
     """Load settings from a configuration file.
 
     Reads files written by :func:`save_settings` and legacy files holding
@@ -225,6 +230,8 @@ def load_settings(path, file_type, schema, dropped_keys=(), label=None):
         schema (list): Schema params.
         dropped_keys (tuple, optional): Keys older versions used.
         label (str, optional): Readable file kind for the error message.
+        upgrade (callable, optional): Legacy settings upgrade, see
+            :func:`migrate`.
 
     Returns:
         tuple: (settings dict, list of warning strings)
@@ -234,10 +241,12 @@ def load_settings(path, file_type, schema, dropped_keys=(), label=None):
     """
     with open(path, "r") as f:
         data = json.load(f)
-    return settings_from_data(data, file_type, schema, dropped_keys, label)
+    return settings_from_data(data, file_type, schema, dropped_keys, label, upgrade)
 
 
-def settings_from_data(data, file_type, schema, dropped_keys=(), label=None):
+def settings_from_data(
+    data, file_type, schema, dropped_keys=(), label=None, upgrade=None
+):
     """Get settings from loaded file data or a flat settings dict.
 
     Args:
@@ -246,6 +255,8 @@ def settings_from_data(data, file_type, schema, dropped_keys=(), label=None):
         schema (list): Schema params.
         dropped_keys (tuple, optional): Keys older versions used.
         label (str, optional): Readable file kind for the error message.
+        upgrade (callable, optional): Legacy settings upgrade, see
+            :func:`migrate`.
 
     Returns:
         tuple: (settings dict, list of warning strings)
@@ -259,5 +270,5 @@ def settings_from_data(data, file_type, schema, dropped_keys=(), label=None):
         if data["type"] != file_type:
             raise ValueError("Not a {} file".format(label or file_type))
         data = data["settings"]
-    settings, warnings = migrate(data, schema, dropped_keys)
+    settings, warnings = migrate(data, schema, dropped_keys, upgrade)
     return coerce(settings, schema), warnings

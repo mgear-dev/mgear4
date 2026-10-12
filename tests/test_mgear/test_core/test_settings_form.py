@@ -96,3 +96,15 @@ def test_fill_set_from_selection(form):
     assert form.value("ctlSet") == "controls_set"
     cmds.select(cmds.createNode("transform"))
     assert not form.fill_from_selection("ctlSet")
+
+
+def test_bulk_set_emits_once(form):
+    values = []
+    bulk = []
+    form.valueChanged.connect(lambda key, value: values.append(key))
+    form.settingsChanged.connect(lambda: bulk.append(True))
+    form.set_settings({"skin": False, "count": 5, "mesh": "head"})
+    assert values == []
+    assert bulk == [True]
+    form.set_value("mesh", "other")
+    assert values == ["mesh"]
