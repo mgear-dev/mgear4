@@ -154,11 +154,14 @@ def maya_main_window():
     """Get Maya's main window
 
     Returns:
-        QMainWindow: main window.
+        QMainWindow: main window, or None when Maya has no main window
+            (mayapy and batch mode).
 
     """
 
     main_window_ptr = omui.MQtUtil.mainWindow()
+    if main_window_ptr is None:
+        return None
     if PY2:
         return QtCompat.wrapInstance(long(main_window_ptr), QtWidgets.QWidget)
     return QtCompat.wrapInstance(int(main_window_ptr), QtWidgets.QWidget)

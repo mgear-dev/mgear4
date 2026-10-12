@@ -8,6 +8,8 @@ Replaces the old MEL-based cmdScrollFieldReporter log window.
 
 import mgear
 
+from maya import cmds
+
 from .ui import BuildLogWindow
 
 
@@ -15,9 +17,10 @@ def log_window():
     """Show the build log window if logging is enabled.
 
     Drop-in replacement for the old MEL-based log window.
-    Called by ``shifter.log_window()`` at build start.
+    Called by ``shifter.log_window()`` at build start. Skipped in batch
+    mode (mayapy), where the window can't show: the log still prints.
     """
-    if mgear.logMode and mgear.use_log_window:
+    if mgear.logMode and mgear.use_log_window and not cmds.about(batch=True):
         show_build_log()
 
 
