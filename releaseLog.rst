@@ -5,6 +5,7 @@ Release Log
 5.4.0
 ------
 **New Features**
+	* Animbits: Animbits Hub: New hotkey overlay with tween sliders (tween, blend to default, mirror or a stored pose, push/pull) and key tools (nudge keys, copy/paste world pose, temp pivot) for the selection and bookmarks
 	* Animbits: Blocking Ghosts: New tool that shows semi-transparent ghosts of the character at each keyframe of the watched controls, updating as keys change
 	* Rigbits: Lattice IO: New tool to export and import ffd lattices (.lat) with settings, membership, weights and deformer order. Replaces the standalone lattice serializer script
 	* Rigbits: Shrink Wrap IO: New tool to export and import shrinkWrap deformers (.shw) with settings, connections, membership and weights
@@ -20,6 +21,8 @@ Release Log
 	* Anim Picker: SVG editor to draw and edit vector items in the picker, with path tools, booleans and layers
 	* Anim Picker: Create new vector items, convert polygons to vectors and export SVG
 	* Anim Picker: Capture a screen region as a background layer
+	* Utilbits: Bookmarks: Show In Tools menu to use a bookmark in the Animbits Hub, middle-click to key a bookmark, and the last namespace is remembered
+	* Core: Anim Utils: Add blend caches, key nudging, timeline range and world matrix helpers, plus node name matching and rich tooltips
 	* Core: Skin: Skin import supports namespaces and opens a remap dialog for missing objects or joints, with .gSkinMap mapping files. Supersedes PR #223 (thanks aurorafreir), mgear4#172
 	* Core: Skin: importSkin / importSkinPack gain namespace, on_missing and mapping arguments
 	* Core: Deformer: create_proximity_wrap gains an optional wrap_mode argument. Supersedes PR #650 (thanks evilbeanz13)
@@ -42,7 +45,7 @@ Release Log
 	* Shifter: Build: Rig builds are about twice as fast, mainly from faster pymaya node creation and attribute lookups
 	* Shifter: Build: Component build data is collected only when a data collector is on or a custom step reads it
 	* Shifter: Build: Warn when a slow plug-in such as bluePencil is loaded
-	* Docs: Document Blocking Ghosts, Lattice / Shrink Wrap / Proximity Wrap IO, Mirror Config, Spring Manager, HumanIK Mapper, Anim Picker SVG editor and screen capture, skin namespace support, the build log and file drop
+	* Docs: Document Animbits Hub, Blocking Ghosts, Lattice / Shrink Wrap / Proximity Wrap IO, Mirror Config, Spring Manager, HumanIK Mapper, Anim Picker SVG editor and screen capture, skin namespace support, the build log and file drop
 
 **Bug Fix**
 	* Core: Skin: Fix skin pack export file names for clashing or namespaced objects

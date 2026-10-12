@@ -901,6 +901,7 @@ class HubToolButton(HubToolWidget):
         self.state = state
         self.tint = tint
         self.dim = False
+        self.highlight = False
         self._pixmap = None
         self.set_unit(10.0)
 
@@ -914,6 +915,25 @@ class HubToolButton(HubToolWidget):
         size = int(round(unit * 2.2))
         self.setFixedSize(size, size)
         self._pixmap = _icon(self.icon, int(round(unit * 1.5)), self.tint)
+
+    def set_icon(self, icon):
+        """Change the icon, e.g. for another state of the tool.
+
+        Args:
+            icon (str): mGear icon name.
+        """
+        self.icon = icon
+        self._pixmap = _icon(icon, int(round(self._unit * 1.5)), self.tint)
+        self.update()
+
+    def set_highlight(self, highlight):
+        """Draw a frame in the tint color, e.g. while a tool waits for a click.
+
+        Args:
+            highlight (bool): True to draw the frame.
+        """
+        self.highlight = highlight
+        self.update()
 
     def set_dim(self, dim):
         """Draw the button dim, e.g. while there is nothing to paste.
@@ -941,6 +961,12 @@ class HubToolButton(HubToolWidget):
         painter.setBrush(QtGui.QColor(30, 30, 30, alpha))
         corner = 0.3 * self._unit
         painter.drawRoundedRect(rect, corner, corner)
+        if self.highlight:
+            pen = QtGui.QPen(_qcolor(self.tint or (1.0, 1.0, 1.0)))
+            pen.setWidthF(max(1.0, self._unit * 0.15))
+            painter.setPen(pen)
+            painter.setBrush(QtCore.Qt.NoBrush)
+            painter.drawRoundedRect(rect.adjusted(1, 1, -1, -1), corner, corner)
         if self._pixmap:
             painter.setOpacity(DISABLED_ALPHA if self.dim else 1.0)
             x = (self.width() - self._pixmap.width()) / 2.0

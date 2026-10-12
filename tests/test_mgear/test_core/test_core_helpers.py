@@ -108,3 +108,10 @@ def test_set_hide_on_playback_no_tag(run_with_maya_standalone, setup_path):
     assert not cmds.ls(type="controller")
     node.set_hide_on_playback([grp], enabled=False)
     assert not cmds.getAttr(grp + ".hideOnPlayback")
+
+
+def test_viewport_message_batch(setup_path):
+    """In batch mode the viewport message is a no-op, not an error."""
+    from mgear.core import utils
+
+    assert utils.viewport_message("Keyed <hl>Arms</hl>") is None

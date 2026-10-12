@@ -8,9 +8,13 @@ and world pose buffer.
 
 from maya import cmds
 
+from mgear.vendor.Qt import QtCore
+from mgear.vendor.Qt import QtWidgets
+
 from mgear.core import anim_utils
 from mgear.core import attribute
 from mgear.core import node_remap
+from mgear.core import temp_pivot
 from mgear.core import utils
 from mgear.utilbits.bookmarks import core as bm_core
 
@@ -25,6 +29,14 @@ TOOL_ID = "key_tools"
 TOOL_LABEL = "Key Tools"
 NOTHING_TO_NUDGE = "Nothing to nudge: select keys or controls with keys"
 WORLD_COLOR = "#7fc97f"
+PIVOT_COLOR = "#e8b030"
+PIVOT_BULLETS = (
+    "Click: add a pivot locator at the move tool handle (or the row "
+    "controls' center), then move it.",
+    "Click again: the controls follow the pivot. Rotate and key it.",
+    "Bake keys the controls on their keyed frames; Cancel leaves them as " "they were.",
+    "Ctrl+click while placing cancels.",
+)
 
 KEYS = "keys"
 RANGE = "range"
@@ -214,6 +226,31 @@ def paste_world_pose(bookmark=None, namespace=None):
     return nodes
 
 
+def pivot_snapshot(row_keys):
+    """Read the temp pivot of the scene once, for all key tool rows.
+
+    Args:
+        row_keys (list): Keys of the hub key tool rows.
+
+    Returns:
+        dict: ``pivot``, ``owner`` (row key), ``state``, ``controls`` and
+            ``frames`` counts, or None when there is no temp pivot.
+    """
+    pivot = temp_pivot.find()
+    if pivot is None:
+        return None
+    pivot_info = temp_pivot.info(pivot)
+    label = pivot_info["label"]
+    return {
+        "pivot": pivot,
+        # a pivot from an unknown row shows on the selection row
+        "owner": label if label in row_keys else common.SELECTION_ROW_KEY,
+        "state": pivot_info["state"],
+        "controls": len(pivot_info["controls"]),
+        "frames": len(pivot_info["frames"]),
+    }
+
+
 class KeyToolRow(HubToolRow):
     """Key tools of the selection or of a bookmark: nudge, copy, paste.
 
@@ -222,7 +259,13 @@ class KeyToolRow(HubToolRow):
         settings (HubSettings): The hub settings, for the row nudge
             amount and ripple.
         parent (QWidget, optional): Parent widget.
+
+    Attributes:
+        pivot_changed (Signal): Emitted after a temp pivot step, so every
+            row refreshes its pivot buttons.
     """
+
+    pivot_changed = QtCore.Signal()
 
     def __init__(self, spec, settings, parent=None):
         bookmark = spec["bookmark"]
@@ -256,8 +299,26 @@ class KeyToolRow(HubToolRow):
             WORLD_COLOR,
             tint=color,
         )
+        pivot_button = HubToolButton(
+            "mgear_crosshair",
+            "Temp Pivot",
+            "Rotate the controls around any point.",
+            PIVOT_BULLETS,
+            PIVOT_COLOR,
+            tint=color,
+        )
+        cancel_button = HubToolButton(
+            "mgear_x-circle",
+            "Cancel Temp Pivot",
+            "Remove the temp pivot and leave the controls as they were.",
+            color=PIVOT_COLOR,
+            tint=color,
+        )
         super(KeyToolRow, self).__init__(
-            spec["name"], color, [nudge_widget, copy_button, paste_button], parent
+            spec["name"],
+            color,
+            [nudge_widget, copy_button, paste_button, pivot_button, cancel_button],
+            parent,
         )
         self.bookmark = bookmark
         self.row_key = key
@@ -265,7 +326,12 @@ class KeyToolRow(HubToolRow):
         self.nudge_widget = nudge_widget
         self.copy_button = copy_button
         self.paste_button = paste_button
+        self.pivot_button = pivot_button
+        self.cancel_button = cancel_button
+        self.row_keys = [key]
+        self._pivot = None
         paste_button.state = self._world_pose_state
+        pivot_button.state = self._pivot_state
 
         nudge_widget.nudge_requested.connect(self._on_nudge)
         nudge_widget.amount_changed.connect(
@@ -276,6 +342,8 @@ class KeyToolRow(HubToolRow):
         )
         copy_button.clicked.connect(self._on_copy)
         paste_button.clicked.connect(self._on_paste)
+        pivot_button.clicked.connect(self._on_pivot)
+        cancel_button.clicked.connect(self._on_cancel_pivot)
         self._update_paste_button()
 
     def _buffer(self):
@@ -299,6 +367,88 @@ class KeyToolRow(HubToolRow):
     def _on_paste(self):
         paste_world_pose(self.bookmark, self.namespace)
 
+    # temp pivot -------------------------------------------------------
+
+    def _pivot_state(self):
+        snapshot = self._pivot
+        if snapshot is None:
+            return None
+        if snapshot["owner"] != self.row_key:
+            return "In use on another row."
+        text = "{} controls, {} frames.".format(
+            snapshot["controls"], snapshot["frames"]
+        )
+        if snapshot["state"] == temp_pivot.PLACE:
+            return "Placing: move the locator, then click to start. " + text
+        return "Active: rotate and key the locator, then click to bake. " + text
+
+    def update_pivot_buttons(self, snapshot):
+        """Show the temp pivot step of this row.
+
+        Args:
+            snapshot (dict): From :func:`pivot_snapshot`, None without
+                temp pivot.
+        """
+        self._pivot = snapshot
+        mine = snapshot is not None and snapshot["owner"] == self.row_key
+        active = mine and snapshot["state"] == temp_pivot.ACTIVE
+        self.pivot_button.set_icon("mgear_check" if active else "mgear_crosshair")
+        self.pivot_button.set_highlight(mine and snapshot["state"] == temp_pivot.PLACE)
+        self.pivot_button.set_dim(snapshot is not None and not mine)
+        self.pivot_button.title = "Bake Temp Pivot" if active else "Temp Pivot"
+        self.pivot_button.update_tooltip()
+        self.cancel_button.setVisible(active)
+
+    def _on_pivot(self):
+        snapshot = pivot_snapshot(self.row_keys)
+        try:
+            if snapshot is None:
+                self._create_pivot()
+            elif snapshot["owner"] != self.row_key:
+                cmds.warning("A temp pivot is in use: bake or cancel it first")
+            elif snapshot["state"] == temp_pivot.PLACE:
+                pivot = snapshot["pivot"]
+                modifiers = QtWidgets.QApplication.keyboardModifiers()
+                if modifiers & QtCore.Qt.ControlModifier:
+                    temp_pivot.cancel(pivot)
+                    utils.viewport_message("Temp pivot cancelled")
+                else:
+                    self._activate_pivot(pivot)
+            else:
+                baked = temp_pivot.bake(snapshot["pivot"])
+                utils.viewport_message(
+                    "Temp pivot baked on <hl>{}</hl> controls".format(len(baked))
+                )
+        except (RuntimeError, ValueError) as e:
+            cmds.warning(str(e))
+        self.pivot_changed.emit()
+
+    def _create_pivot(self):
+        nodes = _row_transforms(self.bookmark, self.namespace)
+        if not nodes:
+            cmds.warning("No control for the temp pivot")
+            return
+        position = temp_pivot.manipulator_position()
+        pivot = temp_pivot.create(nodes, position, label=self.row_key)
+        cmds.select(pivot)
+        utils.viewport_message("Temp pivot: move it, then click again")
+
+    def _activate_pivot(self, pivot):
+        skipped = temp_pivot.activate(pivot)
+        if skipped:
+            names = ", ".join(s.rsplit("|", 1)[-1] for s in skipped)
+            cmds.warning("Temp pivot: translate locked, skipped {}".format(names))
+        if temp_pivot.state(pivot) == temp_pivot.ACTIVE:
+            cmds.select(pivot)
+            utils.viewport_message("Temp pivot active: rotate and key it, then bake")
+
+    def _on_cancel_pivot(self):
+        pivot = temp_pivot.find()
+        if pivot is not None:
+            temp_pivot.cancel(pivot)
+            utils.viewport_message("Temp pivot cancelled")
+        self.pivot_changed.emit()
+
 
 def build_tool_rows(context):
     """Build the key tool rows: the selection, then the enabled bookmarks.
@@ -312,7 +462,20 @@ def build_tool_rows(context):
     specs = common.row_specs(
         common.context_bookmarks(context), context.settings.selection_color, TOOL_ID
     )
-    return [KeyToolRow(spec, context.settings) for spec in specs]
+    rows = [KeyToolRow(spec, context.settings) for spec in specs]
+    row_keys = [row.row_key for row in rows]
+
+    def refresh_pivot_buttons():
+        # one scene read for all the rows
+        snapshot = pivot_snapshot(row_keys)
+        for row in rows:
+            row.update_pivot_buttons(snapshot)
+
+    for row in rows:
+        row.row_keys = row_keys
+        row.pivot_changed.connect(refresh_pivot_buttons)
+    refresh_pivot_buttons()
+    return rows
 
 
 registry.register_tool(TOOL_ID, build_tool_rows, order=10, area=registry.AREA_TOOLS)

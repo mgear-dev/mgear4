@@ -88,6 +88,18 @@ The key tool rows, the mode bar and the sliders line up on the left; in **BB** m
 * The Paste button is dim while nothing is copied; hover it to see the frame and controls of the copied pose. The copy is kept while Maya is open and cleared when a new scene is created or opened.
 
 
+**Temp Pivot** - rotate the row's controls around any point, e.g. a hand around a fingertip or a foot around its toe
+
+1. Click the crosshair button: a pivot locator appears at the move tool handle of the selection (or at the center of the row's controls when nothing is selected) and is selected. Move it where the pivot should be.
+2. Click it again: the controls now follow the pivot, on every keyed frame. Rotate (and key) the pivot to move them around it.
+3. Click the check button to **bake**: the controls get keys on their keyed frames and on the frames where you keyed the pivot, and the pivot is removed. Or click the cross button to **cancel**: everything is removed and the animation is as it was.
+
+* Works across the timeline range selection, or the playback range when there is none.
+* Only one temp pivot at a time: the other rows' pivot buttons are dim while one is in use. Ctrl+click while placing cancels.
+* Controls with their translate locked can't move around another point and are skipped with a warning.
+* Each step is one undo step. A temp pivot saved in a scene shows up again when you open the hub, ready to bake or cancel.
+
+
 Settings
 --------
 

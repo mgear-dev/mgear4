@@ -1075,3 +1075,16 @@ def get_camera_axis(camera, axis="x", matrix=None):
         return fallback
     row /= length
     return (row.x, row.y, row.z)
+
+
+def viewport_message(text):
+    """Show a short message at the top of the viewport.
+
+    Does nothing in batch mode.
+
+    Args:
+        text (str): The message; ``<hl>`` tags highlight words.
+    """
+    if cmds.about(batch=True):
+        return
+    cmds.inViewMessage(amg=text, pos="topCenter", fade=True)

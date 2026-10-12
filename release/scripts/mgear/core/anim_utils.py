@@ -232,7 +232,7 @@ def get_playback_range(start=None, end=None):
     return start, end
 
 
-def record_world_matrices(nodes, start=None, end=None, status="Recording"):
+def record_world_matrices(nodes, start=None, end=None, status="Recording", frames=None):
     """Read the world matrix of nodes on every frame of a range.
 
     The current time is restored afterwards. Esc stops the recording; the
@@ -243,22 +243,27 @@ def record_world_matrices(nodes, start=None, end=None, status="Recording"):
         start (float, optional): First frame. Default: playback start.
         end (float, optional): Last frame. Default: playback end.
         status (str, optional): Progress bar text.
+        frames (list, optional): Read only these frames, in order, instead
+            of the ``start`` to ``end`` range.
 
     Returns:
         dict: ``{frame: [world matrix as 16 floats, one per node]}``, frames
-        as int.
+        as int (or as given in ``frames``).
     """
-    start, end = (int(round(f)) for f in get_playback_range(start, end))
+    if frames is None:
+        start, end = (int(round(f)) for f in get_playback_range(start, end))
+        frames = range(start, end + 1)
+    frames = list(frames)
     paths = [utils.get_dag_path(node) for node in nodes]
-    frames = {}
+    matrices = {}
     with utils.current_time_kept(), utils.viewport_suspended():
-        with utils.main_progress_bar(status, end - start + 1, True) as step:
-            for frame in range(start, end + 1):
-                if step("{} frame {}".format(status, frame)):
+        with utils.main_progress_bar(status, len(frames), True) as step:
+            for frame in frames:
+                if step("{} frame {:g}".format(status, frame)):
                     break
                 cmds.currentTime(frame, edit=True)
-                frames[frame] = [list(path.inclusiveMatrix()) for path in paths]
-    return frames
+                matrices[frame] = [list(path.inclusiveMatrix()) for path in paths]
+    return matrices
 
 
 def key_world_matrices(nodes, frames, status="Keying"):

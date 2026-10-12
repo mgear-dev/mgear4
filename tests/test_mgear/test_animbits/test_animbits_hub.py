@@ -720,3 +720,125 @@ def test_world_buffers_per_row(key_tools):
     assert key_tools.paste_world_pose(bookmark) == ["|ctl"]
     assert cmds.getAttr("ctl.translateY") == pytest.approx(0.0)
     assert key_tools.paste_world_pose() == []
+
+
+# temp pivot buttons -----------------------------------------------------------
+
+
+@pytest.fixture
+def pivot_rows(key_tools, qsettings):
+    """Key tool rows (Selection, Arms) in a scene with ctl and arm_ctl keyed."""
+    from maya import cmds
+    from mgear.animbits.animbits_hub import registry
+    from mgear.animbits.animbits_hub import settings as hub_settings
+    from mgear.utilbits.bookmarks import core as bm_core
+
+    arm = cmds.spaceLocator(name="arm_ctl")[0]
+    for frame in (1, 10):
+        cmds.setKeyframe(arm, attribute="translateX", time=frame, value=frame)
+    arms = bm_core.create_bookmark("Arms", "selection", ["arm_ctl"], (1, 0, 1))
+    bm_core.set_tool_config(arms, "key_tools", enabled=True)
+    bm_core.save_to_scene([arms])
+    context = registry.HubContext(hub_settings.HubSettings(qsettings()))
+    rows = key_tools.build_tool_rows(context)
+    return {row.name: row for row in rows}
+
+
+def _click(button):
+    button.mousePressEvent(_MouseEvent(None))
+
+
+def test_pivot_row_flow(pivot_rows):
+    from maya import cmds
+    from mgear.core import temp_pivot
+
+    sel_row, arms_row = pivot_rows["Selection"], pivot_rows["Arms"]
+    cmds.select(clear=True)
+    _click(arms_row.pivot_button)
+    pivot = temp_pivot.find()
+    assert pivot and temp_pivot.info(pivot)["label"] == "bookmark:Arms"
+    assert cmds.ls(selection=True, long=True) == [pivot]
+    assert arms_row.pivot_button.highlight and not arms_row.pivot_button.dim
+    assert sel_row.pivot_button.dim
+    assert arms_row.cancel_button.isHidden()
+
+    _click(arms_row.pivot_button)
+    assert temp_pivot.state(pivot) == "active"
+    assert arms_row.pivot_button.icon == "mgear_check"
+    assert not arms_row.cancel_button.isHidden()
+    assert sel_row.pivot_button.dim
+
+    cmds.setAttr(pivot + ".rotateY", 30)
+    _click(arms_row.pivot_button)
+    assert temp_pivot.find() is None
+    assert not sel_row.pivot_button.dim
+    assert arms_row.pivot_button.icon == "mgear_crosshair"
+    assert arms_row.cancel_button.isHidden()
+    assert not cmds.ls(type="pairBlend")
+
+
+def test_pivot_other_row_warns(pivot_rows):
+    from mgear.core import temp_pivot
+
+    _click(pivot_rows["Arms"].pivot_button)
+    _click(pivot_rows["Selection"].pivot_button)
+    pivot = temp_pivot.find()
+    assert temp_pivot.info(pivot)["label"] == "bookmark:Arms"
+    assert temp_pivot.state(pivot) == "place"
+
+
+def test_pivot_cancel_button(pivot_rows):
+    from maya import cmds
+    from mgear.core import temp_pivot
+
+    arms_row = pivot_rows["Arms"]
+    _click(arms_row.pivot_button)
+    _click(arms_row.pivot_button)
+    _click(arms_row.cancel_button)
+    assert temp_pivot.find() is None
+    assert cmds.keyframe("arm_ctl.translateX", query=True, timeChange=True) == [1, 10]
+
+
+def test_pivot_undo_create(pivot_rows):
+    from maya import cmds
+    from mgear.core import temp_pivot
+
+    _click(pivot_rows["Selection"].pivot_button)
+    cmds.undo()
+    assert temp_pivot.find() is None
+    cmds.select("ctl")
+    _click(pivot_rows["Selection"].pivot_button)
+    assert temp_pivot.find() is not None
+
+
+def test_pivot_resume_and_unknown_label(key_tools, qsettings):
+    from maya import cmds
+    from mgear.animbits.animbits_hub import registry
+    from mgear.animbits.animbits_hub import settings as hub_settings
+    from mgear.core import temp_pivot
+
+    pivot = temp_pivot.create(["ctl"], label="bookmark:Gone")
+    temp_pivot.activate(pivot)
+    context = registry.HubContext(hub_settings.HubSettings(qsettings()))
+    (sel_row,) = key_tools.build_tool_rows(context)
+    assert sel_row.pivot_button.icon == "mgear_check"
+    assert not sel_row.cancel_button.isHidden()
+    temp_pivot.cancel(pivot)
+
+
+def test_pivot_scene_read_once_per_build(pivot_rows, key_tools, qsettings, monkeypatch):
+    """Opening the hub reads the temp pivot once, not once per row (regression)."""
+    from mgear.animbits.animbits_hub import registry
+    from mgear.animbits.animbits_hub import settings as hub_settings
+    from mgear.core import temp_pivot
+
+    calls = []
+    original = temp_pivot.find
+    monkeypatch.setattr(temp_pivot, "find", lambda: calls.append(1) or original())
+    context = registry.HubContext(hub_settings.HubSettings(qsettings()))
+    rows = key_tools.build_tool_rows(context)
+    for row in rows:
+        row.set_show_tooltips(True)
+        row.set_show_names("hover")
+    assert len(rows) == 2
+    assert len(calls) == 1

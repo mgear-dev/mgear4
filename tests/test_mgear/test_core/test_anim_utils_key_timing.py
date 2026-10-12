@@ -143,3 +143,22 @@ def test_world_matrices(anim_utils):
     (matrix,) = anim_utils.get_world_matrices([loc])
     assert len(matrix) == 16
     assert matrix[12:] == pytest.approx([1, 2, 3, 1])
+
+
+def test_record_world_matrices_given_frames(anim_utils, ctl):
+    from maya import cmds
+
+    cmds.currentTime(3)
+    matrices = anim_utils.record_world_matrices([ctl], frames=[10, 1, 5])
+    assert list(matrices) == [10, 1, 5]
+    assert matrices[1][0][12] == pytest.approx(1.0)
+    assert matrices[5][0][12] == pytest.approx(5.0)
+    assert matrices[10][0][12] == pytest.approx(10.0)
+    assert cmds.currentTime(query=True) == 3
+
+
+def test_record_world_matrices_default_range(anim_utils, ctl):
+    from maya import cmds
+
+    cmds.playbackOptions(minTime=1, maxTime=3)
+    assert list(anim_utils.record_world_matrices([ctl])) == [1, 2, 3]
