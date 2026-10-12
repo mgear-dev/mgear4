@@ -11,9 +11,16 @@ Tools for animators.
 Animbits Hub
 ============
 
-Quick animation tools in a small, transparent overlay over the viewport. Show and hide it with a hotkey, use a tool, and keep animating. The first tool is the **Tweener**.
+Quick animation tools in a small, transparent overlay over the viewport. Show and hide it with a hotkey, use a tool, and keep animating.
 
-.. image:: images/animbits/animbits_hub/tweener.png
+The hub has two kinds of tools:
+
+* **Key Tools** - rows of buttons to nudge keys in time, copy and paste world poses, and rotate controls around a temporary pivot
+* **Tweener sliders** - one slider per row to tween between keys, or blend toward the default, mirrored or a stored pose
+
+Both work on the current selection, and on the selection bookmarks you choose without selecting their controls.
+
+.. image:: images/animbits/animbits_hub/animbits_hub.png
     :align: center
 
 **Setup:**
@@ -24,36 +31,26 @@ Quick animation tools in a small, transparent overlay over the viewport. Show an
 
 The hub never takes keyboard focus, so all Maya hotkeys keep working while it is open.
 
-Tweener
--------
+Layout
+------
 
-One slider row for the current selection, then one row for each selection bookmark you enabled for the Tweener. Bookmark rows use the bookmark's color and tween the bookmark's controls without selecting them.
+From top to bottom:
 
-* **Drag the TW handle** - keys the animated attributes between their previous key (left end, 0%) and next key (right end, 100%), on the current frame. On release the handle springs back to the center. Each drag is one undo step.
-* **Click a tick** - keys that percentage directly (10% steps)
-* While you drag, the other rows hide to keep the view clear
-* Attributes without animation, or without a key on both sides of the current frame, are skipped. Components and non-keyable items in a bookmark are ignored.
+1. the namespace label, shown when a bookmark row follows the selected namespace (see below)
+2. the **Key Tools** rows
+3. the slider **mode bar** (TW, BD, BM, BB, PP)
+4. the **Tweener** slider rows
 
-Slider Modes
-^^^^^^^^^^^^
+The key tool buttons, the mode bar and the sliders line up on the left. In **BB** mode the pose buffer circles of the sliders sit in the margin on their left. While a slider is dragged, everything but that slider hides to keep the view clear.
 
-The mode bar above the sliders sets the mode of every row. The handle shows the active mode.
+Rows: Selection and Bookmarks
+-----------------------------
 
-* **TW - Tween Machine** - blend between the previous key (left end) and the next key (right end), as described above
-* **BD - Blend to Default** - the center is the current pose; drag right to blend toward the default values (right end = default pose), drag left to exaggerate the difference
-* **BM - Blend to Mirror** - the center is the current pose; drag right to blend toward the mirrored pose of the other side (right end = full mirror), drag left to exaggerate the difference. Center controls blend toward symmetry.
-* **BB - Blend to Buffer** - the center is the current pose; drag right to blend toward a stored pose, drag left to exaggerate the difference
-* **PP - Push / Pull** - drag right to exaggerate the pose relative to the in-between of its previous and next keys, drag left to pull it back to that in-between
+Each tool shows a **Selection** row first, working on the selected controls, in the selection color (pastel green by default). Then it shows one row per selection bookmark enabled for it, in the bookmark color, working on the bookmark's controls without selecting them.
 
-In **BD**, **BM** and **BB**, animated attributes are keyed on the current frame and the other attributes are set. **TW** and **PP** only change attributes with a key on both sides of the current frame. Clicking a tick applies the mode at that position.
+To add a bookmark row, right-click the bookmark in the **Bookmarks** tool and check **Show In Tools > Key Tools** for a row of key tool buttons, **Tweener** for a slider row, or both. Isolate bookmarks can't be used.
 
-**Pose buffer (BB):** in BB mode a circle appears on the left of each row. Click it to store the current pose of that row; the circle is filled while a pose is stored, and hovering it shows the frame, the number of controls, the namespace and when it was stored. **Ctrl+click** clears it. Each row has its own buffer, kept while Maya is open and cleared when a new scene is created or opened.
-
-When blending to a buffer, the stored controls are matched to the row's controls by name, then by the same name in another namespace, so a pose stored on one character can be used on another. If no name matches, they are paired in selection order. With nothing selected, the selection row blends the stored controls themselves.
-
-**Adding bookmark rows:** in the **Bookmarks** tool, right-click a selection bookmark and check **Show In Tools > Tweener**.
-
-.. image:: images/animbits/animbits_hub/bookmark_tweener.png
+.. image:: images/animbits/animbits_hub/bookmarks_animbits_hub_settings.png
     :align: center
     :scale: 75%
 
@@ -62,9 +59,7 @@ When blending to a buffer, the stored controls are matched to the row's controls
 Key Tools
 ---------
 
-Rows of buttons above the slider mode bar, for timing and world poses. Like the sliders, the first row works on the selection, and you can add one row per selection bookmark: right-click the bookmark in the **Bookmarks** tool and check **Show In Tools > Key Tools**. Bookmark rows use the bookmark color and work on the bookmark's controls without selecting them. Each row keeps its own nudge amount, ripple and copied world pose.
-
-The key tool rows, the mode bar and the sliders line up on the left; in **BB** mode the pose buffer circles sit in the margin on their left.
+Each key tool row has, from left to right: **Nudge Keys**, **Copy** and **Paste World Pose**, and **Temp Pivot**. Each row keeps its own nudge amount, ripple and copied world pose.
 
 **Nudge Keys** - ``<``  amount  ``>``  ripple
 
@@ -87,7 +82,6 @@ The key tool rows, the mode bar and the sliders line up on the left; in **BB** m
 * On the Selection row with nothing selected, the pose goes back on the copied controls. Otherwise controls are matched by name, then by the same name in another namespace (paste one character's pose on another), then by selection order.
 * The Paste button is dim while nothing is copied; hover it to see the frame and controls of the copied pose. The copy is kept while Maya is open and cleared when a new scene is created or opened.
 
-
 **Temp Pivot** - rotate the row's controls around any point, e.g. a hand around a fingertip or a foot around its toe
 
 1. Click the crosshair button: a pivot locator appears at the move tool handle of the selection (or at the center of the row's controls when nothing is selected) and is selected. Move it where the pivot should be.
@@ -99,19 +93,44 @@ The key tool rows, the mode bar and the sliders line up on the left; in **BB** m
 * Controls with their translate locked can't move around another point and are skipped with a warning.
 * Each step is one undo step. A temp pivot saved in a scene shows up again when you open the hub, ready to bake or cancel.
 
+Tweener Sliders
+---------------
+
+Each slider row tweens or blends its controls, depending on the mode picked in the mode bar.
+
+* **Drag the handle** - keys the controls at the position you drag to; on release the handle springs back to the center. Each drag is one undo step.
+* **Click a tick** - applies that position directly (10% steps)
+* Components and non-keyable items in a bookmark are ignored.
+
+Slider Modes
+^^^^^^^^^^^^
+
+The mode bar sets the mode of every slider. The handle shows the active mode.
+
+* **TW - Tween Machine** - blend between the previous key (left end, 0%) and the next key (right end, 100%) on the current frame
+* **BD - Blend to Default** - the center is the current pose; drag right to blend toward the default values (right end = default pose), drag left to exaggerate the difference
+* **BM - Blend to Mirror** - the center is the current pose; drag right to blend toward the mirrored pose of the other side (right end = full mirror), drag left to exaggerate the difference. Center controls blend toward symmetry.
+* **BB - Blend to Buffer** - the center is the current pose; drag right to blend toward a stored pose, drag left to exaggerate the difference
+* **PP - Push / Pull** - drag right to exaggerate the pose relative to the in-between of its previous and next keys, drag left to pull it back to that in-between
+
+In **BD**, **BM** and **BB**, animated attributes are keyed on the current frame and the other attributes are set. **TW** and **PP** only change attributes with a key on both sides of the current frame; the others are skipped.
+
+**Pose buffer (BB):** in BB mode a circle appears on the left of each slider. Click it to store the current pose of that row; the circle is filled while a pose is stored, and hovering it shows the frame, the number of controls, the namespace and when it was stored. **Ctrl+click** clears it. Each row has its own buffer, kept while Maya is open and cleared when a new scene is created or opened.
+
+When blending to a buffer, the stored controls are matched to the row's controls by name, then by the same name in another namespace, so a pose stored on one character can be used on another. If no name matches, they are paired in selection order. With nothing selected, the selection row blends the stored controls themselves.
 
 Settings
 --------
 
-Right-click the hub (between the sliders) for its settings. They are saved between Maya sessions.
+Right-click the hub (between its buttons and sliders) for its settings. They are saved between Maya sessions.
 
-.. image:: images/animbits/animbits_hub/tweener_settings.png
+.. image:: images/animbits/animbits_hub/animbits_hub_settings.png
     :align: center
 
-* **Show Names** - **Hover** shows a row's name when the cursor is over it; **Always** shows it next to the row
-* **Show Tooltips** - help tooltips on the mode buttons, the rows and the buffer circles, with the tool name, what it does and how to use it. When off, rows only show their name.
-* **Placement** - **Under Cursor** opens the hub with the first TW handle under the mouse pointer, so you can drag right away; **Fixed Position** opens it where you left it, moved with the grip handle at its top-left
-* **Selection Color** - color of the selection row (pastel green by default)
+* **Show Names** - **Hover** shows a row's name in the tooltips when the cursor is over it; **Always** shows it next to the row
+* **Show Tooltips** - help tooltips on the key tool buttons, the mode buttons, the sliders and the buffer circles, with the tool name, what it does and how to use it. When off, only short names are shown.
+* **Placement** - **Under Cursor** opens the hub with the first slider handle under the mouse pointer, so you can drag right away; **Fixed Position** opens it where you left it, moved with the grip handle at its top-left
+* **Selection Color** - color of the Selection rows (pastel green by default)
 * **Scale** - **-** / **+** resize the hub; **Ctrl+Mouse Wheel** over the hub does the same
 * **Namespace** - the namespace for namespace-following bookmarks
 * **Close** - hide the hub
