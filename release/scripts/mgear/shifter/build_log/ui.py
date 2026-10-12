@@ -579,7 +579,12 @@ class BuildLogWindow(
         the prior instance's C++ peer is gone, after running an explicit
         teardown so module-level hooks and handler registrations do not
         leak into the new instance.
+
+        Returns:
+            BuildLogWindow: The window, or None in batch mode (mayapy).
         """
+        if not pyqt.can_show_ui():
+            return None
         if cls._is_instance_alive():
             cls._instance.raise_()
             cls._instance.show()

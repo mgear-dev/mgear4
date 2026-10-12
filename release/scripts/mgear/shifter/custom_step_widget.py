@@ -11,8 +11,6 @@ import sys
 import traceback
 from functools import partial
 
-from maya import cmds
-
 import mgear.pymaya as pm
 from mgear.core import pyqt
 from mgear.core.widgets import CollapsibleWidget
@@ -4511,7 +4509,7 @@ class CustomStepMixin(object):
 
             # No one can answer the error dialog in batch mode (mayapy):
             # stop the build, the error is logged above.
-            if cmds.about(batch=True):
+            if not pyqt.can_show_ui():
                 return True
 
             dialog = CustomStepErrorDialog(

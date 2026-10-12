@@ -167,6 +167,17 @@ def maya_main_window():
     return QtCompat.wrapInstance(int(main_window_ptr), QtWidgets.QWidget)
 
 
+def can_show_ui():
+    """Tell if Maya can show tool windows and dialogs.
+
+    It can't in batch mode and mayapy, where there is no main window.
+
+    Returns:
+        bool: True when Maya has a main window.
+    """
+    return omui.MQtUtil.mainWindow() is not None
+
+
 def center_window_on_screen(window):
     """Center the given window on the primary screen.
 
@@ -199,7 +210,11 @@ def showDialog(dialog, dInst=True, dockable=False, *args):
     Attributes:
         dialog (QDialog): The window to show.
 
+    Returns:
+        QDialog: The window, or None when Maya can't show UI (batch mode).
     """
+    if not can_show_ui():
+        return None
     if dInst:
         try:
             for c in maya_main_window().children():

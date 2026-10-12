@@ -1,26 +1,19 @@
 """Shifter builds in batch mode (mayapy): no main window, no dialogs."""
 
-import pytest
 
-
-def test_maya_main_window_is_none_in_batch(setup_path):
+def test_no_ui_in_batch(setup_path):
     from maya import cmds
     from mgear.core import pyqt
+    from mgear.shifter import build_log
+    from mgear.vendor.Qt import QtWidgets
 
     assert cmds.about(batch=True)
     assert pyqt.maya_main_window() is None
-
-
-def test_build_log_window_skipped_in_batch(setup_path, monkeypatch):
-    import mgear
-    from mgear.shifter import build_log
-
-    shown = []
-    monkeypatch.setattr(build_log, "show_build_log", lambda: shown.append(True))
-    monkeypatch.setattr(mgear, "logMode", True)
-    monkeypatch.setattr(mgear, "use_log_window", True)
-    build_log.log_window()
-    assert shown == []
+    assert not pyqt.can_show_ui()
+    assert pyqt.showDialog(QtWidgets.QDialog) is None
+    # the build log only prints in batch mode, on every build
+    for _ in range(2):
+        assert build_log.show_build_log() is None
 
 
 def test_failing_step_stops_build_without_dialog(build_rig, tmp_path, monkeypatch):
