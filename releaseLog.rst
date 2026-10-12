@@ -11,6 +11,7 @@ Release Log
 	* Rigbits: Shrink Wrap IO: New tool to export and import shrinkWrap deformers (.shw) with settings, connections, membership and weights
 	* Rigbits: Proximity Wrap IO: New tool to export and import proximityWrap deformers (.pxw) with drivers, falloff ramps, membership and weights
 	* Shifter: Mirror Config: New tool that sets up the mirror pose flags of all rig controls from the rig itself, with verify, .smc import/export and an Import Mirror Config custom step template
+	* Rigbits: Eye Rigger 3.0: New eyelid rigger on a shared facial engine, with vertex loop input, any eye orientation, mirrored right side controls, .eyes config import/export and Eye Rigger 2.1 fixes (opened from the new Facial Rigger 3.0 menu)
 
 **Enhancements**
 	* Animbits: Spring Manager 2.0: Refactored on solver backends, with live multi-spring editing, presets v2 with thumbnails and libraries, and improved bake options
@@ -30,6 +31,7 @@ Release Log
 	* Core: Add deformer_io, a generic layer to save and rebuild deformers, plus deformer stack, weights and lattice helpers
 	* Core: Add screen_capture, vector_path, svg_export, shading, node_remap and config_io modules
 	* Core: Add helpers for undo, progress bar, OM2 callbacks, widgets, settings, smooth scrolling, animation bake, Time Editor, skin bind pose check and scene namespaces
+	* Core: Add settings_schema and settings_form for schema-driven tool settings, facial rig engine (core.facial), ordered edge/vertex loops, loop frame, topological autoskin and matrix constraint helpers
 	* Core: File Drop: Drop Lattice, Shrink Wrap, Proximity Wrap, Channel Wrangler, Channel Master, Anim Picker and Bookmarks files onto Maya
 	* Core: File Drop: register_drop_handler lets studio tools handle their own file types
 	* Core: Menu: Warn when a submenu item uses a callable command instead of a source string
@@ -42,6 +44,7 @@ Release Log
 	* Shifter: Guide Explorer: Skip tree refreshes while a build is running
 	* Shifter: Add is_building() and build_in_progress() to detect a running build
 	* Shifter: Custom Step: Add Import Lattice, Shrink Wrap and Proximity Wrap Configuration templates
+	* Shifter: Custom Step: Add Import Facial Rigger 3.0 Configuration template
 	* Shifter: Custom Step: Pre and post step lists can be resized by dragging; shared steps use a softer moss green
 	* Shifter: Build: Rig builds are about twice as fast, mainly from faster pymaya node creation and attribute lookups
 	* Shifter: Build: Component build data is collected only when a data collector is on or a custom step reads it

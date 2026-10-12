@@ -6,7 +6,11 @@
 import mgear.pymaya as pm
 import mgear.pymaya.datatypes as datatypes
 from maya import OpenMaya as om
+import maya.api.OpenMaya as om2
+import itertools
+import re
 from . import utils
+from . import mesh as mesh_utils
 from maya import cmds
 
 
@@ -687,3 +691,448 @@ def get_edge_center(mesh_dag_path, edge_indices):
             point_count += 1
 
     return om.MPoint(point_sum / point_count)  # Convert MVector back to MPoint
+
+
+#############################################
+# Ordered loops by index (OM2)
+#############################################
+
+_COMPONENT_KINDS = {"e": "edge", "vtx": "vertex"}
+_KIND_TOKENS = {kind: token for token, kind in _COMPONENT_KINDS.items()}
+_COMPONENT_RE = re.compile(
+    r"^(?P<node>[^\.\s]+)\.(?P<kind>e|vtx)\[(?P<range>[\d:]+)\]$"
+)
+
+
+def parse_component_string(text):
+    """Parse a mesh component string into the mesh, kind and indices.
+
+    Accepts comma or space separated components with Maya ranges, as stored
+    by the facial riggers, e.g. ``"head.e[10],head.e[12:14]"``.
+
+    Args:
+        text (str): Component string.
+
+    Returns:
+        tuple: (mesh, kind, indices). kind is "edge" or "vertex" and indices
+            is a sorted list of unique ints. (None, None, []) if text is
+            empty.
+
+    Raises:
+        ValueError: If the components are not edges or vertices, mix kinds
+            or belong to more than one mesh.
+    """
+    items = [item for item in re.split(r"[,\s]+", text or "") if item]
+    if not items:
+        return None, None, []
+    mesh = None
+    kind = None
+    indices = set()
+    for item in items:
+        match = _COMPONENT_RE.match(item)
+        if not match:
+            raise ValueError("Not an edge or vertex component: {}".format(item))
+        item_mesh = match.group("node")
+        item_kind = _COMPONENT_KINDS[match.group("kind")]
+        if mesh is None:
+            mesh = item_mesh
+            kind = item_kind
+        elif item_mesh != mesh:
+            raise ValueError("Components from more than one mesh: {}".format(text))
+        elif item_kind != kind:
+            raise ValueError("Mixed edges and vertices: {}".format(text))
+        bounds = [int(value) for value in match.group("range").split(":")]
+        indices.update(range(bounds[0], bounds[-1] + 1))
+    return mesh, kind, sorted(indices)
+
+
+def format_component_string(mesh, kind, indices):
+    """Format a mesh, kind and indices as a compact component string.
+
+    Args:
+        mesh (str): Mesh name.
+        kind (str): "edge" or "vertex".
+        indices (list): Component indices.
+
+    Returns:
+        str: Comma separated components with ranges, e.g.
+            ``"head.e[10:12],head.e[20]"``.
+    """
+    token = _KIND_TOKENS[kind]
+    items = []
+    ordered = enumerate(sorted(set(indices)))
+    # consecutive indices share the same index - position difference
+    for _, run in itertools.groupby(ordered, lambda pair: pair[1] - pair[0]):
+        run = [index for _, index in run]
+        if len(run) == 1:
+            items.append("{}.{}[{}]".format(mesh, token, run[0]))
+        else:
+            items.append("{}.{}[{}:{}]".format(mesh, token, run[0], run[-1]))
+    return ",".join(items)
+
+
+def components_from_selection(kind="edge"):
+    """Get the selected mesh components as a component string.
+
+    Selected components are converted to the requested kind.
+
+    Args:
+        kind (str): "edge" or "vertex".
+
+    Returns:
+        str: Component string, or "" if nothing usable is selected.
+    """
+    flag = {"edge": "toEdge", "vertex": "toVertex"}[kind]
+    selection = cmds.ls(selection=True, flatten=True) or []
+    components = [item for item in selection if "." in item]
+    if not components:
+        return ""
+    converted = cmds.ls(
+        cmds.polyListComponentConversion(components, **{flag: True}),
+        flatten=True,
+    )
+    mesh = None
+    indices = []
+    for item in converted:
+        item_node, rest = item.split(".", 1)
+        mesh = mesh or item_node
+        indices.append(int(rest[rest.index("[") + 1 : -1]))
+    if mesh is None:
+        return ""
+    return format_component_string(mesh, kind, indices)
+
+
+def _vertex_neighbours(mesh, indices):
+    """Get the connected vertices of each vertex.
+
+    Args:
+        mesh (str): Mesh name.
+        indices (iterable): Vertex indices.
+
+    Returns:
+        dict: {vertex: set of connected vertices}
+    """
+    iterator = om2.MItMeshVertex(mesh_utils.get_mesh_fn(mesh).dagPath())
+    neighbours = {}
+    for index in indices:
+        iterator.setIndex(index)
+        neighbours[index] = set(iterator.getConnectedVertices())
+    return neighbours
+
+
+def _walk_adjacency(adjacency):
+    """Walk an adjacency map of max degree 2 into an ordered path.
+
+    Args:
+        adjacency (dict): {vertex: set of linked vertices}
+
+    Returns:
+        tuple: (ordered vertices, is_closed)
+
+    Raises:
+        ValueError: If the vertices are not one connected chain or cycle.
+    """
+    if any(not linked for linked in adjacency.values()):
+        raise ValueError("The components are not connected")
+    ends = sorted(v for v, linked in adjacency.items() if len(linked) == 1)
+    is_closed = not ends
+    if not is_closed and len(ends) != 2:
+        raise ValueError(
+            "The components are not one connected loop or path "
+            "(path ends: {})".format(ends)
+        )
+    start = min(adjacency) if is_closed else ends[0]
+    ordered = [start]
+    previous = None
+    current = start
+    while True:
+        following = [v for v in sorted(adjacency[current]) if v != previous]
+        if not following or following[0] == start:
+            break
+        previous, current = current, following[0]
+        ordered.append(current)
+    if len(ordered) != len(adjacency):
+        raise ValueError("The components are not connected")
+    return ordered, is_closed
+
+
+def get_ordered_loop_from_edges(mesh, edge_indices):
+    """Get the ordered vertices of an edge loop or open edge path.
+
+    Args:
+        mesh (str): Mesh name.
+        edge_indices (list): Edge indices.
+
+    Returns:
+        tuple: (ordered vertex indices, is_closed)
+
+    Raises:
+        ValueError: If the edges branch or are not connected.
+    """
+    mesh_fn = mesh_utils.get_mesh_fn(mesh)
+    adjacency = {}
+    for edge in edge_indices:
+        a, b = mesh_fn.getEdgeVertices(edge)
+        adjacency.setdefault(a, set()).add(b)
+        adjacency.setdefault(b, set()).add(a)
+    branching = sorted(v for v, linked in adjacency.items() if len(linked) > 2)
+    if branching:
+        raise ValueError("The edges branch at vertices {}".format(branching))
+    return _walk_adjacency(adjacency)
+
+
+def get_ordered_loop_from_vertices(mesh, vertex_indices):
+    """Get the ordered vertices of a vertex loop or open vertex path.
+
+    Mesh edges joining two selected vertices link them. Chords (edges whose
+    two vertices both have more than two links, like the diagonal of a
+    triangulated corner) are removed.
+
+    Args:
+        mesh (str): Mesh name.
+        vertex_indices (list): Vertex indices.
+
+    Returns:
+        tuple: (ordered vertex indices, is_closed)
+
+    Raises:
+        ValueError: If the vertices are ambiguous or not connected.
+    """
+    selected = set(vertex_indices)
+    neighbours = _vertex_neighbours(mesh, selected)
+    adjacency = {v: neighbours[v] & selected for v in selected}
+    for v in sorted(adjacency):
+        for linked in sorted(adjacency[v]):
+            if len(adjacency[v]) > 2 and len(adjacency[linked]) > 2:
+                adjacency[v].discard(linked)
+                adjacency[linked].discard(v)
+    ambiguous = sorted(v for v, linked in adjacency.items() if len(linked) > 2)
+    if ambiguous:
+        raise ValueError(
+            "The vertex loop is ambiguous at vertices {}. Use an edge "
+            "loop instead".format(ambiguous)
+        )
+    return _walk_adjacency(adjacency)
+
+
+def get_ordered_loop(mesh, indices, kind="edge"):
+    """Get the ordered vertices of an edge or vertex loop or path.
+
+    Args:
+        mesh (str): Mesh name.
+        indices (list): Edge or vertex indices.
+        kind (str): "edge" or "vertex".
+
+    Returns:
+        tuple: (ordered vertex indices, is_closed)
+    """
+    if kind == "vertex":
+        return get_ordered_loop_from_vertices(mesh, indices)
+    return get_ordered_loop_from_edges(mesh, indices)
+
+
+def split_loop_at_vertices(ordered, is_closed, vertex_a, vertex_b):
+    """Split an ordered loop into the two paths running from a to b.
+
+    Args:
+        ordered (list): Ordered loop vertices.
+        is_closed (bool): True if the loop is closed.
+        vertex_a (int): Start vertex.
+        vertex_b (int): End vertex.
+
+    Returns:
+        tuple: (path, other_path). Both run from a to b and include them.
+            For an open loop other_path is empty.
+    """
+    index_a = ordered.index(vertex_a)
+    index_b = ordered.index(vertex_b)
+    if not is_closed:
+        if index_a <= index_b:
+            return ordered[index_a : index_b + 1], []
+        return ordered[index_b : index_a + 1][::-1], []
+    rotated = ordered[index_a:] + ordered[:index_a]
+    index_b = rotated.index(vertex_b)
+    return rotated[: index_b + 1], [rotated[0]] + rotated[index_b:][::-1]
+
+
+def order_path_from(ordered, start):
+    """Order an open path so it starts at the given end vertex.
+
+    Args:
+        ordered (list): Ordered path vertices.
+        start (int): One of the two path ends.
+
+    Returns:
+        list: The path starting at start.
+
+    Raises:
+        ValueError: If start is not a path end.
+    """
+    if ordered and ordered[0] == start:
+        return list(ordered)
+    if ordered and ordered[-1] == start:
+        return list(reversed(ordered))
+    raise ValueError("Vertex {} is not an end of the path".format(start))
+
+
+def get_vertex_world_positions(mesh, indices):
+    """Get the world positions of vertices.
+
+    Args:
+        mesh (str): Mesh name.
+        indices (list): Vertex indices.
+
+    Returns:
+        list: (x, y, z) tuples in the indices order.
+    """
+    mesh_fn = mesh_utils.get_mesh_fn(mesh)
+    points = [mesh_fn.getPoint(i, om2.MSpace.kWorld) for i in indices]
+    return [(point.x, point.y, point.z) for point in points]
+
+
+def get_average_vertex_normal(mesh, indices):
+    """Get the normalized average world normal of vertices.
+
+    Args:
+        mesh (str): Mesh name.
+        indices (list): Vertex indices.
+
+    Returns:
+        tuple: (x, y, z) unit vector.
+    """
+    mesh_fn = mesh_utils.get_mesh_fn(mesh)
+    total = om2.MVector()
+    for index in indices:
+        total += mesh_fn.getVertexNormal(index, False, om2.MSpace.kWorld)
+    total.normalize()
+    return (total.x, total.y, total.z)
+
+
+def get_mirror_vertex_indices(mesh, indices, axis="x", tolerance=0.001):
+    """Get the vertices at the mirrored position of each vertex.
+
+    Args:
+        mesh (str): Mesh name.
+        indices (list): Vertex indices.
+        axis (str): Mirror axis, "x", "y" or "z".
+        tolerance (float): Max distance to the mirrored position.
+
+    Returns:
+        list: Mirror vertex index per vertex, None where there is none.
+    """
+    axis_index = "xyz".index(axis)
+    mesh_fn = mesh_utils.get_mesh_fn(mesh)
+    dag_path = mesh_fn.dagPath()
+    intersector = om2.MMeshIntersector()
+    intersector.create(dag_path.node(), dag_path.inclusiveMatrix())
+    found = {}
+    for index in set(indices):
+        target = mesh_fn.getPoint(index, om2.MSpace.kWorld)
+        target[axis_index] *= -1
+        face = intersector.getClosestPoint(target).face
+        best = None
+        best_distance = tolerance
+        for vertex in mesh_fn.getPolygonVertices(face):
+            point = mesh_fn.getPoint(vertex, om2.MSpace.kWorld)
+            distance = point.distanceTo(target)
+            if distance <= best_distance:
+                best = vertex
+                best_distance = distance
+        found[index] = best
+    return [found[index] for index in indices]
+
+
+def get_mirror_edge_indices(mesh, indices, axis="x", tolerance=0.001):
+    """Get the edges at the mirrored position of each edge.
+
+    Args:
+        mesh (str): Mesh name.
+        indices (list): Edge indices.
+        axis (str): Mirror axis, "x", "y" or "z".
+        tolerance (float): Max distance to the mirrored vertex positions.
+
+    Returns:
+        list: Mirror edge index per edge, None where there is none.
+    """
+    mesh_fn = mesh_utils.get_mesh_fn(mesh)
+    edge_vertices = [mesh_fn.getEdgeVertices(edge) for edge in indices]
+    flat = [v for pair in edge_vertices for v in pair]
+    mirrored = get_mirror_vertex_indices(mesh, flat, axis, tolerance)
+    iterator = om2.MItMeshVertex(mesh_fn.dagPath())
+
+    def edges_of(vertex):
+        iterator.setIndex(vertex)
+        return set(iterator.getConnectedEdges())
+
+    mirrors = []
+    for i in range(len(indices)):
+        a, b = mirrored[2 * i], mirrored[2 * i + 1]
+        common = edges_of(a) & edges_of(b) if None not in (a, b) else set()
+        mirrors.append(min(common) if common else None)
+    return mirrors
+
+
+def get_nearest_seed_map(mesh, seed_indices, count):
+    """Get the ring and nearest seed of the vertices around seed vertices.
+
+    Grows rings out from the seeds through the mesh edges. Each new vertex
+    takes the seed of its closest neighbour in the previous ring.
+
+    Args:
+        mesh (str): Mesh name.
+        seed_indices (list): Seed vertex indices.
+        count (int): Number of rings after the seeds.
+
+    Returns:
+        dict: {vertex: (ring, seed)} for the seeds and their rings.
+    """
+    mesh_fn = mesh_utils.get_mesh_fn(mesh)
+    iterator = om2.MItMeshVertex(mesh_fn.dagPath())
+    points = {}
+
+    def point(index):
+        if index not in points:
+            points[index] = mesh_fn.getPoint(index, om2.MSpace.kWorld)
+        return points[index]
+
+    seed_map = {seed: (0, seed) for seed in seed_indices}
+    frontier = sorted(seed_map)
+    for ring in range(1, count + 1):
+        found = {}
+        for vertex in frontier:
+            iterator.setIndex(vertex)
+            seed = seed_map[vertex][1]
+            for linked in iterator.getConnectedVertices():
+                if linked in seed_map:
+                    continue
+                distance = point(linked).distanceTo(point(vertex))
+                if linked not in found or distance < found[linked][0]:
+                    found[linked] = (distance, seed)
+        for vertex, (_, seed) in found.items():
+            seed_map[vertex] = (ring, seed)
+        frontier = sorted(found)
+        if not frontier:
+            break
+    return seed_map
+
+
+def get_concentric_vertex_rings(mesh, seed_indices, count):
+    """Get rings of vertices growing out from seed vertices.
+
+    Ring 0 is the seeds. Each next ring holds the not yet visited vertices
+    connected by an edge to the previous ring.
+
+    Args:
+        mesh (str): Mesh name.
+        seed_indices (list): Seed vertex indices.
+        count (int): Number of rings after the seeds.
+
+    Returns:
+        list: count + 1 lists of vertex indices.
+    """
+    rings = [[] for _ in range(count + 1)]
+    for vertex, (ring, _) in sorted(
+        get_nearest_seed_map(mesh, seed_indices, count).items()
+    ):
+        rings[ring].append(vertex)
+    return rings

@@ -229,3 +229,67 @@ def selection_bookmarks(setup_path, tmp_path, monkeypatch):
     )
     monkeypatch.setattr(module, "_registered_tools", {})
     return module
+
+
+def _eye_loop(cmds, mesh, center_x, ring):
+    """Vertex ring around the +Z pole of a face sphere at center_x."""
+    from mgear.core import meshNavigation
+
+    count = cmds.polyEvaluate(mesh, vertex=True)
+    points = meshNavigation.get_vertex_world_positions(mesh, range(count))
+    pole = max(
+        range(count),
+        key=lambda i: points[i][2] - abs(points[i][0] - center_x),
+    )
+    return meshNavigation.get_concentric_vertex_rings(mesh, [pole], ring)[ring]
+
+
+@pytest.fixture
+def eye_face(setup_path, load_repo_plugin):
+    """Symmetric face mesh with a left and a right eye, in a new scene.
+
+    The face is two 20x20 spheres facing +Z at x=1 and x=-1, combined. Each
+    eyelid loop is the third vertex ring around a sphere pole, and each
+    eyeball sits behind it. Skips when mgear_solvers can't load.
+
+    Returns:
+        dict: "mesh", "head_jnt", and per side ("L", "R") the eyeball,
+            "vertices" (loop vertices) and "edges" (loop edges).
+    """
+    from maya import cmds
+
+    cmds.file(new=True, force=True)
+    if not load_repo_plugin("mgear_solvers"):
+        pytest.skip("mgear_solvers plug-in not available")
+    parts = []
+    for x in (1.0, -1.0):
+        part = cmds.polySphere(
+            radius=1, subdivisionsAxis=20, subdivisionsHeight=20,
+            constructionHistory=False,
+        )[0]
+        cmds.setAttr(part + ".rotateX", 90)
+        cmds.setAttr(part + ".translateX", x)
+        parts.append(part)
+    mesh = cmds.polyUnite(parts, name="face", constructionHistory=False)[0]
+    cmds.select(clear=True)
+    face = {"mesh": mesh, "head_jnt": cmds.joint(name="head_jnt")}
+    for side, x in (("L", 1.0), ("R", -1.0)):
+        eyeball = cmds.polySphere(
+            name="eye_{}_geo".format(side), radius=0.3, constructionHistory=False
+        )[0]
+        cmds.setAttr(eyeball + ".translate", x, 0, 0.75)
+        vertices = _eye_loop(cmds, mesh, x, 3)
+        edges = cmds.ls(
+            cmds.polyListComponentConversion(
+                ["{}.vtx[{}]".format(mesh, v) for v in vertices],
+                toEdge=True,
+                internal=True,
+            ),
+            flatten=True,
+        )
+        face[side] = {
+            "eyeball": eyeball,
+            "vertices": vertices,
+            "edges": [int(e.split("[")[1][:-1]) for e in edges],
+        }
+    return face

@@ -418,12 +418,47 @@ With mGear file drop enabled (see :ref:`file-drop`), dropping a ``.cwc`` file in
 Eye Rigger
 ==========
 
-Automatic eyelid rigging tools. Two versions are available:
+Automatic eyelid rigging tools.
+
+Eye Rigger 3.0
+--------------
+
+Open it from **mGear > Rigbits > Facial Rigger 3.0** (Eye tab). It builds the
+same eyelid rig as Eye Rigger 2.1, with these changes:
+
+* **Vertex or edge loop:** rig from a selected vertex loop (the default) or
+  set **Loop Type** to Edge. Eye Rigger 2.1 configurations build from their
+  edge loop.
+* **Any eye orientation:** corners and the upper and lower lids are found in
+  the loop's own frame, so tilted and side facing eyes work without the scene
+  up axis. **Side Range** remains as an override.
+* **Mirror Behavior** (on by default): the right side controls mirror the
+  left ones, so the same values give a mirrored pose. The aim control doesn't
+  mirror: the same rotation aims both eyes the same way. Joint names are the
+  same as 2.1, numbered from the inner corner on both sides, so existing skin
+  files still load.
+* **Shared settings:** the settings are also used by the upcoming Shifter
+  eyelid component. **Export Config** saves a ``.eyes`` file and **Import
+  Config** loads 3.0 and 2.1 files.
+* **Smooth contact:** near the end of a blink the lids blend to the closed
+  shape, so they meet without a jump.
+* **Fixes:** a joint every 0 vertex, the fixed joint count on the lower lid,
+  name clashes when building both eyes, the lower lid moving off the mesh at
+  rest, and the lids opening at full blink.
+* Every option has a tooltip, and the controls and deformers sets can be
+  picked from the selection.
+
+Scripts and custom steps build from a file with
+``mgear.rigbits.facial_rigger3.eye.rig_from_file(path)``, or the **Import
+Facial Rigger 3.0 Configuration** custom step template. Existing scripts and
+custom steps using ``mgear.rigbits.facial_rigger2.eye_rigger`` keep building
+the Eye Rigger 2.1 rig.
 
 Eye Rigger 2.1
 --------------
 
-The updated eye rigger with simplified options and improved workflow.
+The previous eye rigger, in **mGear > Rigbits > Facial Legacy > Eye Rigger
+2.1**. Its configuration files load in Eye Rigger 3.0.
 
 .. image:: images/rigbits/eyeRigger2.1.png
     :align: center

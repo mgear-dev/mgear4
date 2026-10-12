@@ -36,6 +36,11 @@ TEMPLATES = {
         "description": "Build eye rigs from Eye Rigger 2.1 JSON configs (L/R)",
         "module": "import_eye_rigger_config",
     },
+    "import_facial_rigger3_config": {
+        "name": "Import Facial Rigger 3.0 Configuration",
+        "description": "Build facial rigs from Facial Rigger 3.0 configuration files",
+        "module": "import_facial_rigger3_config",
+    },
     "import_channel_master_config": {
         "name": "Import Channel Master Configuration",
         "description": "Import Channel Master node configuration from .cmc file",

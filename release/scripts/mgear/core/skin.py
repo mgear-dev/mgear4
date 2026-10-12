@@ -29,6 +29,8 @@ from mgear.core import pyqt
 from mgear.core import applyop
 from mgear.core import node_remap
 from mgear.core import utils
+from mgear.core import meshNavigation
+from mgear.core import mesh as mesh_utils
 from maya.app.general.mayaMixin import MayaQWidgetDockableMixin
 
 FILE_EXT = ".gSkin"
@@ -3013,6 +3015,29 @@ def openSkinClusterSelector(*args):
     return pyqt.showDialog(SkinClusterSelector, dockable=True)
 
 
+def _read_vertex_weights(skin_cluster, mesh, vertices):
+    """Read the weights of some vertices of a skin cluster with OM2.
+
+    Args:
+        skin_cluster (str): Skin cluster.
+        mesh (str): Skinned mesh transform or shape.
+        vertices (list): Vertex indices.
+
+    Returns:
+        tuple: (MFnSkinCluster, MDagPath, vertex components, flat weights
+            list in the vertices order, influence count, influence MDagPaths)
+    """
+    selection = om2.MSelectionList()
+    selection.add(skin_cluster)
+    fn = oma2.MFnSkinCluster(selection.getDependNode(0))
+    dag_path = mesh_utils.get_mesh_fn(mesh).dagPath()
+    component_fn = om2.MFnSingleIndexedComponent()
+    components = component_fn.create(om2.MFn.kMeshVertComponent)
+    component_fn.addElements(list(vertices))
+    weights, count = fn.getWeights(dag_path, components)
+    return fn, dag_path, components, list(weights), count, fn.influenceObjects()
+
+
 def get_dominant_influence_vertices(
     mesh, influences=None, threshold=0.5, vertices=None
 ):
@@ -3033,22 +3058,16 @@ def get_dominant_influence_vertices(
         names (long names when ``influences`` is None). Empty when the
         mesh has no skin cluster.
     """
-    from mgear.core import mesh as mesh_utils
-
     skin_clusters = cmds.ls(cmds.listHistory(mesh) or [], type="skinCluster")
     if not skin_clusters:
         return {}
-    selection = om2.MSelectionList()
-    selection.add(skin_clusters[0])
-    fn = oma2.MFnSkinCluster(selection.getDependNode(0))
-    mesh_fn = mesh_utils.get_mesh_fn(mesh)
-    indices = list(vertices) if vertices is not None else range(mesh_fn.numVertices)
-    component_fn = om2.MFnSingleIndexedComponent()
-    components = component_fn.create(om2.MFn.kMeshVertComponent)
-    component_fn.addElements(list(indices))
-    weights, count = fn.getWeights(mesh_fn.dagPath(), components)
-    weights = list(weights)
-    paths = [path.fullPathName() for path in fn.influenceObjects()]
+    if vertices is None:
+        vertices = range(mesh_utils.get_mesh_fn(mesh).numVertices)
+    indices = list(vertices)
+    _, _, _, weights, count, influence_paths = _read_vertex_weights(
+        skin_clusters[0], mesh, indices
+    )
+    paths = [path.fullPathName() for path in influence_paths]
 
     if influences is None:
         names = {path: path for path in paths}
@@ -3081,3 +3100,206 @@ def drop_file(path):
         importSkinPack(path, on_missing="ui")
     else:
         importSkin(path, on_missing="ui")
+
+
+######################################
+# Topological autoskin
+######################################
+
+
+def compute_falloff_profile(rigid_loops, falloff_loops):
+    """Get the weight of each vertex ring of a topological autoskin.
+
+    Ring 0 (the seed vertices) and the rigid rings get 1.0. The falloff
+    rings go down to 0.0 in equal steps, as the facial riggers always did.
+
+    Args:
+        rigid_loops (int): Number of fully weighted rings after the seeds.
+        falloff_loops (int): Number of falloff rings after the rigid ones.
+
+    Returns:
+        list: rigid_loops + falloff_loops + 1 weights, one per ring.
+    """
+    profile = [1.0] * (1 + max(rigid_loops, 0))
+    falloff_loops = max(falloff_loops, 0)
+    for step in range(1, falloff_loops + 1):
+        profile.append(1.0 - float(step) / falloff_loops)
+    return profile
+
+
+def compute_topological_weights(seed_map, seed_joints, profile, base_influences):
+    """Compute the weights of a topological autoskin.
+
+    Args:
+        seed_map (dict): {vertex: (ring, seed vertex)}, see
+            :func:`mgear.core.meshNavigation.get_nearest_seed_map`.
+        seed_joints (dict): {seed vertex: joint}
+        profile (list): Weight per ring, see :func:`compute_falloff_profile`.
+        base_influences (str or dict): Influence getting the rest of the
+            weight, or {vertex: influence}. Vertices without a base
+            influence are skipped.
+
+    Returns:
+        dict: {vertex: {influence: weight}}
+    """
+    per_vertex = isinstance(base_influences, dict)
+    weights = {}
+    for vertex, (ring, seed) in seed_map.items():
+        base = base_influences.get(vertex) if per_vertex else base_influences
+        if ring >= len(profile) or seed not in seed_joints or not base:
+            continue
+        weight = profile[ring]
+        joint = seed_joints[seed]
+        if weight >= 1.0:
+            weights[vertex] = {joint: 1.0}
+        elif weight <= 0.0:
+            weights[vertex] = {base: 1.0}
+        else:
+            weights[vertex] = {joint: weight, base: 1.0 - weight}
+    return weights
+
+
+def _nearest_seed_joints(mesh, joint_seeds, loop_vertices):
+    """Map each loop vertex to the joint whose seed vertex is closest.
+
+    Args:
+        mesh (str): Mesh name.
+        joint_seeds (list): (joint, seed vertex index) pairs.
+        loop_vertices (list): Loop vertex indices.
+
+    Returns:
+        dict: {vertex: joint} for the loop vertices and the seeds.
+    """
+    seeds = [seed for _, seed in joint_seeds]
+    vertices = list(set(loop_vertices) | set(seeds))
+    positions = dict(
+        zip(vertices, meshNavigation.get_vertex_world_positions(mesh, vertices))
+    )
+    seed_positions = [positions[seed] for seed in seeds]
+    seed_joints = {seed: str(joint) for joint, seed in joint_seeds}
+    for vertex in loop_vertices:
+        if vertex in seed_joints:
+            continue
+        point = positions[vertex]
+        index = min(
+            range(len(seeds)),
+            key=lambda i: sum((point[k] - seed_positions[i][k]) ** 2 for k in range(3)),
+        )
+        seed_joints[vertex] = str(joint_seeds[index][0])
+    return seed_joints
+
+
+def _get_or_create_skin_cluster(mesh, influences, base_influence, name):
+    """Get the skin cluster of a mesh with the influences, creating it if needed.
+
+    Raises:
+        ValueError: If the mesh has no skin cluster and no base influence.
+    """
+    skin_cluster = getSkinCluster(mesh)
+    if skin_cluster:
+        skin_cluster = skin_cluster.name()
+    else:
+        if not base_influence:
+            raise ValueError(
+                "{} has no skin cluster, a base influence is needed".format(mesh)
+            )
+        skin_cluster = cmds.skinCluster(
+            [base_influence],
+            mesh,
+            toSelectedBones=True,
+            normalizeWeights=1,
+            name=name or mesh.split("|")[-1] + "_skinCluster",
+        )[0]
+    existing = set(
+        name.split("|")[-1]
+        for name in cmds.skinCluster(skin_cluster, query=True, influence=True)
+    )
+    missing = sorted(
+        set(inf for inf in influences if inf and inf.split("|")[-1] not in existing)
+    )
+    if missing:
+        cmds.skinCluster(skin_cluster, edit=True, addInfluence=missing, weight=0.0)
+    return skin_cluster
+
+
+def apply_topological_autoskin(
+    mesh,
+    joint_seeds,
+    base_influence=None,
+    rigid_loops=2,
+    falloff_loops=4,
+    skin_cluster_name=None,
+    loop_vertices=None,
+):
+    """Skin joints to the vertex rings around their seed vertices.
+
+    Each joint gets the falloff profile weight on the rings around its seed
+    vertex, and the rest of the weight goes to the base influence. Vertices
+    outside the rings keep their weights, and only the ring vertices are
+    read and written. Running it again with the same inputs gives the same
+    weights.
+
+    Args:
+        mesh (str): Mesh to skin.
+        joint_seeds (list): (joint, seed vertex index) pairs.
+        base_influence (str, optional): Influence getting the rest of the
+            weight. When None, the rest goes to the influence that already
+            has the largest weight on each vertex.
+        rigid_loops (int, optional): Fully weighted rings.
+        falloff_loops (int, optional): Falloff rings.
+        skin_cluster_name (str, optional): Name of a new skin cluster.
+            Defaults to "<mesh>_skinCluster".
+        loop_vertices (list, optional): All the vertices of the rigged loop.
+            Loop vertices without a joint go to the joint with the closest
+            seed. Defaults to the joint seeds.
+
+    Returns:
+        str: The skin cluster.
+
+    Raises:
+        ValueError: If the mesh has no skin cluster and no base influence.
+    """
+    joints = [str(joint) for joint, _ in joint_seeds]
+    loop_vertices = list(loop_vertices or [seed for _, seed in joint_seeds])
+    seed_joints = _nearest_seed_joints(mesh, joint_seeds, loop_vertices)
+    skin_cluster = _get_or_create_skin_cluster(
+        mesh, joints + [base_influence], base_influence, skin_cluster_name
+    )
+
+    profile = compute_falloff_profile(rigid_loops, falloff_loops)
+    seed_map = meshNavigation.get_nearest_seed_map(
+        mesh, loop_vertices, len(profile) - 1
+    )
+    vertices = sorted(seed_map)
+    fn, dag_path, components, weights, count, paths = _read_vertex_weights(
+        skin_cluster, mesh, vertices
+    )
+    names = [om2.MFnDependencyNode(path.node()).name() for path in paths]
+    columns = {name: i for i, name in enumerate(names)}
+    base = base_influence
+    if not base:
+        excluded = set(joint.split("|")[-1] for joint in joints)
+        candidates = [i for i in range(count) if names[i] not in excluded]
+        base = {}
+        for row, vertex in enumerate(vertices):
+            offset = row * count
+            best = max(candidates, key=lambda i: weights[offset + i], default=None)
+            if best is not None and weights[offset + best] > 0.0:
+                base[vertex] = names[best]
+
+    vertex_weights = compute_topological_weights(seed_map, seed_joints, profile, base)
+    for row, vertex in enumerate(vertices):
+        if vertex not in vertex_weights:
+            continue
+        offset = row * count
+        weights[offset : offset + count] = [0.0] * count
+        for influence, weight in vertex_weights[vertex].items():
+            weights[offset + columns[influence.split("|")[-1]]] = weight
+    fn.setWeights(
+        dag_path,
+        components,
+        om2.MIntArray(list(range(count))),
+        om2.MDoubleArray(weights),
+        False,
+    )
+    return skin_cluster

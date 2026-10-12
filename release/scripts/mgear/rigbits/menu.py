@@ -40,8 +40,8 @@ def install():
         ("-----", None),
         ("Channel Wrangler", str_openChannelWrangler, "mgear_channel_wrangler.svg"),
         ("-----", None),
-        ("Eyelid Rigger 2.1", str_eye_rigger, "mgear_eye_rigger.svg"),
-        ("Facial Rigger 1.0 (Legacy)", str_facial_rigger, "mgear_facial_rigger.svg"),
+        ("Facial Rigger 3.0", str_facial_rigger3, "mgear_eye_rigger.svg"),
+        (None, facial_legacy_submenu),
         ("-----", None),
         ("Wire to Skinning", str_wire_to_skinning, "mgear_wire_to_skinning.svg"),
         ("Evaluation Partition", str_evaluation_partition, "mgear_evaluation_partition.svg"),
@@ -72,6 +72,22 @@ def connect_submenu(parent_menu_id):
     )
 
     mgear.menu.install("Connect Local SRT", commands, parent_menu_id)
+
+
+def facial_legacy_submenu(parent_menu_id):
+    """Create the legacy facial riggers submenu
+
+    Args:
+        parent_menu_id (str): Parent menu. i.e: "MayaWindow|mGear|menuItem355"
+    """
+    commands = (
+        ("Eye Rigger 2.1", str_eye_rigger_21, "mgear_eye_rigger.svg"),
+        ("Facial Rigger 1.0", str_facial_rigger, "mgear_facial_rigger.svg"),
+    )
+
+    mgear.menu.install(
+        "Facial Legacy", commands, parent_menu_id, image="mgear_facial_rigger.svg"
+    )
 
 
 def _ctl_submenu(parent_menu_id, name, cCtl=False):
@@ -252,11 +268,14 @@ from mgear.rigbits import facial_rigger
 facial_rigger.show()
 """
 
-# eye rigger 2.0 str commands
-
-str_eye_rigger = """
+str_eye_rigger_21 = """
 from mgear.rigbits import facial_rigger2
 facial_rigger2.eye_riggerUI.show()
+"""
+
+str_facial_rigger3 = """
+from mgear.rigbits import facial_rigger3
+facial_rigger3.show()
 """
 
 str_wire_to_skinning = """

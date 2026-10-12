@@ -1100,3 +1100,160 @@ def create_uv_pin_constraint(shape,
                      f=True)
 
     return out_trans, pin
+
+
+#############################################
+# MATRIX CONSTRAINTS
+#############################################
+
+
+def _world_matrix(node):
+    return om.MMatrix(cmds.getAttr(node + ".worldMatrix[0]"))
+
+
+def _connect_decomposed(matrix_plug, driven, channels):
+    """Drive the channels of a transform from a matrix plug.
+
+    Args:
+        matrix_plug (str): Matrix output plug.
+        driven (str): Driven transform.
+        channels (str): Any of "s", "r" and "t".
+
+    Returns:
+        str: The decomposeMatrix node.
+    """
+    decompose = cmds.createNode(
+        "decomposeMatrix", name=driven.split("|")[-1] + "_decompMatrix"
+    )
+    cmds.connectAttr(matrix_plug, decompose + ".inputMatrix")
+    for channel, plug in (("t", "translate"), ("r", "rotate"), ("s", "scale")):
+        if channel in channels:
+            cmds.connectAttr(
+                "{}.output{}".format(decompose, plug.capitalize()),
+                "{}.{}".format(driven, plug),
+                force=True,
+            )
+    return decompose
+
+
+def _offset_matrix(driver, driven_matrix):
+    """Matrix of the driven relative to the driver, in world space."""
+    return list(driven_matrix * _world_matrix(driver).inverse())
+
+
+def matrix_constraint(driver, driven, channels="srt", offset=False):
+    """Drive a transform from another one's world matrix, without constraints.
+
+    Uses a multMatrix and a decomposeMatrix node.
+
+    Args:
+        driver (str): Driver transform.
+        driven (str): Driven transform.
+        channels (str, optional): Any of "s", "r" and "t".
+        offset (bool, optional): Keep the current offset to the driver.
+
+    Returns:
+        str: The multMatrix node.
+    """
+    driver = str(driver)
+    driven = str(driven)
+    mult = cmds.createNode("multMatrix", name=driven.split("|")[-1] + "_multMatrix")
+    index = 0
+    if offset:
+        cmds.setAttr(
+            mult + ".matrixIn[0]",
+            _offset_matrix(driver, _world_matrix(driven)),
+            type="matrix",
+        )
+        index = 1
+    cmds.connectAttr(driver + ".worldMatrix[0]", "{}.matrixIn[{}]".format(mult, index))
+    cmds.connectAttr(
+        driven + ".parentInverseMatrix[0]",
+        "{}.matrixIn[{}]".format(mult, index + 1),
+    )
+    _connect_decomposed(mult + ".matrixSum", driven, channels)
+    return mult
+
+
+def matrix_blend_constraint(
+    drivers,
+    driven,
+    weights=None,
+    channels="rt",
+    offset=False,
+    host=None,
+    weight_names=None,
+):
+    """Drive a transform from a weighted blend of world matrices.
+
+    Uses a wtAddMatrix node. The weights are equal when not given.
+
+    Args:
+        drivers (list): Driver transforms.
+        driven (str): Driven transform.
+        weights (list, optional): One weight per driver.
+        channels (str, optional): Any of "s", "r" and "t".
+        offset (bool, optional): Keep the current offset to each driver.
+        host (str, optional): Node to get one keyable weight attribute per
+            driver.
+        weight_names (list, optional): Names of the host weight attributes.
+            Defaults to "<driver>_weight".
+
+    Returns:
+        str: The wtAddMatrix node.
+
+    Raises:
+        ValueError: If weights or weight_names don't match the drivers.
+    """
+    drivers = [str(driver) for driver in drivers]
+    driven = str(driven)
+    if weights is None:
+        weights = [1.0 / len(drivers)] * len(drivers)
+    if len(weights) != len(drivers):
+        raise ValueError("One weight per driver is needed")
+    if weight_names is None:
+        weight_names = [driver.split("|")[-1] + "_weight" for driver in drivers]
+    if len(weight_names) != len(drivers):
+        raise ValueError("One weight name per driver is needed")
+    blend = cmds.createNode("wtAddMatrix", name=driven.split("|")[-1] + "_wtAddMatrix")
+    driven_matrix = _world_matrix(driven) if offset else None
+    for index, (driver, weight) in enumerate(zip(drivers, weights)):
+        element = "{}.wtMatrix[{}]".format(blend, index)
+        source = driver + ".worldMatrix[0]"
+        if offset:
+            mult = cmds.createNode(
+                "multMatrix",
+                name=driver.split("|")[-1] + "_offsetMultMatrix",
+            )
+            cmds.setAttr(
+                mult + ".matrixIn[0]",
+                _offset_matrix(driver, driven_matrix),
+                type="matrix",
+            )
+            cmds.connectAttr(source, mult + ".matrixIn[1]")
+            source = mult + ".matrixSum"
+        cmds.connectAttr(source, element + ".matrixIn")
+        if host:
+            attr = "{}.{}".format(host, weight_names[index])
+            if not cmds.attributeQuery(
+                weight_names[index], node=str(host), exists=True
+            ):
+                cmds.addAttr(
+                    str(host),
+                    longName=weight_names[index],
+                    attributeType="float",
+                    minValue=0.0,
+                    maxValue=1.0,
+                    keyable=True,
+                )
+            cmds.setAttr(attr, weight)
+            cmds.connectAttr(attr, element + ".weightIn")
+        else:
+            cmds.setAttr(element + ".weightIn", weight)
+    mult = cmds.createNode(
+        "multMatrix", name=driven.split("|")[-1] + "_blendMultMatrix"
+    )
+    cmds.connectAttr(blend + ".matrixSum", mult + ".matrixIn[0]")
+    cmds.connectAttr(driven + ".parentInverseMatrix[0]", mult + ".matrixIn[1]")
+    _connect_decomposed(mult + ".matrixSum", driven, channels)
+    return blend

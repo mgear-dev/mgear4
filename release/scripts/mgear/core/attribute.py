@@ -2007,3 +2007,61 @@ def disconnect_plug_inputs(plug, keep=None):
         cmds.disconnectAttr(source, plug)
         removed.append(source)
     return removed
+
+
+def connect_local_transform(source, targets, s=True, r=True, t=True):
+    """Connect the local scale, rotation and translation of a node to others.
+
+    Args:
+        source (str or dagNode): Driver node.
+        targets (list): Driven nodes.
+        s (bool, optional): Connect the scale.
+        r (bool, optional): Connect the rotation.
+        t (bool, optional): Connect the translation.
+    """
+    channels = [
+        channel
+        for channel, flag in (("translate", t), ("scale", s), ("rotate", r))
+        if flag
+    ]
+    for target in targets:
+        for channel in channels:
+            cmds.connectAttr(
+                "{}.{}".format(source, channel),
+                "{}.{}".format(target, channel),
+                force=True,
+            )
+
+
+def hide_shapes(nodes, attr_name, host, value=True, keyable=False):
+    """Drive the shape visibility of nodes with a bool attribute.
+
+    Shapes whose visibility is already connected are skipped.
+
+    Args:
+        nodes (list): Nodes whose shapes to drive.
+        attr_name (str): Bool attribute, added to the host if missing.
+        host (str or dagNode): Node holding the attribute.
+        value (bool, optional): Value of a new attribute.
+        keyable (bool, optional): Make a new attribute keyable.
+
+    Returns:
+        str: The attribute plug.
+    """
+    host = str(host)
+    plug = "{}.{}".format(host, attr_name)
+    if not cmds.attributeQuery(attr_name, node=host, exists=True):
+        cmds.addAttr(
+            host,
+            longName=attr_name,
+            attributeType="bool",
+            defaultValue=value,
+            keyable=keyable,
+        )
+        if not keyable:
+            cmds.setAttr(plug, channelBox=True)
+    for item in nodes:
+        for shape in cmds.listRelatives(str(item), shapes=True, path=True) or []:
+            if not cmds.listConnections(shape + ".visibility", plugs=True):
+                cmds.connectAttr(plug, shape + ".visibility")
+    return plug

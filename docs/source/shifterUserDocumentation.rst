@@ -900,6 +900,8 @@ When creating a new custom step, mGear provides a template selection dialog that
 
 - **Import Eye Rigger Configuration**: Builds eye rigs from Eye Rigger 2.1 JSON configuration files. Supports separate left and right eye configurations.
 
+- **Import Facial Rigger 3.0 Configuration**: Builds one facial rig per Facial Rigger 3.0 configuration file in a list (for example a left and a right ``.eyes`` file). Eye Rigger 2.1 files load too, and build the 3.0 rig.
+
 - **Import Channel Master Configuration**: Imports Channel Master node configuration from a ``.cmc`` file.
 
 - **Import Anim Picker Template**: Imports Anim Picker data from a ``.pkr`` file with an option to reparent the picker node under the rig root.

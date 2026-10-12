@@ -312,19 +312,7 @@ def connectLocalTransform(objects=None, s=True, r=True, t=True, *args):
             source = pm.selected()[0]
             targets = pm.selected()[1:]
 
-        for target in targets:
-            if t:
-                pm.connectAttr(
-                    source + ".translate", target + ".translate", force=True
-                )
-            if s:
-                pm.connectAttr(
-                    source + ".scale", target + ".scale", force=True
-                )
-            if r:
-                pm.connectAttr(
-                    source + ".rotate", target + ".rotate", force=True
-                )
+        attribute.connect_local_transform(source, targets, s=s, r=r, t=t)
     else:
         pm.displayWarning("Please at less select 2 objects. Source + target/s")
 
@@ -735,19 +723,7 @@ def hide_shape(obj_list, attr_name, attr_host, val=True, keyable=False):
         val (bool, optional): Initial value. Defaults to True.
     """
 
-    if not attr_host.hasAttr(attr_name):
-        attrHide = attribute.addAttribute(
-            attr_host, attr_name, "bool", val, keyable=keyable, channelBox=True
-        )
-    else:
-        attrHide = attr_host.attr(attr_name)
-
-    for ctl in obj_list:
-        if isinstance(ctl, str):
-            ctl = pm.PyNode(ctl)
-        for shape in ctl.getShapes():
-            if not shape.visibility.isConnected():
-                pm.connectAttr(attrHide, shape.visibility)
+    attribute.hide_shapes(obj_list, attr_name, attr_host, val, keyable)
 
 
 def hide_transform(transform_list, attr_name, attr_host, val=True, keyable=False):

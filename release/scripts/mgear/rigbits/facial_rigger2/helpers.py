@@ -49,7 +49,7 @@ def excludeInbetweens(controls, divisions):
     # returns inbetween controls
 
     if len(controls) > 4:
-        midRange = divisions / 2
+        midRange = int(divisions) // 2
         if ((divisions % 2) == 0):
             right_inbetweens = controls[midRange + 1:-1]
             left_inbetweens = controls[1:midRange - 1]
@@ -66,7 +66,7 @@ def excludeInbetweens(controls, divisions):
 def excludeParents(controls, divisions):
     # returns parent controls
     # helper for contraint distribution
-    midRange = divisions / 2
+    midRange = int(divisions) // 2
 
     if len(controls) > 3:
         parents = []
