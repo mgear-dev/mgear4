@@ -34,6 +34,23 @@ One slider row for the current selection, then one row for each selection bookma
 * While you drag, the other rows hide to keep the view clear
 * Attributes without animation, or without a key on both sides of the current frame, are skipped. Components and non-keyable items in a bookmark are ignored.
 
+Slider Modes
+^^^^^^^^^^^^
+
+The mode bar above the sliders sets the mode of every row. The handle shows the active mode.
+
+* **TW - Tween Machine** - blend between the previous key (left end) and the next key (right end), as described above
+* **BD - Blend to Default** - the center is the current pose; drag right to blend toward the default values (right end = default pose), drag left to exaggerate the difference
+* **BM - Blend to Mirror** - the center is the current pose; drag right to blend toward the mirrored pose of the other side (right end = full mirror), drag left to exaggerate the difference. Center controls blend toward symmetry.
+* **BB - Blend to Buffer** - the center is the current pose; drag right to blend toward a stored pose, drag left to exaggerate the difference
+* **PP - Push / Pull** - drag right to exaggerate the pose relative to the in-between of its previous and next keys, drag left to pull it back to that in-between
+
+In **BD**, **BM** and **BB**, animated attributes are keyed on the current frame and the other attributes are set. **TW** and **PP** only change attributes with a key on both sides of the current frame. Clicking a tick applies the mode at that position.
+
+**Pose buffer (BB):** in BB mode a circle appears on the left of each row. Click it to store the current pose of that row; the circle is filled while a pose is stored, and hovering it shows the frame, the number of controls, the namespace and when it was stored. **Ctrl+click** clears it. Each row has its own buffer, kept while Maya is open and cleared when a new scene is created or opened.
+
+When blending to a buffer, the stored controls are matched to the row's controls by name, then by the same name in another namespace, so a pose stored on one character can be used on another. If no name matches, they are paired in selection order. With nothing selected, the selection row blends the stored controls themselves.
+
 **Adding bookmark rows:** in the **Bookmarks** tool, right-click a selection bookmark and check **Show In Tools > Tweener**.
 
 .. image:: images/animbits/animbits_hub/bookmark_tweener.png
@@ -51,6 +68,7 @@ Right-click the hub (between the sliders) for its settings. They are saved betwe
     :align: center
 
 * **Show Names** - **Hover** shows a row's name when the cursor is over it; **Always** shows it next to the row
+* **Show Tooltips** - help tooltips on the mode buttons, the rows and the buffer circles, with the tool name, what it does and how to use it. When off, rows only show their name.
 * **Placement** - **Under Cursor** opens the hub with the first TW handle under the mouse pointer, so you can drag right away; **Fixed Position** opens it where you left it, moved with the grip handle at its top-left
 * **Selection Color** - color of the selection row (pastel green by default)
 * **Scale** - **-** / **+** resize the hub; **Ctrl+Mouse Wheel** over the hub does the same

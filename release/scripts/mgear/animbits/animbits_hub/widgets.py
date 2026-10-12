@@ -5,6 +5,8 @@ TweenSlider is the custom-painted tween slider. No widget takes keyboard
 focus, so Maya hotkeys keep working while the hub is open.
 """
 
+from functools import partial
+
 from mgear.vendor.Qt import QtCore
 from mgear.vendor.Qt import QtGui
 from mgear.vendor.Qt import QtWidgets
@@ -24,6 +26,19 @@ DISABLED_ALPHA = 0.35
 def _qcolor(color, alpha=1.0):
     """Return a QColor from an RGB 0-1 tuple."""
     return QtGui.QColor.fromRgbF(color[0], color[1], color[2], alpha)
+
+
+def mode_tooltip(mode, title=None):
+    """Return the rich tooltip of a slider mode.
+
+    Args:
+        mode (SliderMode): The mode.
+        title (str, optional): Title. Defaults to the mode title.
+
+    Returns:
+        str: The tooltip HTML.
+    """
+    return pyqt.rich_tooltip(title or mode.title, mode.text, mode.bullets, mode.color)
 
 
 def _no_focus(widget):
@@ -65,6 +80,7 @@ class HubRow(QtWidgets.QWidget):
         self.uses_namespace = False
         self.namespace = None
         self._show_names = hub_settings.SHOW_NAMES_HOVER
+        self._show_tooltips = True
         self._content = None
 
         self._name_label = QtWidgets.QLabel(name)
@@ -82,6 +98,14 @@ class HubRow(QtWidgets.QWidget):
             widget (QWidget): The widget, e.g. a TweenSlider.
         """
         self._content = widget
+        self._layout.insertWidget(0, widget)
+
+    def add_leading(self, widget):
+        """Add a widget on the left of the row content.
+
+        Args:
+            widget (QWidget): The widget, e.g. a BufferButton.
+        """
         self._layout.insertWidget(0, widget)
 
     def anchor(self):
@@ -117,6 +141,34 @@ class HubRow(QtWidgets.QWidget):
         self._show_names = mode
         self._name_label.setVisible(mode == hub_settings.SHOW_NAMES_ALWAYS)
 
+    def set_show_tooltips(self, show):
+        """Show rich help tooltips, or only the row name.
+
+        Args:
+            show (bool): True for rich tooltips.
+        """
+        self._show_tooltips = show
+
+    def set_mode(self, mode):
+        """Set the slider mode. Rows without modes ignore it.
+
+        Args:
+            mode (SliderMode): The mode.
+        """
+
+    def hover_tooltip(self):
+        """Return the text shown when the pointer enters the row.
+
+        The base row shows its name in "hover" name display. Subclasses
+        add their help when rich tooltips are on.
+
+        Returns:
+            str: Plain or rich text, None for no tooltip.
+        """
+        if self._show_names == hub_settings.SHOW_NAMES_HOVER:
+            return self.name
+        return None
+
     def set_namespace(self, namespace, valid):
         """Set the hub namespace. Rows using it are disabled when invalid.
 
@@ -130,10 +182,11 @@ class HubRow(QtWidgets.QWidget):
         self.setEnabled(valid)
 
     def enterEvent(self, event):
-        """Show the name at once in hover mode."""
-        if self._show_names == hub_settings.SHOW_NAMES_HOVER:
+        """Show the hover tooltip at once."""
+        text = self.hover_tooltip()
+        if text:
             pos = self.mapToGlobal(QtCore.QPoint(self.width(), 0))
-            QtWidgets.QToolTip.showText(pos, self.name, self)
+            QtWidgets.QToolTip.showText(pos, text, self)
         super(HubRow, self).enterEvent(event)
 
     def leaveEvent(self, event):
@@ -219,6 +272,15 @@ class TweenSlider(QtWidgets.QWidget):
         return QtCore.QRectF(
             self._x_at(fraction) - w / 2.0, (self.height() - h) / 2.0, w, h
         )
+
+    def set_label(self, label):
+        """Set the handle text.
+
+        Args:
+            label (str): Short text, e.g. the mode label ``"BM"``.
+        """
+        self._label = label
+        self.update()
 
     def anchor(self):
         """Return the center of the idle handle.
@@ -466,6 +528,202 @@ class GripHandle(QtWidgets.QWidget):
         if self._offset is not None:
             self._offset = None
             self.moved.emit(self.window().pos())
+
+
+class ModeButton(QtWidgets.QAbstractButton):
+    """Checkable mode button, painted with the mode label.
+
+    Args:
+        mode (SliderMode): The mode.
+        parent (QWidget, optional): Parent widget.
+    """
+
+    def __init__(self, mode, parent=None):
+        super(ModeButton, self).__init__(parent)
+        _no_focus(self)
+        self.mode = mode
+        self._unit = 10.0
+        self.setCheckable(True)
+        self.set_unit(10.0)
+
+    def set_unit(self, unit):
+        """Scale the button.
+
+        Args:
+            unit (float): Size unit in pixels.
+        """
+        self._unit = float(unit)
+        self.setFixedSize(int(round(unit * 2.6)), int(round(unit * 1.6)))
+        self.update()
+
+    def paintEvent(self, event):
+        """Paint the label, filled with the mode color when checked."""
+        painter = QtGui.QPainter(self)
+        painter.setRenderHint(QtGui.QPainter.Antialiasing)
+        painter.fillRect(self.rect(), QtGui.QColor(0, 0, 0, HIT_ALPHA))
+        rect = QtCore.QRectF(self.rect()).adjusted(1, 1, -1, -1)
+        corner = 0.3 * self._unit
+        color = QtGui.QColor(self.mode.color)
+        painter.setPen(QtCore.Qt.NoPen)
+        if self.isChecked():
+            painter.setBrush(color)
+            text_color = QtGui.QColor(25, 25, 25)
+        else:
+            painter.setBrush(QtGui.QColor(30, 30, 30, 160))
+            text_color = color
+        painter.drawRoundedRect(rect, corner, corner)
+        font = painter.font()
+        font.setPixelSize(max(1, int(round(self._unit * 0.95))))
+        font.setBold(True)
+        painter.setFont(font)
+        painter.setPen(text_color)
+        painter.drawText(rect, QtCore.Qt.AlignCenter, self.mode.label)
+        painter.end()
+
+
+class ModeBar(QtWidgets.QWidget):
+    """Row of exclusive mode buttons. Emits ``mode_changed`` with the id.
+
+    Args:
+        modes (tuple): SliderMode objects, in display order.
+        parent (QWidget, optional): Parent widget.
+    """
+
+    mode_changed = QtCore.Signal(str)
+
+    def __init__(self, modes, parent=None):
+        super(ModeBar, self).__init__(parent)
+        _no_focus(self)
+        self.buttons = {}
+        self._group = QtWidgets.QButtonGroup(self)
+        self._group.setExclusive(True)
+        self._layout = QtWidgets.QHBoxLayout(self)
+        self._layout.setContentsMargins(0, 0, 0, 0)
+        for mode in modes:
+            button = ModeButton(mode)
+            self._group.addButton(button)
+            self._layout.addWidget(button)
+            self.buttons[mode.mode_id] = button
+            button.clicked.connect(partial(self._on_clicked, mode.mode_id))
+        self._layout.addStretch()
+
+    def _on_clicked(self, mode_id, *args):
+        self.mode_changed.emit(mode_id)
+
+    def set_mode(self, mode_id):
+        """Check the button of a mode, without emitting ``mode_changed``.
+
+        Args:
+            mode_id (str): The mode id.
+        """
+        button = self.buttons.get(mode_id)
+        if button:
+            button.setChecked(True)
+
+    def set_unit(self, unit):
+        """Scale the buttons.
+
+        Args:
+            unit (float): Size unit in pixels.
+        """
+        for button in self.buttons.values():
+            button.set_unit(unit)
+        self._layout.setSpacing(int(round(unit * 0.3)))
+
+    def set_show_tooltips(self, show):
+        """Use rich tooltips, or the mode titles only.
+
+        Args:
+            show (bool): True for rich tooltips.
+        """
+        for button in self.buttons.values():
+            mode = button.mode
+            button.setToolTip(mode_tooltip(mode) if show else mode.title)
+
+
+class BufferButton(QtWidgets.QWidget):
+    """Circle on the left of a row: hollow when empty, filled when stored.
+
+    It only reacts and paints while active (the buffer mode), but always
+    keeps its size so the rows don't move between modes. Click emits
+    ``store_requested``, Ctrl+click ``clear_requested``.
+
+    Args:
+        color (tuple): RGB 0-1 color of the row.
+        parent (QWidget, optional): Parent widget.
+
+    Attributes:
+        active (bool): True in the buffer mode, see :meth:`set_active`.
+    """
+
+    store_requested = QtCore.Signal()
+    clear_requested = QtCore.Signal()
+
+    def __init__(self, color, parent=None):
+        super(BufferButton, self).__init__(parent)
+        _no_focus(self)
+        self._color = tuple(color)
+        self._filled = False
+        self.active = False
+        self._unit = 10.0
+        self.set_unit(10.0)
+
+    def set_unit(self, unit):
+        """Scale the button.
+
+        Args:
+            unit (float): Size unit in pixels.
+        """
+        self._unit = float(unit)
+        size = int(round(unit * 1.6))
+        self.setFixedSize(size, size)
+        self.update()
+
+    def set_active(self, active):
+        """Show and enable the button, or keep only its space.
+
+        Args:
+            active (bool): True in the buffer mode.
+        """
+        self.active = active
+        cursor = QtCore.Qt.PointingHandCursor if active else QtCore.Qt.ArrowCursor
+        self.setCursor(cursor)
+        self.update()
+
+    def set_filled(self, filled):
+        """Draw the circle filled (a buffer is stored) or hollow.
+
+        Args:
+            filled (bool): True when the row has a buffer.
+        """
+        self._filled = filled
+        self.update()
+
+    def paintEvent(self, event):
+        """Paint the circle while active."""
+        painter = QtGui.QPainter(self)
+        painter.setRenderHint(QtGui.QPainter.Antialiasing)
+        painter.fillRect(self.rect(), QtGui.QColor(0, 0, 0, HIT_ALPHA))
+        if self.active:
+            alpha = 1.0 if self.isEnabled() else DISABLED_ALPHA
+            color = _qcolor(self._color, alpha)
+            pen = QtGui.QPen(color)
+            pen.setWidthF(max(1.0, self._unit * 0.18))
+            painter.setPen(pen)
+            painter.setBrush(color if self._filled else QtCore.Qt.NoBrush)
+            radius = self._unit * 0.5
+            painter.drawEllipse(QtCore.QRectF(self.rect()).center(), radius, radius)
+        painter.end()
+
+    def mousePressEvent(self, event):
+        """Store, or clear with Ctrl."""
+        if not self.active or event.button() != QtCore.Qt.LeftButton:
+            event.ignore()
+            return
+        if event.modifiers() & QtCore.Qt.ControlModifier:
+            self.clear_requested.emit()
+        else:
+            self.store_requested.emit()
 
 
 class ScaleMenuRow(QtWidgets.QWidget):

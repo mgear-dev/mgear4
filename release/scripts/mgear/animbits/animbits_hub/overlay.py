@@ -12,14 +12,18 @@ from mgear.vendor.Qt import QtGui
 from mgear.vendor.Qt import QtWidgets
 
 from mgear.core import callbackManager
+from mgear.core import node_remap
 from mgear.core import pyqt
+from mgear.core.widgets import FlowLayout
 from mgear.utilbits.bookmarks import core as bm_core
 
 from . import geometry
+from . import modes
 from . import registry
 from . import settings as hub_settings
 from . import tools  # noqa: F401 (registers the built-in tools)
 from .widgets import GripHandle
+from .widgets import ModeBar
 from .widgets import NamespaceLabel
 from .widgets import ScaleMenuRow
 
@@ -78,16 +82,26 @@ class HubOverlay(QtWidgets.QWidget):
         top_layout.addWidget(self.namespace_label)
         top_layout.addStretch()
 
+        # button tools, wrapped to the width of the slider column
+        self.tool_area = QtWidgets.QWidget()
+        self.tool_layout = FlowLayout(self.tool_area)
+        self.tool_layout.setContentsMargins(0, 0, 0, 0)
+
+        self.mode_bar = ModeBar(modes.MODES)
+
         self.rows_layout = QtWidgets.QVBoxLayout()
         self.rows_layout.setContentsMargins(0, 0, 0, 0)
 
         self.main_layout = QtWidgets.QVBoxLayout(self)
         self.main_layout.setSizeConstraint(QtWidgets.QLayout.SetFixedSize)
         self.main_layout.addWidget(self.top_bar)
+        self.main_layout.addWidget(self.tool_area)
+        self.main_layout.addWidget(self.mode_bar)
         self.main_layout.addLayout(self.rows_layout)
 
         self.grip.moved.connect(self._on_grip_moved)
         self.namespace_label.clicked.connect(self._show_namespace_menu)
+        self.mode_bar.mode_changed.connect(self.set_slider_mode)
 
     # show / hide ------------------------------------------------------
 
@@ -140,10 +154,17 @@ class HubOverlay(QtWidgets.QWidget):
         self.rows_layout.setSpacing(spacing)
         self.grip.set_unit(unit)
         self.namespace_label.set_unit(unit)
+        self.mode_bar.set_unit(unit)
         show_names = self.settings.show_names
+        show_tooltips = self.settings.show_tooltips
+        mode = modes.get_mode(self.settings.slider_mode)
+        self.mode_bar.set_mode(mode.mode_id)
+        self.mode_bar.set_show_tooltips(show_tooltips)
         for row in self.rows:
             row.set_unit(unit)
             row.set_show_names(show_names)
+            row.set_show_tooltips(show_tooltips)
+            row.set_mode(mode)
         self._update_top_bar()
         self.main_layout.activate()
 
@@ -153,6 +174,8 @@ class HubOverlay(QtWidgets.QWidget):
         self.grip.setVisible(fixed)
         self.namespace_label.setVisible(needs_namespace)
         self.top_bar.setVisible(fixed or needs_namespace)
+        self.tool_area.setVisible(self.tool_layout.count() > 0)
+        self.mode_bar.show()
 
     # placement --------------------------------------------------------
 
@@ -201,6 +224,20 @@ class HubOverlay(QtWidgets.QWidget):
         self._apply_settings()
         return self.settings.scale
 
+    # slider mode ------------------------------------------------------
+
+    def set_slider_mode(self, mode_id):
+        """Set the slider mode of every row and save it.
+
+        Args:
+            mode_id (str): The mode id, see ``modes.MODE_IDS``.
+        """
+        self.settings.slider_mode = mode_id
+        mode = modes.get_mode(mode_id)
+        self.mode_bar.set_mode(mode.mode_id)
+        for row in self.rows:
+            row.set_mode(mode)
+
     def wheelEvent(self, event):
         """Ctrl+wheel changes the scale."""
         if not event.modifiers() & QtCore.Qt.ControlModifier:
@@ -238,7 +275,7 @@ class HubOverlay(QtWidgets.QWidget):
 
     def _fill_namespace_menu(self, menu):
         group = QtWidgets.QActionGroup(menu)
-        namespaces = bm_core.scene_namespaces()
+        namespaces = node_remap.scene_namespaces()
         if not namespaces:
             menu.addAction("(no namespaces)").setEnabled(False)
         for namespace in namespaces:
@@ -265,6 +302,8 @@ class HubOverlay(QtWidgets.QWidget):
             if row is not active_row:
                 row.hide()
         self.top_bar.hide()
+        self.tool_area.hide()
+        self.mode_bar.hide()
         self.main_layout.activate()
         self.move(self.pos() + row_pos - active_row.mapToGlobal(QtCore.QPoint(0, 0)))
 
@@ -294,6 +333,10 @@ class HubOverlay(QtWidgets.QWidget):
             self.settings.show_names,
             self._set_show_names,
         )
+        tooltips_action = menu.addAction("Show Tooltips")
+        tooltips_action.setCheckable(True)
+        tooltips_action.setChecked(self.settings.show_tooltips)
+        tooltips_action.triggered.connect(self._set_show_tooltips)
         placement_menu = menu.addMenu("Placement")
         self._add_choices(
             placement_menu,
@@ -332,6 +375,10 @@ class HubOverlay(QtWidgets.QWidget):
 
     def _set_show_names(self, mode):
         self.settings.show_names = mode
+        self._apply_settings()
+
+    def _set_show_tooltips(self, show):
+        self.settings.show_tooltips = bool(show)
         self._apply_settings()
 
     def _set_placement(self, placement):

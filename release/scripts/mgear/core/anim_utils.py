@@ -439,10 +439,11 @@ def set_or_key(plug, value):
     Returns:
         bool: True if the value was set or keyed.
     """
-    if is_animated(plug):
+    settable, animated = _blend_plug_state(plug)
+    if animated:
         cmds.setKeyframe(plug, value=value)
         return True
-    if cmds.listConnections(plug, source=True, destination=False):
+    if not settable:
         mgear.log(
             "{} is driven by a connection, not changed".format(plug),
             mgear.sev_warning,
@@ -477,6 +478,38 @@ def keyable_nodes(items):
     return nodes
 
 
+def _bracket_keys(plug, time):
+    """Return the keys of a plug strictly before and after a time.
+
+    A key on ``time`` itself is skipped.
+
+    Args:
+        plug (str): Plug name.
+        time (float): The frame.
+
+    Returns:
+        tuple: ``(prev_time, prev_value, next_time, next_value)``, or None
+            when the plug has no key on one side.
+    """
+    try:
+        data = cmds.keyframe(plug, query=True, timeChange=True, valueChange=True)
+    except RuntimeError:
+        return None
+    if not data:
+        return None
+    times = data[0::2]
+    prev_index = bisect.bisect_left(times, time) - 1
+    next_index = bisect.bisect_right(times, time)
+    if prev_index < 0 or next_index >= len(times):
+        return None
+    return (
+        times[prev_index],
+        data[2 * prev_index + 1],
+        times[next_index],
+        data[2 * next_index + 1],
+    )
+
+
 def get_tween_cache(nodes, time=None):
     """Return the previous and next key values of the animated attributes.
 
@@ -500,19 +533,9 @@ def get_tween_cache(nodes, time=None):
     for node in nodes:
         for attr in cmds.listAttr(node, keyable=True, unlocked=True) or []:
             plug = "{}.{}".format(node, attr)
-            try:
-                times = cmds.keyframe(plug, query=True, timeChange=True)
-            except RuntimeError:
-                continue
-            if not times:
-                continue
-            # keys strictly before and after: a key on ``time`` is skipped
-            prev_index = bisect.bisect_left(times, time) - 1
-            next_index = bisect.bisect_right(times, time)
-            if prev_index < 0 or next_index >= len(times):
-                continue
-            values = cmds.keyframe(plug, query=True, valueChange=True)
-            cache.append((plug, values[prev_index], values[next_index]))
+            keys = _bracket_keys(plug, time)
+            if keys:
+                cache.append((plug, keys[1], keys[3]))
     return cache
 
 
@@ -528,16 +551,245 @@ def apply_tween(cache, fraction, time=None):
         fraction (float): 0 for the previous key value, 1 for the next.
         time (float, optional): Frame to key. Defaults to the current time.
     """
+    fraction = min(max(fraction, 0.0), 1.0)
+    apply_blend(
+        [(plug, prev, next_, True) for plug, prev, next_ in cache], fraction, time
+    )
+
+
+def _blend_plug_state(plug):
+    """Return whether a plug can be blended, and whether it is animated.
+
+    Animated plugs are keyed. Plugs without an incoming connection are set.
+    Plugs driven by anything else (constraints, expressions...) are skipped.
+
+    Args:
+        plug (str): Plug name.
+
+    Returns:
+        tuple: ``(settable, animated)`` booleans.
+    """
+    sources = cmds.listConnections(
+        plug, source=True, destination=False, skipConversionNodes=True
+    )
+    if not sources:
+        return True, False
+    if any(is_anim_source(node) for node in sources):
+        return True, True
+    return False, False
+
+
+def _add_blend_entry(cache, plug, a, b):
+    """Append a blend entry, unless a equals b or the plug can't be set."""
+    if abs(b - a) < 1e-9:
+        return
+    settable, animated = _blend_plug_state(plug)
+    if settable:
+        cache.append((plug, float(a), float(b), animated))
+
+
+def blend_attributes(node):
+    """Return the attributes a pose blend or a pose capture works on.
+
+    Args:
+        node (str): Node name.
+
+    Returns:
+        list: The keyable, unlocked, scalar attributes.
+    """
+    return cmds.listAttr(node, keyable=True, unlocked=True, scalar=True) or []
+
+
+def get_pose_values(nodes):
+    """Return the values of the blend attributes of nodes.
+
+    Pair it with :func:`get_buffer_cache` to blend back to the pose.
+
+    Args:
+        nodes (list): Node names.
+
+    Returns:
+        dict: ``{node: {attribute: value}}`` in node order, numeric values
+            only. Nodes without such values are left out.
+    """
+    pose = {}
+    for node in nodes:
+        values = {}
+        for attr in blend_attributes(node):
+            try:
+                value = cmds.getAttr("{}.{}".format(node, attr))
+            except (RuntimeError, ValueError):
+                continue
+            if isinstance(value, (int, float)):
+                values[attr] = value
+        if values:
+            pose[node] = values
+    return pose
+
+
+def get_default_cache(nodes):
+    """Return blend entries from the current values to the default values.
+
+    Use with :func:`apply_blend`: weight 1 puts the attributes at their
+    default value, negative weights move them away from it.
+
+    Args:
+        nodes (list): Node names.
+
+    Returns:
+        list: ``(plug, current, default, animated)`` tuples.
+    """
+    cache = []
+    for node in nodes or []:
+        if not cmds.objExists(node):
+            continue
+        for attr in blend_attributes(node):
+            plug = "{}.{}".format(node, attr)
+            try:
+                default = cmds.attributeQuery(attr, node=node, listDefault=True)
+                current = cmds.getAttr(plug)
+            except (RuntimeError, ValueError):
+                continue
+            if not default or not isinstance(current, (int, float)):
+                continue
+            _add_blend_entry(cache, plug, current, default[0])
+    return cache
+
+
+def get_mirror_cache(nodes):
+    """Return blend entries from the current values to the mirrored values.
+
+    Each control gets the values of its mirror control, with the same
+    channels and inversions as :func:`mirror_controls`. Center controls
+    mirror onto themselves. All the values are read before any value is
+    set, so left and right controls can be blended together.
+
+    Args:
+        nodes (list): Control names.
+
+    Returns:
+        list: ``(plug, current, mirrored, animated)`` tuples.
+    """
+    if not nodes:
+        return []
+    names = cmds.ls([str(n) for n in nodes], long=True, type="transform") or []
+    fn_cache = {}
+    channels = {}
+    swapped_attrs = {}
+    cache = []
+    for name in names:
+        try:
+            source = get_mirror_target_name(name)
+            if source is None:
+                continue
+            for target_attr, target_plug, current, value in _mirror_values(
+                source, name, fn_cache, channels, swapped_attrs
+            ):
+                if target_plug.isKeyable:
+                    _add_blend_entry(
+                        cache, "{}.{}".format(name, target_attr), current, value
+                    )
+        except Exception as e:
+            mgear.log(
+                "Mirror blend: skipped {}: {}".format(name.split("|")[-1], e),
+                mgear.sev_warning,
+            )
+    return cache
+
+
+def get_buffer_cache(values):
+    """Return blend entries from the current values to stored values.
+
+    Args:
+        values (dict): ``{node: {attribute: value}}``, e.g. a stored pose
+            mapped onto the nodes to blend.
+
+    Returns:
+        list: ``(plug, current, stored, animated)`` tuples. Missing nodes
+            and attributes, and locked or non keyable ones, are skipped.
+    """
+    fn_cache = {}
+    cache = []
+    for node, attrs in (values or {}).items():
+        if not cmds.objExists(node):
+            continue
+        fn = _get_dependency_node(node, fn_cache)
+        for attr, value in attrs.items():
+            try:
+                plug = fn.findPlug(attr, False)
+            except RuntimeError:
+                continue
+            if plug.isLocked or not plug.isKeyable:
+                continue
+            current = _plug_value(plug)
+            if current is not None:
+                _add_blend_entry(cache, "{}.{}".format(node, attr), current, value)
+    return cache
+
+
+def get_push_cache(nodes, time=None):
+    """Return blend entries from the in-between to the current values.
+
+    The in-between is the linear interpolation in time between the keys
+    strictly before and after ``time``. Use with :func:`apply_blend`:
+    weight 0 pulls back to the in-between, 1 keeps the current value and
+    2 doubles the difference. Attributes without keys on both sides are
+    skipped.
+
+    Args:
+        nodes (list): Node names.
+        time (float, optional): Frame. Defaults to the current time.
+
+    Returns:
+        list: ``(plug, in_between, current, True)`` tuples.
+    """
     if time is None:
         time = cmds.currentTime(query=True)
-    fraction = min(max(fraction, 0.0), 1.0)
-    for plug, prev_value, next_value in cache:
-        value = prev_value + (next_value - prev_value) * fraction
-        cmds.setKeyframe(plug, time=time, value=value)
-    if cache:
+    cache = []
+    for node in nodes or []:
+        for attr in cmds.listAttr(node, keyable=True, unlocked=True) or []:
+            plug = "{}.{}".format(node, attr)
+            keys = _bracket_keys(plug, time)
+            if not keys:
+                continue
+            t0, v0, t1, v1 = keys
+            in_between = v0 + (v1 - v0) * (time - t0) / (t1 - t0)
+            current = cmds.getAttr(plug, time=time)
+            if abs(current - in_between) >= 1e-9:
+                cache.append((plug, float(in_between), float(current), True))
+    return cache
+
+
+def apply_blend(cache, weight, time=None):
+    """Write the blend of cached attributes at a weight.
+
+    The written value is ``a + (b - a) * weight``; the weight is not
+    clamped, so values below 0 or above 1 exaggerate. Animated plugs are
+    keyed, the others are set.
+
+    Args:
+        cache (list): ``(plug, a, b, animated)`` tuples, e.g. from
+            :func:`get_default_cache`.
+        weight (float): 0 for ``a``, 1 for ``b``.
+        time (float, optional): Frame to key. Defaults to the current time.
+    """
+    if time is None:
+        time = cmds.currentTime(query=True)
+    keyed = []
+    for plug, a, b, animated in cache:
+        value = a + (b - a) * weight
+        if animated:
+            cmds.setKeyframe(plug, time=time, value=value)
+            keyed.append(plug)
+        else:
+            try:
+                cmds.setAttr(plug, value)
+            except RuntimeError:
+                continue
+    if keyed:
         # a key set with a value on the current frame does not update the
         # evaluated value, so the pose would not change until a time change
-        cmds.dgdirty([plug for plug, _prev, _next in cache])
+        cmds.dgdirty(keyed)
 
 
 def get_play_every_frame():
@@ -2340,6 +2592,40 @@ def _get_mirror_channels(node, fn_cache):
     return channels
 
 
+def _mirror_values(source, target, fn_cache, channels, swapped_attrs):
+    """Yield the values mirrored from a control onto its mirror target.
+
+    Target channels that are missing, locked or not numeric are skipped.
+
+    Args:
+        source (str): Control long name to read.
+        target (str): Mirror control long name to write.
+        fn_cache (dict): Name to MFnDependencyNode cache.
+        channels (dict): Control to mirror channels cache.
+        swapped_attrs (dict): Attribute to side-swapped attribute cache.
+
+    Yields:
+        tuple: ``(target attribute, target MPlug, current, mirrored)``.
+    """
+    if source not in channels:
+        channels[source] = _get_mirror_channels(source, fn_cache)
+    target_fn = _get_dependency_node(target, fn_cache)
+    for attr, plug, inv in channels[source]:
+        if attr not in swapped_attrs:
+            swapped_attrs[attr] = swapSideLabel(attr)
+        target_attr = swapped_attrs[attr]
+        try:
+            target_plug = target_fn.findPlug(target_attr, False)
+        except RuntimeError:
+            continue
+        if target_plug.isLocked:
+            continue
+        current = _plug_value(target_plug)
+        if current is None:
+            continue
+        yield target_attr, target_plug, current, _plug_value(plug) * inv
+
+
 def _mirror_entries(nodes, flip=False):
     """Compute the mirror values of controls before any value is set.
 
@@ -2368,23 +2654,11 @@ def _mirror_entries(nodes, flip=False):
     swapped_attrs = {}
 
     def add_entries(source, target):
-        if source not in channels:
-            channels[source] = _get_mirror_channels(source, fn_cache)
-        target_fn = _get_dependency_node(target, fn_cache)
-        for attr, plug, inv in channels[source]:
-            if attr not in swapped_attrs:
-                swapped_attrs[attr] = swapSideLabel(attr)
-            target_attr = swapped_attrs[attr]
-            try:
-                target_plug = target_fn.findPlug(target_attr, False)
-            except RuntimeError:
+        for target_attr, target_plug, current, value in _mirror_values(
+            source, target, fn_cache, channels, swapped_attrs
+        ):
+            if target_plug.isDestination:
                 continue
-            if target_plug.isLocked or target_plug.isDestination:
-                continue
-            current = _plug_value(target_plug)
-            if current is None:
-                continue
-            value = _plug_value(plug) * inv
             if abs(current - value) > 1e-9:
                 entries.append((target, target_attr, value))
 

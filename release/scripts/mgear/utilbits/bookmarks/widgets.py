@@ -1,6 +1,7 @@
 """Bookmarks widgets.
 
-ChipButton for bookmark chips and FlowLayout for grid arrangement.
+ChipButton for bookmark chips. FlowLayout is re-exported from
+mgear.core.widgets.
 """
 
 from functools import partial
@@ -12,126 +13,10 @@ from mgear.vendor.Qt import QtWidgets
 from mgear.core.pyqt import dpi_scale
 from mgear.core.pyqt import get_icon
 
+# moved to mgear.core.widgets, kept here for backward compatibility
+from mgear.core.widgets import FlowLayout  # noqa: F401
+
 from . import core
-
-
-#############################################
-# FLOW LAYOUT
-#############################################
-
-
-class FlowLayout(QtWidgets.QLayout):
-    """Layout that arranges items left-to-right, wrapping to next row.
-
-    Args:
-        parent (QWidget, optional): Parent widget.
-        margin (int, optional): Layout margin in pixels.
-        spacing (int, optional): Spacing between items in pixels.
-    """
-
-    def __init__(self, parent=None, margin=-1, spacing=-1):
-        super(FlowLayout, self).__init__(parent)
-        self._item_list = []
-        if margin >= 0:
-            self.setContentsMargins(margin, margin, margin, margin)
-        if spacing >= 0:
-            self._spacing = spacing
-        else:
-            self._spacing = -1
-
-    def __del__(self):
-        while self._item_list:
-            self.takeAt(0)
-
-    def addItem(self, item):
-        """Add item to layout."""
-        self._item_list.append(item)
-
-    def count(self):
-        """Return item count."""
-        return len(self._item_list)
-
-    def itemAt(self, index):
-        """Return item at index."""
-        if 0 <= index < len(self._item_list):
-            return self._item_list[index]
-        return None
-
-    def takeAt(self, index):
-        """Remove and return item at index."""
-        if 0 <= index < len(self._item_list):
-            return self._item_list.pop(index)
-        return None
-
-    def expandingDirections(self):
-        """Return expanding directions."""
-        return QtCore.Qt.Orientations()
-
-    def hasHeightForWidth(self):
-        """Layout height depends on width."""
-        return True
-
-    def heightForWidth(self, width):
-        """Calculate height for given width."""
-        return self._do_layout(QtCore.QRect(0, 0, width, 0), True)
-
-    def setGeometry(self, rect):
-        """Set layout geometry."""
-        super(FlowLayout, self).setGeometry(rect)
-        self._do_layout(rect, False)
-
-    def sizeHint(self):
-        """Return preferred size."""
-        return self.minimumSize()
-
-    def minimumSize(self):
-        """Return minimum size."""
-        size = QtCore.QSize()
-        for item in self._item_list:
-            size = size.expandedTo(item.minimumSize())
-        margins = self.contentsMargins()
-        size += QtCore.QSize(
-            margins.left() + margins.right(),
-            margins.top() + margins.bottom(),
-        )
-        return size
-
-    def _do_layout(self, rect, test_only):
-        """Arrange items, wrapping to new rows as needed.
-
-        Args:
-            rect (QRect): Available rectangle.
-            test_only (bool): If True, only calculate height.
-
-        Returns:
-            int: Total height used.
-        """
-        margins = self.contentsMargins()
-        effective = rect.adjusted(
-            margins.left(), margins.top(),
-            -margins.right(), -margins.bottom(),
-        )
-        x = effective.x()
-        y = effective.y()
-        line_height = 0
-        spacing = self.spacing() if self._spacing < 0 else self._spacing
-
-        for item in self._item_list:
-            item_size = item.sizeHint()
-            next_x = x + item_size.width() + spacing
-            if next_x - spacing > effective.right() and line_height > 0:
-                x = effective.x()
-                y = y + line_height + spacing
-                next_x = x + item_size.width() + spacing
-                line_height = 0
-            if not test_only:
-                item.setGeometry(
-                    QtCore.QRect(QtCore.QPoint(x, y), item_size)
-                )
-            x = next_x
-            line_height = max(line_height, item_size.height())
-
-        return y + line_height - rect.y() + margins.bottom()
 
 
 #############################################

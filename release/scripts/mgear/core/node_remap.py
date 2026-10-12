@@ -419,3 +419,61 @@ def flat_name(path):
         str: ``"chr_arm_ctl"``.
     """
     return leaf_name(path).replace(":", "_")
+
+
+def match_nodes(sources, targets):
+    """Match stored node names to the nodes they are pasted on.
+
+    Used to paste stored data (a pose, world matrices...) on the
+    selection, e.g. on another character:
+
+    1. No targets: each source that exists in the scene maps to itself.
+    2. Each target takes the first unused source with the same leaf name,
+       namespace included.
+    3. Remaining targets take the first unused source with the same
+       namespace-stripped short name.
+    4. Only when steps 2 and 3 matched nothing, sources and targets are
+       paired by index, up to the shorter list.
+
+    Targets left without a source in steps 2 and 3 stay unmatched.
+
+    Args:
+        sources (list): Stored node names, in the order they were stored.
+        targets (list): Scene nodes to paste on, e.g. the selection.
+
+    Returns:
+        dict: ``{source: target}``.
+    """
+    if not targets:
+        return {source: source for source in sources if cmds.objExists(source)}
+
+    by_leaf = {}
+    by_short = {}
+    for source in sources:
+        by_leaf.setdefault(leaf_name(source), []).append(source)
+        by_short.setdefault(short_name(source), []).append(source)
+
+    result = {}
+    used = set()
+
+    def take(index, key):
+        for source in index.get(key, ()):
+            if source not in used:
+                used.add(source)
+                return source
+        return None
+
+    pending = []
+    for target in targets:
+        source = take(by_leaf, leaf_name(target))
+        if source is None:
+            pending.append(target)
+        else:
+            result[source] = target
+    for target in pending:
+        source = take(by_short, short_name(target))
+        if source is not None:
+            result[source] = target
+    if result:
+        return result
+    return dict(zip(sources, targets))

@@ -6,6 +6,8 @@ under the ``animbits_hub`` group.
 
 from mgear.core import pyqt
 
+from . import modes
+
 GROUP = "animbits_hub"
 
 SHOW_NAMES_HOVER = "hover"
@@ -127,3 +129,24 @@ class HubSettings(object):
     @scale.setter
     def scale(self, value):
         self._set("scale", _to_text([clamp_scale(value)]))
+
+    @property
+    def slider_mode(self):
+        """str: Slider mode id, see ``modes.MODE_IDS``."""
+        value = self._get("slider_mode")
+        return value if value in modes.MODE_IDS else modes.TWEEN
+
+    @slider_mode.setter
+    def slider_mode(self, value):
+        if value not in modes.MODE_IDS:
+            raise ValueError("slider_mode must be one of {}".format(modes.MODE_IDS))
+        self._set("slider_mode", value)
+
+    @property
+    def show_tooltips(self):
+        """bool: Show the rich tooltips."""
+        return self._get("show_tooltips") != "0"
+
+    @show_tooltips.setter
+    def show_tooltips(self, value):
+        self._set("show_tooltips", "1" if value else "0")

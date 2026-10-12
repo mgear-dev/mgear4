@@ -10,6 +10,7 @@ import os
 import re
 import tempfile
 import traceback
+from html import escape
 import maya.OpenMayaUI as omui
 import mgear.pymaya as pm
 from mgear.pymaya import versions
@@ -642,6 +643,45 @@ def text_color_for_background(color):
     if luminance > 0.5:
         return (0.1, 0.1, 0.1)
     return (1.0, 1.0, 1.0)
+
+
+TOOLTIP_COLOR = "#4a90d9"
+
+
+def rich_tooltip(title, text, bullets=None, color=None):
+    """Return an HTML tooltip with a colored title, a text and bullets.
+
+    Use the result with ``setToolTip``. The title, text and bullets are
+    HTML-escaped.
+
+    Args:
+        title (str): Tool name, bold, in ``color``.
+        text (str): What the tool does.
+        bullets (list, optional): Short usage notes, one per line.
+        color (str, optional): Title color, e.g. ``"#e8b030"``. Defaults to
+            ``TOOLTIP_COLOR``.
+
+    Returns:
+        str: The tooltip HTML.
+
+    Example:
+        >>> button.setToolTip(rich_tooltip(
+        ...     "Nudge Keys",
+        ...     "Move the selected keys in time.",
+        ...     ["Left arrow nudges backward.", "Right arrow nudges forward."],
+        ... ))
+    """
+    html = [
+        '<p style="margin:0; font-size:13pt; font-weight:bold; color:{};">'
+        "{}</p>".format(color or TOOLTIP_COLOR, escape(title)),
+        '<hr style="margin:2px 0;"/>',
+        '<p style="margin:2px 0 4px 0; font-size:10pt;">{}</p>'.format(escape(text)),
+    ]
+    for bullet in bullets or []:
+        html.append(
+            '<p style="margin:0; color:#a0a0a0;">&bull; {}</p>'.format(escape(bullet))
+        )
+    return "<div>{}</div>".format("".join(html))
 
 
 class CoalescedCall(object):
