@@ -179,7 +179,7 @@ SCHEMA = [
     Param(
         "simplified",
         "bool",
-        False,
+        True,
         label="Simplified Controls",
         tooltip="The blink controls also move the mid eyelid point, and the "
         "side mid controls can be hidden.",
@@ -334,7 +334,8 @@ def legacy_loop_type(data):
     """Set the loop type of settings saved before it existed.
 
     Eye Rigger 2.1 settings only have an edge loop, while 3.0 defaults to a
-    vertex loop.
+    vertex loop. 2.1 settings without the simplified option keep the full
+    controls, while 3.0 defaults to simplified controls.
 
     Args:
         data (dict): Saved or passed settings, changed in place.
@@ -344,6 +345,8 @@ def legacy_loop_type(data):
     """
     if "loopType" not in data and data.get("edgeLoop") and not data.get("vertexLoop"):
         data["loopType"] = LOOP_TYPES.index("edge")
+        # 3.0 defaults to simplified controls, 2.1 didn't
+        data.setdefault("simplified", False)
     return data
 
 

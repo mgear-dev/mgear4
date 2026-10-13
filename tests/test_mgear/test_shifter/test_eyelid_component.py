@@ -80,6 +80,7 @@ def test_guide_params(eyelid_guide):
     for key in ("namePrefix", "trackingSource", "offset", "sideRange", "headJnt"):
         assert not cmds.attributeQuery(key, node=root, exists=True), key
     assert cmds.getAttr(root + ".loopType") == 1
+    assert cmds.getAttr(root + ".simplified") is True
 
 
 def test_standard_build(eyelid_guide, eye_face):
@@ -88,7 +89,7 @@ def test_standard_build(eyelid_guide, eye_face):
     from mgear.core import settings_schema
     from mgear.core.facial import eyelid_schema
 
-    eyelid_guide()
+    eyelid_guide(simplified=False)
     _build()
     for name in (
         "eyelid_L0_aim_ctl",

@@ -29,6 +29,7 @@ def test_schema_scopes(setup_path):
     for key in ("namePrefix", "ctlSet", "headJnt", "aim_controller"):
         assert key not in shared
     assert defaults["mirrorBehavior"] is True
+    assert defaults["simplified"] is True
     assert eyelid_schema.LOOP_TYPES[defaults["loopType"]] == "vertex"
     for param in eyelid_schema.SCHEMA:
         assert param.tooltip, param.key
@@ -40,6 +41,14 @@ def test_legacy_loop_type(setup_path):
     edge = eyelid_schema.LOOP_TYPES.index("edge")
     legacy = eyelid_schema.legacy_loop_type({"edgeLoop": "m.e[1]"})
     assert legacy["loopType"] == edge
+    # 2.1 settings keep the full controls, 3.0 ones default to simplified
+    assert legacy["simplified"] is False
+    assert "simplified" not in eyelid_schema.legacy_loop_type(
+        {"vertexLoop": "m.vtx[1]"}
+    )
+    assert eyelid_schema.legacy_loop_type({"edgeLoop": "m.e[1]", "simplified": True})[
+        "simplified"
+    ]
     # explicit or vertex settings are left alone
     assert "loopType" not in eyelid_schema.legacy_loop_type({"vertexLoop": "m.vtx[1]"})
     assert (
@@ -209,7 +218,7 @@ def test_builder_uses_backend(eye_face):
             self.joints.append((name, idx))
             return super(RecordingBackend, self).add_deform_joint(driver, name, idx)
 
-    settings = _settings(eye_face, "L")
+    settings = _settings(eye_face, "L", simplified=False)
     geometry = eyelid_solver.solve(settings)
     backend = RecordingBackend("eye", geometry.side)
     builder = EyelidBuilder(settings, geometry, backend)

@@ -35,7 +35,7 @@ def test_build_from_edge_loop(eye_face):
     from maya import cmds
     from mgear.rigbits.facial_rigger3 import eye
 
-    root = eye.rig(**_kwargs(eye_face))
+    root = eye.rig(**_kwargs(eye_face, simplified=False))
     assert root.name() == "eye_L_root"
     for name in (
         "eye_L_aim_ctl",
@@ -67,8 +67,8 @@ def test_vertex_loop_matches_edge_loop(eye_face):
     from maya import cmds
     from mgear.rigbits.facial_rigger3 import eye
 
-    eye.rig(**_kwargs(eye_face, namePrefix="edge"))
-    eye.rig(**_kwargs(eye_face, loop_type="vertex", namePrefix="vtx"))
+    eye.rig(**_kwargs(eye_face, namePrefix="edge", simplified=False))
+    eye.rig(**_kwargs(eye_face, loop_type="vertex", namePrefix="vtx", simplified=False))
     for edge_name in _joints(cmds, "edge_L*_upEyelid_jnt") + [
         "edge_L_upMid_ctl",
         "edge_L_outCorner_ctl",

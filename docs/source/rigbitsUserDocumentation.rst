@@ -440,6 +440,8 @@ same eyelid rig as Eye Rigger 2.1, with these changes:
 * **Shared settings:** the settings are also used by the upcoming Shifter
   eyelid component. **Export Config** saves a ``.eyes`` file and **Import
   Config** loads 3.0 and 2.1 files.
+* **Simplified controls** are on by default: the blink controls also move
+  the mid eyelid point. Eye Rigger 2.1 configurations keep their setting.
 * **Smooth contact:** near the end of a blink the lids blend to the closed
   shape, so they meet without a jump.
 * **Fixes:** a joint every 0 vertex, the fixed joint count on the lower lid,
