@@ -11,6 +11,7 @@ from maya import cmds
 
 import mgear.pymaya as pm
 from mgear.core import deformer
+from mgear.core import node
 
 # =============================================================================
 # BLENDSHAPE TARGET CONSTANTS
@@ -804,10 +805,7 @@ def get_mult_node_type():
     Returns:
         str: Node type name.
     """
-    version = int(cmds.about(version=True))
-    if version >= 2026:
-        return "multDL"
-    return "multDoubleLinear"
+    return node.get_mult_dl_type()
 
 
 def _reconnect_bs_inputs(index_map, new_bs):
