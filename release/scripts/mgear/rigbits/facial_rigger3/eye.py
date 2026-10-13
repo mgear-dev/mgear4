@@ -128,14 +128,7 @@ def settings_from_data(data):
     Returns:
         dict: The settings.
     """
-    settings, warnings = settings_schema.settings_from_data(
-        data,
-        eyelid_schema.FILE_TYPE,
-        eyelid_schema.SCHEMA,
-        eyelid_schema.DROPPED_KEYS,
-        label="Eye Rigger",
-        upgrade=eyelid_schema.legacy_loop_type,
-    )
+    settings, warnings = eyelid_schema.settings_from_data(data)
     _display_warnings(warnings)
     return settings
 
@@ -160,9 +153,7 @@ def save_settings(path, settings):
         path (str): File path.
         settings (dict): Eye settings.
     """
-    settings_schema.save_settings(
-        path, eyelid_schema.FILE_TYPE, eyelid_schema.SCHEMA_VERSION, settings
-    )
+    eyelid_schema.save_settings(path, settings)
 
 
 def rig_from_data(data):

@@ -438,3 +438,14 @@ def test_legacy_menu_entries(setup_path):
     assert "facial_rigger2.eye_riggerUI.show()" in menu.str_eye_rigger_21
     assert "facial_rigger.show()" in menu.str_facial_rigger
     assert "facial_rigger3.show()" in menu.str_facial_rigger3
+
+
+def test_aim_mirror_flags(eye_face):
+    from maya import cmds
+    from mgear.rigbits.facial_rigger3 import eye
+
+    eye.rig(**_kwargs(eye_face))
+    assert cmds.getAttr("eye_L_aim_ctl.invRy")
+    assert cmds.getAttr("eye_L_aim_ctl.invRz")
+    assert not cmds.getAttr("eye_L_aim_ctl.invRx")
+    assert not cmds.getAttr("eye_L_upBlink_ctl.invTy")

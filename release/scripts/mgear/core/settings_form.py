@@ -90,6 +90,8 @@ class SettingsForm(QtWidgets.QWidget):
         self.groups = groups or [("", [param.key for param in schema])]
         self.fields = {}
         self.rows = {}
+        self._visibility_rule = None
+        self._visibility_keys = ()
         self._build()
         self.set_settings(settings_schema.defaults(schema))
 
@@ -223,6 +225,32 @@ class SettingsForm(QtWidgets.QWidget):
                 if key in self.fields:
                     self.set_value(key, value)
         self.settingsChanged.emit()
+
+    def set_visibility_rule(self, rule, keys):
+        """Show or hide rows from the settings, now and on every change.
+
+        Args:
+            rule (callable): Called with the form settings, returning
+                {key: visible}.
+            keys (tuple): Settings whose change can change the visibility.
+        """
+        self._visibility_rule = rule
+        self._visibility_keys = tuple(keys)
+        self.valueChanged.connect(self._value_changed_visibility)
+        self.settingsChanged.connect(self.apply_visibility)
+        self.apply_visibility()
+
+    def _value_changed_visibility(self, key, value):
+        if key in self._visibility_keys:
+            self.apply_visibility()
+
+    def apply_visibility(self):
+        """Show the rows the visibility rule asks for."""
+        if not self._visibility_rule:
+            return
+        for key, visible in self._visibility_rule(self.get_settings()).items():
+            if key in self.rows:
+                self.set_row_visible(key, visible)
 
     def set_row_visible(self, key, visible):
         """Show or hide the row of a setting.

@@ -37,6 +37,7 @@ Welcome to mGear: Rigging Framework for Autodesk Maya
    simpleRigUserDocumentation
    skinningUserDocumentation
    shifterComponentReference
+   shifterComponentDevelopment
    viewportMenu
    fileDrop
    framework

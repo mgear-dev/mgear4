@@ -355,7 +355,28 @@ def get_loop_frame(points, normal_hint=None, lateral_hint=(1.0, 0.0, 0.0)):
     normal = newell_normal(points)
     if normal_hint is not None and _dot(normal, normal_hint) < 0:
         normal = (-normal[0], -normal[1], -normal[2])
-    hints = (lateral_hint, (0.0, 0.0, 1.0), (0.0, 1.0, 0.0))
+    return get_direction_frame(center, normal, lateral_hint)
+
+
+def get_direction_frame(center, direction, lateral_hint=(1.0, 0.0, 0.0)):
+    """Get a local frame facing a direction.
+
+    The normal is the direction. The lateral axis is lateral_hint projected
+    on the plane facing the direction (another axis when the hint is
+    parallel to it), and up = normal x lateral. The matrix axes are
+    X = lateral, Y = up, Z = normal, at center.
+
+    Args:
+        center (tuple): Frame origin.
+        direction (tuple): Direction the frame faces, any length.
+        lateral_hint (tuple, optional): Direction of the lateral axis.
+
+    Returns:
+        dict: center, normal, lateral and up tuples, and matrix (a flat
+            row-major list of 16 floats).
+    """
+    normal = _unit(direction)
+    hints = (lateral_hint, (0.0, 0.0, 1.0), (0.0, 1.0, 0.0), (1.0, 0.0, 0.0))
     for hint in hints:
         along = _dot(hint, normal)
         projected = tuple(hint[i] - normal[i] * along for i in range(3))
@@ -363,13 +384,12 @@ def get_loop_frame(points, normal_hint=None, lateral_hint=(1.0, 0.0, 0.0)):
             break
     lateral = _unit(projected)
     up = _cross(normal, lateral)
-    matrix = axes_matrix(lateral, up, normal, center)
     return {
-        "center": center,
+        "center": tuple(center),
         "normal": normal,
         "lateral": lateral,
         "up": up,
-        "matrix": matrix,
+        "matrix": axes_matrix(lateral, up, normal, center),
     }
 
 

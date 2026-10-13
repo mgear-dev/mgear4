@@ -3,10 +3,12 @@
 The keys are the Eye Rigger 2.1 keys, so its ``.eyes`` files still load.
 """
 
+from mgear.core import settings_schema
 from mgear.core.settings_schema import Param
 
 FILE_TYPE = "eye_rigger"
 FILE_EXT = ".eyes"
+FILE_FILTER = "Eye Rigger Configuration (*{})".format(FILE_EXT)
 SCHEMA_VERSION = 3
 
 LOOP_TYPES = ("edge", "vertex")
@@ -288,6 +290,46 @@ SCHEMA = [
 ]
 
 
+# settings form layout: (group title, setting keys)
+FORM_GROUPS = (
+    (
+        "Geometry",
+        [
+            "eyeMesh",
+            "loopType",
+            "edgeLoop",
+            "vertexLoop",
+            "customCorner",
+            "intCorner",
+            "extCorner",
+            "sideRange",
+        ],
+    ),
+    ("Naming", ["namePrefix", "ctlName"]),
+    (
+        "Rig",
+        [
+            "headJnt",
+            "aim_controller",
+            "parent_node",
+            "deformers_group",
+            "ctlSet",
+            "defSet",
+        ],
+    ),
+    ("Controls", ["offset", "ctl_size", "simplified", "mirrorBehavior"]),
+    (
+        "Tracking",
+        ["upperVTrack", "upperHTrack", "lowerVTrack", "lowerHTrack"],
+    ),
+    (
+        "Joints",
+        ["everyNVertex", "fixedJoints", "fixedJointsNumber"],
+    ),
+    ("Skin", ["doSkin", "rigidLoops", "falloffLoops"]),
+)
+
+
 def legacy_loop_type(data):
     """Set the loop type of settings saved before it existed.
 
@@ -318,3 +360,80 @@ def uses_own_aim(settings):
     """
     own = TRACKING_SOURCES[settings["trackingSource"]] == "own"
     return own and not settings.get("aim_controller")
+
+
+# settings showing or hiding other settings in a settings form
+ROW_KEYS = ("loopType", "customCorner", "fixedJoints", "doSkin")
+
+
+def row_visibility(settings):
+    """Get which settings apply, from the settings that switch them.
+
+    Args:
+        settings (dict): Eyelid settings (only ROW_KEYS are read).
+
+    Returns:
+        dict: {setting key: visible}
+    """
+    vertex = LOOP_TYPES[settings["loopType"]] == "vertex"
+    custom = bool(settings["customCorner"])
+    fixed = bool(settings["fixedJoints"])
+    skin = bool(settings["doSkin"])
+    return {
+        "edgeLoop": not vertex,
+        "vertexLoop": vertex,
+        "intCorner": custom,
+        "extCorner": custom,
+        "everyNVertex": not fixed,
+        "fixedJointsNumber": fixed,
+        "rigidLoops": skin,
+        "falloffLoops": skin,
+    }
+
+
+def settings_from_data(data):
+    """Get eyelid settings from loaded ``.eyes`` file data, 3.0 or 2.1.
+
+    Args:
+        data (dict): Loaded JSON data.
+
+    Returns:
+        tuple: (settings dict, list of warning strings)
+    """
+    return settings_schema.settings_from_data(
+        data,
+        FILE_TYPE,
+        SCHEMA,
+        DROPPED_KEYS,
+        label="Eye Rigger",
+        upgrade=legacy_loop_type,
+    )
+
+
+def load_settings(path):
+    """Load eyelid settings from a ``.eyes`` file, 3.0 or 2.1.
+
+    Args:
+        path (str): File path.
+
+    Returns:
+        tuple: (settings dict, list of warning strings)
+    """
+    return settings_schema.load_settings(
+        path,
+        FILE_TYPE,
+        SCHEMA,
+        DROPPED_KEYS,
+        label="Eye Rigger",
+        upgrade=legacy_loop_type,
+    )
+
+
+def save_settings(path, settings):
+    """Save eyelid settings to a ``.eyes`` file.
+
+    Args:
+        path (str): File path.
+        settings (dict): Eyelid settings.
+    """
+    settings_schema.save_settings(path, FILE_TYPE, SCHEMA_VERSION, settings)

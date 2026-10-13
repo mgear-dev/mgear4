@@ -108,3 +108,23 @@ def test_bulk_set_emits_once(form):
     assert bulk == [True]
     form.set_value("mesh", "other")
     assert values == ["mesh"]
+
+
+def test_visibility_rule(form):
+    form.show()
+    calls = []
+
+    def rule(settings):
+        calls.append(True)
+        return {"corner": settings["skin"], "missing_key": True}
+
+    form.set_visibility_rule(rule, ("skin",))
+    assert not form.rows["corner"][1].isHidden()
+    form.set_value("skin", False)
+    assert form.rows["corner"][1].isHidden()
+    count = len(calls)
+    form.set_value("count", 4)  # not a rule key
+    assert len(calls) == count
+    form.set_settings({"skin": True})
+    assert not form.rows["corner"][1].isHidden()
+    form.close()

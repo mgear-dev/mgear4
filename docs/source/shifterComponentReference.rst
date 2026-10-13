@@ -149,6 +149,43 @@ eye_01
 ------
 WIP
 
+eyelid_01
+---------
+Eyelid rig from an eyelid loop on the mesh. It builds the same rig as Eye
+Rigger 3.0 (Rigbits > Facial Rigger 3.0): blink controls, eyelid controls,
+eye tracking, one joint per loop vertex and an optional topological autoskin.
+
+**Guide**
+
+* **root**: the eye center.
+* **aim**: in front of the eye. Root to aim is the eye direction, and the aim
+  depth in front of the eyelid is the distance of the eyelid controls. Tilted
+  and side facing eyes need no extra setting.
+
+The side is the component side; right side controls mirror the left ones.
+
+**Settings**: the eyelid loop (vertex loop by default, or edge loop), custom
+corners, control size, tracking, joint distribution and autoskin, as in Eye
+Rigger 3.0. **Import Config** and **Export Config** read and write the Eye
+Rigger ``.eyes`` files. **Snap Root to Eyeball** moves the root to the eyeball
+center.
+
+**Connectors**
+
+* **standard**: the component makes its own eye aim control.
+* **eye_01**, **MCS_eye_01**: picked when the guide is drawn under an eye
+  component. The eyelids follow the eye aim and sit under the eye's eyeOver
+  control, so they don't spin with the eye.
+
+**Notes**
+
+* The mesh with the eyelid loop must be in the scene when the rig builds, for
+  example imported by a pre custom step.
+* Duplicate Symmetrical mirrors the locators and the loop on the mesh. Loop
+  vertices without a mirror keep the source value, with a warning.
+* The autoskin (off by default) blends the eyelid joints with the parent
+  component joint.
+
 foot_bk_01
 ----------
 WIP

@@ -1136,3 +1136,28 @@ def get_concentric_vertex_rings(mesh, seed_indices, count):
     ):
         rings[ring].append(vertex)
     return rings
+
+
+def mirror_component_string(text, axis="x", tolerance=0.001):
+    """Mirror the edges or vertices of a component string.
+
+    Args:
+        text (str): Component string, see :func:`parse_component_string`.
+        axis (str): Mirror axis, "x", "y" or "z".
+        tolerance (float): Max distance to the mirrored positions.
+
+    Returns:
+        tuple: (mirrored string, list of indices without a mirror). The
+            string is unchanged when some indices have no mirror.
+    """
+    mesh, kind, indices = parse_component_string(text)
+    if not indices:
+        return text, []
+    if kind == "edge":
+        mirrored = get_mirror_edge_indices(mesh, indices, axis, tolerance)
+    else:
+        mirrored = get_mirror_vertex_indices(mesh, indices, axis, tolerance)
+    missing = [index for index, mirror in zip(indices, mirrored) if mirror is None]
+    if missing:
+        return text, missing
+    return format_component_string(mesh, kind, mirrored), []

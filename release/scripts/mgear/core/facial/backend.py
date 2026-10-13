@@ -77,6 +77,7 @@ class BaseBackend(object):
         ro=None,
         po=None,
         tag_parent=None,
+        mirror_conf=None,
     ):
         """Create an animation control.
 
@@ -92,6 +93,8 @@ class BaseBackend(object):
             ro (Vector, optional): Shape rotation offset.
             po (Vector, optional): Shape position offset.
             tag_parent (dagNode, optional): Parent controller tag.
+            mirror_conf (list, optional): Mirror pose flags, inverting tx ty
+                tz rx ry rz sx sy sz. None inverts nothing.
 
         Returns:
             dagNode: The control.

@@ -201,6 +201,8 @@ class Rig(object):
 
         self.components = {}
         self.componentsIndex = []
+        # components whose guide failed the validation, not built
+        self.skipped_components = set()
 
         self.customStepDic = {}
 
@@ -450,6 +452,10 @@ class Rig(object):
             # Build joint cache if connecting to existing joints
             if self.options.get("connect_joints"):
                 self.buildJointCache()
+
+            if not self.validateComponents():
+                self.stopBuild = True
+                return None
 
             self.initialHierarchy()
             if self._checkBuildCancelled():
@@ -832,6 +838,36 @@ class Rig(object):
                 self.global_ctl.s >> self.jnt_org.s
             pm.connectAttr(self.jntVis_att, self.jnt_org.attr("visibility"))
 
+    def validateComponents(self):
+        """Check the component guides can build.
+
+        With the stop_build_on_validation_fail option, the problems are
+        errors and stop the build. Without it, they are warnings and the
+        components with problems are skipped.
+
+        Returns:
+            bool: False when the build must stop.
+        """
+        stop = self.options.get("stop_build_on_validation_fail", True)
+        message = "{}: {}" if stop else "{}: {}. The component is skipped"
+        severity = mgear.sev_error if stop else mgear.sev_warning
+        self.skipped_components = set()
+        for name in self.guide.componentsIndex:
+            guide_ = self.guides[name]
+            problems = guide_.validate()
+            for problem in problems:
+                mgear.log(message.format(guide_.fullName, problem), severity)
+            if problems:
+                self.skipped_components.add(name)
+        if stop and self.skipped_components:
+            mgear.log(
+                "Build stopped: fix the component settings, or turn off Stop "
+                "build on validation fail to skip these components",
+                mgear.sev_error,
+            )
+            return False
+        return True
+
     def processComponents(self):
         """
         Process the components of the rig, following the creation steps.
@@ -846,6 +882,8 @@ class Rig(object):
             if self._checkBuildCancelled():
                 return
 
+            if comp in self.skipped_components:
+                continue
             guide_ = self.guides[comp]
             mgear.log("Init : " + guide_.fullName + " (" + guide_.type + ")")
 

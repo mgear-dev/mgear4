@@ -135,6 +135,7 @@ class ToolBackend(BaseBackend):
         ro=None,
         po=None,
         tag_parent=None,
+        mirror_conf=None,
     ):
         ctl = icon.create(
             parent,
@@ -149,7 +150,7 @@ class ToolBackend(BaseBackend):
         )
         attribute.setKeyableAttributes(ctl, list(keyable))
         attribute.addAttribute(ctl, "isCtl", "bool", keyable=False)
-        attribute.add_mirror_config_channels(ctl)
+        attribute.add_mirror_config_channels(ctl, mirror_conf)
         node.add_controller_tag(ctl, tag_parent)
         if not self.ghost:
             self.ctl_set.add(ctl)

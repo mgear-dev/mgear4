@@ -267,6 +267,8 @@ def deleteInstances(dialog, checkinstance):
         checkinstance (QDialog): The instance to check the type of dialog.
 
     """
+    if not can_show_ui():
+        return
     mayaMainWindow = maya_main_window()
     for obj in mayaMainWindow.children():
         if isinstance(obj, checkinstance):

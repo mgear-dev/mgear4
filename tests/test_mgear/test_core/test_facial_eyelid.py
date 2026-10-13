@@ -1,5 +1,7 @@
 """mgear.core.facial eyelid schema, solver and builder test"""
 
+import math
+
 import pytest
 
 
@@ -261,3 +263,77 @@ def test_external_tracking(eye_face):
     # look up: Z turns toward +Y
     cmds.setAttr("eye_aim.rotateX", -20)
     assert level.attr("ty").get() > 0.0
+
+
+def test_solver_aim_override(eye_face):
+    from mgear.core.facial import eyelid_solver
+
+    settings = _settings(eye_face, "L", mirrorBehavior=True)
+    reference = eyelid_solver.solve(settings)
+    center = (1.0, 0.0, 0.75)
+    # aim 0.3 in front of the loop center along +Z
+    loop_center = reference.frame["center"]
+    aim = (1.0, 0.0, loop_center[2] + 0.3)
+    geometry = eyelid_solver.solve(settings, eye_center=center, aim=aim)
+    assert geometry.frame["normal"] == pytest.approx((0.0, 0.0, 1.0), abs=1e-6)
+    assert geometry.offset == pytest.approx(0.3, abs=1e-6)
+    assert geometry.aim_distance == pytest.approx(math.dist(center, aim))
+    assert geometry.upper == reference.upper
+    # no eyeball mesh needed with the guide center
+    settings_no_mesh = dict(settings, eyeMesh="")
+    assert eyelid_solver.solve(settings_no_mesh, eye_center=center, aim=aim).upper
+    # aim behind the lid: no negative offset
+    behind = eyelid_solver.solve(settings, eye_center=center, aim=(1.0, 0.0, 0.8))
+    assert behind.offset == 0.0
+
+
+def test_solver_side_facing_aim(eye_face):
+    from maya import cmds
+    from mgear.core.facial import eyelid_solver
+
+    reference = eyelid_solver.solve(_settings(eye_face, "L"))
+    group = cmds.group(eye_face["mesh"], eye_face["L"]["eyeball"])
+    cmds.setAttr(group + ".rotateY", 60)
+    center = cmds.xform(
+        eye_face["L"]["eyeball"], query=True, worldSpace=True, translation=True
+    )
+    aim_locator = cmds.spaceLocator()[0]
+    cmds.parent(aim_locator, group)
+    cmds.setAttr(aim_locator + ".translate", 1, 0, 2)
+    aim = cmds.xform(aim_locator, query=True, worldSpace=True, translation=True)
+    geometry = eyelid_solver.solve(_settings(eye_face, "L"), eye_center=center, aim=aim)
+    assert geometry.upper == reference.upper
+    assert geometry.lower == reference.lower
+
+
+def test_solver_side_override(eye_face):
+    from mgear.core.facial import eyelid_solver
+
+    geometry = eyelid_solver.solve(_settings(eye_face, "L"), side="R")
+    assert geometry.side == "R"
+    assert geometry.mirrored
+
+
+def test_solver_without_overrides_unchanged(eye_face):
+    from mgear.core.facial import eyelid_solver
+
+    settings = _settings(eye_face, "L", offset=0.07)
+    geometry = eyelid_solver.solve(settings)
+    assert geometry.offset == pytest.approx(0.07)
+    assert geometry.aim_distance == pytest.approx(geometry.eye_size / 1.7)
+
+
+def test_row_visibility(setup_path):
+    from mgear.core import settings_schema
+    from mgear.core.facial import eyelid_schema
+
+    settings = settings_schema.defaults(eyelid_schema.SCHEMA)
+    settings["doSkin"] = False
+    rows = eyelid_schema.row_visibility(settings)
+    assert rows["vertexLoop"] and not rows["edgeLoop"]
+    assert not rows["rigidLoops"] and not rows["falloffLoops"]
+    assert not rows["intCorner"]
+    assert rows["everyNVertex"] and not rows["fixedJointsNumber"]
+    settings.update(loopType=0, customCorner=True, fixedJoints=True)
+    rows = eyelid_schema.row_visibility(settings)
+    assert rows["edgeLoop"] and rows["intCorner"] and rows["fixedJointsNumber"]

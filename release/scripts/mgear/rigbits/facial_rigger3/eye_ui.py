@@ -12,49 +12,6 @@ from maya import cmds
 
 from . import eye
 
-GROUPS = (
-    (
-        "Geometry",
-        [
-            "eyeMesh",
-            "loopType",
-            "edgeLoop",
-            "vertexLoop",
-            "customCorner",
-            "intCorner",
-            "extCorner",
-            "sideRange",
-        ],
-    ),
-    ("Naming", ["namePrefix", "ctlName"]),
-    (
-        "Rig",
-        [
-            "headJnt",
-            "aim_controller",
-            "parent_node",
-            "deformers_group",
-            "ctlSet",
-            "defSet",
-        ],
-    ),
-    ("Controls", ["offset", "ctl_size", "simplified", "mirrorBehavior"]),
-    (
-        "Tracking",
-        ["upperVTrack", "upperHTrack", "lowerVTrack", "lowerHTrack"],
-    ),
-    (
-        "Joints",
-        ["everyNVertex", "fixedJoints", "fixedJointsNumber"],
-    ),
-    ("Skin", ["doSkin", "rigidLoops", "falloffLoops"]),
-)
-
-# settings showing or hiding other rows
-ROW_KEYS = ("loopType", "customCorner", "fixedJoints", "doSkin")
-
-FILE_FILTER = "Eye Rigger Configuration (*{})".format(eyelid_schema.FILE_EXT)
-
 
 class EyeRiggerTab(QtWidgets.QWidget):
     """Settings form and actions of Eye Rigger 3.0.
@@ -66,13 +23,17 @@ class EyeRiggerTab(QtWidgets.QWidget):
     def __init__(self, parent=None):
         super(EyeRiggerTab, self).__init__(parent)
         self.last_path = ""
-        self.form = settings_form.SettingsForm(eyelid_schema.SCHEMA, GROUPS)
+        self.form = settings_form.SettingsForm(
+            eyelid_schema.SCHEMA, eyelid_schema.FORM_GROUPS
+        )
         self.build_button = QtWidgets.QPushButton("Build Eye Rig")
         self.import_button = QtWidgets.QPushButton("Import Config")
         self.export_button = QtWidgets.QPushButton("Export Config")
         self.create_layout()
         self.create_connections()
-        self.update_rows()
+        self.form.set_visibility_rule(
+            eyelid_schema.row_visibility, eyelid_schema.ROW_KEYS
+        )
 
     def create_layout(self):
         """Lay out the form in a scroll area above the buttons."""
@@ -88,31 +49,10 @@ class EyeRiggerTab(QtWidgets.QWidget):
         layout.addWidget(self.build_button)
 
     def create_connections(self):
-        """Connect the buttons and the rows depending on other settings."""
-        self.form.valueChanged.connect(self._value_changed)
-        self.form.settingsChanged.connect(self.update_rows)
+        """Connect the buttons."""
         self.build_button.clicked.connect(self.build)
         self.import_button.clicked.connect(self.import_settings)
         self.export_button.clicked.connect(self.export_settings)
-
-    def _value_changed(self, key, value):
-        if key in ROW_KEYS:
-            self.update_rows()
-
-    def update_rows(self):
-        """Show the rows that apply to the current settings."""
-        vertex = eyelid_schema.LOOP_TYPES[self.form.value("loopType")] == "vertex"
-        self.form.set_row_visible("edgeLoop", not vertex)
-        self.form.set_row_visible("vertexLoop", vertex)
-        custom = self.form.value("customCorner")
-        self.form.set_row_visible("intCorner", custom)
-        self.form.set_row_visible("extCorner", custom)
-        fixed = self.form.value("fixedJoints")
-        self.form.set_row_visible("everyNVertex", not fixed)
-        self.form.set_row_visible("fixedJointsNumber", fixed)
-        skin = self.form.value("doSkin")
-        self.form.set_row_visible("rigidLoops", skin)
-        self.form.set_row_visible("falloffLoops", skin)
 
     def build(self):
         """Build the eye rig from the form settings."""
@@ -131,7 +71,10 @@ class EyeRiggerTab(QtWidgets.QWidget):
         """
         if not path:
             path, _ = QtWidgets.QFileDialog.getOpenFileName(
-                self, "Import Eye Rigger Configuration", self._start_dir(), FILE_FILTER
+                self,
+                "Import Eye Rigger Configuration",
+                self._start_dir(),
+                eyelid_schema.FILE_FILTER,
             )
         if not path:
             return
@@ -151,7 +94,10 @@ class EyeRiggerTab(QtWidgets.QWidget):
         """
         if not path:
             path, _ = QtWidgets.QFileDialog.getSaveFileName(
-                self, "Export Eye Rigger Configuration", self._start_dir(), FILE_FILTER
+                self,
+                "Export Eye Rigger Configuration",
+                self._start_dir(),
+                eyelid_schema.FILE_FILTER,
             )
         if not path:
             return

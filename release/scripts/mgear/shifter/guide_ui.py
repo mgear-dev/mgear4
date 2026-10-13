@@ -85,6 +85,20 @@ class Ui_Form(object):
         self.step_comboBox.addItem("Finalize")
         self.formLayout.setWidget(2, QtWidgets.QFormLayout.FieldRole, self.step_comboBox)
 
+        # Stop the build when a component guide fails its validation, else
+        # skip that component
+        self.stopOnValidation_checkBox = QtWidgets.QCheckBox(self.groupBox)
+        self.stopOnValidation_checkBox.setObjectName("stopOnValidation_checkBox")
+        self.stopOnValidation_checkBox.setText("Stop build on validation fail")
+        self.stopOnValidation_checkBox.setToolTip(
+            "When a component guide can't build (for example an eyelid loop "
+            "that isn't set), stop the build. Off: skip that component and "
+            "build the rest of the rig."
+        )
+        self.formLayout.setWidget(
+            3, QtWidgets.QFormLayout.FieldRole, self.stopOnValidation_checkBox
+        )
+
         self.gridLayout_3.addLayout(self.formLayout, 0, 0, 1, 1)
         self.gridLayout_2.addWidget(self.groupBox, 0, 0, 1, 1)
 

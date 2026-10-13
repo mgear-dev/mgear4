@@ -12,6 +12,7 @@ Release Log
 	* Rigbits: Proximity Wrap IO: New tool to export and import proximityWrap deformers (.pxw) with drivers, falloff ramps, membership and weights
 	* Shifter: Mirror Config: New tool that sets up the mirror pose flags of all rig controls from the rig itself, with verify, .smc import/export and an Import Mirror Config custom step template
 	* Rigbits: Eye Rigger 3.0: New eyelid rigger on a shared facial engine, with vertex loop input, any eye orientation, mirrored right side controls, .eyes config import/export and Eye Rigger 2.1 fixes (opened from the new Facial Rigger 3.0 menu)
+	* Shifter: eyelid_01: New component building the Eye Rigger 3.0 eyelid rig from an eyelid loop, with eye center and aim locators, mirrored guides and eye component connectors
 
 **Enhancements**
 	* Animbits: Spring Manager 2.0: Refactored on solver backends, with live multi-spring editing, presets v2 with thumbnails and libraries, and improved bake options
@@ -49,9 +50,11 @@ Release Log
 	* Shifter: Build: Rig builds are about twice as fast, mainly from faster pymaya node creation and attribute lookups
 	* Shifter: Build: Component build data is collected only when a data collector is on or a custom step reads it
 	* Shifter: Build: Warn when a slow plug-in such as bluePencil is loaded
+	* Shifter: Build: New Stop build on validation fail option; components can validate their guide and be skipped instead of stopping the build
 	* Docs: Document Animbits Hub, Blocking Ghosts, Lattice / Shrink Wrap / Proximity Wrap IO, Mirror Config, Spring Manager, HumanIK Mapper, Anim Picker SVG editor and screen capture, skin namespace support, the build log and file drop
 
 **Bug Fix**
+	* Shifter: Build: Building in mayapy no longer crashes on the build log window, a failing custom step or a component settings window
 	* Core: Skin: Fix skin pack export file names for clashing or namespaced objects
 	* Core: pymaya: Fix nodes of plug-in types loaded after the first pymaya use not being wrapped, which made Shifter components fail silently
 	* Core: Skin: Fix vertex count mismatch import in batch mode and from the Import Skin menu

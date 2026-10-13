@@ -630,6 +630,17 @@ class ComponentGuide(guide.Main):
                 break
             self.setParamDefValue("comp_index", self.values["comp_index"] + 1)
 
+    def validate(self):
+        """Check the component can build.
+
+        Called by the rig build after the pre custom steps, so data they
+        load (geometry...) exists. REIMPLEMENT in components that need it.
+
+        Returns:
+            list: Problem messages, empty when the component can build.
+        """
+        return []
+
     def symmetrize(self):
         """Inverse the transform of each element of the guide."""
 

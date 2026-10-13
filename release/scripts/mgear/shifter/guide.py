@@ -111,10 +111,14 @@ def check_guide_cancelled():
     return False
 
 
+# Guide parameters added after guides were saved: an older guide without
+# them keeps their default instead of being invalid
+OPTIONAL_PARAMS = ("stop_build_on_validation_fail",)
+
 # Blueprint section settings mapping - defines which attributes belong to each section
 OVERRIDE_SECTION_ATTRS = {
     "override_rig_settings": [
-        "rig_name", "mode", "step"
+        "rig_name", "mode", "step", "stop_build_on_validation_fail"
     ],
     "override_anim_channels": [
         "proxyChannels", "classicChannelNames", "attrPrefixName"
@@ -338,6 +342,8 @@ class Main(object):
 
         for scriptName, paramDef in self.paramDefs.items():
             if not pm.attributeQuery(scriptName, node=node, exists=True):
+                if scriptName in OPTIONAL_PARAMS:
+                    continue
                 mgear.log(
                     "Can't find parameter '%s' in %s" % (scriptName, node),
                     mgear.sev_warning,
@@ -536,6 +542,9 @@ class Rig(Main):
         # Main Tab
         self.pRigName = self.addParam("rig_name", "string", "rig")
         self.pMode = self.addEnumParam("mode", ["Final", "WIP"], 0)
+        self.pStopOnValidation = self.addParam(
+            "stop_build_on_validation_fail", "bool", True
+        )
         self.pStep = self.addEnumParam(
             "step",
             [
@@ -799,7 +808,7 @@ class Rig(Main):
         # Define which settings belong to each section
         section_settings = {
             "override_rig_settings": [
-                "rig_name", "mode", "step"
+                "rig_name", "mode", "step", "stop_build_on_validation_fail"
             ],
             "override_anim_channels": [
                 "proxyChannels", "classicChannelNames", "attrPrefixName"
@@ -1894,6 +1903,14 @@ class GuideSettings(MayaQWidgetDockableMixin, csw.CustomStepMixin, GuideMainSett
         )
         self.guideSettingsTab.step_comboBox.setCurrentIndex(
             self.root.attr("step").get()
+        )
+        if not self.root.hasAttr("stop_build_on_validation_fail"):
+            attribute.addAttribute(
+                self.root, "stop_build_on_validation_fail", "bool", True
+            )
+        self.populateCheck(
+            self.guideSettingsTab.stopOnValidation_checkBox,
+            "stop_build_on_validation_fail",
         )
         self.populateCheck(
             self.guideSettingsTab.proxyChannels_checkBox, "proxyChannels"
@@ -3138,6 +3155,13 @@ class GuideSettings(MayaQWidgetDockableMixin, csw.CustomStepMixin, GuideMainSett
         )
         tap.step_comboBox.currentIndexChanged.connect(
             partial(self.updateComboBox, tap.step_comboBox, "step")
+        )
+        tap.stopOnValidation_checkBox.stateChanged.connect(
+            partial(
+                self.updateCheck,
+                tap.stopOnValidation_checkBox,
+                "stop_build_on_validation_fail",
+            )
         )
         tap.proxyChannels_checkBox.stateChanged.connect(
             partial(

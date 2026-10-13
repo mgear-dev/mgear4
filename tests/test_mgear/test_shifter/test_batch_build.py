@@ -44,3 +44,14 @@ def test_repeated_builds_with_log_window(build_rig, monkeypatch):
     for _ in range(2):
         build_rig()
         assert cmds.objExists("arm_C0_root")
+
+
+def test_delete_instances_in_batch(setup_path):
+    from mgear.core import pyqt
+    from mgear.vendor.Qt import QtWidgets
+
+    class Dialog(QtWidgets.QDialog):
+        toolName = "batchDialog"
+
+    # component settings windows call it first: no error without Maya UI
+    assert pyqt.deleteInstances(Dialog, QtWidgets.QDockWidget) is None

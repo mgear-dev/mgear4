@@ -36,6 +36,9 @@ HALF_PI = math.pi * 0.5
 # number of points of the blink blend shape curves
 BLINK_POINTS = 30
 
+# the aim control doesn't mirror: invert ry and rz to mirror a pose
+AIM_MIRROR_CONF = (0, 0, 0, 0, 1, 1, 0, 0, 0)
+
 # contact range (from the end of the blink) where the lids blend to the
 # shared close shape
 CONTACT_BLEND = 0.1
@@ -262,7 +265,8 @@ class EyelidBuilder(object):
                 "main",
                 ["rx", "ry", "rz"],
                 w=self.settings["ctl_size"],
-                po=datatypes.Vector(0, 0, g.eye_size / 1.7),
+                po=datatypes.Vector(0, 0, g.aim_distance),
+                mirror_conf=AIM_MIRROR_CONF,
             )
 
         trigger_root = b.add_transform(self.center_lookat, "aimTrigger_root", center_m)
@@ -277,7 +281,7 @@ class EyelidBuilder(object):
         s = self.settings
         frame = self.geometry.frame
         size = s["ctl_size"]
-        po = datatypes.Vector(0, 0, s["offset"])
+        po = datatypes.Vector(0, 0, self.geometry.offset)
         if s["simplified"]:
             shape = "square"
             keyable = ["ty", "tx", "rz"]
@@ -386,7 +390,7 @@ class EyelidBuilder(object):
                     w=width,
                     d=width,
                     ro=datatypes.Vector(HALF_PI, 0, 0),
-                    po=datatypes.Vector(0, 0, s["offset"]),
+                    po=datatypes.Vector(0, 0, self.geometry.offset),
                     tag_parent=tag_parent,
                 )
             if ghost:
@@ -782,7 +786,11 @@ class EyelidBuilder(object):
             loop_vertices=self.geometry.loop,
         )
         eye_mesh = s["eyeMesh"]
-        if self.center_joint is not None and not skin.getSkinCluster(eye_mesh):
+        if (
+            eye_mesh
+            and self.center_joint is not None
+            and not skin.getSkinCluster(eye_mesh)
+        ):
             cmds.skinCluster(
                 self.backend.deform_joint(self.center_joint),
                 eye_mesh,
