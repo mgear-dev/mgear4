@@ -875,8 +875,16 @@ ComponentBackend``, which maps the same calls to ``getName``, ``addCtl`` and
 
         def finalize(self):
             super(Component, self).finalize()
-            if self.options["joint_rig"]:
+            if self.options["joint_rig"] and self.options.get(
+                "autoskin", True
+            ):
                 self.builder.build_skin()
+
+A component autoskin is a starting point: the final skin is usually exported
+and imported again by a custom step. The guide option **Autoskin**
+(``autoskin``, on by default) turns every component autoskin off at once,
+whatever its type. Components with an autoskin check it with ``options.get``, so guides
+saved before the option keep skinning.
 
 Guide locators instead of settings
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

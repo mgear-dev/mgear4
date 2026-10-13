@@ -52,7 +52,7 @@ Release Log
 	* Shifter: Build: Rig builds are about twice as fast, mainly from faster pymaya node creation and attribute lookups
 	* Shifter: Build: Component build data is collected only when a data collector is on or a custom step reads it
 	* Shifter: Build: Warn when a slow plug-in such as bluePencil is loaded
-	* Shifter: Build: New Stop build on validation fail option; components can validate their guide and be skipped instead of stopping the build
+	* Shifter: Build: New Stop build on validation fail and Autoskin options; components can validate their guide and be skipped instead of stopping the build, and their autoskin can be turned off for the whole rig
 	* Docs: Document Animbits Hub, Blocking Ghosts, Lattice / Shrink Wrap / Proximity Wrap IO, Mirror Config, Spring Manager, HumanIK Mapper, Anim Picker SVG editor and screen capture, skin namespace support, the build log and file drop
 
 **Bug Fix**

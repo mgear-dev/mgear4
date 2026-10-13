@@ -99,6 +99,21 @@ class Ui_Form(object):
             3, QtWidgets.QFormLayout.FieldRole, self.stopOnValidation_checkBox
         )
 
+        # Run the autoskin of the components that have one, whatever the
+        # autoskin type, each one still needing its own option on
+        self.autoskin_checkBox = QtWidgets.QCheckBox(self.groupBox)
+        self.autoskin_checkBox.setObjectName("autoskin_checkBox")
+        self.autoskin_checkBox.setText("Autoskin")
+        self.autoskin_checkBox.setToolTip(
+            "Run the autoskin of the components that have it on, whatever the "
+            "autoskin type (for example the topological autoskin of the "
+            "eyelid, lips and brow). Off: no autoskin runs, for example once "
+            "the final skin is imported by a custom step."
+        )
+        self.formLayout.setWidget(
+            4, QtWidgets.QFormLayout.FieldRole, self.autoskin_checkBox
+        )
+
         self.gridLayout_3.addLayout(self.formLayout, 0, 0, 1, 1)
         self.gridLayout_2.addWidget(self.groupBox, 0, 0, 1, 1)
 

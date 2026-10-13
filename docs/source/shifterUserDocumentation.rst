@@ -336,6 +336,22 @@ Controls how much of the rig build process to execute. Useful for debugging or i
 - **Joints**: Create joint structure
 - **Finalize**: Cleanup and optimization
 
+**Stop build on validation fail**
+
+Components can check their guide before the build, for example the facial
+components check their mesh loop. When a component guide can't build, this
+option (on by default) stops the build with a clear message. Off: that
+component is skipped and the rest of the rig builds.
+
+**Autoskin**
+
+Runs the autoskin of the components that have it on, whatever the autoskin
+type (for example the topological autoskin of ``eyelid_01``, ``lips_01`` and
+``brow_01``). It is on by default. A component autoskin is a starting point:
+once the final skin is exported and imported again by a custom step, turn it
+off so the build doesn't compute it every time. Each component keeps its own
+autoskin setting.
+
 World Control
 ++++++++++++++++++
 

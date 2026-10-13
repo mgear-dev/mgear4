@@ -113,12 +113,16 @@ def check_guide_cancelled():
 
 # Guide parameters added after guides were saved: an older guide without
 # them keeps their default instead of being invalid
-OPTIONAL_PARAMS = ("stop_build_on_validation_fail",)
+OPTIONAL_PARAMS = ("stop_build_on_validation_fail", "autoskin")
 
 # Blueprint section settings mapping - defines which attributes belong to each section
 OVERRIDE_SECTION_ATTRS = {
     "override_rig_settings": [
-        "rig_name", "mode", "step", "stop_build_on_validation_fail"
+        "rig_name",
+        "mode",
+        "step",
+        "stop_build_on_validation_fail",
+        "autoskin",
     ],
     "override_anim_channels": [
         "proxyChannels", "classicChannelNames", "attrPrefixName"
@@ -545,6 +549,7 @@ class Rig(Main):
         self.pStopOnValidation = self.addParam(
             "stop_build_on_validation_fail", "bool", True
         )
+        self.pAutoskin = self.addParam("autoskin", "bool", True)
         self.pStep = self.addEnumParam(
             "step",
             [
@@ -808,7 +813,11 @@ class Rig(Main):
         # Define which settings belong to each section
         section_settings = {
             "override_rig_settings": [
-                "rig_name", "mode", "step", "stop_build_on_validation_fail"
+                "rig_name",
+                "mode",
+                "step",
+                "stop_build_on_validation_fail",
+                "autoskin",
             ],
             "override_anim_channels": [
                 "proxyChannels", "classicChannelNames", "attrPrefixName"
@@ -1911,6 +1920,11 @@ class GuideSettings(MayaQWidgetDockableMixin, csw.CustomStepMixin, GuideMainSett
         self.populateCheck(
             self.guideSettingsTab.stopOnValidation_checkBox,
             "stop_build_on_validation_fail",
+        )
+        if not self.root.hasAttr("autoskin"):
+            attribute.addAttribute(self.root, "autoskin", "bool", True)
+        self.populateCheck(
+            self.guideSettingsTab.autoskin_checkBox, "autoskin"
         )
         self.populateCheck(
             self.guideSettingsTab.proxyChannels_checkBox, "proxyChannels"
@@ -3161,6 +3175,13 @@ class GuideSettings(MayaQWidgetDockableMixin, csw.CustomStepMixin, GuideMainSett
                 self.updateCheck,
                 tap.stopOnValidation_checkBox,
                 "stop_build_on_validation_fail",
+            )
+        )
+        tap.autoskin_checkBox.stateChanged.connect(
+            partial(
+                self.updateCheck,
+                tap.autoskin_checkBox,
+                "autoskin",
             )
         )
         tap.proxyChannels_checkBox.stateChanged.connect(
