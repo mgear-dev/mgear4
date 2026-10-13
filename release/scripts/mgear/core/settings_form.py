@@ -90,6 +90,7 @@ class SettingsForm(QtWidgets.QWidget):
         self.groups = groups or [("", [param.key for param in schema])]
         self.fields = {}
         self.rows = {}
+        self.boxes = {}
         self._visibility_rule = None
         self._visibility_keys = ()
         self._build()
@@ -100,6 +101,7 @@ class SettingsForm(QtWidgets.QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         for title, keys in self.groups:
             box = QtWidgets.QGroupBox(title)
+            self.boxes[title] = box
             form = QtWidgets.QFormLayout(box)
             form.setFieldGrowthPolicy(QtWidgets.QFormLayout.ExpandingFieldsGrow)
             for key in keys:
@@ -261,6 +263,15 @@ class SettingsForm(QtWidgets.QWidget):
         """
         for widget in self.rows[key]:
             widget.setVisible(visible)
+
+    def set_group_visible(self, title, visible):
+        """Show or hide a group of settings.
+
+        Args:
+            title (str): Group title.
+            visible (bool): Visibility.
+        """
+        self.boxes[title].setVisible(visible)
 
     def fill_from_selection(self, key):
         """Fill a string setting from the Maya selection.

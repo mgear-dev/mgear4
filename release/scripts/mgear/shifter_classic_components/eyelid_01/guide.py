@@ -1,26 +1,14 @@
 """Guide Eyelid 01 module"""
 
-import os
-from functools import partial
-
 from maya import cmds
 
-import mgear
 from mgear.shifter.component import guide
-from mgear.core import config_io
-from mgear.core import meshNavigation
-from mgear.core import pyqt
-from mgear.core import settings_form
-from mgear.core import settings_schema
+from mgear.shifter.component import facial_guide
 from mgear.core import transform
 from mgear.core.facial import eyelid_schema
 from mgear.core.facial import eyelid_solver
 
 from mgear.vendor.Qt import QtWidgets
-from mgear.vendor.Qt import QtCore
-
-from maya.app.general.mayaMixin import MayaQWidgetDockableMixin
-from maya.app.general.mayaMixin import MayaQDockWidget
 
 # guide info
 AUTHOR = "Miquel Campos"
@@ -53,14 +41,12 @@ def eyelid_settings(values, follow_eye=False):
     Returns:
         dict: Coerced eyelid settings.
     """
-    settings = settings_schema.defaults(eyelid_schema.SCHEMA)
-    for key in settings:
-        if key in values:
-            settings[key] = values[key]
-    settings["trackingSource"] = eyelid_schema.TRACKING_SOURCES.index(
-        "external" if follow_eye else "own"
+    source = "external" if follow_eye else "own"
+    return facial_guide.rig_settings(
+        eyelid_schema.SCHEMA,
+        values,
+        {"trackingSource": eyelid_schema.TRACKING_SOURCES.index(source)},
     )
-    return settings_schema.coerce(settings, eyelid_schema.SCHEMA)
 
 
 def solve(values, positions, side, follow_eye=False):
@@ -94,11 +80,7 @@ def guide_schema():
     Returns:
         list: Shared eyelid schema params the locators don't decide.
     """
-    return [
-        param
-        for param in eyelid_schema.SCHEMA
-        if param.scope == "shared" and param.key not in GUIDE_DECIDED
-    ]
+    return facial_guide.shared_params(eyelid_schema.SCHEMA, GUIDE_DECIDED)
 
 
 ##########################################################
@@ -136,17 +118,7 @@ class Guide(guide.ComponentGuide):
 
     def addParameters(self):
         """Add the configurations settings"""
-        for param in guide_schema():
-            if param.value_type == "enum":
-                self.addEnumParam(param.key, list(param.choices), param.default)
-            else:
-                self.addParam(
-                    param.key,
-                    param.value_type,
-                    param.default,
-                    param.minimum,
-                    param.maximum,
-                )
+        facial_guide.add_params(self, guide_schema())
         self.pUseIndex = self.addParam("useIndex", "bool", False)
         self.pParentJointIndex = self.addParam(
             "parentJointIndex", "long", -1, None, None
@@ -173,29 +145,7 @@ class Guide(guide.ComponentGuide):
         """
         if not super(Guide, self).symmetrize():
             return False
-        for key in INDEX_KEYS:
-            value = self.values[key]
-            if not value:
-                continue
-            mesh = meshNavigation.parse_component_string(value)[0]
-            if not cmds.objExists(mesh):
-                mgear.log(
-                    "{}: can't mirror {}, the mesh {} doesn't exist".format(
-                        self.fullName, key, mesh
-                    ),
-                    mgear.sev_warning,
-                )
-                continue
-            mirrored, missing = meshNavigation.mirror_component_string(value)
-            if missing:
-                mgear.log(
-                    "{}: {} has no mirror for indices {}, kept as it is".format(
-                        self.fullName, key, missing
-                    ),
-                    mgear.sev_warning,
-                )
-                continue
-            self.setParamDefValue(key, mirrored)
+        facial_guide.mirror_index_params(self, INDEX_KEYS)
         return True
 
 
@@ -204,118 +154,20 @@ class Guide(guide.ComponentGuide):
 ##########################################################
 
 
-class settingsTab(QtWidgets.QWidget):
-    """The eyelid settings, generated from the eyelid schema."""
-
-    def __init__(self, parent=None):
-        super(settingsTab, self).__init__(parent)
-        keys = set(param.key for param in guide_schema())
-        groups = []
-        for title, group_keys in eyelid_schema.FORM_GROUPS:
-            group_keys = [key for key in group_keys if key in keys]
-            if group_keys:
-                groups.append((title, group_keys))
-        self.form = settings_form.SettingsForm(guide_schema(), groups)
-        self.form.set_visibility_rule(
-            eyelid_schema.row_visibility, eyelid_schema.ROW_KEYS
-        )
-        self.snap_button = QtWidgets.QPushButton("Snap Root to Eyeball")
-        self.import_button = QtWidgets.QPushButton("Import Config")
-        self.export_button = QtWidgets.QPushButton("Export Config")
-
-        scroll = QtWidgets.QScrollArea()
-        scroll.setWidgetResizable(True)
-        scroll.setWidget(self.form)
-        buttons = QtWidgets.QHBoxLayout()
-        buttons.addWidget(self.import_button)
-        buttons.addWidget(self.export_button)
-        layout = QtWidgets.QVBoxLayout(self)
-        layout.addWidget(self.snap_button)
-        layout.addWidget(scroll)
-        layout.addLayout(buttons)
-
-
-class componentSettings(MayaQWidgetDockableMixin, guide.componentMainSettings):
+class componentSettings(facial_guide.FacialComponentSettings):
     """Create the component setting window"""
 
-    def __init__(self, parent=None):
-        self.toolName = TYPE
-        # Delete old instances of the componet settings window.
-        pyqt.deleteInstances(self, MayaQDockWidget)
+    toolName = TYPE
+    connectors = Guide.connectors
+    schema = eyelid_schema
+    params = guide_schema()
+    title = "Eye Rigger"
 
-        super(componentSettings, self).__init__(parent=parent)
-        self.settingsTab = settingsTab()
-        self.last_path = ""
-
-        self.setup_componentSettingWindow()
-        self.create_componentControls()
-        self.populate_componentControls()
-        self.create_componentLayout()
-        self.create_componentConnections()
-
-    def setup_componentSettingWindow(self):
-        self.mayaMainWindow = pyqt.maya_main_window()
-
-        self.setObjectName(self.toolName)
-        self.setWindowFlags(QtCore.Qt.Window)
-        self.setWindowTitle(TYPE)
-        self.resize(380, 700)
-
-    def create_componentControls(self):
-        return
-
-    def populate_componentControls(self):
-        """Populate the controls from the guide attributes."""
-        self.tabs.insertTab(1, self.settingsTab, "Component Settings")
-        self.settingsTab.form.set_settings(self.guide_settings())
-
-        # populate connections in main settings
-        cBox = self.mainSettingsTab.connector_comboBox
-        for cnx in Guide.connectors:
-            cBox.addItem(cnx)
-        self.connector_items = [cBox.itemText(i) for i in range(cBox.count())]
-        currentConnector = self.root.attr("connector").get()
-        if currentConnector not in self.connector_items:
-            cBox.addItem(currentConnector)
-            self.connector_items.append(currentConnector)
-        cBox.setCurrentIndex(self.connector_items.index(currentConnector))
-
-    def create_componentLayout(self):
-        self.settings_layout = QtWidgets.QVBoxLayout()
-        self.settings_layout.addWidget(self.tabs)
-        self.settings_layout.addWidget(self.close_button)
-        self.setLayout(self.settings_layout)
-
-    def create_componentConnections(self):
-        tab = self.settingsTab
-        self.mainSettingsTab.connector_comboBox.currentIndexChanged.connect(
-            partial(
-                self.updateConnector,
-                self.mainSettingsTab.connector_comboBox,
-                self.connector_items,
-            )
-        )
-        tab.form.valueChanged.connect(self.set_guide_value)
-        tab.snap_button.clicked.connect(self.snap_root_to_eyeball)
-        tab.import_button.clicked.connect(partial(self.import_settings, None))
-        tab.export_button.clicked.connect(partial(self.export_settings, None))
-
-    def guide_settings(self):
-        """Get the eyelid settings stored on the guide.
-
-        Returns:
-            dict: {key: value}
-        """
-        return {param.key: self.root.attr(param.key).get() for param in guide_schema()}
-
-    def set_guide_value(self, key, value):
-        """Store a setting on the guide.
-
-        Args:
-            key (str): Setting key.
-            value (object): Setting value.
-        """
-        self.root.attr(key).set(value)
+    def create_extra_buttons(self):
+        """Create the Snap Root to Eyeball button."""
+        button = QtWidgets.QPushButton("Snap Root to Eyeball")
+        button.clicked.connect(self.snap_root_to_eyeball)
+        return [button]
 
     def snap_root_to_eyeball(self):
         """Move the guide root to the eyeball center."""
@@ -329,60 +181,3 @@ class componentSettings(MayaQWidgetDockableMixin, guide.componentMainSettings):
         bbox = cmds.exactWorldBoundingBox(eye_mesh)
         center = [(bbox[i] + bbox[i + 3]) * 0.5 for i in range(3)]
         cmds.xform(self.root.name(), worldSpace=True, translation=center)
-
-    def _start_dir(self):
-        if self.last_path:
-            return os.path.dirname(self.last_path)
-        return cmds.workspace(query=True, rootDirectory=True)
-
-    def import_settings(self, path=None):
-        """Load the guide settings from a ``.eyes`` file (3.0 or 2.1).
-
-        Args:
-            path (str, optional): File path. Asks for one when None.
-        """
-        if not path:
-            path, _ = QtWidgets.QFileDialog.getOpenFileName(
-                self,
-                "Import Eye Rigger Configuration",
-                self._start_dir(),
-                eyelid_schema.FILE_FILTER,
-            )
-        if not path:
-            return
-        try:
-            settings, warnings = eyelid_schema.load_settings(path)
-        except ValueError as error:
-            cmds.warning(str(error))
-            return
-        for warning in warnings:
-            cmds.warning("Eye Rigger: {}".format(warning))
-        self.last_path = path
-        settings = settings_schema.filter_scope(settings, guide_schema(), "shared")
-        for key, value in settings.items():
-            self.root.attr(key).set(value)
-        self.settingsTab.form.set_settings(settings)
-
-    def export_settings(self, path=None):
-        """Save the guide settings to a ``.eyes`` file.
-
-        Args:
-            path (str, optional): File path. Asks for one when None.
-        """
-        if not path:
-            path, _ = QtWidgets.QFileDialog.getSaveFileName(
-                self,
-                "Export Eye Rigger Configuration",
-                self._start_dir(),
-                eyelid_schema.FILE_FILTER,
-            )
-        if not path:
-            return
-        path = config_io.file_path(path, eyelid_schema.FILE_EXT)
-        settings = settings_schema.defaults(eyelid_schema.SCHEMA)
-        settings.update(self.guide_settings())
-        eyelid_schema.save_settings(path, settings)
-        self.last_path = path
-
-    def dockCloseEventTriggered(self):
-        pyqt.deleteInstances(self, MayaQDockWidget)

@@ -13,7 +13,10 @@ from maya import cmds
 from mgear.core import meshNavigation
 from mgear.core import vector
 
+from . import _solve_base
 from . import eyelid_schema
+from ._solve_base import world_front as _world_front
+from ._solve_base import world_up as _world_up
 
 
 class EyelidGeometry(object):
@@ -68,18 +71,6 @@ class EyelidGeometry(object):
         self.rig_matrix = None
 
 
-def _single_vertex(text, mesh, label):
-    """Get the index of a one vertex component string."""
-    vertex_mesh, kind, indices = meshNavigation.parse_component_string(text)
-    if kind != "vertex" or len(indices) != 1:
-        raise ValueError("Set the {} vertex".format(label))
-    if vertex_mesh.split("|")[-1] != mesh.split("|")[-1]:
-        raise ValueError(
-            "The {} vertex is not on the eyelid mesh {}".format(label, mesh)
-        )
-    return indices[0]
-
-
 def loop_string(settings):
     """Get the eyelid loop component string of the selected loop type.
 
@@ -92,18 +83,6 @@ def loop_string(settings):
     if eyelid_schema.LOOP_TYPES[settings["loopType"]] == "vertex":
         return settings["vertexLoop"]
     return settings["edgeLoop"]
-
-
-def _world_up():
-    if cmds.upAxis(query=True, axis=True) == "z":
-        return (0.0, 0.0, 1.0)
-    return (0.0, 1.0, 0.0)
-
-
-def _world_front():
-    if cmds.upAxis(query=True, axis=True) == "z":
-        return (0.0, -1.0, 0.0)
-    return (0.0, 0.0, 1.0)
 
 
 def _inner_first(first, last, positions, by_front):
@@ -194,8 +173,12 @@ def solve(settings, eye_center=None, aim=None, side=None):
         frame = vector.get_loop_frame(points, normal_hint, lateral_hint)
 
     if settings["customCorner"]:
-        in_vertex = _single_vertex(settings["intCorner"], mesh, "internal corner")
-        out_vertex = _single_vertex(settings["extCorner"], mesh, "external corner")
+        in_vertex = _solve_base.single_vertex(
+            settings["intCorner"], mesh, "internal corner"
+        )
+        out_vertex = _solve_base.single_vertex(
+            settings["extCorner"], mesh, "external corner"
+        )
         for vertex in (in_vertex, out_vertex):
             if vertex not in positions:
                 raise ValueError(

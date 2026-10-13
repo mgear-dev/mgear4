@@ -1,8 +1,8 @@
 """Import Facial Rigger 3.0 Configuration custom step template.
 
-Template for building facial rigs (eye, and later lips and brows) from
-Facial Rigger 3.0 configuration files. Eye Rigger 2.1 ``.eyes`` files load
-too.
+Template for building facial rigs (eyes and lips, and later brows) from
+Facial Rigger 3.0 configuration files. Eye Rigger 2.1 ``.eyes`` and Lips
+Rigger 1.0 ``.lips`` files load too.
 """
 
 TEMPLATE = r'''import mgear.shifter.custom_step as cstp
@@ -25,6 +25,7 @@ class CustomShifterStep(cstp.customShifterMainStep):
         # self.config_paths = [
         #     "path/to/eye_L.eyes",
         #     "path/to/eye_R.eyes",
+        #     "path/to/lips.lips",
         # ]
 
         # Option 2: Use paths relative to this script

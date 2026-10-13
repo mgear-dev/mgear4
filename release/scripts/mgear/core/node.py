@@ -458,6 +458,27 @@ def createAddDL():
     return node
 
 
+def get_mult_dl_type():
+    """Get the multiply double linear node type of this Maya version.
+
+    Returns:
+        str: "multDL" since Maya 2026, else "multDoubleLinear".
+    """
+    # Maya 2026 changed and removed some node names
+    if pm.versions.current() >= 20260000:
+        return "multDL"
+    return "multDoubleLinear"
+
+
+def createMulDL():
+    """Create a multDoubleLinear node, named multDL since Maya 2026.
+
+    Returns:
+        pyNode: the newly created node.
+    """
+    return pm.createNode(get_mult_dl_type())
+
+
 # TODO: update using plusMinusAverage node
 def createAddNode(inputA, inputB):
     """Create and connect a addition node.

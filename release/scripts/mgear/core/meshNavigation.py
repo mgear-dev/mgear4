@@ -820,6 +820,19 @@ def _vertex_neighbours(mesh, indices):
     return neighbours
 
 
+def get_vertex_neighbours(mesh, indices):
+    """Get the connected vertices of each vertex.
+
+    Args:
+        mesh (str): Mesh name.
+        indices (iterable): Vertex indices.
+
+    Returns:
+        dict: {vertex: set of connected vertices}
+    """
+    return _vertex_neighbours(mesh, indices)
+
+
 def _walk_adjacency(adjacency):
     """Walk an adjacency map of max degree 2 into an ordered path.
 

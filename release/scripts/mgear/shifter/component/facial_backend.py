@@ -49,8 +49,8 @@ class ComponentBackend(BaseBackend):
     def add_transform(self, parent, name, m, idx=None):
         return primitive.addTransform(parent, self.name(name, idx), m)
 
-    def add_curve(self, parent, name, points):
-        return curve.addCurve(parent, self.name(name), points)
+    def add_curve(self, parent, name, points, edit_points=False):
+        return curve.addCurve(parent, self.name(name), points, op=edit_points)
 
     def add_ctl(
         self,
@@ -85,8 +85,9 @@ class ComponentBackend(BaseBackend):
         attribute.setKeyableAttributes(ctl, list(keyable))
         return ctl
 
-    def add_deform_joint(self, driver, name, idx=None):
-        # the Shifter joint rule adds its own extension
+    def add_deform_joint(self, driver, name, idx=None, parent=None):
+        # Shifter parents every component joint the same way: parent is
+        # ignored. The Shifter joint rule adds its own extension
         if name.endswith("_jnt"):
             name = name[: -len("_jnt")]
         entry = {

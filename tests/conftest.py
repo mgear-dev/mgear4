@@ -304,3 +304,57 @@ def eye_face(setup_path, load_repo_plugin):
             ),
         }
     return face
+
+
+@pytest.fixture
+def lips_face(setup_path, load_repo_plugin):
+    """Mouth mesh with a closed lips loop, a head and a jaw joint, in a new scene.
+
+    The mouth is a 20x20 sphere facing +Z, wide in X and flat in Y, with its
+    transform frozen. The lips loop is the third vertex ring around the +Z
+    pole, so its corners are on the X axis. Skips when mgear_solvers can't
+    load.
+
+    Returns:
+        dict: "mesh", "head_jnt", "jaw_jnt", "vertices" and "edges" (loop
+            indices), and "vertex_loop" and "edge_loop" (component strings).
+    """
+    from maya import cmds
+    from mgear.core import meshNavigation
+
+    cmds.file(new=True, force=True)
+    if not load_repo_plugin("mgear_solvers"):
+        pytest.skip("mgear_solvers plug-in not available")
+    mesh = cmds.polySphere(
+        name="mouth",
+        radius=1,
+        subdivisionsAxis=20,
+        subdivisionsHeight=20,
+        constructionHistory=False,
+    )[0]
+    cmds.setAttr(mesh + ".rotateX", 90)
+    cmds.setAttr(mesh + ".scale", 1.5, 0.6, 1.0)
+    cmds.makeIdentity(mesh, apply=True, translate=True, rotate=True, scale=True)
+    cmds.select(clear=True)
+    head = cmds.joint(name="head_jnt", position=(0, 0, -0.5))
+    jaw = cmds.joint(name="jaw_jnt", position=(0, -0.3, -0.5))
+    cmds.select(clear=True)
+    vertices = _eye_loop(cmds, mesh, 0.0, 3)
+    edges = cmds.ls(
+        cmds.polyListComponentConversion(
+            ["{}.vtx[{}]".format(mesh, v) for v in vertices],
+            toEdge=True,
+            internal=True,
+        ),
+        flatten=True,
+    )
+    edge_indices = [int(e.split("[")[1][:-1]) for e in edges]
+    return {
+        "mesh": mesh,
+        "head_jnt": head,
+        "jaw_jnt": jaw,
+        "vertices": vertices,
+        "edges": edge_indices,
+        "edge_loop": meshNavigation.format_component_string(mesh, "edge", edge_indices),
+        "vertex_loop": meshNavigation.format_component_string(mesh, "vertex", vertices),
+    }

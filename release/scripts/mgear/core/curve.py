@@ -366,6 +366,24 @@ def findLenghtFromParam(crv, param):
     return uLength
 
 
+def get_length_ratio_at_point(crv, point):
+    """Get where the closest curve point to a position is, along the length.
+
+    Args:
+        crv (str or dagNode): Curve transform or shape.
+        point (tuple): World position.
+
+    Returns:
+        float: Length from the curve start to the closest point, divided by
+            the curve length: 0 at the start, 1 at the end.
+    """
+    curve_fn = om2.MFnNurbsCurve(utils.get_dag_path(str(crv)))
+    point = om2.MPoint(point[0], point[1], point[2])
+    _, param = curve_fn.closestPoint(point, space=om2.MSpace.kWorld)
+    length = curve_fn.length()
+    return curve_fn.findLengthFromParam(param) / length if length else 0.0
+
+
 # ========================================
 
 

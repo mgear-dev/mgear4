@@ -75,6 +75,8 @@ class ToolBackend(BaseBackend):
         def_set (str, optional): Deformers set, created if missing.
         head_joint (str, optional): Parent of the deform joints and base
             influence of the autoskin.
+        jaw_joint (str, optional): Parent of the deform joints registered
+            with the "jaw" parent. The head joint when None.
         parent_node (str, optional): Parent of the rig root.
         static_parent (str, optional): Static rig parent of the joints root,
             used when there is no head joint.
@@ -90,6 +92,7 @@ class ToolBackend(BaseBackend):
         head_joint=None,
         parent_node=None,
         static_parent=None,
+        jaw_joint=None,
     ):
         self.prefix = string.removeInvalidCharacter(prefix)
         self.side = side
@@ -98,6 +101,7 @@ class ToolBackend(BaseBackend):
         self.ctl_set = get_or_create_set(ctl_set or "rig_controllers_grp")
         self.def_set = get_or_create_set(def_set or "rig_deformers_grp")
         self._head_joint = pm.PyNode(head_joint) if head_joint else None
+        self._jaw_joint = pm.PyNode(jaw_joint) if jaw_joint else None
         self.parent_node = parent_node
         self.static_parent = static_parent
         self._root = primitive.addTransform(None, self.name("root"))
@@ -119,8 +123,8 @@ class ToolBackend(BaseBackend):
     def add_transform(self, parent, name, m, idx=None):
         return primitive.addTransform(parent, self.name(name, idx), m)
 
-    def add_curve(self, parent, name, points):
-        return curve.addCurve(parent, self.name(name), points)
+    def add_curve(self, parent, name, points, edit_points=False):
+        return curve.addCurve(parent, self.name(name), points, op=edit_points)
 
     def add_ctl(
         self,
@@ -156,7 +160,9 @@ class ToolBackend(BaseBackend):
             self.ctl_set.add(ctl)
         return ctl
 
-    def _joint_parent(self):
+    def _joint_parent(self, parent=None):
+        if parent == "jaw" and self._jaw_joint:
+            return self._jaw_joint
         if self._head_joint:
             return self._head_joint
         if self._joints_root is None:
@@ -169,10 +175,10 @@ class ToolBackend(BaseBackend):
                 pm.PyNode(self.static_parent).addChild(self._joints_root)
         return self._joints_root
 
-    def add_deform_joint(self, driver, name, idx=None):
+    def add_deform_joint(self, driver, name, idx=None, parent=None):
         return rigbits.addJnt(
             driver,
-            self._joint_parent(),
+            self._joint_parent(parent),
             grp=self.def_set,
             jntName=self.name(name, idx),
         )

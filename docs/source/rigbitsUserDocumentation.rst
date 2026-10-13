@@ -508,7 +508,59 @@ Similar functionality to version 2.1 with the original parameter set including b
 Lips Rigger
 ===========
 
-Automatic lip rigging from edge loops.
+Automatic lip rigging from the loop between the lips.
+
+Lips Rigger 3.0
+---------------
+
+Open it from **mGear > Rigbits > Facial Rigger 3.0** (Lips tab). It builds a
+lips rig with 7 upper and 5 lower controls (corners and centers, plus two
+in-between controls per side), one joint per loop vertex and an optional
+topological autoskin.
+
+* **Vertex or edge loop:** rig from the closed vertex loop where the lips
+  meet (the default), or set **Loop Type** to Edge.
+* **No mid vertex picking:** the corners and the upper and lower lips are
+  found from the loop, in a mouth frame facing the scene front. For a rotated
+  head, set **Mouth Front** to a transform in front of the mouth. **Check
+  Detection** selects the upper lip found; if it is the lower one, turn on
+  **Invert Upper/Lower**.
+* **Jaw follow:** each corner control has a ``jawFollow`` attribute, from 0
+  (follows the upper reference) to 1 (follows the lower reference). The
+  upper lip follows the **Upper Reference** (or the head joint), the lower
+  lip the **Lower Reference** (or the jaw joint).
+* **Zipper:** ``zipper`` on each corner zips the lips from that corner to
+  the center. ``zipperHeight`` on the upper control sets where they meet
+  (0 lower lip, 1 upper lip). **Zipper Falloff** sets how soft the zip is.
+  The lips meet at their surface, without crossing, and keep their
+  orientation while zipping.
+* **Squash and stretch** (optional): the lips get thinner when stretched
+  and thicker when compressed. ``squashStretch`` on the upper and lower
+  controls turns it down or off for each lip.
+* **Lip roll:** ``roll`` on the upper and lower controls curls that lip out
+  (positive) or in, fading to the corners when **Roll Falloff** is on.
+* **Joints:** one joint every N vertices, or a fixed number per lip. **Rope
+  Points** sets the points of the curves the joints slide on: fewer points
+  give smoother lip shapes, more points follow the controls closer.
+* **Mirror Behavior** (on by default): the right side controls mirror the
+  left ones, and the mGear mirror and flip pose tools pair them.
+* ``secondaryVis`` on the upper control hides the in-between controls.
+* **Autoskin:** the lip joints are skinned to the vertex rings around the
+  loop. **Smooth Iterations** blends the weights between neighbor joints and
+  around the mouth corners, to avoid pinching.
+* **Shared settings:** **Export Config** saves a ``.lips`` file, shared with
+  the ``lips_01`` Shifter component. **Import Config** loads 3.0 and 1.0
+  files. 1.0 mid vertex picks are not used anymore.
+
+Scripts and custom steps build from a file with
+``mgear.rigbits.facial_rigger3.lips.rig_from_file(path)``, or the **Import
+Facial Rigger 3.0 Configuration** custom step template.
+
+Lips Rigger 1.0
+---------------
+
+The previous lips rigger, in **mGear > Rigbits > Facial Legacy > Facial
+Rigger 1.0**. Its configuration files load in Lips Rigger 3.0.
 
 .. image:: images/rigbits/lips_rigger.png
     :align: center

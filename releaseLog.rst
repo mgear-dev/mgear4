@@ -13,6 +13,8 @@ Release Log
 	* Shifter: Mirror Config: New tool that sets up the mirror pose flags of all rig controls from the rig itself, with verify, .smc import/export and an Import Mirror Config custom step template
 	* Rigbits: Eye Rigger 3.0: New eyelid rigger on a shared facial engine, with vertex loop input, any eye orientation, mirrored right side controls, .eyes config import/export and Eye Rigger 2.1 fixes (opened from the new Facial Rigger 3.0 menu)
 	* Shifter: eyelid_01: New component building the Eye Rigger 3.0 eyelid rig from an eyelid loop, with eye center and aim locators, mirrored guides and eye component connectors
+	* Rigbits: Lips Rigger 3.0: New lips rigger on the shared facial engine, with vertex loop input, automatic upper/lower lip detection, jaw follow, zipper, lip roll and .lips config import/export (Facial Rigger 3.0 window)
+	* Shifter: lips_01: New component building the Lips Rigger 3.0 rig, with mouth center and aim locators and mouth component connectors
 
 **Enhancements**
 	* Animbits: Spring Manager 2.0: Refactored on solver backends, with live multi-spring editing, presets v2 with thumbnails and libraries, and improved bake options

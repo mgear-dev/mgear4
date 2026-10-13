@@ -51,13 +51,15 @@ class BaseBackend(object):
         """
         raise NotImplementedError
 
-    def add_curve(self, parent, name, points):
+    def add_curve(self, parent, name, points, edit_points=False):
         """Create a cubic nurbs curve.
 
         Args:
             parent (dagNode): Parent.
             name (str): Short name.
             points (list): World points.
+            edit_points (bool, optional): The curve passes through the
+                points (edit points) instead of using them as CVs.
 
         Returns:
             dagNode: The curve transform.
@@ -101,13 +103,16 @@ class BaseBackend(object):
         """
         raise NotImplementedError
 
-    def add_deform_joint(self, driver, name, idx=None):
+    def add_deform_joint(self, driver, name, idx=None, parent=None):
         """Register a deform joint following a driver transform.
 
         Args:
             driver (dagNode): Transform the joint follows.
             name (str): Short joint name.
             idx (int, optional): Index of the joint.
+            parent (str, optional): "head" or "jaw", the joint the deform
+                joint hangs from. None is the backend default (head). A
+                backend may parent all joints the same way.
 
         Returns:
             object: Handle of the joint, for :meth:`deform_joint`.

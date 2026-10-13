@@ -222,6 +222,51 @@ lite_chain_stack_01
 -------------------
 WIP
 
+lips_01
+-------
+Lips rig from the loop between the lips on the mesh. It builds the same rig
+as Lips Rigger 3.0 (Rigbits > Facial Rigger 3.0): corner, center and
+in-between controls, jaw follow, zipper, lip roll, optional squash and
+stretch, one joint per loop
+vertex and an optional topological autoskin.
+
+**Guide**
+
+* **root**: the mouth center, between the lips.
+* **aim**: in front of the mouth. Root to aim is the mouth front direction,
+  and the aim depth in front of the lips is the distance of the controls.
+* **lip**: in the middle of the upper or lower lip, where the joints sit.
+  The root to lip distance is the lips thickness.
+
+The component is usually center side; the left and right controls are named
+with ``_L_`` and ``_R_`` (``lips_C0_corner_L_ctl``) so the mirror tools pair
+them.
+
+**Settings**: the lips loop (vertex loop by default, or edge loop), Invert
+Upper/Lower, rope points, controls, zipper and roll options, joint
+distribution and autoskin, as in Lips Rigger 3.0. **Check Detection** selects
+the upper lip found from the loop. **Import Config** and **Export Config**
+read and write the Lips Rigger ``.lips`` files.
+
+**Connectors**
+
+* **standard**: the upper lip follows the guide parent, the lower lip the
+  guide element set in **Jaw Reference** (the parent when empty). The Jaw
+  Reference setting only shows with this connector.
+* **mouth_01**, **mouth_02**, **MCS_mouth_01**, **MCS_mouth_03**: picked when
+  the guide is drawn under a mouth component. The lips go under the mouth
+  root, the upper lip follows the mouth ``lipup`` control and the lower lip
+  its ``liplow`` control.
+
+**Notes**
+
+* The mesh with the lips loop must be in the scene when the rig builds, for
+  example imported by a pre custom step.
+* ``secondaryVis`` on the UI host hides the in-between controls.
+* The autoskin (off by default) blends the lip joints with the strongest
+  existing influence of each vertex, or skins to the parent component joint
+  when the mesh has no skin yet.
+
 meta_01
 -------
 WIP

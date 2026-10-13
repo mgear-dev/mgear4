@@ -13,6 +13,7 @@ from maya import cmds
 from maya.app.general.mayaMixin import MayaQWidgetDockableMixin
 
 from . import eye_ui
+from . import lips_ui
 
 
 class FacialRiggerUI(MayaQWidgetDockableMixin, QtWidgets.QDialog):
@@ -40,7 +41,9 @@ class FacialRiggerUI(MayaQWidgetDockableMixin, QtWidgets.QDialog):
 
         self.tabs = QtWidgets.QTabWidget()
         self.eye_tab = eye_ui.EyeRiggerTab()
+        self.lips_tab = lips_ui.LipsRiggerTab()
         self.tabs.addTab(self.eye_tab, "Eye")
+        self.tabs.addTab(self.lips_tab, "Lips")
         layout = QtWidgets.QVBoxLayout(self)
         layout.setContentsMargins(4, 4, 4, 4)
         layout.addWidget(self.tabs)

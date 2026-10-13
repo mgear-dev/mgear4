@@ -3136,7 +3136,7 @@ def compute_topological_weights(seed_map, seed_joints, profile, base_influences)
         seed_joints (dict): {seed vertex: joint}
         profile (list): Weight per ring, see :func:`compute_falloff_profile`.
         base_influences (str or dict): Influence getting the rest of the
-            weight, or {vertex: influence}. Vertices without a base
+            weight, or {vertex: influence}. Blended vertices without a base
             influence are skipped.
 
     Returns:
@@ -3146,16 +3146,62 @@ def compute_topological_weights(seed_map, seed_joints, profile, base_influences)
     weights = {}
     for vertex, (ring, seed) in seed_map.items():
         base = base_influences.get(vertex) if per_vertex else base_influences
-        if ring >= len(profile) or seed not in seed_joints or not base:
+        if ring >= len(profile) or seed not in seed_joints:
             continue
         weight = profile[ring]
         joint = seed_joints[seed]
+        if weight < 1.0 and not base:
+            # a rerun finds no other influence on fully weighted vertices
+            continue
         if weight >= 1.0:
             weights[vertex] = {joint: 1.0}
         elif weight <= 0.0:
             weights[vertex] = {base: 1.0}
         else:
             weights[vertex] = {joint: weight, base: 1.0 - weight}
+    return weights
+
+
+def smooth_topological_weights(vertex_weights, neighbours, pinned, iterations):
+    """Smooth autoskin weights over the mesh topology.
+
+    Each iteration moves the weights of every vertex halfway to the mean of
+    its neighbors in the skinned region, so the weights blend between
+    neighbor joints instead of changing at hard boundaries. Pinned vertices
+    and vertices outside the region keep their weights. Weights stay
+    normalized.
+
+    Args:
+        vertex_weights (dict): {vertex: {influence: weight}}, see
+            :func:`compute_topological_weights`.
+        neighbours (dict): {vertex: connected vertices}.
+        pinned (set): Vertices that keep their weights.
+        iterations (int): Smoothing iterations.
+
+    Returns:
+        dict: {vertex: {influence: weight}}
+    """
+    weights = {vertex: dict(values) for vertex, values in vertex_weights.items()}
+    for _ in range(iterations):
+        smoothed = {}
+        for vertex, values in weights.items():
+            around = [n for n in neighbours.get(vertex, ()) if n in weights]
+            if vertex in pinned or not around:
+                smoothed[vertex] = values
+                continue
+            mean = {}
+            for neighbour in around:
+                for influence, weight in weights[neighbour].items():
+                    mean[influence] = mean.get(influence, 0.0) + weight
+            blended = {
+                influence: 0.5 * values.get(influence, 0.0)
+                + 0.5 * mean.get(influence, 0.0) / len(around)
+                for influence in set(values) | set(mean)
+            }
+            smoothed[vertex] = {
+                influence: weight for influence, weight in blended.items() if weight
+            }
+        weights = smoothed
     return weights
 
 
@@ -3230,6 +3276,7 @@ def apply_topological_autoskin(
     falloff_loops=4,
     skin_cluster_name=None,
     loop_vertices=None,
+    smooth_iterations=0,
 ):
     """Skin joints to the vertex rings around their seed vertices.
 
@@ -3252,6 +3299,9 @@ def apply_topological_autoskin(
         loop_vertices (list, optional): All the vertices of the rigged loop.
             Loop vertices without a joint go to the joint with the closest
             seed. Defaults to the joint seeds.
+        smooth_iterations (int, optional): Smooth the weights over the
+            topology, see :func:`smooth_topological_weights`. The loop
+            vertices keep their weights.
 
     Returns:
         str: The skin cluster.
@@ -3288,6 +3338,13 @@ def apply_topological_autoskin(
                 base[vertex] = names[best]
 
     vertex_weights = compute_topological_weights(seed_map, seed_joints, profile, base)
+    if smooth_iterations:
+        vertex_weights = smooth_topological_weights(
+            vertex_weights,
+            meshNavigation.get_vertex_neighbours(mesh, list(vertex_weights)),
+            set(loop_vertices),
+            smooth_iterations,
+        )
     for row, vertex in enumerate(vertices):
         if vertex not in vertex_weights:
             continue
