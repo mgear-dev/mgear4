@@ -112,8 +112,10 @@ python "fbx_batch.perform_fbx_condition({ns}, {sc}, master_path, root_joint, roo
         mayabatch_shell = False
 
         # Depending on the os we would need to change from maya, to maya batch
-        # windows uses mayabatch
-        if str(coreUtils.get_os()) == "win64" or str(coreUtils.get_os()) == "nt":
+        # windows uses mayabatch.
+        # Note: this runs in a QThread, so no Maya commands (cmds.about) here.
+        # Maya commands are not thread safe and Maya 2027 rejects them.
+        if os.name == "nt":
             option = "mayabatch"
         else:
             option = "maya"
