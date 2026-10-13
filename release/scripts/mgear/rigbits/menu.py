@@ -40,7 +40,7 @@ def install():
         ("-----", None),
         ("Channel Wrangler", str_openChannelWrangler, "mgear_channel_wrangler.svg"),
         ("-----", None),
-        ("Facial Rigger 3.0", str_facial_rigger3, "mgear_eye_rigger.svg"),
+        ("Facial Rigger 3.0", str_facial_rigger3, "mgear_facial_rigger.svg"),
         (None, facial_legacy_submenu),
         ("-----", None),
         ("Wire to Skinning", str_wire_to_skinning, "mgear_wire_to_skinning.svg"),
@@ -85,9 +85,7 @@ def facial_legacy_submenu(parent_menu_id):
         ("Facial Rigger 1.0", str_facial_rigger, "mgear_facial_rigger.svg"),
     )
 
-    mgear.menu.install(
-        "Facial Legacy", commands, parent_menu_id, image="mgear_facial_rigger.svg"
-    )
+    mgear.menu.install("Facial Legacy", commands, parent_menu_id)
 
 
 def _ctl_submenu(parent_menu_id, name, cCtl=False):
