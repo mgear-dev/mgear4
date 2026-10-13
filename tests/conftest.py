@@ -358,3 +358,88 @@ def lips_face(setup_path, load_repo_plugin):
         "edge_loop": meshNavigation.format_component_string(mesh, "edge", edge_indices),
         "vertex_loop": meshNavigation.format_component_string(mesh, "vertex", vertices),
     }
+
+
+@pytest.fixture
+def brow_face(setup_path, load_repo_plugin):
+    """Forehead mesh with three brow paths and a skull surface, in a new scene.
+
+    The forehead is a 2x1 plane facing +Z, 20x10 faces, curved back with
+    z = 1 - 0.3 x^2. The brow row is at y = 0.3: the left brow runs from
+    x 0.2 to 0.8, the right one from -0.8 to -0.2 and the center one from
+    -0.2 to 0.2, sharing the inner ends. The skull surface is a NURBS plane
+    with the same curve, 0.1 behind. Skips when mgear_solvers can't load.
+
+    Returns:
+        dict: "mesh", "head_jnt", "surface", and per brow ("L", "R", "C")
+            "vertices" (path from the inner end, or right to left for C)
+            and "vertex_loop" and "edge_loop" (component strings).
+    """
+    from maya import cmds
+    from mgear.core import meshNavigation
+
+    cmds.file(new=True, force=True)
+    if not load_repo_plugin("mgear_solvers"):
+        pytest.skip("mgear_solvers plug-in not available")
+    mesh = cmds.polyPlane(
+        name="forehead",
+        width=2,
+        height=1,
+        subdivisionsX=20,
+        subdivisionsY=10,
+        axis=(0, 0, 1),
+        constructionHistory=False,
+    )[0]
+    count = cmds.polyEvaluate(mesh, vertex=True)
+    positions = meshNavigation.get_vertex_world_positions(mesh, range(count))
+    for index, (x, y, _) in enumerate(positions):
+        cmds.xform(
+            "{}.vtx[{}]".format(mesh, index),
+            worldSpace=True,
+            translation=(x, y, 1.0 - 0.3 * x * x),
+        )
+    surface = cmds.nurbsPlane(
+        name="skull_srf",
+        width=3,
+        lengthRatio=1.0,
+        axis=(0, 0, 1),
+        patchesU=8,
+        patchesV=8,
+        constructionHistory=False,
+    )[0]
+    for cv in cmds.ls(surface + ".cv[*][*]", flatten=True):
+        x, y, _ = cmds.pointPosition(cv, world=True)
+        cmds.xform(cv, worldSpace=True, translation=(x, y, 0.9 - 0.3 * x * x))
+    cmds.select(clear=True)
+    face = {
+        "mesh": mesh,
+        "head_jnt": cmds.joint(name="head_jnt", position=(0, 0, 0)),
+        "surface": surface,
+    }
+    cmds.select(clear=True)
+    row = {round(p[0], 3): i for i, p in enumerate(positions) if abs(p[1] - 0.3) < 1e-4}
+    for side, xs in (
+        ("L", [0.2 + 0.1 * k for k in range(7)]),
+        ("R", [-0.2 - 0.1 * k for k in range(7)]),
+        ("C", [-0.2 + 0.1 * k for k in range(5)]),
+    ):
+        vertices = [row[round(x, 3)] for x in xs]
+        edges = cmds.ls(
+            cmds.polyListComponentConversion(
+                ["{}.vtx[{}]".format(mesh, v) for v in vertices],
+                toEdge=True,
+                internal=True,
+            ),
+            flatten=True,
+        )
+        edge_indices = [int(e.split("[")[1][:-1]) for e in edges]
+        face[side] = {
+            "vertices": vertices,
+            "edge_loop": meshNavigation.format_component_string(
+                mesh, "edge", edge_indices
+            ),
+            "vertex_loop": meshNavigation.format_component_string(
+                mesh, "vertex", vertices
+            ),
+        }
+    return face

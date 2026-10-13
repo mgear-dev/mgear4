@@ -3,9 +3,11 @@
 import json
 import os
 
+from mgear.core.facial import brow_schema
 from mgear.core.facial import eyelid_schema
 from mgear.core.facial import lips_schema
 
+from . import brow
 from . import eye
 from . import lips
 
@@ -13,6 +15,7 @@ from . import lips
 RIGGERS = (
     (eyelid_schema.FILE_TYPE, eyelid_schema.FILE_EXT, eye),
     (lips_schema.FILE_TYPE, lips_schema.FILE_EXT, lips),
+    (brow_schema.FILE_TYPE, brow_schema.FILE_EXT, brow),
 )
 
 FILE_FILTER = "Facial Rigger Configuration ({})".format(

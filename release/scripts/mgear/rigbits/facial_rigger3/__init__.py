@@ -12,6 +12,7 @@ from mgear.core import pyqt
 from maya import cmds
 from maya.app.general.mayaMixin import MayaQWidgetDockableMixin
 
+from . import brow_ui
 from . import eye_ui
 from . import lips_ui
 
@@ -43,7 +44,9 @@ class FacialRiggerUI(MayaQWidgetDockableMixin, QtWidgets.QDialog):
         self.eye_tab = eye_ui.EyeRiggerTab()
         self.lips_tab = lips_ui.LipsRiggerTab()
         self.tabs.addTab(self.eye_tab, "Eye")
+        self.brow_tab = brow_ui.BrowRiggerTab()
         self.tabs.addTab(self.lips_tab, "Lips")
+        self.tabs.addTab(self.brow_tab, "Brow")
         layout = QtWidgets.QVBoxLayout(self)
         layout.setContentsMargins(4, 4, 4, 4)
         layout.addWidget(self.tabs)

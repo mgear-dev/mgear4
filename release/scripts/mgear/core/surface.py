@@ -85,3 +85,24 @@ def get_closest_uv_coord(surface_name, position):
     v_normalized = (closest_uv[1] - v_range[0]) / (v_range[1] - v_range[0])
 
     return u_normalized, v_normalized
+
+
+def get_closest_point_normal(surface_name, position):
+    """Get the closest point of a NURBS surface and its normal.
+
+    Args:
+        surface_name (str): NURBS surface transform or shape.
+        position (tuple): World position.
+
+    Returns:
+        tuple: (point, normal, u, v). point and normal are world (x, y, z)
+            tuples, the normal is normalized.
+    """
+    selection_list = om.MSelectionList()
+    selection_list.add(str(surface_name))
+    surface_fn = om.MFnNurbsSurface(selection_list.getDagPath(0))
+    point, u, v = surface_fn.closestPoint(
+        om.MPoint(position[0], position[1], position[2]), space=om.MSpace.kWorld
+    )
+    normal = surface_fn.normal(u, v, space=om.MSpace.kWorld).normal()
+    return (point.x, point.y, point.z), (normal.x, normal.y, normal.z), u, v

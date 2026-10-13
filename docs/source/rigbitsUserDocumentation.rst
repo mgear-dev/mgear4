@@ -423,6 +423,10 @@ Automatic eyelid rigging tools.
 Eye Rigger 3.0
 --------------
 
+.. image:: images/rigbits/facial_rigger3_eyes.png
+    :align: center
+    :scale: 80%
+
 Open it from **mGear > Rigbits > Facial Rigger 3.0** (Eye tab). It builds the
 same eyelid rig as Eye Rigger 2.1, with these changes:
 
@@ -515,6 +519,10 @@ Automatic lip rigging from the loop between the lips.
 Lips Rigger 3.0
 ---------------
 
+.. image:: images/rigbits/facial_rigger3_mouth.png
+    :align: center
+    :scale: 80%
+
 Open it from **mGear > Rigbits > Facial Rigger 3.0** (Lips tab). It builds a
 lips rig with 7 upper and 5 lower controls (corners and centers, plus two
 in-between controls per side), one joint per loop vertex and an optional
@@ -596,6 +604,50 @@ Rigger 1.0**. Its configuration files load in Lips Rigger 3.0.
 * **Falloff Loops** - Falloff density (default 8)
 * **Head Joint** - Head reference joint
 * **Jaw Joint** - Jaw reference joint
+
+Brow Rigger
+===========
+
+Brow Rigger 3.0
+---------------
+
+.. image:: images/rigbits/facial_rigger3_brows.png
+    :align: center
+    :scale: 80%
+
+Open it from **mGear > Rigbits > Facial Rigger 3.0** (Brow tab). It builds
+one brow per run: a left, right or center brow. Build the left and right
+brows, then the center one if needed.
+
+* **Vertex or edge path:** an open path along the brow, ordered from the
+  inner to the outer end (the center brow runs right to left). The side is
+  found from the path, or set with **Side**. For a rotated head, set **Brow
+  Front** to a transform in front of the brow.
+* **Controls:** a whole brow control, **Main Controls** along the brow with
+  tangent controls at both ends, and an optional row of **Secondary
+  Controls** riding the main ones.
+* **Squeeze:** ``squeeze`` on the whole brow control slides the inner brow
+  toward the center (**Squeeze Distance**), fading to the outer end.
+* **Center brow:** with side C, **Hook Left** and **Hook Right** make its
+  ends follow the inner controls of the side brows (``brow_L_in_ctl``,
+  ``brow_R_in_ctl``).
+* **Slide surface** (optional): set a NURBS surface with the skull shape and
+  the control points slide on it, keeping their distance, so the brow follows
+  the skull. Each control gets a ``surfaceOffset`` channel to move it off the
+  surface.
+* **Joints Rotate with Curve** (on by default): the joints aim along the
+  brow curve. Turn it off for joints that only translate, keeping the brow
+  orientation.
+* **Shared options:** joint count, mirrored right side controls,
+  ``secondaryVis``, and the smoothed topological autoskin.
+* **Config files:** **Export Config** saves a ``.brows`` file, shared with the
+  ``brow_01`` Shifter component. **Import Config** loads 3.0 and 1.0 files.
+  1.0 symmetry files build one brow; build the others separately.
+
+Scripts and custom steps build from a file with
+``mgear.rigbits.facial_rigger3.brow.rig_from_file(path)``, or the **Import
+Facial Rigger 3.0 Configuration** custom step template. The previous Brow
+Rigger stays in **Facial Legacy > Facial Rigger 1.0**.
 
 Proxy Geo
 =========

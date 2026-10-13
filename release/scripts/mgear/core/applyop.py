@@ -1257,3 +1257,145 @@ def matrix_blend_constraint(
     cmds.connectAttr(driven + ".parentInverseMatrix[0]", mult + ".matrixIn[1]")
     _connect_decomposed(mult + ".matrixSum", driven, channels)
     return blend
+
+
+def _surface_shape(slide_surface):
+    """Get the shape of a NURBS surface transform or shape."""
+    shape = str(slide_surface)
+    if cmds.nodeType(shape) == "transform":
+        shape = cmds.listRelatives(shape, shapes=True, fullPath=True)[0]
+    return shape
+
+
+def _closest_surface_point(position_plug, shape, name):
+    """Create the closest point and its surface info for a position plug."""
+    closest = cmds.createNode("closestPointOnSurface", name=name + "_cps")
+    cmds.connectAttr(shape + ".worldSpace[0]", closest + ".inputSurface")
+    cmds.connectAttr(position_plug, closest + ".inPosition")
+    info = cmds.createNode("pointOnSurfaceInfo", name=name + "_posi")
+    cmds.connectAttr(shape + ".worldSpace[0]", info + ".inputSurface")
+    cmds.connectAttr(closest + ".parameterU", info + ".parameterU")
+    cmds.connectAttr(closest + ".parameterV", info + ".parameterV")
+    return closest, info
+
+
+def surface_distance(transform_node, slide_surface):
+    """Measure the signed distance of a transform to a NURBS surface.
+
+    Args:
+        transform_node (str): Transform.
+        slide_surface (str): NURBS surface transform or shape.
+
+    Returns:
+        str: Plug of the distance along the surface normal at the closest
+            point.
+    """
+    transform_node = str(transform_node)
+    name = transform_node.split("|")[-1] + "_surface"
+    shape = _surface_shape(slide_surface)
+    decompose = cmds.createNode("decomposeMatrix", name=name + "Decomp")
+    cmds.connectAttr(transform_node + ".worldMatrix[0]", decompose + ".inputMatrix")
+    _, info = _closest_surface_point(decompose + ".outputTranslate", shape, name)
+    delta = cmds.createNode("plusMinusAverage", name=name + "Delta")
+    cmds.setAttr(delta + ".operation", 2)
+    cmds.connectAttr(decompose + ".outputTranslate", delta + ".input3D[0]")
+    cmds.connectAttr(info + ".position", delta + ".input3D[1]")
+    dot = cmds.createNode("vectorProduct", name=name + "Distance")
+    cmds.setAttr(dot + ".operation", 1)
+    cmds.connectAttr(delta + ".output3D", dot + ".input1")
+    cmds.connectAttr(info + ".normalizedNormal", dot + ".input2")
+    return dot + ".outputX"
+
+
+def surface_slide(driver, slider, slide_surface, offset_attr=None):
+    """Slide a transform on a NURBS surface, following a driver.
+
+    The slider sits on the closest surface point to the driver, moved along
+    the surface normal by the driver's distance to the surface at build
+    time, plus the offset attribute. So at rest the slider is on the
+    driver, and when the driver moves the slider keeps that distance to the
+    surface. Z points along the surface normal and Y toward the driver's Y
+    axis. No constraint nodes are used.
+
+    Args:
+        driver (str): Driver transform.
+        slider (str): Driven transform.
+        slide_surface (str): NURBS surface transform or shape.
+        offset_attr (str, optional): Plug adding to the distance from the
+            surface.
+
+    Returns:
+        dict: The created nodes, by role.
+    """
+    driver = str(driver)
+    slider = str(slider)
+    name = slider.split("|")[-1]
+    shape = _surface_shape(slide_surface)
+    position = cmds.xform(driver, query=True, worldSpace=True, translation=True)
+    point, normal, _, _ = surface.get_closest_point_normal(shape, position)
+    rest = sum((position[i] - point[i]) * normal[i] for i in range(3))
+    if not cmds.attributeQuery("restDistance", node=slider, exists=True):
+        cmds.addAttr(slider, longName="restDistance", attributeType="double")
+    cmds.setAttr(slider + ".restDistance", rest)
+
+    nodes = {}
+    decompose = cmds.createNode("decomposeMatrix", name=name + "_driverDecomp")
+    cmds.connectAttr(driver + ".worldMatrix[0]", decompose + ".inputMatrix")
+    closest, info = _closest_surface_point(
+        decompose + ".outputTranslate", shape, name
+    )
+    nodes.update(decompose=decompose, closest=closest, info=info)
+
+    # distance along the normal: rest + offset
+    distance = cmds.createNode("plusMinusAverage", name=name + "_distance")
+    cmds.connectAttr(slider + ".restDistance", distance + ".input1D[0]")
+    if offset_attr:
+        cmds.connectAttr(str(offset_attr), distance + ".input1D[1]")
+    lift = cmds.createNode("multiplyDivide", name=name + "_lift")
+    cmds.connectAttr(info + ".normalizedNormal", lift + ".input1")
+    for axis in "XYZ":
+        cmds.connectAttr(distance + ".output1D", lift + ".input2" + axis)
+    world = cmds.createNode("plusMinusAverage", name=name + "_position")
+    cmds.connectAttr(info + ".position", world + ".input3D[0]")
+    cmds.connectAttr(lift + ".output", world + ".input3D[1]")
+    nodes.update(distance=distance, lift=lift, position=world)
+
+    # Z on the normal, X = driver Y x normal, Y = normal x X
+    driver_up = cmds.createNode("vectorProduct", name=name + "_driverUp")
+    cmds.setAttr(driver_up + ".operation", 3)
+    cmds.setAttr(driver_up + ".input1", 0, 1, 0)
+    cmds.setAttr(driver_up + ".normalizeOutput", True)
+    cmds.connectAttr(driver + ".worldMatrix[0]", driver_up + ".matrix")
+    x_axis = cmds.createNode("vectorProduct", name=name + "_xAxis")
+    cmds.setAttr(x_axis + ".operation", 2)
+    cmds.setAttr(x_axis + ".normalizeOutput", True)
+    cmds.connectAttr(driver_up + ".output", x_axis + ".input1")
+    cmds.connectAttr(info + ".normalizedNormal", x_axis + ".input2")
+    y_axis = cmds.createNode("vectorProduct", name=name + "_yAxis")
+    cmds.setAttr(y_axis + ".operation", 2)
+    cmds.setAttr(y_axis + ".normalizeOutput", True)
+    cmds.connectAttr(info + ".normalizedNormal", y_axis + ".input1")
+    cmds.connectAttr(x_axis + ".output", y_axis + ".input2")
+    matrix = cmds.createNode("fourByFourMatrix", name=name + "_matrix")
+    # plusMinusAverage children are lower case: output3Dx
+    for row, (source, axes) in enumerate(
+        (
+            (x_axis + ".output", "XYZ"),
+            (y_axis + ".output", "XYZ"),
+            (info + ".normalizedNormal", "XYZ"),
+            (world + ".output3D", "xyz"),
+        )
+    ):
+        for column, axis in enumerate(axes):
+            cmds.connectAttr(
+                "{}{}".format(source, axis),
+                "{}.in{}{}".format(matrix, row, column),
+            )
+    mult = cmds.createNode("multMatrix", name=name + "_multMatrix")
+    cmds.connectAttr(matrix + ".output", mult + ".matrixIn[0]")
+    cmds.connectAttr(slider + ".parentInverseMatrix[0]", mult + ".matrixIn[1]")
+    _connect_decomposed(mult + ".matrixSum", slider, "rt")
+    nodes.update(
+        driver_up=driver_up, x_axis=x_axis, y_axis=y_axis, matrix=matrix, mult=mult
+    )
+    return nodes

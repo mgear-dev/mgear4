@@ -30,13 +30,14 @@ from mgear.core import applyop
 from mgear.core import attribute
 from mgear.core import curve
 from mgear.core import node
-from mgear.core import skin
 from mgear.core import transform
 from mgear.core import vector
 
 from ._build_base import MAIN_KEYABLE
 from ._build_base import FacialBuilder
+from ._build_base import cv_points
 from ._build_base import select_joint_indices
+from ._build_base import uniform_curve
 from ._build_base import xyz
 
 HALF_PI = math.pi * 0.5
@@ -136,28 +137,6 @@ def zipper_distances(count):
     return result
 
 
-def _uniform(crv, count):
-    """Rebuild a cubic curve with count CVs and uniform 0 to 1 knots.
-
-    Curves rebuilt with the same count share their knots, so they average
-    and blend CV by CV.
-    """
-    cmds.rebuildCurve(
-        str(crv),
-        rebuildType=0,
-        spans=count - 3,
-        degree=3,
-        keepRange=0,
-        keepEndPoints=True,
-        replaceOriginal=True,
-        constructionHistory=False,
-    )
-
-
-def _cv_points(crv):
-    return [xyz(p) for p in crv.getCVs(space="world")]
-
-
 class LipsBuilder(FacialBuilder):
     """Build a lips rig from solved geometry.
 
@@ -252,14 +231,14 @@ class LipsBuilder(FacialBuilder):
                 root, prefix + "RopeUpv_crv", forward(rope_points), edit_points=True
             )
             for crv in (rope, rope_upv):
-                _uniform(crv, s["ropeCount"])
+                uniform_curve(crv, s["ropeCount"])
             curves[prefix] = (
                 b.add_curve(root, prefix + "Ctl_crv", ctl_points),
                 b.add_curve(root, prefix + "CtlUpv_crv", forward(ctl_points)),
                 rope,
                 rope_upv,
-                b.add_curve(root, prefix + "Zipper_crv", _cv_points(rope)),
-                b.add_curve(root, prefix + "ZipperUpv_crv", _cv_points(rope_upv)),
+                b.add_curve(root, prefix + "Zipper_crv", cv_points(rope)),
+                b.add_curve(root, prefix + "ZipperUpv_crv", cv_points(rope_upv)),
             )
         (
             self.up_ctl_crv,
@@ -280,7 +259,7 @@ class LipsBuilder(FacialBuilder):
         for lip in ("up", "low"):
             for suffix, rope in (("", self.up_rope), ("Upv", self.up_rope_upv)):
                 self.zip_curves[(lip, suffix)] = b.add_curve(
-                    root, "{}Zip{}_crv".format(lip, suffix), _cv_points(rope)
+                    root, "{}Zip{}_crv".format(lip, suffix), cv_points(rope)
                 )
 
     def _build_controls(self):
@@ -344,19 +323,7 @@ class LipsBuilder(FacialBuilder):
         s = self.settings
         g = self.geometry
         rig_m = datatypes.Matrix(g.rig_matrix)
-        # the joint drivers get world positions from motion paths: they live
-        # in world space and take the rig scale from the root
-        self.drivers_root = b.add_transform(b.root, "ropeDrivers", datatypes.Matrix())
-        cmds.setAttr(str(self.drivers_root) + ".inheritsTransform", False)
-        # without inheritance its local offset under the root would be world
-        cmds.xform(
-            str(self.drivers_root),
-            translation=(0, 0, 0),
-            rotation=(0, 0, 0),
-            scale=(1, 1, 1),
-        )
-        root_scale = self._create_node("decomposeMatrix", "rootScale_decomp")
-        pm.connectAttr(b.root.attr("worldMatrix[0]"), root_scale.attr("inputMatrix"))
+        self.drivers_root, root_scale = self._world_drivers_root()
         half_width = g.mouth_width * 0.5
         for zipper, rope, upv_zipper, vertices, points, prefix, parent, rolls in (
             (
@@ -694,36 +661,7 @@ class LipsBuilder(FacialBuilder):
     def build_skin(self):
         """Skin the lips mesh when the doSkin setting is on.
 
-        The lip weights blend with the strongest existing influence of each
-        vertex. A mesh without skin cluster is skinned to the head joint
-        first.
-
         Returns:
             str: The skin cluster, or None when skipped.
         """
-        s = self.settings
-        if not s["doSkin"]:
-            return None
-        mesh = self.geometry.mesh
-        head = None
-        if not skin.getSkinCluster(mesh):
-            head = self.backend.head_joint()
-            if not head:
-                pm.displayWarning(
-                    "Lips autoskin skipped: the mesh has no skin cluster, set "
-                    "the head joint to skin against"
-                )
-                return None
-        seeds = [
-            (self.backend.deform_joint(handle), vertex)
-            for handle, vertex in self.joint_seeds
-        ]
-        return skin.apply_topological_autoskin(
-            mesh,
-            seeds,
-            base_influence=head,
-            rigid_loops=s["rigidLoops"],
-            falloff_loops=s["falloffLoops"],
-            loop_vertices=self.geometry.loop,
-            smooth_iterations=s["skinSmooth"],
-        )
+        return self._autoskin(self.joint_seeds, self.geometry.loop, "Lips")

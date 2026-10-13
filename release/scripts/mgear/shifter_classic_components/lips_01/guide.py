@@ -214,19 +214,9 @@ class componentSettings(facial_guide.FacialComponentSettings):
         Returns:
             LipsGeometry: The geometry, or None when it can't be solved.
         """
-        root = self.root.name()
-        positions = {"root": root}
-        for child in cmds.listRelatives(root, children=True, fullPath=True) or []:
-            for name in ("aim", "lip"):
-                if child.endswith("_" + name):
-                    positions[name] = child
-        if len(positions) < 3:
-            cmds.warning("Lips Rigger: the guide has no aim or lip locator")
+        positions = self.locator_positions(("aim", "lip"))
+        if positions is None:
             return None
-        positions = {
-            key: cmds.xform(node, query=True, worldSpace=True, translation=True)
-            for key, node in positions.items()
-        }
         try:
             _, geometry = solve(self.guide_settings(), positions)
         except ValueError as error:

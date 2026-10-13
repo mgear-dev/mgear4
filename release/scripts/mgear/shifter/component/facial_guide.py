@@ -279,6 +279,33 @@ class FacialComponentSettings(MayaQWidgetDockableMixin, guide.componentMainSetti
         shared = settings_schema.filter_scope(settings, self.schema.SCHEMA, "shared")
         return {key: value for key, value in shared.items() if key in keys}
 
+    def locator_positions(self, names):
+        """Get the world positions of the guide root and some locators.
+
+        Args:
+            names (tuple): Locator names, children of the root, e.g. "aim".
+
+        Returns:
+            dict: {"root" and each name: position}, or None with a warning
+                when a locator is missing.
+        """
+        root = self.root.name()
+        nodes = {"root": root}
+        for child in cmds.listRelatives(root, children=True, fullPath=True) or []:
+            for name in names:
+                if child.endswith("_" + name):
+                    nodes[name] = child
+        missing = [name for name in names if name not in nodes]
+        if missing:
+            cmds.warning(
+                "{}: the guide has no {} locator".format(self.title, missing[0])
+            )
+            return None
+        return {
+            key: cmds.xform(node, query=True, worldSpace=True, translation=True)
+            for key, node in nodes.items()
+        }
+
     def _start_dir(self):
         if self.last_path:
             return os.path.dirname(self.last_path)

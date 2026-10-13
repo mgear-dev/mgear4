@@ -10,6 +10,7 @@ from maya import cmds
 import mgear.pymaya as pm
 from mgear.pymaya import datatypes
 
+from mgear.core import skin
 from mgear.core import transform
 
 MAIN_KEYABLE = ("tx", "ty", "tz", "ro", "rx", "ry", "rz", "sx", "sy", "sz")
@@ -63,6 +64,33 @@ def mid_point(crv):
     return xyz(crv.getPointAtParam(param, space="world"))
 
 
+def uniform_curve(crv, count):
+    """Rebuild a cubic curve with count CVs and uniform 0 to 1 knots.
+
+    Curves rebuilt with the same count share their knots, so they average
+    and blend CV by CV.
+
+    Args:
+        crv (str or dagNode): Curve.
+        count (int): CVs, at least 4.
+    """
+    cmds.rebuildCurve(
+        str(crv),
+        rebuildType=0,
+        spans=count - 3,
+        degree=3,
+        keepRange=0,
+        keepEndPoints=True,
+        replaceOriginal=True,
+        constructionHistory=False,
+    )
+
+
+def cv_points(crv):
+    """Get the world positions of the CVs of a curve."""
+    return [xyz(p) for p in pm.PyNode(crv).getCVs(space="world")]
+
+
 class FacialBuilder(object):
     """Base of the facial rig builders.
 
@@ -76,6 +104,7 @@ class FacialBuilder(object):
         self.settings = settings
         self.geometry = geometry
         self.backend = backend
+        self._root_scale = None
 
     def _create_node(self, node_type, name, idx=None):
         """Create a utility node with the rig naming."""
@@ -133,4 +162,81 @@ class FacialBuilder(object):
             matrix = self.geometry.control_matrix
         return transform.setMatrixPosition(
             datatypes.Matrix(matrix), datatypes.Vector(*position)
+        )
+
+    def _world_drivers_root(self, name="ropeDrivers"):
+        """Create the group of the joint drivers placed by motion paths.
+
+        Motion paths give world positions: the group doesn't inherit
+        transforms, and the drivers take the rig scale from the root.
+
+        Args:
+            name (str, optional): Short group name.
+
+        Returns:
+            tuple: (group, decomposeMatrix of the root world matrix)
+        """
+        b = self.backend
+        group = b.add_transform(b.root, name, datatypes.Matrix())
+        cmds.setAttr(str(group) + ".inheritsTransform", False)
+        # without inheritance its local offset under the root would be world
+        cmds.xform(
+            str(group), translation=(0, 0, 0), rotation=(0, 0, 0), scale=(1, 1, 1)
+        )
+        return group, self._root_scale_node()
+
+    def _root_scale_node(self):
+        """Get the decomposeMatrix of the rig root world matrix, created once.
+
+        Returns:
+            PyNode: The decomposeMatrix node.
+        """
+        if self._root_scale is None:
+            b = self.backend
+            self._root_scale = self._create_node("decomposeMatrix", "rootScale_decomp")
+            pm.connectAttr(
+                b.root.attr("worldMatrix[0]"), self._root_scale.attr("inputMatrix")
+            )
+        return self._root_scale
+
+    def _autoskin(self, joint_seeds, loop_vertices, label):
+        """Skin the mesh with the topological autoskin, when doSkin is on.
+
+        The joint weights blend with the strongest existing influence of
+        each vertex. A mesh without skin cluster is skinned to the head
+        joint first.
+
+        Args:
+            joint_seeds (list): (joint handle, seed vertex) pairs.
+            loop_vertices (list): All the vertices of the rigged path.
+            label (str): Rig name for the warning, e.g. "Lips".
+
+        Returns:
+            str: The skin cluster, or None when skipped.
+        """
+        s = self.settings
+        if not s["doSkin"]:
+            return None
+        mesh = self.geometry.mesh
+        head = None
+        if not skin.getSkinCluster(mesh):
+            head = self.backend.head_joint()
+            if not head:
+                pm.displayWarning(
+                    "{} autoskin skipped: the mesh has no skin cluster, set "
+                    "the head joint to skin against".format(label)
+                )
+                return None
+        seeds = [
+            (self.backend.deform_joint(handle), vertex)
+            for handle, vertex in joint_seeds
+        ]
+        return skin.apply_topological_autoskin(
+            mesh,
+            seeds,
+            base_influence=head,
+            rigid_loops=s["rigidLoops"],
+            falloff_loops=s["falloffLoops"],
+            loop_vertices=loop_vertices,
+            smooth_iterations=s["skinSmooth"],
         )

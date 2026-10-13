@@ -97,6 +97,34 @@ arm_ms_2jnt_01
 --------------
 WIP
 
+brow_01
+-------
+Brow rig from a path along the brow on the mesh, one side per component. It
+builds the same rig as Brow Rigger 3.0 (Rigbits > Facial Rigger 3.0): a whole
+brow control, main and tangent controls, optional secondary controls,
+squeeze, the optional slide surface and an optional topological autoskin.
+
+**Guide**
+
+* **root**: near the middle of the brow.
+* **aim**: in front of it. Root to aim is the front direction, and the aim
+  depth is the distance of the controls.
+
+The side is the component side; right side controls mirror the left ones.
+
+**Settings**: the brow path, the controls, squeeze, the slide surface,
+joints and autoskin, as in Brow Rigger 3.0. **Check Detection** selects the
+inner end found from the path. **Import Config** and **Export Config** read
+and write the Brow Rigger ``.brows`` files. A center brow shows **Left Brow**
+and **Right Brow**: the roots of the left and right ``brow_01`` guides its
+ends follow.
+
+**Notes**
+
+* The mesh, and the slide surface when set, must be in the scene when the
+  rig builds.
+* Duplicate Symmetrical mirrors the locators and the path on the mesh.
+
 cable_01
 --------
 WIP
