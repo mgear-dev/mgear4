@@ -76,6 +76,7 @@ Release Log
 	* Shifter: Custom Step: Groups with many steps scroll smoothly and their last steps are reachable
 	* Anim Picker: Fix Load Picker in scenes without namespaces
 	* Anim Picker: Fix SVG badge size, default opacity of new vector items and the dead "Toggle handles" entry
+	* Anim Picker: Fix the save prompt on close showing in anim mode, and pinned items reporting unsaved changes after a pan or zoom
 	* Solvers: Spring nodes no longer step twice on the same frame; Gravity node ground follows the ground_transform plane
 	* Animbits: Spring Manager: Fix search filter on PySide6, preset crashes and settings saving
 	* Animbits: HumanIK Mapper: Fix Sub IK bake, batch bake order and offsets, and several dialog errors

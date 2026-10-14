@@ -370,6 +370,13 @@ class SaveOverlayWidget(OverlayWidget):
         # Get DataNode
         assert self.data_node, "No data_node found/selected"
 
+        # Safety net: never write where saving is not permitted (anim mode,
+        # referenced node). Finish as a discard so a pending close completes.
+        can_save = getattr(self.parent(), "can_save", None)
+        if callable(can_save) and not can_save():
+            self._finish("discard")
+            return
+
         # Get character data
         data = self.parent().get_character_data()
 

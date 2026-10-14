@@ -1231,7 +1231,13 @@ class MainDockWindow(QtWidgets.QWidget):
     def closeEvent(self, evnt):
         # Prompt to save when closing with unsaved changes, reusing the same
         # Save overlay. Defer the real close until the user resolves the prompt.
-        if not self._closing and self.has_unsaved_changes():
+        # Where saving is not permitted (anim mode, referenced node) close
+        # straight away: there is nothing the user could save.
+        if (
+            not self._closing
+            and self.can_save()
+            and self.has_unsaved_changes()
+        ):
             evnt.ignore()
             self.save_widget.show_prompt(
                 on_finished=self._on_close_prompt_finished,
@@ -1507,6 +1513,33 @@ class MainDockWindow(QtWidgets.QWidget):
         current = self._normalized_picker_data(self.get_character_data())
         return current != self._saved_data_snapshot
 
+    def can_save(self):
+        """Return True if the current picker may be saved.
+
+        Saving is permitted only in edit mode, with an existing current data
+        node that is not referenced. Every save path (manual save, autosave
+        prompt, save-on-close prompt and the Save overlay write) checks this.
+
+        Returns:
+            bool: True when saving is permitted.
+        """
+        return self._save_block_reason() is None
+
+    def _save_block_reason(self):
+        """Return why the current picker may not be saved, or None.
+
+        Returns:
+            str: The reason saving is blocked, or None when it is permitted.
+        """
+        if not __EDIT_MODE__.get():
+            return "Save is not permited in anim mode"
+        data_node = self.get_current_data_node()
+        if not (data_node and data_node.exists()):
+            return "No picker data node found"
+        if data_node.is_referenced():
+            return "Save is not permited on referenced nodes"
+        return None
+
     def apply_autosave_settings(self):
         """(Re)start or stop the autosave timer from persisted settings"""
         save_widget = getattr(self, "save_widget", None)
@@ -1521,13 +1554,7 @@ class MainDockWindow(QtWidgets.QWidget):
     def _autosave_prompt(self):
         """Prompt (never background-save) when autosave fires with changes"""
         # Respect the same guards as a manual save
-        if not __EDIT_MODE__.get():
-            return
-
-        data_node = self.get_current_data_node()
-        if not (data_node and data_node.exists()):
-            return
-        if data_node.is_referenced():
+        if not self.can_save():
             return
 
         # Don't stack a prompt on top of an already-visible overlay
@@ -1625,16 +1652,9 @@ class MainDockWindow(QtWidgets.QWidget):
         data_node = self.get_current_data_node()
         assert data_node, "No data_node found/selected"
 
-        # Block save in anim mode
-        if not __EDIT_MODE__.get():
-            QtWidgets.QMessageBox.warning(
-                self, "Warning", "Save is not permited in anim mode"
-            )
-            return
-
-        # Block save on referenced nodes
-        if data_node.is_referenced():
-            msg = "Save is not permited on referenced nodes"
+        # Block save where it is not permitted, telling the user why
+        msg = self._save_block_reason()
+        if msg:
             QtWidgets.QMessageBox.warning(self, "Warning", msg)
             return
 

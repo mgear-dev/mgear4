@@ -158,6 +158,11 @@ class PickerItem(DefaultPolygon):
         # looks tiny when the canvas was zoomed in). Captured at pin time and
         # persisted so a reload restores the size.
         self.pin_scale = 1.0
+        # Scene position the item had when it was pinned (or loaded pinned).
+        # The view rewrites a pinned item's live position on every pan / zoom
+        # / resize, so this stable value is what get_data saves as "position"
+        # (keeps change detection and saved files viewport independent).
+        self.pin_rest_position = None
 
         # Interactive widget (optional): a non-button ``widget_type`` makes the
         # item a checkbox / slider bound to a Maya attribute (``binding``) and/
@@ -907,6 +912,8 @@ class PickerItem(DefaultPolygon):
         Y-flipped view. The view owns the item's *position* (see
         ``_update_pinned_items``); a pinned item is repositioned by an
         offset-drag rather than a free scene move, so it is made non-movable.
+        Pinning records the current scene position as ``pin_rest_position``
+        (the saved, viewport-independent position); unpinning clears it.
 
         Args:
             state (bool): pin when True, unpin when False.
@@ -914,6 +921,12 @@ class PickerItem(DefaultPolygon):
                 view scale into ``pin_scale``; False keeps the existing value
                 (used on load so a saved size is restored, not re-sampled).
         """
+        # Capture the rest position on the unpinned -> pinned transition only,
+        # before the view relocks the item to its anchor.
+        if state and not self.pinned:
+            self.pin_rest_position = [self.x(), self.y()]
+        elif not state:
+            self.pin_rest_position = None
         self.pinned = bool(state)
         self.setFlag(
             QtWidgets.QGraphicsItem.ItemIgnoresTransformations, self.pinned
@@ -1952,6 +1965,10 @@ class PickerItem(DefaultPolygon):
         # Set position
         if "position" in data:
             self.setPos(*model.position)
+            # An already pinned item keeps the given position as its rest
+            # position (the view relocks it to its anchor anyway).
+            if self.pinned:
+                self.pin_rest_position = list(model.position)
 
         # Set rotation
         if "rotation" in data:
@@ -2040,7 +2057,12 @@ class PickerItem(DefaultPolygon):
         """
         model = PickerItemData()
         model.color = self.get_color().getRgb()
-        model.position = [self.x(), self.y()]
+        # A pinned item's live position follows the viewport; save its stable
+        # rest position instead so the data is viewport independent.
+        if self.pin_rest_position is not None:
+            model.position = list(self.pin_rest_position)
+        else:
+            model.position = [self.x(), self.y()]
         model.rotation = self.rotation()
         model.handles = [[handle.x(), handle.y()] for handle in self.handles]
 
