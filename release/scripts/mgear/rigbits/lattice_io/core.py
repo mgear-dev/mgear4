@@ -183,9 +183,7 @@ def load_file(path):
 def _remove_existing(config):
     """Delete a previous build of a lattice configuration.
 
-    Deletes the ffd with the stored name, with its lattice and base, and
-    any orphan lattice or base transform using the stored names, so the
-    rebuilt nodes keep their exact names.
+    Deletes the ffd with the stored name, with its lattice and base.
 
     Args:
         config (dict): Lattice configuration.
@@ -195,17 +193,32 @@ def _remove_existing(config):
         deformer.delete_lattice(name)
         logger.info("Replaced existing '%s'.", name)
 
-    for key, shape_type in (("lattice", "lattice"), ("base", "baseLattice")):
-        for node in cmds.ls(config[key]["name"], long=True) or []:
-            shapes = cmds.listRelatives(
-                node, shapes=True, type=shape_type, fullPath=True
-            )
-            if not shapes:
-                continue
-            if cmds.listConnections(shapes[0], type="ffd"):
-                continue
-            cmds.delete(node)
-            logger.warning("Removed orphan %s '%s'.", key, node_remap.leaf_name(node))
+
+def _rename_in_place(node, name, shape_type, replace):
+    """Rename a placed lattice or base transform to its stored name.
+
+    With replace, an orphan transform (a lattice or base that drives no
+    ffd) already using the name next to the node is deleted first, so the
+    node keeps its exact name. Nodes with that name anywhere else are left
+    alone: they can't clash.
+
+    Args:
+        node (str): Long name of the placed transform.
+        name (str): Stored leaf name.
+        shape_type (str): "lattice" or "baseLattice".
+        replace (bool): Delete an orphan that holds the name.
+
+    Returns:
+        str: Long name of the renamed node.
+    """
+    parent = cmds.listRelatives(node, parent=True, fullPath=True)
+    target = "{}|{}".format(parent[0] if parent else "", name)
+    if replace and target != node and cmds.objExists(target):
+        shapes = cmds.listRelatives(target, shapes=True, type=shape_type, fullPath=True)
+        if shapes and not cmds.listConnections(shapes[0], type="ffd"):
+            cmds.delete(target)
+            logger.warning("Removed orphan %s '%s'.", shape_type, name)
+    return cmds.ls(cmds.rename(node, name), long=True)[0]
 
 
 def _place(node, parent, matrix):
@@ -263,21 +276,23 @@ def build_lattice(config, replace=True, order=None):
     lat_data = config["lattice"]
     base_data = config["base"]
     divisions = lat_data["divisions"]
-    ffd, lat_tfm, base_tfm = cmds.lattice(
+    ffd = cmds.lattice(
         targets,
         divisions=divisions,
         objectCentered=True,
         frontOfChain=front_of_chain,
         name=name,
-    )
-    lat_tfm = cmds.rename(lat_tfm, lat_data["name"])
-    base_tfm = cmds.rename(base_tfm, base_data["name"])
+    )[0]
+    # Long names: cmds.lattice returns short names, which can be ambiguous
+    lat_tfm, _, base_tfm, _ = deformer.get_lattice_nodes(ffd)
+    # Renamed once placed, so only a node next to the final place can clash
+    base_tfm = _place(base_tfm, base_data["parent"], base_data["world_matrix"])
+    lat_tfm = _place(lat_tfm, lat_data["parent"], lat_data["world_matrix"])
+    base_tfm = _rename_in_place(base_tfm, base_data["name"], "baseLattice", replace)
+    lat_tfm = _rename_in_place(lat_tfm, lat_data["name"], "lattice", replace)
     lat_shape = cmds.listRelatives(lat_tfm, shapes=True, fullPath=True)
     if lat_shape and lat_data.get("shape"):
         cmds.rename(lat_shape[0], lat_data["shape"])
-
-    base_tfm = _place(base_tfm, base_data["parent"], base_data["world_matrix"])
-    lat_tfm = _place(lat_tfm, lat_data["parent"], lat_data["world_matrix"])
     deformer.set_lattice_points(lat_tfm, divisions, lat_data["points"])
     for node, data in ((lat_tfm, lat_data), (base_tfm, base_data)):
         if "visibility" in data:

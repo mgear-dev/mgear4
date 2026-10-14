@@ -185,6 +185,44 @@ def test_replace_removes_orphans(run_with_maya_standalone, setup_path, tmp_path)
     assert not cmds.ls("ffd1Base1", "ffd1Lattice1")
 
 
+def test_replace_keeps_unrelated_orphans(
+    run_with_maya_standalone, setup_path, tmp_path
+):
+    """Only an orphan at the rebuilt node's place is removed."""
+    from maya import cmds
+    from mgear.rigbits import lattice_io
+
+    cmds.file(new=True, force=True)
+    sphere = cmds.polySphere(name="body")[0]
+    ffd, lattice, base = cmds.lattice(sphere, name="ffd1")
+    rig = cmds.group(empty=True, name="rig_grp")
+    cmds.parent(lattice, base, rig)
+    # Keeps rig_grp alive: Maya deletes it with the ffd when it gets empty
+    cmds.parent(cmds.spaceLocator(name="keep_loc")[0], rig)
+    path = str(tmp_path / "unrelated.lat")
+    lattice_io.export_lattices([ffd], path)
+    cmds.delete(ffd)
+
+    # Same-named orphans parked by the user elsewhere in the scene
+    parked = cmds.group(empty=True, name="parked_grp")
+    kept = []
+    for name, shape_type in (("ffd1Lattice", "lattice"), ("ffd1Base", "baseLattice")):
+        orphan = cmds.createNode("transform", name=name, parent=parked)
+        cmds.createNode(shape_type, parent=orphan)
+        kept.append("|parked_grp|" + name)
+    # An orphan at the stored place, which would clash
+    clash = cmds.createNode("transform", name="ffd1Lattice", parent=rig)
+    cmds.createNode("lattice", parent=clash)
+
+    lattice_io.import_lattices(path)
+    assert all(cmds.objExists(node) for node in kept)
+    assert cmds.objExists("|rig_grp|ffd1Lattice")
+    assert cmds.objExists("|rig_grp|ffd1Base")
+    shapes = cmds.listRelatives("|rig_grp|ffd1Lattice", shapes=True, fullPath=True)
+    assert set(cmds.listConnections(shapes[0], type="ffd")) == {"ffd1"}
+    assert not cmds.ls("ffd1Lattice1", "ffd1Base1")
+
+
 def test_missing_geometry(run_with_maya_standalone, setup_path, tmp_path, caplog):
     from maya import cmds
     from mgear.rigbits import lattice_io

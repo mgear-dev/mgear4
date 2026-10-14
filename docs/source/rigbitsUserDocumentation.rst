@@ -1324,7 +1324,7 @@ Import
 1. Open the **Import** tab and browse to a ``.lat`` file, or use **File > Recent Files**. The file content is listed with the divisions, the geometry and whether weights are stored.
 2. Uncheck the lattices you don't want to import.
 3. The **Order** column shows the deformer order stored for each lattice. Change it to override it for this import only.
-4. Keep **Replace existing** checked to delete lattices with the same names first, including orphan lattice or base nodes left by a broken setup, so the rebuilt nodes keep their exact names.
+4. Keep **Replace existing** checked to delete lattices with the same names first, including an orphan lattice or base node left by a broken setup in the place the lattice is rebuilt, so the rebuilt nodes keep their exact names. Nodes with the same names elsewhere in the scene are not touched.
 5. Click **Import Checked**. The whole import is a single undo step.
 
 Geometry and parents are found by name, even if they moved in the hierarchy or are in another namespace. Missing geometry is skipped with a warning in the log panel.
