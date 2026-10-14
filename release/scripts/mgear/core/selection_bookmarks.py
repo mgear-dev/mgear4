@@ -3,7 +3,7 @@
 Named, colored sets of objects or components, stored in the scene and in
 ``.sbk`` files. Recall, isolate and key them, and let other tools (e.g.
 the Animbits Hub) list bookmarks enabled for them. The window lives in
-``mgear.animbits.bookmarks``. No Qt widgets.
+``mgear.animbits.bookmarks``. No Qt is imported when the module loads.
 
 Example:
     >>> from mgear.core import selection_bookmarks
@@ -20,11 +20,9 @@ import random
 import maya.mel as mel
 from maya import cmds
 
-from mgear.core import anim_utils
 from mgear.core import attribute
 from mgear.core import config_io
 from mgear.core import node_remap
-from mgear.core.pyqt import get_user_settings
 
 logger = logging.getLogger(__name__)
 
@@ -254,6 +252,8 @@ def get_last_namespace():
         str: The namespace (empty string for the root namespace), or None
             when none was stored.
     """
+    from mgear.core.pyqt import get_user_settings
+
     value = get_user_settings().value(LAST_NAMESPACE_KEY)
     if value is None:
         return None
@@ -266,6 +266,8 @@ def set_last_namespace(namespace):
     Args:
         namespace (str): The namespace, empty string for the root.
     """
+    from mgear.core.pyqt import get_user_settings
+
     settings = get_user_settings()
     settings.setValue(LAST_NAMESPACE_KEY, namespace)
     settings.sync()
@@ -466,7 +468,7 @@ def key_bookmark_members(bookmark, namespace=None):
     except RuntimeError as e:
         cmds.warning(str(e))
         return []
-    nodes = anim_utils.keyable_nodes(valid)
+    nodes = attribute.keyable_nodes(valid)
     if not nodes:
         cmds.warning("No keyable bookmark items found in scene")
         return []

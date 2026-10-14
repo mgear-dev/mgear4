@@ -39,6 +39,33 @@ TEMPLATE_PATH = os.path.join(COMPONENT_PATH, "templates")
 
 SHIFTER_COMPONENT_ENV_KEY = "MGEAR_SHIFTER_COMPONENT_PATH"
 
+# When a slow plug-in was loaded, for the build warnings and summary
+SLOW_PLUGIN_BEFORE_BUILD = "loaded before the build started"
+SLOW_PLUGIN_BY_STEP = "loaded by custom step: {}"
+SLOW_PLUGIN_DURING_BUILD = "loaded during the build (not by a custom step)"
+
+
+def _slow_plugins_summary(found):
+    """Build the end-of-build summary of the slow plug-ins found.
+
+    Args:
+        found (dict): Plug-in name to when it was loaded (SLOW_PLUGIN_*
+            text), in report order.
+
+    Returns:
+        str: The summary, one line per plug-in, or an empty string if
+            nothing was found.
+    """
+    if not found:
+        return ""
+    lines = ["Slow plug-ins detected in this build (they can make builds much slower):"]
+    lines += ["  - {}: {}".format(name, source) for name, source in found.items()]
+    lines.append(
+        "Unload them if nothing in the scene needs them. See the warnings "
+        "above for details."
+    )
+    return "\n".join(lines)
+
 # Module-level caches for performance
 _component_directories_cache = None
 _component_module_cache = {}
@@ -222,8 +249,8 @@ class Rig(object):
         """Record, and warn once per build about, loaded known slow plug-ins.
 
         Args:
-            source (str): When it was loaded, one of the
-                core_utils.SLOW_PLUGIN_* texts.
+            source (str): When it was loaded, one of the SLOW_PLUGIN_*
+                texts.
             warn (bool, optional): Log a warning for each newly found one.
         """
         for name in core_utils.get_loaded_slow_plugins():
@@ -239,7 +266,7 @@ class Rig(object):
         """Reset the per-build state at the start of a build entry point."""
         self.stopBuild = False
         self._slow_plugins_found = {}
-        self._check_slow_plugins(core_utils.SLOW_PLUGIN_BEFORE_BUILD)
+        self._check_slow_plugins(SLOW_PLUGIN_BEFORE_BUILD)
 
     def _log_build_done(self, startTime):
         """Log the build time, then the slow plug-in summary if any.
@@ -256,8 +283,8 @@ class Rig(object):
         )
         # Plug-ins first found now are only listed in the summary, so the
         # summary stays right after the build time line.
-        self._check_slow_plugins(core_utils.SLOW_PLUGIN_DURING_BUILD, warn=False)
-        summary = core_utils.slow_plugins_summary(self._slow_plugins_found)
+        self._check_slow_plugins(SLOW_PLUGIN_DURING_BUILD, warn=False)
+        summary = _slow_plugins_summary(self._slow_plugins_found)
         if summary:
             mgear.log(summary, mgear.sev_warning)
 
@@ -657,9 +684,7 @@ class Rig(object):
                     self.stopBuild = custom_step_widget.runStep(
                         step, self.customStepDic
                     )
-                    self._check_slow_plugins(
-                        core_utils.SLOW_PLUGIN_BY_STEP.format(step)
-                    )
+                    self._check_slow_plugins(SLOW_PLUGIN_BY_STEP.format(step))
                 else:
                     pm.displayWarning("Build Stopped")
                     break

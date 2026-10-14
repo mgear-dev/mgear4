@@ -6,7 +6,7 @@ enabled for the tool in the bookmark "Show In Tools" menu.
 
 from maya import cmds
 
-from mgear.core import anim_utils
+from mgear.core import attribute
 from mgear.core import selection_bookmarks
 
 SELECTION_ROW_NAME = "Selection"
@@ -94,4 +94,4 @@ def row_targets(bookmark=None, namespace=None):
         except RuntimeError as e:
             cmds.warning(str(e))
             return []
-    return anim_utils.keyable_nodes(items)
+    return attribute.keyable_nodes(items)

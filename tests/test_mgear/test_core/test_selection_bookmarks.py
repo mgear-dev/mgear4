@@ -267,20 +267,88 @@ def test_scene_storage_round_trip(selection_bookmarks, scene, tmp_path):
     assert loaded["tools"] == {"key_tools": {"enabled": True}}
 
 
-def test_core_imports_no_tool_package(scripts_path):
-    """The data layer never imports a tool package (static check)."""
+def _imports(path, top_level_only=False):
+    """The modules a Python file imports, as dotted names.
+
+    ``from a import b`` gives both ``a`` and ``a.b``. Relative imports are
+    resolved against the file's package under ``mgear``.
+
+    Args:
+        path (str): Python file path.
+        top_level_only (bool, optional): Only the module-level imports,
+            skipping the ones inside functions.
+
+    Returns:
+        list: The imported module names.
+    """
     import ast
     import os
 
-    path = os.path.join(scripts_path, "mgear", "core", "selection_bookmarks.py")
     with open(path) as f:
         tree = ast.parse(f.read())
+    parts = os.path.normpath(path).split(os.sep)
+    package = parts[parts.index("mgear") : -1]
+    nodes = tree.body if top_level_only else ast.walk(tree)
     modules = []
-    for node in ast.walk(tree):
+    for node in nodes:
         if isinstance(node, ast.Import):
             modules.extend(alias.name for alias in node.names)
-        elif isinstance(node, ast.ImportFrom) and node.module:
-            modules.append(node.module)
+        elif isinstance(node, ast.ImportFrom):
+            base = node.module or ""
+            if node.level:
+                prefix = package[: len(package) - node.level + 1]
+                base = ".".join(prefix + ([base] if base else []))
+            modules.append(base)
+            modules.extend("{}.{}".format(base, alias.name) for alias in node.names)
+    return modules
+
+
+def _core_module_path(core_path, module):
+    """The file of a mgear.core module name, or None when it isn't one."""
+    import os
+
+    rel = module.split(".")[2:]
+    for path in (
+        os.path.join(core_path, *rel) + ".py",
+        os.path.join(core_path, *(rel + ["__init__.py"])),
+    ):
+        if os.path.isfile(path):
+            return path
+    return None
+
+
+def test_core_imports_no_tool_package(scripts_path):
+    """The data layer never imports a tool package (static check)."""
+    import os
+
+    path = os.path.join(scripts_path, "mgear", "core", "selection_bookmarks.py")
+    modules = _imports(path)
     tools = [m for m in modules if m.startswith(("mgear.animbits", "mgear.utilbits"))]
     assert tools == []
     assert "mgear.core" in modules
+
+
+def test_core_import_is_light(scripts_path):
+    """Loading the data layer imports no Qt and no anim_utils (static check).
+
+    Follows the module-level imports of every mgear.core module it loads.
+    """
+    import os
+
+    core_path = os.path.join(scripts_path, "mgear", "core")
+    heavy = ("mgear.core.anim_utils", "mgear.core.pyqt", "mgear.vendor.Qt")
+    found = []
+    seen = set()
+    pending = ["mgear.core", "mgear.core.selection_bookmarks"]
+    while pending:
+        module = pending.pop()
+        path = _core_module_path(core_path, module)
+        if module in seen or path is None:
+            continue
+        seen.add(module)
+        for name in _imports(path, top_level_only=True):
+            if name.startswith(heavy):
+                found.append((module, name))
+            elif name.startswith("mgear.core"):
+                pending.append(name)
+    assert found == []

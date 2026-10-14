@@ -169,9 +169,11 @@ def test_split_and_order(setup_path):
     path, other = meshNavigation.split_loop_at_vertices([5, 6, 7, 8], False, 8, 6)
     assert path == [8, 7, 6]
     assert other == []
-    assert meshNavigation.order_path_from([1, 2, 3], 3) == [3, 2, 1]
-    with pytest.raises(ValueError):
-        meshNavigation.order_path_from([1, 2, 3], 2)
+    # An open path ordered from its last vertex comes back reversed
+    path, other = meshNavigation.split_loop_at_vertices([1, 2, 3], False, 3, 1)
+    assert path == [3, 2, 1]
+    assert other == []
+    assert not hasattr(meshNavigation, "order_path_from")
 
 
 def test_mirror_indices(cmds):

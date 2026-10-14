@@ -218,12 +218,14 @@ def selection_bookmarks(setup_path, tmp_path, monkeypatch):
     """
     from maya import cmds
     from mgear.vendor.Qt import QtCore
+    from mgear.core import pyqt
     from mgear.core import selection_bookmarks as module
 
     cmds.file(new=True, force=True)
     ini = str(tmp_path / "settings.ini")
+    # The module imports get_user_settings from pyqt when it needs it
     monkeypatch.setattr(
-        module,
+        pyqt,
         "get_user_settings",
         lambda: QtCore.QSettings(ini, QtCore.QSettings.IniFormat),
     )

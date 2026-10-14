@@ -155,3 +155,32 @@ def test_build_from_dict(rig_plugins, blue_pencil, log, monkeypatch):
     assert len(warnings) == 1
     assert "(loaded before the build started)" in warnings[0]
     assert "  - bluePencil: loaded before the build started" in _summary(log)
+
+
+def test_summary_lines_in_order(setup_path):
+    from mgear import shifter
+
+    found = {
+        "bluePencil": shifter.SLOW_PLUGIN_BEFORE_BUILD,
+        "studioNodes": shifter.SLOW_PLUGIN_BY_STEP.format("post/a.py"),
+    }
+    lines = shifter._slow_plugins_summary(found).splitlines()
+    assert lines[0].startswith("Slow plug-ins detected in this build")
+    assert lines[1] == "  - bluePencil: loaded before the build started"
+    assert lines[2] == "  - studioNodes: loaded by custom step: post/a.py"
+    assert "Unload them" in lines[-1]
+
+
+def test_summary_empty(setup_path):
+    from mgear import shifter
+
+    assert shifter._slow_plugins_summary({}) == ""
+
+
+def test_build_texts(setup_path):
+    from mgear import shifter
+
+    assert shifter.SLOW_PLUGIN_BY_STEP.format("a.py") == "loaded by custom step: a.py"
+    assert shifter.SLOW_PLUGIN_DURING_BUILD == (
+        "loaded during the build (not by a custom step)"
+    )

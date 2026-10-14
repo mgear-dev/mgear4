@@ -791,11 +791,6 @@ SLOW_PLUGINS = ("bluePencil",)
 # Extra slow plug-in names, separated by os.pathsep or commas.
 SLOW_PLUGINS_ENV = "MGEAR_SLOW_PLUGINS"
 
-# When a slow plug-in was loaded, for slow_plugin_message sources
-SLOW_PLUGIN_BEFORE_BUILD = "loaded before the build started"
-SLOW_PLUGIN_BY_STEP = "loaded by custom step: {}"
-SLOW_PLUGIN_DURING_BUILD = "loaded during the build (not by a custom step)"
-
 
 def get_slow_plugins():
     """Get the names of the known slow plug-ins.
@@ -837,7 +832,8 @@ def slow_plugin_message(name, source):
 
     Args:
         name (str): The plug-in name.
-        source (str): When it was loaded, one of the SLOW_PLUGIN_* texts.
+        source (str): When it was loaded, free text from the caller (e.g.
+            "loaded before the build started").
 
     Returns:
         str: The message.
@@ -850,27 +846,6 @@ def slow_plugin_message(name, source):
         'a "requires ... {name}" line that loads it again on '
         "import.".format(name=name, source=source)
     )
-
-
-def slow_plugins_summary(found):
-    """Build a summary of the slow plug-ins found, one line per plug-in.
-
-    Args:
-        found (dict): Plug-in name to when it was loaded (SLOW_PLUGIN_*
-            text), in report order.
-
-    Returns:
-        str: The summary, or an empty string if nothing was found.
-    """
-    if not found:
-        return ""
-    lines = ["Slow plug-ins detected in this build (they can make builds much slower):"]
-    lines += ["  - {}: {}".format(name, source) for name, source in found.items()]
-    lines.append(
-        "Unload them if nothing in the scene needs them. See the warnings "
-        "above for details."
-    )
-    return "\n".join(lines)
 
 
 def get_os():

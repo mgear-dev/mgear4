@@ -25,6 +25,8 @@ from mgear.core import utils
 from mgear.core import attribute
 from mgear.core import vector
 from mgear.core.attribute import reset_selected_channels_value
+# keyable_nodes moved to core.attribute, kept here for anim tools
+from mgear.core.attribute import keyable_nodes
 from mgear.core.pickWalk import get_all_tag_children
 
 # =============================================================================
@@ -457,31 +459,6 @@ def set_or_key(plug, value):
         return False
     cmds.setAttr(plug, value)
     return True
-
-
-def keyable_nodes(items):
-    """Return the nodes of a list of items that have keyable attributes.
-
-    Components (``mesh.f[0:10]``), plugs and missing names are dropped.
-    The order is kept and duplicates are removed.
-
-    Args:
-        items (list): Node, component or plug names, e.g. from a selection.
-
-    Returns:
-        list: Node names with at least one keyable, unlocked attribute.
-    """
-    nodes = []
-    seen = set()
-    for item in items or []:
-        if "." in item or item in seen:
-            continue
-        seen.add(item)
-        if not cmds.objExists(item):
-            continue
-        if cmds.listAttr(item, keyable=True, unlocked=True):
-            nodes.append(item)
-    return nodes
 
 
 def _bracket_keys(plug, time):

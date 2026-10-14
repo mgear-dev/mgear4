@@ -40,27 +40,21 @@ def test_unknown_name_is_ignored(utils, blue_pencil):
 
 
 def test_message(utils):
-    source = utils.SLOW_PLUGIN_BY_STEP.format("post/import_SHAPES.py")
+    source = "loaded by custom step: post/import_SHAPES.py"
     message = utils.slow_plugin_message("bluePencil", source)
     assert "bluePencil" in message
-    assert "loaded by custom step: post/import_SHAPES.py" in message
+    assert source in message
     assert 'cmds.unloadPlugin("bluePencil")' in message
     assert "requires" in message
 
 
-def test_summary_lines_in_order(utils):
-    found = {
-        "bluePencil": utils.SLOW_PLUGIN_BEFORE_BUILD,
-        "studioNodes": utils.SLOW_PLUGIN_BY_STEP.format("post/a.py"),
-    }
-    lines = utils.slow_plugins_summary(found).splitlines()
-    assert lines[1] == "  - bluePencil: loaded before the build started"
-    assert lines[2] == "  - studioNodes: loaded by custom step: post/a.py"
-    assert "Unload them" in lines[-1]
+def test_summary_moved_to_shifter(utils):
+    """The summary and the build texts are Shifter build wording."""
+    from mgear import shifter
 
-
-def test_summary_empty(utils):
-    assert utils.slow_plugins_summary({}) == ""
+    names = ("slow_plugins_summary", "SLOW_PLUGIN_BEFORE_BUILD", "SLOW_PLUGIN_BY_STEP")
+    assert not [name for name in names if hasattr(utils, name)]
+    assert shifter.SLOW_PLUGIN_BEFORE_BUILD == "loaded before the build started"
 
 
 def test_is_plugin_loaded(utils, blue_pencil):

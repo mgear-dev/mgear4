@@ -187,6 +187,9 @@ def getExtremeVertexFromLoop(edgeList=None, sideRange=False, z_up=False):
 def getConcentricVertexLoop(loop, nbLoops):
     """Get concentric vertex loops
 
+    See also :func:`get_concentric_vertex_rings`, the OM2 index-based
+    version for new code.
+
     Arguments:
         loop (list): Vertex loop list
         nbLoops (int): Number of loops to search
@@ -966,26 +969,6 @@ def split_loop_at_vertices(ordered, is_closed, vertex_a, vertex_b):
     rotated = ordered[index_a:] + ordered[:index_a]
     index_b = rotated.index(vertex_b)
     return rotated[: index_b + 1], [rotated[0]] + rotated[index_b:][::-1]
-
-
-def order_path_from(ordered, start):
-    """Order an open path so it starts at the given end vertex.
-
-    Args:
-        ordered (list): Ordered path vertices.
-        start (int): One of the two path ends.
-
-    Returns:
-        list: The path starting at start.
-
-    Raises:
-        ValueError: If start is not a path end.
-    """
-    if ordered and ordered[0] == start:
-        return list(ordered)
-    if ordered and ordered[-1] == start:
-        return list(reversed(ordered))
-    raise ValueError("Vertex {} is not an end of the path".format(start))
 
 
 def get_vertex_world_positions(mesh, indices):

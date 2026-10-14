@@ -2065,3 +2065,28 @@ def hide_shapes(nodes, attr_name, host, value=True, keyable=False):
             if not cmds.listConnections(shape + ".visibility", plugs=True):
                 cmds.connectAttr(plug, shape + ".visibility")
     return plug
+
+
+def keyable_nodes(items):
+    """Return the nodes of a list of items that have keyable attributes.
+
+    Components (``mesh.f[0:10]``), plugs and missing names are dropped.
+    The order is kept and duplicates are removed.
+
+    Args:
+        items (list): Node, component or plug names, e.g. from a selection.
+
+    Returns:
+        list: Node names with at least one keyable, unlocked attribute.
+    """
+    nodes = []
+    seen = set()
+    for item in items or []:
+        if "." in item or item in seen:
+            continue
+        seen.add(item)
+        if not cmds.objExists(item):
+            continue
+        if cmds.listAttr(item, keyable=True, unlocked=True):
+            nodes.append(item)
+    return nodes

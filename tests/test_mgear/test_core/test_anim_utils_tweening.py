@@ -37,6 +37,13 @@ def test_keyable_nodes_empty(anim_utils):
     assert anim_utils.keyable_nodes(None) == []
 
 
+def test_keyable_nodes_alias(anim_utils):
+    """keyable_nodes lives in core.attribute; anim_utils keeps the name."""
+    from mgear.core import attribute
+
+    assert anim_utils.keyable_nodes is attribute.keyable_nodes
+
+
 def test_tween_cache_between_keys(anim_utils, keyed_ctl):
     cache = anim_utils.get_tween_cache([keyed_ctl], time=5)
     assert cache == [("ctl.translateX", 0.0, 10.0)]
