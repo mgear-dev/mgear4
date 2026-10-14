@@ -48,7 +48,7 @@ def unregister_log_handler(handler):
         _log_handlers.remove(handler)
 
 # gear version
-VERSION = [5, 4, 0]
+VERSION = [5, 4, 1]
 
 self = sys.modules[__name__]
 self.menu_id = None
