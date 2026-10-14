@@ -174,28 +174,32 @@ def export_data(node, tab=None, filePath=None):
     f.close()
 
 
-def import_data(filePath=None, node=None, add_data=False):
+def import_data(filePath=None, node=None, add_data=False, data=None):
     """Import and create channel master configuration nodes
 
     Args:
         filePath (str, optional): Path to the channel master config file
         node (None, str): Node to add the data. If None, will create a new node
         add_data (bool, optional): If true, will add the data to existing node
+        data (dict, optional): Configuration already loaded from the file.
+            When given, the file is not read.
 
     Returns:
         TYPE: Description
     """
-    if not filePath:
-        filePath = pm.fileDialog2(
-            fileMode=1,
-            fileFilter="Channel Master Configuration .cmc (*%s)" % ".cmc",
-        )
+    if data is None:
+        if not filePath:
+            filePath = pm.fileDialog2(
+                fileMode=1,
+                fileFilter="Channel Master Configuration .cmc (*%s)" % ".cmc",
+            )
 
-    if not filePath:
-        return
-    if not isinstance(filePath, string_types):
-        filePath = filePath[0]
-    data = json.load(open(filePath))
+        if not filePath:
+            return
+        if not isinstance(filePath, string_types):
+            filePath = filePath[0]
+        with open(filePath) as f:
+            data = json.load(f)
     config = data["config"]
 
     if not node:
@@ -271,7 +275,8 @@ def drop_file(filePath):
         str: The Channel Master node, None if cancelled.
     """
     with open(filePath) as f:
-        name = string.normalize(json.load(f)["node_name"])
+        data = json.load(f)
+    name = string.normalize(data["node_name"])
     node = None
     add_data = False
     if name in list_channel_master_nodes():
@@ -290,7 +295,7 @@ def drop_file(filePath):
         if result in ("Replace", "Add Tabs"):
             node = name
             add_data = result == "Add Tabs"
-    node = import_data(filePath, node=node, add_data=add_data)
+    node = import_data(filePath, node=node, add_data=add_data, data=data)
 
     from . import channel_master
 

@@ -325,6 +325,29 @@ def test_channel_master_drop(dragdrop, monkeypatch, tmp_path, choice, nodes, tab
         assert shown[-1] == result
 
 
+def test_channel_master_drop_reads_file_once(dragdrop, monkeypatch, tmp_path):
+    import builtins
+
+    from maya import cmds
+    from mgear.animbits import channel_master
+    from mgear.animbits import channel_master_node as cmn
+
+    monkeypatch.setattr(channel_master, "show_node", lambda node: None)
+    cmn.drop_file(_cmc_file(tmp_path))
+    opened = []
+
+    def counting_open(*args, **kwargs):
+        opened.append(args[0])
+        return builtins.open(*args, **kwargs)
+
+    monkeypatch.setattr(cmn, "open", counting_open, raising=False)
+    monkeypatch.setattr(cmds, "confirmDialog", lambda **kw: "Replace")
+    path = _cmc_file(tmp_path, tabs=("Extra",))
+    assert cmn.drop_file(path) == "face_cm"
+    assert opened == [path]
+    assert cmn.get_node_data("face_cm")["tabs"] == ["Extra"]
+
+
 def _pkr_file(tmp_path, tabs=("Body", "Face")):
     from mgear.anim_picker.handlers import file_handlers
 
