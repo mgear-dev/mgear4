@@ -56,7 +56,8 @@ def get_controls_with_children(controls):
     nodes = list(controls)
     for ctl in controls:
         nodes.extend(get_all_tag_children(ctl))
-    return cmds.ls(nodes, long=True)
+    # Maya 2024 ls keeps a node given twice, later versions drop it
+    return list(dict.fromkeys(cmds.ls(nodes, long=True)))
 
 
 def getWalkTag(node):

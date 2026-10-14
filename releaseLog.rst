@@ -68,6 +68,7 @@ Release Log
 	* Core: Clear Baked Spring nodes: Fix IndexError on springs without pairBlend
 	* Core: Viewport Menu: Fix IK/FK switch of components sharing a blend, X-Ray toggle acting on the selection, menu failing on non-enum ref attributes, and the Update Selected Components Type label
 	* Core: Viewport Menu: Mirror/Flip all below use every selected control and no longer cancel left/right pairs
+	* Core: Viewport Menu: Fix Mirror/Flip all below acting twice on some controls in Maya 2024
 	* PyMaya: PyNode raises MayaNodeError again for missing nodes
 	* PyMaya: A missing node error is also a TypeError, as in PyMEL, so old fallbacks that catch TypeError work again
 	* Rigbits: Add Joint, Add Blended Joint and Add Support Joint work in scenes without rig_deformers_grp or jnt_org
