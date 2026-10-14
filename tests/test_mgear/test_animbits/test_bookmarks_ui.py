@@ -14,17 +14,20 @@ def _show_in_tools_click(chip, monkeypatch):
     from mgear.vendor.Qt import QtCore
     from mgear.vendor.Qt import QtWidgets
 
-    def fake_exec(menu, *args):
-        for action in menu.actions():
-            if action.menu() and action.text() == "Show In Tools":
-                action.menu().actions()[0].trigger()
-        return None
+    # A Python subclass: patching exec_ on the PySide2 class has no effect,
+    # so the real menu would open (and block when run alone)
+    class FakeMenu(QtWidgets.QMenu):
+        def exec_(self, *args):
+            for action in self.actions():
+                if action.menu() and action.text() == "Show In Tools":
+                    action.menu().actions()[0].trigger()
+            return None
 
     class ContextEvent(object):
         def globalPos(self):
             return QtCore.QPoint(0, 0)
 
-    monkeypatch.setattr(QtWidgets.QMenu, "exec_", fake_exec)
+    monkeypatch.setattr(QtWidgets, "QMenu", FakeMenu)
     chip.contextMenuEvent(ContextEvent())
 
 
