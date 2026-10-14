@@ -547,6 +547,20 @@ class GraphicViewWidget(QtWidgets.QGraphicsView):
         if record is not None:
             record["label"] = label
             self._undo_stack.push(record)
+            self._refresh_item_flags()
+
+    def _refresh_item_flags(self):
+        """Refresh the cached "any item with X?" gates after items changed.
+
+        Re-anchors pinned items and re-applies visibility conditions, so a
+        pasted, duplicated or restored item behaves like a loaded one.
+        Pinned items save their rest position, so re-anchoring them does not
+        count as an edit.
+        """
+        self._recompute_pinned_flag()
+        self._recompute_conditional_flag()
+        self._update_pinned_items()
+        self.refresh_item_visibility()
 
     def record_edit(self, label, mutate_fn):
         """Run ``mutate_fn`` then commit its changes as one undo step.
@@ -618,8 +632,7 @@ class GraphicViewWidget(QtWidgets.QGraphicsView):
     def _after_undo_redo(self):
         """Refresh derived state and re-baseline after an undo / redo."""
         self._reset_undo_baseline()
-        self._recompute_conditional_flag()
-        self.refresh_item_visibility()
+        self._refresh_item_flags()
         self._notify_item_selection()
         self.viewport().update()
 
@@ -1599,12 +1612,9 @@ class GraphicViewWidget(QtWidgets.QGraphicsView):
                 ctrl = self.add_picker_item(event=None)
                 ctrl.set_data(data)
                 ctrl.set_selected_state(True)
-            # A pasted item may carry a visibility condition copied from
-            # another picker, so refresh the "any conditioned item?" gate and
-            # re-apply.
-            self._recompute_conditional_flag()
-            self.refresh_item_visibility()
 
+        # A pasted item may be pinned or carry a visibility condition copied
+        # from another picker: the commit refreshes those gates.
         self.record_edit("Paste items", _do)
 
     def toggle_all_handles_event(self, event=None):

@@ -194,6 +194,32 @@ def test_offset_change_is_a_real_edit(picker):
     assert item.get_data()["position"] == PINNED_POS
 
 
+def test_pinned_flag_follows_item_edits(picker):
+    """Delete, paste, undo and redo keep the "any pinned item?" gate right."""
+    win = picker()
+    view = win.tab_area.active_view()
+    item = _pinned_item(win)
+    view.scene().clear_picker_selection()
+    item.set_selected_state(True)
+    view.copy_event()
+
+    view.record_edit("Delete items", item.remove)
+    assert not view._has_pinned_items
+
+    view.paste_event()
+    assert view._has_pinned_items
+    pasted = _pinned_item(win)
+    live_before = (pasted.x(), pasted.y())
+    _navigate(view)
+    # The pasted pin is relocked to its viewport anchor like a loaded one
+    assert (pasted.x(), pasted.y()) != live_before
+
+    view.undo()
+    assert not view._has_pinned_items
+    view.redo()
+    assert view._has_pinned_items
+
+
 # =============================================================================
 # Save guard ---
 
