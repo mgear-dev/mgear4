@@ -150,6 +150,43 @@ def test_settings_mixin_round_trip(clean_settings):
     assert second.nodes.nodes() == ["|a"]
 
 
+def test_settings_mixin_writes_file_once_per_burst(clean_settings):
+    """A slider drag stores every value but writes the file once."""
+    import time
+
+    from mgear.vendor.Qt import QtCore
+    from mgear.vendor.Qt import QtWidgets
+    from mgear.core import pyqt
+
+    class Tool(QtWidgets.QWidget, pyqt.SettingsMixin):
+        SETTINGS_SYNC_DELAY = 20
+
+        def __init__(self):
+            super(Tool, self).__init__()
+            pyqt.SettingsMixin.__init__(self)
+            self.slider = QtWidgets.QSlider(QtCore.Qt.Horizontal)
+            self.slider.setRange(0, 100)
+            self.user_settings = {_KEY_PREFIX + "burst": (self.slider, 0)}
+
+    tool = Tool()
+    tool.load_settings()
+    syncs = []
+    real_sync = tool.settings.sync
+    tool.settings.sync = lambda: (syncs.append(1), real_sync())
+
+    for value in range(1, 51):
+        tool.slider.setValue(value)
+    # Stored at once: another settings object of the process sees it
+    assert int(pyqt.get_user_settings().value(_KEY_PREFIX + "burst")) == 50
+    assert syncs == []
+
+    deadline = time.time() + 2.0
+    while not syncs and time.time() < deadline:
+        QtWidgets.QApplication.processEvents()
+        time.sleep(0.005)
+    assert syncs == [1]
+
+
 def test_float_slider_spin_box(qt_app):
     from mgear.core import widgets
 

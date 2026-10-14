@@ -10,6 +10,7 @@ import os
 import re
 import tempfile
 import traceback
+from functools import partial
 from html import escape
 import maya.OpenMayaUI as omui
 import mgear.pymaya as pm
@@ -772,7 +773,9 @@ class SettingsMixin(object):
     """Save and restore widget values in the mGear user settings.
 
     Fill ``self.user_settings`` with ``{key: (widget, default)}`` and call
-    :meth:`load_settings`; values are then saved on every change.
+    :meth:`load_settings`; values are then saved on every change. The file
+    is written once the values stop changing (``SETTINGS_SYNC_DELAY``);
+    call :meth:`save_settings` to write everything at once.
 
     Supported widgets: check boxes, actions and checkable buttons, combo
     boxes, line edits, spin boxes and sliders, plus any widget that
@@ -782,9 +785,13 @@ class SettingsMixin(object):
     ``widgets.NodeListWidget``).
     """
 
+    # Delay before writing changed widget values to disk, in milliseconds
+    SETTINGS_SYNC_DELAY = 500
+
     def __init__(self, parent=None):
         self.settings = self.create_qsettings_object()
         self.user_settings = {}
+        self._settings_sync_timer = None
 
     def create_qsettings_object(self):
         return get_user_settings()
@@ -793,7 +800,7 @@ class SettingsMixin(object):
         for key, (widget, default_value) in self.user_settings.items():
             value = self.settings.value(key, defaultValue=default_value)
             self.set_widget_value(widget, value, default_value)
-            self._connect_widget_signal(widget)
+            self._connect_widget_signal(widget, key)
 
     def load_json_setting(self, key, default):
         """Return a JSON value stored in the settings.
@@ -878,17 +885,46 @@ class SettingsMixin(object):
         elif isinstance(widget, _VALUE_WIDGETS):
             widget.setValue(_to_number(value, default, int))
 
-    def _connect_widget_signal(self, widget):
+    def _save_widget_setting(self, key, widget, *args):
+        """Store one widget's value and schedule the write to disk.
+
+        The value is in the settings object at once, so other settings
+        objects of the process see it. Writing the file waits until the
+        values stop changing, so a slider drag writes it once.
+
+        Args:
+            key (str): Settings key.
+            widget (QtWidgets.QWidget): The changed widget.
+            *args: Signal arguments, ignored.
+        """
+        self.settings.setValue(key, self.get_widget_value(widget))
+        # getattr: subclasses may set self.settings without calling __init__
+        timer = getattr(self, "_settings_sync_timer", None)
+        if timer is None:
+            timer = QtCore.QTimer()
+            timer.setSingleShot(True)
+            timer.setInterval(self.SETTINGS_SYNC_DELAY)
+            timer.timeout.connect(self._sync_settings)
+            self._settings_sync_timer = timer
+        timer.start()
+
+    def _sync_settings(self):
+        self.settings.sync()
+
+    def _connect_widget_signal(self, widget, key=None):
+        save = self.save_settings
+        if key is not None:
+            save = partial(self._save_widget_setting, key, widget)
         if _has_settings_protocol(widget):
-            widget.settings_signal().connect(self.save_settings)
+            widget.settings_signal().connect(save)
         elif _is_toggle_widget(widget):
-            widget.toggled.connect(self.save_settings)
+            widget.toggled.connect(save)
         elif isinstance(widget, QtWidgets.QComboBox):
-            widget.currentIndexChanged.connect(self.save_settings)
+            widget.currentIndexChanged.connect(save)
         elif isinstance(widget, QtWidgets.QLineEdit):
-            widget.textChanged.connect(self.save_settings)
+            widget.textChanged.connect(save)
         elif isinstance(widget, _VALUE_WIDGETS):
-            widget.valueChanged.connect(self.save_settings)
+            widget.valueChanged.connect(save)
 
 
 _VALUE_WIDGETS = (
