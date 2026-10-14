@@ -57,6 +57,8 @@ class BuildLogWindow(
 
     TOOL_NAME = "ShifterBuildLog"
     TOOL_TITLE = "Shifter Build Log"
+    # Pause in the search typing before the log is filtered, in milliseconds
+    SEARCH_DELAY = 150
 
     _instance = None
 
@@ -77,6 +79,12 @@ class BuildLogWindow(
         self._flush_timer = QtCore.QTimer(self)
         self._flush_timer.setSingleShot(True)
         self._flush_timer.timeout.connect(self._flush_pending)
+
+        # The search re-renders the log once typing pauses, not per key
+        self._search_timer = QtCore.QTimer(self)
+        self._search_timer.setSingleShot(True)
+        self._search_timer.setInterval(self.SEARCH_DELAY)
+        self._search_timer.timeout.connect(self._apply_filters)
 
         # Window setup
         self.setObjectName(self.TOOL_NAME)
@@ -324,6 +332,7 @@ class BuildLogWindow(
     def _apply_filters(self):
         """Rebuild the entire log view from stored records."""
         self._flush_timer.stop()
+        self._search_timer.stop()
         self._pending_records = []
         self.log_view.clear()
 
@@ -365,7 +374,7 @@ class BuildLogWindow(
             text (str): Current search text.
         """
         self._search_text = text.lower().strip()
-        self._apply_filters()
+        self._search_timer.start()
 
     # =================================================================
     # FONT SIZE
