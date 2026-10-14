@@ -289,6 +289,9 @@ def import_partial_guide(
                         rplStr=[crv, ncrv],
                         model=rig.guide.model)
 
+        # Drawing leaves the last component guide selected
+        pm.select(clear=True)
+
 
 def import_guide_template(filePath=None, conf=None, **kwargs):
     """Import a guide template

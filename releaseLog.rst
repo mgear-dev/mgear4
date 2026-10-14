@@ -74,6 +74,7 @@ Release Log
 	* Core: File Drop: Fix paths with quotes and upper-case extensions
 	* Shifter: Build Log: Clear the log at the start of every build and keep it when reopening the window
 	* Shifter: Custom Step: Groups with many steps scroll smoothly and their last steps are reachable
+	* Shifter: Guide: Importing a guide template no longer leaves the last component selected
 	* Anim Picker: Fix Load Picker in scenes without namespaces
 	* Anim Picker: Fix SVG badge size, default opacity of new vector items and the dead "Toggle handles" entry
 	* Anim Picker: Fix the save prompt on close showing in anim mode, and pinned items reporting unsaved changes after a pan or zoom
