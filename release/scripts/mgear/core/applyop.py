@@ -1111,13 +1111,13 @@ def _world_matrix(node):
     return om.MMatrix(cmds.getAttr(node + ".worldMatrix[0]"))
 
 
-def _connect_decomposed(matrix_plug, driven, channels):
+def connect_decomposed(matrix_plug, driven, channels="srt"):
     """Drive the channels of a transform from a matrix plug.
 
     Args:
         matrix_plug (str): Matrix output plug.
         driven (str): Driven transform.
-        channels (str): Any of "s", "r" and "t".
+        channels (str, optional): Any of "s", "r", "t" and "h" (shear).
 
     Returns:
         str: The decomposeMatrix node.
@@ -1126,7 +1126,12 @@ def _connect_decomposed(matrix_plug, driven, channels):
         "decomposeMatrix", name=driven.split("|")[-1] + "_decompMatrix"
     )
     cmds.connectAttr(matrix_plug, decompose + ".inputMatrix")
-    for channel, plug in (("t", "translate"), ("r", "rotate"), ("s", "scale")):
+    for channel, plug in (
+        ("t", "translate"),
+        ("r", "rotate"),
+        ("s", "scale"),
+        ("h", "shear"),
+    ):
         if channel in channels:
             cmds.connectAttr(
                 "{}.output{}".format(decompose, plug.capitalize()),
@@ -1134,6 +1139,10 @@ def _connect_decomposed(matrix_plug, driven, channels):
                 force=True,
             )
     return decompose
+
+
+# backward compatibility: the private name used before connect_decomposed
+_connect_decomposed = connect_decomposed
 
 
 def _offset_matrix(driver, driven_matrix):
@@ -1171,7 +1180,7 @@ def matrix_constraint(driver, driven, channels="srt", offset=False):
         driven + ".parentInverseMatrix[0]",
         "{}.matrixIn[{}]".format(mult, index + 1),
     )
-    _connect_decomposed(mult + ".matrixSum", driven, channels)
+    connect_decomposed(mult + ".matrixSum", driven, channels)
     return mult
 
 
@@ -1255,7 +1264,7 @@ def matrix_blend_constraint(
     )
     cmds.connectAttr(blend + ".matrixSum", mult + ".matrixIn[0]")
     cmds.connectAttr(driven + ".parentInverseMatrix[0]", mult + ".matrixIn[1]")
-    _connect_decomposed(mult + ".matrixSum", driven, channels)
+    connect_decomposed(mult + ".matrixSum", driven, channels)
     return blend
 
 
@@ -1394,7 +1403,7 @@ def surface_slide(driver, slider, slide_surface, offset_attr=None):
     mult = cmds.createNode("multMatrix", name=name + "_multMatrix")
     cmds.connectAttr(matrix + ".output", mult + ".matrixIn[0]")
     cmds.connectAttr(slider + ".parentInverseMatrix[0]", mult + ".matrixIn[1]")
-    _connect_decomposed(mult + ".matrixSum", slider, "rt")
+    connect_decomposed(mult + ".matrixSum", slider, "rt")
     nodes.update(
         driver_up=driver_up, x_axis=x_axis, y_axis=y_axis, matrix=matrix, mult=mult
     )

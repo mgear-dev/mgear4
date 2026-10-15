@@ -5,8 +5,11 @@ Builds, for a :mod:`chain` tree of controls:
 - ``sprg_root`` transforms mirroring the control hierarchy, receiving the
   control animation (the target pose is the pure animation, never the
   simulated parents);
-- pose holders next to the roots, holding a stored or keyable pose;
-- a target joint chain following the roots (or the pose holders);
+- pose holders, a chain mirroring the roots, holding a stored or keyable
+  pose;
+- source transforms, a chain mirroring the roots, blending in local space
+  between the roots and the pose holders;
+- a target joint chain following the sources;
 - a sim joint chain, driven by a solver attached per section;
 - parent constraints from the target and sim joints to the controls,
   their weights blended by an intensity plug.
@@ -19,6 +22,7 @@ import maya.api.OpenMaya as om2
 from maya import cmds
 
 from mgear.core import anim_utils
+from mgear.core import applyop
 from mgear.core import dag
 from mgear.core import node_remap
 from mgear.core import transform
@@ -176,31 +180,103 @@ def _build_roots(tree, prefix):
     return roots
 
 
-def _build_poses(roots, prefix):
-    """Create the pose holders, next to the spring roots.
+def _build_mirror(
+    tree, roots, prefix, suffix, node_type=None, attrs=transform.LOCAL_TRANSFORM_ATTRS
+):
+    """Create a tree of nodes mirroring the spring roots.
 
-    A pose holder takes its root's translation and keeps a static, or
-    keyable, rotation: the stored target pose.
+    The tree root's node goes under the root control's parent. Child nodes
+    go under their parent's node, through an offset group holding the
+    local matrix of their root's offset group, so each node has the same
+    local space as its root.
 
     Args:
+        tree (chain.ChainNode): The root node.
+        roots (dict): ``{control: spring root}``.
+        prefix (str): Name prefix.
+        suffix (str): Name suffix, after ``sprg_``.
+        node_type (str, optional): Node type. Default: the root's type.
+        attrs (tuple, optional): Local transform attributes copied from
+            the roots, see :func:`transform.copy_local_transform`.
+
+    Returns:
+        dict: ``{control: node long name}``.
+    """
+    nodes = {}
+    for node in tree.walk():
+        control = node.name
+        root = roots[control]
+        base = "{}_{}_sprg_{}".format(prefix, node_remap.flat_name(control), suffix)
+        root_parent = cmds.listRelatives(root, parent=True, fullPath=True)
+        if node.parent is None:
+            parent = root_parent[0] if root_parent else None
+        else:
+            # local matrix: the parent node may not be at its root's pose yet
+            parent = create_dag_node(
+                "transform", base + "_off", nodes[node.parent.name]
+            )
+            cmds.xform(
+                parent,
+                objectSpace=True,
+                matrix=cmds.xform(root_parent[0], query=True, matrix=True),
+            )
+        mirror = create_dag_node(node_type or cmds.nodeType(root), base, parent)
+        transform.copy_local_transform(root, mirror, attrs)
+        nodes[control] = mirror
+    return nodes
+
+
+def _build_poses(tree, roots, prefix):
+    """Create the pose holders, a chain mirroring the spring roots.
+
+    A pose holder takes its root's translation and keeps a static, or
+    keyable, rotation: the stored target pose. Rotating a pose holder
+    carries the pose holders below it.
+
+    Args:
+        tree (chain.ChainNode): The root node.
         roots (dict): ``{control: spring root}``.
         prefix (str): Name prefix.
 
     Returns:
         dict: ``{control: pose holder long name}``.
     """
-    poses = {}
-    for control, root in roots.items():
-        parent = cmds.listRelatives(root, parent=True, fullPath=True)
-        pose = create_dag_node(
-            cmds.nodeType(root),
-            "{}_{}_sprg_pose".format(prefix, node_remap.flat_name(control)),
-            parent[0] if parent else None,
-        )
-        transform.copy_local_transform(root, pose)
-        cmds.connectAttr(root + ".translate", pose + ".translate")
-        poses[control] = pose
+    poses = _build_mirror(tree, roots, prefix, "pose")
+    for control, pose in poses.items():
+        cmds.connectAttr(roots[control] + ".translate", pose + ".translate")
     return poses
+
+
+def _build_sources(tree, roots, poses, prefix, pose_weight_plug):
+    """Create the target pose sources, a chain mirroring the spring roots.
+
+    Each source takes the blend, in local space, of its root's matrix (the
+    animation) and its pose holder's matrix (the stored pose), so the bone
+    lengths hold at every weight.
+
+    Args:
+        tree (chain.ChainNode): The root node.
+        roots (dict): ``{control: spring root}``.
+        poses (dict): ``{control: pose holder}``.
+        prefix (str): Name prefix.
+        pose_weight_plug (str): 0-1 plug blending the sources between the
+            animation (0) and the pose holders (1).
+
+    Returns:
+        dict: ``{control: source long name}``.
+    """
+    sources = _build_mirror(
+        tree, roots, prefix, "src", "transform", ("offsetParentMatrix",)
+    )
+    for control, source in sources.items():
+        blend = cmds.createNode(
+            "blendMatrix", name=source.split("|")[-1] + "_blendMatrix"
+        )
+        cmds.connectAttr(roots[control] + ".matrix", blend + ".inputMatrix")
+        cmds.connectAttr(poses[control] + ".matrix", blend + ".target[0].targetMatrix")
+        cmds.connectAttr(pose_weight_plug, blend + ".target[0].weight")
+        applyop.connect_decomposed(blend + ".outputMatrix", source, "srth")
+    return sources
 
 
 def build(
@@ -220,8 +296,8 @@ def build(
         prefix (str): Name prefix of the created nodes.
         intensity_plug (str): 0-1 plug blending each control between its
             target joints (0, the animation) and its sim joints (1).
-        pose_weight_plug (str): 0-1 plug blending the target joints
-            between the animation (0) and the pose holders (1).
+        pose_weight_plug (str): 0-1 plug blending the target joints, in
+            local space, between the animation (0) and the pose holders (1).
         policy (str, optional): Branch-root policy, see :mod:`chain`.
         primary (int, optional): Branch followed with the primary policy.
         tip_length (float, optional): Virtual tip length factor.
@@ -229,8 +305,8 @@ def build(
             target_bone)`` called for each section to drive the sim bone.
 
     Returns:
-        dict: ``group`` (the proxy group), ``roots`` and ``poses``
-        (control: node), ``target`` and
+        dict: ``group`` (the proxy group), ``roots``, ``poses`` and
+        ``sources`` (control: node), ``target`` and
         ``sim`` (joint key: joint), ``sections`` (plan sections) and
         ``constraints`` (control: constraint).
     """
@@ -254,7 +330,8 @@ def build(
         dag_parent[0] if dag_parent else None,
     )
     roots = _build_roots(tree, prefix)
-    poses = _build_poses(roots, prefix)
+    poses = _build_poses(tree, roots, prefix)
+    sources = _build_sources(tree, roots, poses, prefix, pose_weight_plug)
     target = _build_joints(
         prefix + "_target", specs, positions, tips, group, up_vectors
     )
@@ -262,24 +339,19 @@ def build(
     for joint in list(target.values()) + list(sim.values()):
         cmds.setAttr(joint + ".drawStyle", 2)
 
-    # one reverse node per weight plug, shared by every constraint
+    # one reverse node, shared by every control constraint
     reverse = cmds.createNode("reverse", name=prefix + "_sprg_rev")
-    cmds.connectAttr(pose_weight_plug, reverse + ".inputX")
-    cmds.connectAttr(intensity_plug, reverse + ".inputY")
-    pose_weights = (reverse + ".outputX", pose_weight_plug)
-    intensity_weights = (reverse + ".outputY", intensity_plug)
+    cmds.connectAttr(intensity_plug, reverse + ".inputX")
 
-    # target pose: the joints follow the animated roots or the poses. The
-    # sim joints take the target translation, so animated lengths too
+    # target pose: the joints follow the sources, blending the animation
+    # and the poses. The sim joints take the target translation, so
+    # animated lengths too
     for spec in specs:
         if spec.key[0] == "tip":
             continue
-        constraint = cmds.parentConstraint(
-            [roots[spec.control], poses[spec.control]],
-            target[spec.key],
-            maintainOffset=True,
-        )[0]
-        _connect_weights(constraint, 1, *pose_weights)
+        cmds.parentConstraint(
+            sources[spec.control], target[spec.key], maintainOffset=True
+        )
         if spec.parent is not None:
             cmds.connectAttr(
                 target[spec.key] + ".translate", sim[spec.key] + ".translate"
@@ -304,12 +376,13 @@ def build(
             skipTranslate=skips[0] or "none",
             skipRotate=skips[1] or "none",
         )[0]
-        _connect_weights(constraint, len(keys), *intensity_weights)
+        _connect_weights(constraint, len(keys), reverse + ".outputX", intensity_plug)
         constraints[control] = constraint
     return {
         "group": group,
         "roots": roots,
         "poses": poses,
+        "sources": sources,
         "target": target,
         "sim": sim,
         "sections": sections,

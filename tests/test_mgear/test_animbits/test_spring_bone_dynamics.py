@@ -1,5 +1,6 @@
 """mgear.animbits.spring_manager Bone Dynamics backend, proxies and solver test"""
 
+import math
 import sys
 
 import pytest
@@ -13,6 +14,18 @@ def _flat(sampled):
     return [
         value for frame in sorted(sampled) for item in sampled[frame] for value in item
     ]
+
+
+def _weight_holder(cmds, intensity=0.0, pose=0.0):
+    """Create a node holding the intensity and pose weight plugs.
+
+    Returns:
+        tuple: The intensity and pose weight plugs.
+    """
+    holder = cmds.createNode("transform", name="holder")
+    cmds.addAttr(holder, longName="intensity", defaultValue=intensity)
+    cmds.addAttr(holder, longName="pose", defaultValue=pose)
+    return holder + ".intensity", holder + ".pose"
 
 
 # ---------------------------------------------------------------------
@@ -30,12 +43,9 @@ def test_proxy_follows_animation_at_zero_intensity(scene):
     frames = (1, 5, 10)
     before = _flat(simulate(cmds, controls, frames, "matrix"))
 
-    holder = cmds.createNode("transform", name="holder")
-    cmds.addAttr(holder, longName="intensity", defaultValue=0)
-    cmds.addAttr(holder, longName="pose", defaultValue=0)
     tree = chain.build_tree(root, proxy.control_children)
     assert [node.name for node in tree.walk()][:2] == [root, branches[0][0]]
-    rig = proxy.build(tree, "skirt", holder + ".intensity", holder + ".pose")
+    rig = proxy.build(tree, "skirt", *_weight_holder(cmds))
     after = _flat(simulate(cmds, controls, frames, "matrix"))
     assert after == pytest.approx(before, abs=1e-4)
     # proxy joints: clean orients, xyz, no rotate
@@ -51,17 +61,80 @@ def test_branch_policy_drivers(scene):
 
     cmds = scene
     root, _ = build_skirt(cmds)
-    holder = cmds.createNode("transform", name="holder")
-    cmds.addAttr(holder, longName="intensity", defaultValue=1)
-    cmds.addAttr(holder, longName="pose", defaultValue=0)
     tree = chain.build_tree(root, proxy.control_children)
     rig = proxy.build(
-        tree, "skirt", holder + ".intensity", holder + ".pose", policy=chain.AVERAGE
+        tree, "skirt", *_weight_holder(cmds, intensity=1.0), policy=chain.AVERAGE
     )
     constraint = rig["constraints"][root]
     # average: both branch bones (target and sim) drive the root control
     targets = cmds.parentConstraint(constraint, query=True, targetList=True)
     assert len(targets) == 4
+
+
+def _tail_proxy(cmds, pose_weight, root_rotate_z=None):
+    """Build the proxies of the tail rig at frame 1, with this pose weight.
+
+    ``root_rotate_z`` keys the first control from 0 (frame 1) to that value
+    (frame 10) before the build.
+    """
+    from mgear.animbits.spring_manager import chain
+    from mgear.animbits.spring_manager import proxy
+
+    _, controls = build_tail_rig(cmds)
+    if root_rotate_z is not None:
+        cmds.setKeyframe(controls[0], attribute="rz", time=1, value=0)
+        cmds.setKeyframe(controls[0], attribute="rz", time=10, value=root_rotate_z)
+    cmds.currentTime(1)
+    tree = chain.build_tree(controls[0], proxy.control_children)
+    rig = proxy.build(tree, "tail", *_weight_holder(cmds, pose=pose_weight))
+    return rig, controls
+
+
+def _target_positions(cmds, rig, controls, frame):
+    """World positions of the target bone joints at a frame, in control order."""
+    joints = [rig["target"][("bone", control)] for control in controls]
+    return simulate(cmds, joints, (frame,))[frame]
+
+
+def _bone_lengths(positions):
+    return [
+        sum((b - a) ** 2 for a, b in zip(start, end)) ** 0.5
+        for start, end in zip(positions, positions[1:])
+    ]
+
+
+def test_pose_controls_form_a_chain(scene):
+    cmds = scene
+    rig, controls = _tail_proxy(cmds, 1.0)
+    cmds.setAttr(rig["poses"][controls[0]] + ".rotateZ", 45)
+    positions = _target_positions(cmds, rig, controls, 1)
+    # rotating the first pose control carries the rest of the chain
+    cos, sin = math.cos(math.radians(45)), math.sin(math.radians(45))
+    assert positions[1] == pytest.approx([3 * cos, 10 + 3 * sin, 0], abs=1e-3)
+    assert positions[2] == pytest.approx([6 * cos, 10 + 6 * sin, 0], abs=1e-3)
+    assert _bone_lengths(positions) == pytest.approx([3, 3], abs=1e-3)
+
+
+def test_pose_blend_in_local_space(scene):
+    cmds = scene
+    rig, controls = _tail_proxy(cmds, 0.5)
+    # frame 10: tail1 animated to 30 degrees, its pose holder at 0
+    positions = _target_positions(cmds, rig, controls, 10)
+    cos, sin = math.cos(math.radians(15)), math.sin(math.radians(15))
+    assert positions[0] == pytest.approx([20, 10, 0], abs=1e-3)
+    assert positions[1] == pytest.approx([23, 10, 0], abs=1e-3)
+    assert positions[2] == pytest.approx([23 + 3 * cos, 10 + 3 * sin, 0], abs=1e-3)
+    assert _bone_lengths(positions) == pytest.approx([3, 3], abs=1e-3)
+
+
+def test_stored_pose_holds_its_shape(scene):
+    cmds = scene
+    rig, controls = _tail_proxy(cmds, 1.0, root_rotate_z=20)
+    positions = _target_positions(cmds, rig, controls, 10)
+    # the stored pose is straight: the animated root and tail1 are ignored
+    assert positions[0] == pytest.approx([20, 10, 0], abs=1e-3)
+    assert positions[1] == pytest.approx([23, 10, 0], abs=1e-3)
+    assert positions[2] == pytest.approx([26, 10, 0], abs=1e-3)
 
 
 def test_solver_defaults(scene):
@@ -135,6 +208,7 @@ def test_bdn_create_simulate_delete(bdn):
     assert registry.list_springs() == []
     assert not cmds.ls(type="boneDynamicsNode")
     assert not cmds.ls("*sprg*")
+    assert not cmds.ls(type=("blendMatrix", "decomposeMatrix"))
     assert cmds.listConnections(controls[1] + ".rz", source=True)
     assert not cmds.attributeQuery("springDamping", node=controls[0], exists=True)
     # the shared solver stays

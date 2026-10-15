@@ -7,6 +7,9 @@ Release Log
 **Enhancements**
 	* Rigbits: Lips Rigger 3.0: Option to turn off the joints rotating with the lip curve, also in the lips_01 component
 
+**Bug Fix**
+	* Animbits: Spring Manager: Bone Dynamics Target Controls now pose the chain as a chain and the pose blend keeps the bone lengths. Existing springs need a rebuild
+
 
 5.4.0
 ------

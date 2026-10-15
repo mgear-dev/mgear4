@@ -76,3 +76,22 @@ def test_legacy_names(cmds):
     constraints.matrixBlendConstraint([parent, other], out, [0.5, 0.5], "t", host=host)
     assert cmds.attributeQuery("pCns_C_parent_wtWeight", node="host", exists=True)
     assert cmds.getAttr("out.translateY") == pytest.approx(0.5)
+
+
+def test_connect_decomposed_channels(cmds):
+    from mgear.core import applyop
+
+    driver = cmds.createNode("transform", name="driver")
+    cmds.setAttr(driver + ".translate", 1, 2, 3)
+    cmds.setAttr(driver + ".rotateZ", 30)
+    cmds.setAttr(driver + ".shearXY", 0.5)
+    driven = cmds.createNode("transform", name="driven")
+    decompose = applyop.connect_decomposed(driver + ".matrix", driven, "rh")
+    assert cmds.nodeType(decompose) == "decomposeMatrix"
+    assert cmds.getAttr(driven + ".rotateZ") == pytest.approx(30)
+    assert cmds.getAttr(driven + ".shearXY") == pytest.approx(0.5)
+    # channels not asked for stay unconnected
+    assert cmds.getAttr(driven + ".translate")[0] == pytest.approx((0, 0, 0))
+    assert not cmds.listConnections(driven + ".scale", source=True)
+    # the private name still works
+    assert applyop._connect_decomposed is applyop.connect_decomposed
