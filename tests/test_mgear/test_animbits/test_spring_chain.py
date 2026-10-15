@@ -71,6 +71,29 @@ def test_mid_chain_branch_and_ratio(chain):
     assert ratios[("bone", "c")] == pytest.approx(0.5)
 
 
+def test_joint_ratios_continuous_on_unequal_branches(chain):
+    # root with a three-control branch and a one-control branch
+    hierarchy = {"r": ["l0", "s0"], "l0": ["l1"], "l1": ["l2"]}
+    tree = chain.build_tree("r", _children(hierarchy))
+    _, sections, _ = chain.plan(tree)
+    by_bone = {s.bone: s for s in sections}
+    # the short branch's joint has one ratio for both sections meeting there
+    assert by_bone[("branch", "r", 1)].ratio == 0.0
+    assert by_bone[("branch", "r", 1)].end_ratio == pytest.approx(0.5)
+    assert by_bone[("bone", "s0")].ratio == pytest.approx(0.5)
+    assert by_bone[("bone", "s0")].end_ratio == 1.0
+    # every section ends at the ratio its child sections start
+    for section in sections:
+        for child in sections:
+            if child.bone == section.end or (
+                section.end[0] == "pivot" and child.bone[1] == section.end[1]
+            ):
+                assert child.ratio == pytest.approx(section.end_ratio)
+    # the long branch is unchanged
+    long_ratios = [by_bone[key].ratio for key in (("bone", "l0"), ("bone", "l1"))]
+    assert long_ratios == pytest.approx([0.25, 0.5])
+
+
 def test_split_and_data(chain):
     hierarchy = {"t0": ["t1"], "t1": ["a0", "b0"], "a0": ["a1"]}
     tree = chain.build_tree("t0", _children(hierarchy), exclude={"b0"})

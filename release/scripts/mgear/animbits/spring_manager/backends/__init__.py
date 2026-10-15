@@ -350,6 +350,27 @@ class SpringBackend(object):
         """
         raise NotImplementedError
 
+    def preset_extras(self, spring):
+        """Return data of a spring saved in preset entries besides values.
+
+        Saved in rig and values presets, e.g. a radius profile.
+
+        Args:
+            spring (registry.Spring): The spring.
+
+        Returns:
+            dict: Entry keys and values, empty by default.
+        """
+        return {}
+
+    def apply_preset_extras(self, springs, entry):
+        """Apply the :meth:`preset_extras` data of a preset entry to springs.
+
+        Args:
+            springs (list): :class:`registry.Spring` records.
+            entry (dict): Preset ``springs`` entry.
+        """
+
 
 # -----------------------------------------------------------------------------
 # Parameter values

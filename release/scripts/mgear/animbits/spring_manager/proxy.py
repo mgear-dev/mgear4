@@ -91,6 +91,26 @@ def tip_position(tree_node, tip_length=1.0):
 # -----------------------------------------------------------------------------
 
 
+def joint_name(prefix, key, control):
+    """Return the name of a proxy joint, as :func:`build` creates it.
+
+    Args:
+        prefix (str): Chain prefix, e.g. ``"<root>_sim"``.
+        key (tuple): :class:`chain.JointSpec` key.
+        control (str): The control the joint is placed at.
+
+    Returns:
+        str: The joint name.
+    """
+    suffix = "_".join(str(part) for part in key[2:])
+    return "{}_{}_{}{}_jnt".format(
+        prefix,
+        node_remap.flat_name(control),
+        key[0],
+        "_" + suffix if suffix else "",
+    )
+
+
 def _build_joints(prefix, specs, positions, tips, parent, up_vectors):
     """Create a joint chain from :func:`chain.plan` joint specs.
 
@@ -111,13 +131,7 @@ def _build_joints(prefix, specs, positions, tips, parent, up_vectors):
     joints = {}
     for spec in specs:
         kind = spec.key[0]
-        suffix = "_".join(str(part) for part in spec.key[2:])
-        name = "{}_{}_{}{}_jnt".format(
-            prefix,
-            node_remap.flat_name(spec.control),
-            kind,
-            "_" + suffix if suffix else "",
-        )
+        name = joint_name(prefix, spec.key, spec.control)
         joint_parent = joints[spec.parent] if spec.parent else parent
         joint = create_dag_node("joint", name, joint_parent)
         position = tips[spec.control] if kind == "tip" else positions[spec.control]

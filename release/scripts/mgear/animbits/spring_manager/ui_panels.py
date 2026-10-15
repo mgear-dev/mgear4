@@ -28,6 +28,7 @@ from . import chain
 from . import colliders
 from . import constants
 from . import fit
+from . import radius_profile
 from . import registry
 from . import solver
 from .backends import bone_dynamics
@@ -652,7 +653,14 @@ class CollidersPanel(QtWidgets.QWidget):
         self.fit_radius_btn.setToolTip(
             "Chain volume: sets Root Radius, Tip Radius and Bone As Capsule "
             "of the springs selected in the list (or by their controls) "
-            "from the mesh thickness"
+            "from the mesh thickness. With Profile, each joint's radius "
+            "follows the mesh too"
+        )
+        self.clear_profile_btn = QtWidgets.QPushButton("Clear Profile")
+        self.clear_profile_btn.setToolTip(
+            "Back to the Root / Tip Radius gradient: clears the radius "
+            "profile of the springs selected in the list (or by their "
+            "controls)"
         )
         self.method_combo = QtWidgets.QComboBox()
         for method, label in FIT_METHOD_LABELS:
@@ -682,6 +690,19 @@ class CollidersPanel(QtWidgets.QWidget):
         self.end_spheres_cb.setChecked(True)
         self.end_spheres_cb.setToolTip(
             "Fit Capsules also adds a sphere at each chain end (head, hands)"
+        )
+        self.profile_cb = QtWidgets.QCheckBox("Profile")
+        self.profile_cb.setChecked(True)
+        self.profile_cb.setToolTip(
+            "Fit Bone Radius also fits a factor per joint, so the bones "
+            "follow the mesh thickness. Root / Tip Radius still scale it"
+        )
+        self.smooth_spin = QtWidgets.QSpinBox()
+        self.smooth_spin.setRange(0, 10)
+        self.smooth_spin.setValue(radius_profile.SMOOTH)
+        self.smooth_spin.setToolTip(
+            "Smoothing passes of the radius profile along the chain. "
+            "0: the raw measures"
         )
 
         # list and assignment table
@@ -738,6 +759,7 @@ class CollidersPanel(QtWidgets.QWidget):
         fit_layout.addWidget(self.fit_capsules_btn)
         fit_layout.addWidget(self.fit_sphere_btn)
         fit_layout.addWidget(self.fit_radius_btn)
+        fit_layout.addWidget(self.clear_profile_btn)
         options = QtWidgets.QGridLayout()
         options.addWidget(QtWidgets.QLabel("Method"), 0, 0)
         options.addWidget(self.method_combo, 0, 1)
@@ -748,6 +770,9 @@ class CollidersPanel(QtWidgets.QWidget):
         options.addWidget(QtWidgets.QLabel("Min Radius"), 1, 2)
         options.addWidget(self.min_radius_spin, 1, 3)
         options.addWidget(self.end_spheres_cb, 2, 0, 1, 2)
+        options.addWidget(self.profile_cb, 2, 2, 1, 2)
+        options.addWidget(QtWidgets.QLabel("Smooth"), 3, 0)
+        options.addWidget(self.smooth_spin, 3, 1)
         assign_layout = QtWidgets.QHBoxLayout()
         assign_layout.addWidget(self.assign_btn)
         assign_layout.addWidget(self.unassign_btn)
@@ -787,6 +812,7 @@ class CollidersPanel(QtWidgets.QWidget):
         self.fit_capsules_btn.clicked.connect(self._fit_capsules)
         self.fit_sphere_btn.clicked.connect(self._fit_sphere)
         self.fit_radius_btn.clicked.connect(self._fit_radius)
+        self.clear_profile_btn.clicked.connect(self._clear_profile)
         self.collider_list.customContextMenuRequested.connect(self._list_menu)
         self.collider_filter_le.textChanged.connect(self.apply_filters)
         self.spring_filter_le.textChanged.connect(self.apply_filters)
@@ -809,6 +835,8 @@ class CollidersPanel(QtWidgets.QWidget):
             percentile=self.percentile_spin.value(),
             min_radius=self.min_radius_spin.value(),
             end_spheres=self.end_spheres_cb.isChecked(),
+            profile=self.profile_cb.isChecked(),
+            smooth=self.smooth_spin.value(),
         )
 
     def _update_actions(self):
@@ -820,7 +848,8 @@ class CollidersPanel(QtWidgets.QWidget):
             self._tooltips = {
                 widget: widget.toolTip()
                 for widget in list(self.create_buttons.values())
-                + [self.fit_capsules_btn, self.fit_sphere_btn, self.fit_radius_btn]
+                + [self.fit_capsules_btn, self.fit_sphere_btn]
+                + list(self._volume_widgets())
             }
         unused = "Not used by {} springs".format(self._solver.label)
         no_plugin = "Needs the boneDynamicsNode plug-in"
@@ -839,7 +868,7 @@ class CollidersPanel(QtWidgets.QWidget):
         if colliders.SPHERE not in types:
             reasons[self.fit_sphere_btn] = unused
         if not self._solver.bone_volume:
-            reasons[self.fit_radius_btn] = unused
+            reasons.update((widget, unused) for widget in self._volume_widgets())
         for widget, tooltip in self._tooltips.items():
             widget.setEnabled(widget not in reasons)
             widget.setToolTip(reasons.get(widget, tooltip))
@@ -1018,21 +1047,49 @@ class CollidersPanel(QtWidgets.QWidget):
         # one sphere per selected joint or control
         self._run(fit.fit_spheres, mesh, targets, self.fit_options())
 
-    def _fit_radius(self):
-        mesh, targets = self.fit_inputs()
+    def _volume_widgets(self):
+        """Return the bone volume widgets, used by Bone Dynamics only."""
+        return (
+            self.fit_radius_btn,
+            self.clear_profile_btn,
+            self.profile_cb,
+            self.smooth_spin,
+        )
+
+    def _volume_springs(self, targets):
+        """Return the Bone Dynamics springs the bone volume actions edit.
+
+        Args:
+            targets (list): Selected target nodes, see :meth:`fit_inputs`.
+
+        Returns:
+            list: The springs selected in the list, or else the springs of
+            the targets.
+        """
         springs = self.springs_fn() if self.springs_fn else []
         springs = springs or registry.springs_from_nodes(targets)
-        springs = [
+        return [
             spring
             for spring in springs
             if spring.backend == bone_dynamics.BACKEND and spring.exists()
         ]
+
+    def _fit_radius(self):
+        mesh, targets = self.fit_inputs()
+        springs = self._volume_springs(targets)
         if not springs or not mesh:
             cmds.warning(
-                "Select springs in the list (or their controls) and set the " "Fit mesh"
+                "Select springs in the list (or their controls) and set the Fit mesh"
             )
             return
         self._run(fit.fit_bone_radius, self._backend, springs, mesh, self.fit_options())
+
+    def _clear_profile(self):
+        springs = self._volume_springs(self.fit_inputs()[1])
+        if not springs:
+            cmds.warning("Select springs in the list (or their controls)")
+            return
+        self._run(self._backend.clear_radius_profile, springs)
 
     def _list_menu(self, position):
         networks = self.selected_colliders()

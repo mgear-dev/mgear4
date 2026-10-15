@@ -22,6 +22,7 @@ from mgear.core import skin
 from mgear.core import utils
 
 from . import colliders
+from . import radius_profile
 
 AUTO = "auto"
 SKIN = "skin"
@@ -42,6 +43,8 @@ class FitOptions(object):
         percentile (float): Radius percentile of the skin method, 0-100.
         min_radius (float): Smallest radius.
         end_spheres (bool): Fit Capsules adds a sphere at each chain end.
+        profile (bool): Fit Bone Radius also fits the radius profile.
+        smooth (int): Smoothing passes of the radius profile.
     """
 
     def __init__(
@@ -51,12 +54,16 @@ class FitOptions(object):
         percentile=75.0,
         min_radius=0.1,
         end_spheres=True,
+        profile=True,
+        smooth=radius_profile.SMOOTH,
     ):
         self.method = method
         self.padding = padding
         self.percentile = percentile
         self.min_radius = min_radius
         self.end_spheres = end_spheres
+        self.profile = profile
+        self.smooth = smooth
 
     def radius(self, value):
         """Return a measured radius with padding and minimum applied.
@@ -400,15 +407,19 @@ def _dominant_joint(vertices):
 def fit_bone_radius(backend, springs, mesh, options=None):
     """Set the bone radius of springs from a mesh around their bones.
 
-    Each simulated bone is measured by ray casting. A straight line fitted
-    through the measures, from the root (ratio 0) to the tip (ratio 1),
-    gives the Root Radius and the Tip Radius. Bone As Capsule is turned on.
+    Each simulated bone is measured by ray casting, ring by ring. A
+    straight line fitted through the measures, from the root (ratio 0) to
+    the tip (ratio 1), gives the Root Radius and the Tip Radius. Bone As
+    Capsule is turned on. With ``options.profile``, the radius profile is
+    fitted too: one factor per joint, so the radii follow the measures
+    smoothed along each root-to-leaf path.
 
     Args:
         backend (BoneDynamicsBackend): The Bone Dynamics backend.
         springs (list): :class:`registry.Spring` records.
         mesh (str): Mesh transform.
-        options (FitOptions, optional): Options (padding, minimum radius).
+        options (FitOptions, optional): Options (padding, minimum radius,
+            profile and smoothing).
 
     Returns:
         dict: ``{spring: (root radius, tip radius)}`` for the fitted springs.
@@ -419,26 +430,23 @@ def fit_bone_radius(backend, springs, mesh, options=None):
     result = {}
     with utils.undo_chunk("springManagerFitBoneRadius"):
         for spring in springs:
-            samples = []
-            for bone, end, ratio, end_ratio in backend.sections(spring):
-                radii = [
-                    radius
-                    for radius in mesh_utils.measure_radius_along_segment(
-                        mesh, _position(bone), _position(end), 3, RAYS
-                    )
-                    if radius is not None
-                ]
-                if radii:
-                    samples.append(
-                        ((ratio + end_ratio) * 0.5, mesh_utils.percentile(radii, 50))
-                    )
-            if not samples:
+            sections = backend.profile_sections(spring)
+            samples = [_section_samples(mesh, section) for section in sections]
+            line_samples = [
+                (
+                    (section.ratio + section.end_ratio) * 0.5,
+                    mesh_utils.percentile([radius for _, radius in points], 50),
+                )
+                for section, points in zip(sections, samples)
+                if points
+            ]
+            if not line_samples:
                 mgear.log(
                     "{}: no mesh around the bones, skipped".format(spring.label),
                     mgear.sev_warning,
                 )
                 continue
-            root, tip = (options.radius(value) for value in _line_fit(samples))
+            root, tip = (options.radius(value) for value in _line_fit(line_samples))
             backend.set_params(
                 [spring],
                 {
@@ -447,8 +455,68 @@ def fit_bone_radius(backend, springs, mesh, options=None):
                     bone_dynamics.BONE_CAPSULE: True,
                 },
             )
+            if options.profile:
+                backend.set_radius_profile(
+                    [spring], _profile_items(sections, samples, root, tip, options)
+                )
             result[spring] = (root, tip)
     return result
+
+
+def _section_samples(mesh, section):
+    """Return the measured radii along a section, at their chain ratios.
+
+    Args:
+        mesh (str): Mesh transform.
+        section (ProfileSection): The section.
+
+    Returns:
+        list: ``(ratio, radius)`` pairs, rings without hits left out.
+    """
+    radii = mesh_utils.measure_radius_along_segment(
+        mesh, _position(section.bone), _position(section.end), RINGS, RAYS
+    )
+    return [
+        (
+            section.ratio + (section.end_ratio - section.ratio) * (index + 0.5) / RINGS,
+            radius,
+        )
+        for index, radius in enumerate(radii)
+        if radius is not None
+    ]
+
+
+def _profile_items(sections, samples, root, tip, options):
+    """Return the radius profile fitted to the measures of a spring.
+
+    Args:
+        sections (list): ``ProfileSection`` items of the spring.
+        samples (list): Per section, ``(ratio, radius)`` measures.
+        root (float): Fitted Root Radius.
+        tip (float): Fitted Tip Radius.
+        options (FitOptions): Padding, minimum radius and smoothing.
+
+    Returns:
+        list: ``(joint, ratio, factor)`` per joint, factor 1 for joints
+        without measures.
+    """
+    chain_sections = [section.chain() for section in sections]
+    radii = radius_profile.joint_radii(chain_sections, samples, options.smooth)
+    return [
+        (
+            joint,
+            ratio,
+            (
+                radius_profile.factor(
+                    options.radius(radii[joint]),
+                    radius_profile.gradient(root, tip, ratio),
+                )
+                if joint in radii
+                else 1.0
+            ),
+        )
+        for joint, ratio in radius_profile.chain_joints(chain_sections)
+    ]
 
 
 def _line_fit(samples):

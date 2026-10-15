@@ -1633,9 +1633,9 @@ class SpringManager(MayaQWidgetDockableMixin, QtWidgets.QDialog, pyqt.SettingsMi
         entry = preset["springs"][0] if preset["springs"] else {}
         backend = get_backend(entry.get("backend"))
         if free and backend and backend.is_available():
-            params = self._backend_new_values(backend)
-            params.update(presets.entry_values(entry))
-            backend.create(free, params, entry.get("options"))
+            presets.create_from_entry(
+                backend, free, entry, self._backend_new_values(backend)
+            )
         if not springs and not free:
             cmds.warning("Select springs or controls to apply the preset to")
 
@@ -1652,20 +1652,20 @@ class SpringManager(MayaQWidgetDockableMixin, QtWidgets.QDialog, pyqt.SettingsMi
         self.update_params_panel()
 
     def _values_preset_params(self, springs):
-        """Return the backend and values a values preset is saved from.
+        """Return the backend, values and extras a values preset is saved from.
 
         Args:
             springs (list): Selected editable ``(spring, backend)`` pairs.
 
         Returns:
-            tuple: ``(backend, params)``: the first selected spring, or the
-            values for new springs when none is selected.
+            tuple: ``(backend, params, extras)``: the first selected spring,
+            or the values for new springs (no extras) when none is selected.
         """
         if springs:
             spring, backend = springs[0]
-            return backend, backend.get_params(spring)
+            return backend, backend.get_params(spring), backend.preset_extras(spring)
         backend = self._panel_backend
-        return backend, self._backend_new_values(backend)
+        return backend, self._backend_new_values(backend), {}
 
     def save_preset(self):
         """Save a values or rig preset in the current library."""
@@ -1692,9 +1692,9 @@ class SpringManager(MayaQWidgetDockableMixin, QtWidgets.QDialog, pyqt.SettingsMi
                 path, [spring for spring, _ in springs], dialog.description()
             )
         else:
-            backend, params = self._values_preset_params(springs)
+            backend, params, extras = self._values_preset_params(springs)
             saved = presets.build_values_preset(
-                backend.name, params, dialog.description()
+                backend.name, params, dialog.description(), extras
             )
             presets.write(path, saved)
         if not saved:

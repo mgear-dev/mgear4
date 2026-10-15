@@ -13,6 +13,7 @@ node (:mod:`..solver`).
 """
 
 import json
+from collections import namedtuple
 
 from maya import cmds
 
@@ -33,6 +34,7 @@ from .. import chain
 from .. import colliders
 from .. import constants
 from .. import proxy
+from .. import radius_profile
 from .. import registry
 from .. import solver
 
@@ -340,6 +342,47 @@ RAMPED_PARAMS = (
 # node attribute: suffix of its radius ramp (blendTwoAttr named after the
 # node), the spring Root / Tip Radius gradient
 RADIUS_RAMPS = {"rootRadius": "_rootRadiusRamp", "radius": "_radiusRamp"}
+# node attribute: suffix of its radius profile multiplier (multiplyDivide
+# named after the node, input2X the factor), between the ramp and the node
+RADIUS_PROFILES = {"rootRadius": "_rootRadiusProfile", "radius": "_radiusProfile"}
+# radius profile factor plug of the multipliers, and preset entry key
+PROFILE_FACTOR = ".input2X"
+PROFILE_KEY = "radius_profile"
+# boneDynamicsNode string attribute: its start and end profile joints (JSON)
+PROFILE_JOINTS_ATTR = "profileJoints"
+
+
+class ProfileSection(
+    namedtuple(
+        "ProfileSection",
+        ("node", "bone", "end", "start_joint", "end_joint", "ratio", "end_ratio"),
+    )
+):
+    """A section and its radius profile joints, ``(control short name, is tip)``."""
+
+    __slots__ = ()
+
+    def chain(self):
+        """Return the section as a :mod:`radius_profile` chain section.
+
+        Returns:
+            tuple: ``(start joint, end joint, ratio, end ratio)``.
+        """
+        return self.start_joint, self.end_joint, self.ratio, self.end_ratio
+
+    def ends(self):
+        """Return both ends of the section.
+
+        Returns:
+            tuple: ``(joint, ratio, node radius attribute)`` for the start
+            and the end.
+        """
+        return (
+            (self.start_joint, self.ratio, "rootRadius"),
+            (self.end_joint, self.end_ratio, "radius"),
+        )
+
+
 # boneDynamicsNode collider arrays, cleared and refilled together
 COLLIDER_ARRAYS = (
     "sphereCollider",
@@ -426,6 +469,136 @@ def _add_message(node, attr, source=None, multi=False):
     cmds.addAttr(node, longName=attr, attributeType="message", multi=multi)
     if source:
         cmds.connectAttr(source + ".message", _plug(node, attr))
+
+
+def _node_name(bone):
+    """Return the boneDynamicsNode name of a sim bone joint."""
+    return bone.split("|")[-1].replace("_jnt", "_bdn")
+
+
+def _ramp_node(node, attr):
+    """Return the radius ramp (blendTwoAttr) of a node radius, or None."""
+    found = cmds.ls(node + RADIUS_RAMPS[attr], type="blendTwoAttr")
+    return found[0] if found else None
+
+
+def _profile_node(node, attr):
+    """Return the radius profile multiplier of a node radius, or None."""
+    found = cmds.ls(node + RADIUS_PROFILES[attr], type="multiplyDivide")
+    return found[0] if found else None
+
+
+def _radius_source(node, attr):
+    """Return the plug giving a node radius its spring gradient.
+
+    Args:
+        node (str): boneDynamicsNode.
+        attr (str): ``rootRadius`` or ``radius``.
+
+    Returns:
+        str: The profile multiplier output, the ramp output on springs
+        built without a profile, or None.
+    """
+    profile = _profile_node(node, attr)
+    if profile:
+        return profile + ".outputX"
+    ramp = _ramp_node(node, attr)
+    return ramp + ".output" if ramp else None
+
+
+def _section_joints(section):
+    """Return the profile joints of a :class:`chain.Section`.
+
+    Returns:
+        tuple: ``(start joint, end joint)``, each ``(control short name,
+        is tip)``; a branch section starts at its pivot's joint.
+    """
+    return (
+        (node_remap.short_name(section.control), False),
+        (node_remap.short_name(section.end[1]), section.end[0] == "tip"),
+    )
+
+
+def _profile_joints(node):
+    """Return the profile joints stored on a node, see :func:`_attach`.
+
+    Returns:
+        tuple: ``(start joint, end joint)``, or None on springs built
+        before the joints were stored.
+    """
+    data = attribute.get_string_attr(node, PROFILE_JOINTS_ATTR)
+    if not data:
+        return None
+    return tuple((name, bool(tip)) for name, tip in json.loads(data))
+
+
+def _set_profile_joints(node, joints):
+    attribute.set_string_attr(node, PROFILE_JOINTS_ATTR, json.dumps(joints))
+
+
+def _add_profile_nodes(node):
+    """Insert the radius profile multipliers of a node, when missing.
+
+    Each multiplier takes its radius ramp and drives the node radius,
+    unless a collider drives that radius: the collider keeps it, see
+    :meth:`BoneDynamicsBackend.unlink_collider`.
+
+    Args:
+        node (str): boneDynamicsNode.
+
+    Returns:
+        list: The created multiplyDivide nodes.
+    """
+    created = []
+    for attr, suffix in RADIUS_PROFILES.items():
+        ramp = _ramp_node(node, attr)
+        if not ramp or _profile_node(node, attr):
+            continue
+        # multiplyDivide: multDoubleLinear is deprecated in Maya 2026
+        profile = cmds.createNode("multiplyDivide", name=node + suffix)
+        cmds.connectAttr(ramp + ".output", profile + ".input1X")
+        cmds.setAttr(profile + PROFILE_FACTOR, 1.0)
+        cmds.setAttr(profile + PROFILE_FACTOR, keyable=False)
+        plug = _plug(node, attr)
+        source = cmds.listConnections(plug, source=True, destination=False)
+        if not source or source[0] == ramp:
+            cmds.connectAttr(profile + ".outputX", plug, force=True)
+        created.append(profile)
+    return created
+
+
+def _node_section(node):
+    """Return the joints and ramp ratios of a boneDynamicsNode.
+
+    Args:
+        node (str): boneDynamicsNode.
+
+    Returns:
+        tuple: ``(bone joint, end joint, ratio, end ratio)``; the radius
+        ramps hold the ratios, see :meth:`BoneDynamicsBackend._attach`.
+    """
+    bone, end = (
+        cmds.listConnections(_plug(node, attr), source=True, destination=False)[0]
+        for attr in ("boneTranslate", "endTranslate")
+    )
+    ratio, end_ratio = (
+        cmds.getAttr(_ramp_node(node, attr) + ".attributesBlender")
+        for attr in ("rootRadius", "radius")
+    )
+    return bone, end, ratio, end_ratio
+
+
+def _stored_layout(network):
+    """Return the chain layout stored on a spring network.
+
+    Returns:
+        tuple: ``(tree data, branch policy, primary branch)``.
+    """
+    return (
+        json.loads(attribute.get_string_attr(network, TREE_ATTR) or "{}"),
+        attribute.get_string_attr(network, POLICY_ATTR, chain.KINEMATIC),
+        cmds.getAttr(_plug(network, PRIMARY_ATTR)),
+    )
 
 
 def find_offset_node(control):
@@ -677,7 +850,7 @@ class BoneDynamicsBackend(SpringBackend):
                 ``count``, the number of sections attached so far.
         """
         settings = context["settings"]
-        name = bone.split("|")[-1].replace("_jnt", "_bdn")
+        name = _node_name(bone)
         node = cmds.createNode(NODE_TYPE, name=name)
         connections = (
             ("time1.outTime", "time"),
@@ -740,35 +913,181 @@ class BoneDynamicsBackend(SpringBackend):
             cmds.connectAttr(_plug(settings, param), lerp + ".input[0]")
             cmds.connectAttr(context[tip], lerp + ".input[1]")
             cmds.connectAttr(lerp + ".output", _plug(node, attr))
+        _add_profile_nodes(node)
+        _set_profile_joints(node, _section_joints(section))
 
-    def sections(self, spring):
-        """Return the simulated sections of a spring, with their ramp ratios.
+    # radius profile ---------------------------------------------------------
+
+    def profile_sections(self, spring):
+        """Return the sections of a spring with their radius profile joints.
+
+        The joints are stored on the nodes when they are built. Springs
+        built before have them found from the stored tree and the node
+        names. The ratios are read from the radius ramps: springs built
+        before the one-ratio-per-joint fix keep their own.
 
         Args:
             spring (registry.Spring): The spring.
 
         Returns:
-            list: ``(bone joint, end joint, ratio, end ratio)`` tuples, the
-            ratios going from 0 at the root to 1 at the tips.
+            list: :class:`ProfileSection` items, root first.
         """
+        nodes = nodes_of_type(spring, NODE_TYPE)
+        joints = {node: _profile_joints(node) for node in nodes}
+        unknown = [node for node in nodes if not joints[node]]
+        if unknown:
+            joints.update(self._match_profile_joints(spring, unknown))
         result = []
-        for node in nodes_of_type(spring, NODE_TYPE):
-            # the radius ramps hold the section ratios, see _attach
-            bone, end, root_ramp, end_ramp = (
-                cmds.listConnections(_plug(node, attr), source=True, destination=False)[
-                    0
-                ]
-                for attr in ("boneTranslate", "endTranslate", "rootRadius", "radius")
-            )
+        for node in nodes:
+            if not joints.get(node):
+                mgear.log(
+                    "{}: no radius profile joints found for {}".format(
+                        spring.label, node
+                    ),
+                    mgear.sev_warning,
+                )
+                continue
+            bone, end, ratio, end_ratio = _node_section(node)
+            start_joint, end_joint = joints[node]
             result.append(
-                (
-                    bone,
-                    end,
-                    cmds.getAttr(root_ramp + ".attributesBlender"),
-                    cmds.getAttr(end_ramp + ".attributesBlender"),
+                ProfileSection(
+                    node, bone, end, start_joint, end_joint, ratio, end_ratio
                 )
             )
-        return result
+        return sorted(result, key=lambda section: (section.ratio, section.end_ratio))
+
+    def _match_profile_joints(self, spring, nodes):
+        """Find the profile joints of nodes built without them, by name.
+
+        Args:
+            spring (registry.Spring): The spring.
+            nodes (list): Its boneDynamicsNodes without stored joints.
+
+        Returns:
+            dict: ``{node: (start joint, end joint)}`` for the matched nodes.
+        """
+        tree_data, policy, primary = _stored_layout(spring.node)
+        tree = chain.tree_from_data(tree_data)
+        specs, sections, _ = chain.plan(tree, policy, primary)
+        controls = {spec.key: spec.control for spec in specs}
+        prefix = node_remap.flat_name(tree.name) + "_sim"
+        by_name = {node_remap.short_name(node): node for node in nodes}
+        found = {}
+        for section in sections:
+            bone = proxy.joint_name(prefix, section.bone, controls[section.bone])
+            node = by_name.get(_node_name(bone))
+            if node:
+                found[node] = _section_joints(section)
+        return found
+
+    def radius_profile(self, spring):
+        """Return the radius profile of a spring.
+
+        Args:
+            spring (registry.Spring): The spring.
+
+        Returns:
+            list: ``(joint, ratio, factor)`` per joint, root first; the
+            factor is 1 where no profile is set.
+        """
+        factors = {}
+        for section in self.profile_sections(spring):
+            for joint, ratio, attr in section.ends():
+                if joint not in factors:
+                    profile = _profile_node(section.node, attr)
+                    value = cmds.getAttr(profile + PROFILE_FACTOR) if profile else 1.0
+                    factors[joint] = (joint, ratio, value)
+        return list(factors.values())
+
+    def set_radius_profile(self, springs, items):
+        """Set the radius profile of springs, in one undo chunk.
+
+        The items are matched by joint, then interpolated at the joint
+        ratios, see :func:`radius_profile.resample`. Springs built without
+        a profile get its nodes and stored joints.
+
+        Args:
+            springs (list): :class:`registry.Spring` records.
+            items (list): ``(joint, ratio, factor)``, the joints
+                ``(control short name, is tip)``.
+        """
+        with utils.undo_chunk("springManagerSetRadiusProfile"):
+            for spring in springs:
+                created = []
+                for node in nodes_of_type(spring, NODE_TYPE):
+                    created.extend(_add_profile_nodes(node))
+                if created:
+                    registry.add_members(spring.node, created)
+                sections = self.profile_sections(spring)
+                factors = radius_profile.resample(
+                    items,
+                    radius_profile.chain_joints([s.chain() for s in sections]),
+                )
+                for section in sections:
+                    if not _profile_joints(section.node):
+                        _set_profile_joints(
+                            section.node, (section.start_joint, section.end_joint)
+                        )
+                    for joint, _, attr in section.ends():
+                        if joint in factors:
+                            cmds.setAttr(
+                                _profile_node(section.node, attr) + PROFILE_FACTOR,
+                                factors[joint],
+                            )
+
+    def clear_radius_profile(self, springs):
+        """Set every radius profile factor of springs to 1, in one undo chunk.
+
+        Args:
+            springs (list): :class:`registry.Spring` records.
+        """
+        with utils.undo_chunk("springManagerClearRadiusProfile"):
+            for spring in springs:
+                for node in nodes_of_type(spring, NODE_TYPE):
+                    for attr in RADIUS_PROFILES:
+                        profile = _profile_node(node, attr)
+                        if profile:
+                            cmds.setAttr(profile + PROFILE_FACTOR, 1.0)
+
+    def preset_extras(self, spring):
+        """Return the radius profile of a spring as preset entry data.
+
+        Args:
+            spring (registry.Spring): The spring.
+
+        Returns:
+            dict: ``{"radius_profile": [...]}``, empty when every factor
+            is 1.
+        """
+        items = self.radius_profile(spring)
+        if all(abs(value - 1.0) < 1e-6 for _, _, value in items):
+            return {}
+        return {
+            PROFILE_KEY: [
+                {"joint": joint[0], "tip": joint[1], "ratio": ratio, "factor": value}
+                for joint, ratio, value in items
+            ]
+        }
+
+    def apply_preset_extras(self, springs, entry):
+        """Apply the radius profile of a preset entry to springs.
+
+        Entries without a profile leave the springs unchanged.
+
+        Args:
+            springs (list): :class:`registry.Spring` records.
+            entry (dict): Preset ``springs`` entry.
+        """
+        stored = entry.get(PROFILE_KEY)
+        if not stored or not springs:
+            return
+        self.set_radius_profile(
+            springs,
+            [
+                ((item["joint"], bool(item.get("tip"))), item["ratio"], item["factor"])
+                for item in stored
+            ],
+        )
 
     # target pose ------------------------------------------------------------
 
@@ -1111,9 +1430,11 @@ class BoneDynamicsBackend(SpringBackend):
             or []
         ):
             node, attr = plug.split(".", 1)
-            ramps = cmds.ls(node + RADIUS_RAMPS.get(attr, ""), type="blendTwoAttr")
-            if attr in RADIUS_RAMPS and ramps:
-                cmds.connectAttr(ramps[0] + ".output", plug, force=True)
+            if attr not in RADIUS_RAMPS:
+                continue
+            source = _radius_source(node, attr)
+            if source:
+                cmds.connectAttr(source, plug, force=True)
 
     def shared_changed(self, spring, kind):
         if kind == constants.KIND_WIND:
@@ -1332,17 +1653,15 @@ class BoneDynamicsBackend(SpringBackend):
 
     def to_preset(self, spring):
         network = spring.node
-        tree = json.loads(attribute.get_string_attr(network, TREE_ATTR) or "{}")
+        tree, policy, primary = _stored_layout(network)
         offset = attribute.get_message_inputs(network, OFFSET_ATTR)
         return {
             "backend": self.name,
             "controls": spring.controls,
             "options": {
                 "tree": chain.rename_tree_data(tree, node_remap.short_name),
-                "branch_policy": attribute.get_string_attr(
-                    network, POLICY_ATTR, chain.KINEMATIC
-                ),
-                "primary": cmds.getAttr(_plug(network, PRIMARY_ATTR)),
+                "branch_policy": policy,
+                "primary": primary,
                 "tip_length": cmds.getAttr(_plug(network, TIP_LENGTH_ATTR)),
                 "target_mode": self.target_mode(spring),
                 "offset": node_remap.short_name(offset[0]) if offset else None,

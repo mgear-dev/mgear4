@@ -99,20 +99,22 @@ def build_preset(entries, description=""):
     return preset
 
 
-def build_values_preset(backend, params, description=""):
+def build_values_preset(backend, params, description="", extras=None):
     """Build a values preset: parameter values only, for any spring.
 
     Args:
         backend (str): Backend name the values belong to.
         params (dict): ``{attr: value}``.
         description (str, optional): Preset description.
+        extras (dict, optional): Backend entry data besides the values,
+            see ``SpringBackend.preset_extras``.
 
     Returns:
         dict: The preset.
     """
-    preset = build_preset(
-        [{"backend": backend, "controls": [], "params": params}], description
-    )
+    entry = {"backend": backend, "controls": [], "params": params}
+    entry.update(extras or {})
+    preset = build_preset([entry], description)
     preset["type"] = constants.PRESET_VALUES
     return preset
 
@@ -301,13 +303,42 @@ def resolve_controls(entry, namespace):
     ]
 
 
+def match_entries(preset, targets):
+    """Return the preset entries to apply to springs, ignoring names.
+
+    Only entries of the target's backend are used. With one such entry,
+    every target of that backend gets it. With several, a target gets the
+    entry sharing one of its controls (short names).
+
+    Args:
+        preset (dict): The preset.
+        targets (list): ``(backend name, controls)`` tuples.
+
+    Returns:
+        list: Entries, one per target (empty dict when no match).
+    """
+    entries = preset.get("springs") or []
+    matches = []
+    for backend, controls in targets:
+        candidates = [entry for entry in entries if entry.get("backend") == backend]
+        if len(candidates) == 1:
+            matches.append(candidates[0])
+            continue
+        names = {node_remap.short_name(control) for control in controls}
+        matched = {}
+        for entry in candidates:
+            if names & {node_remap.short_name(c) for c in entry.get("controls") or []}:
+                matched = entry
+                break
+        matches.append(matched)
+    return matches
+
+
 def match_values(preset, targets):
     """Return the parameter values to apply to springs, ignoring names.
 
-    Only entries of the target's backend are used. With one such entry,
-    every target of that backend gets its values. With several, a target
-    gets the entry sharing one of its controls (short names). Rig
-    dependent parameters are left out, see :func:`entry_values`.
+    See :func:`match_entries`. Rig dependent parameters are left out, see
+    :func:`entry_values`.
 
     Args:
         preset (dict): The preset.
@@ -316,21 +347,7 @@ def match_values(preset, targets):
     Returns:
         list: Parameter dicts, one per target (empty dict when no match).
     """
-    entries = preset.get("springs") or []
-    values = []
-    for backend, controls in targets:
-        candidates = [entry for entry in entries if entry.get("backend") == backend]
-        if len(candidates) == 1:
-            values.append(entry_values(candidates[0]))
-            continue
-        names = {node_remap.short_name(control) for control in controls}
-        matched = {}
-        for entry in candidates:
-            if names & {node_remap.short_name(c) for c in entry.get("controls") or []}:
-                matched = entry
-                break
-        values.append(entry_values(matched))
-    return values
+    return [entry_values(entry) for entry in match_entries(preset, targets)]
 
 
 def entry_values(entry):
@@ -508,7 +525,7 @@ def collect(springs, description=""):
             mgear.sev_warning,
         )
     preset = build_preset(
-        [backend.to_preset(spring) for spring, backend in pairs], description
+        [_entry(spring, backend) for spring, backend in pairs], description
     )
     for backend in {backend for _, backend in pairs}:
         settings = backend.get_solver_settings()
@@ -517,6 +534,13 @@ def collect(springs, description=""):
     # colliders are shared by every solver: collected once
     preset.update(colliders.collect_preset([spring for spring, _ in pairs]))
     return preset
+
+
+def _entry(spring, backend):
+    """Return the preset entry of a spring, with its backend extras."""
+    entry = backend.to_preset(spring)
+    entry.update(backend.preset_extras(spring))
+    return entry
 
 
 def save(path, springs, description=""):
@@ -574,6 +598,7 @@ def apply_by_name(preset, namespace="", apply_solver=True, apply_colliders=True)
                 continue
             spring = backend.from_preset(entry, controls)
             if spring:
+                backend.apply_preset_extras([spring], entry)
                 springs.append(spring)
         if apply_solver:
             for name, settings in (preset.get("solver") or {}).items():
@@ -587,6 +612,26 @@ def apply_by_name(preset, namespace="", apply_solver=True, apply_colliders=True)
     return springs, missing
 
 
+def create_from_entry(backend, nodes, entry, params=None):
+    """Create springs on nodes from a preset entry, ignoring its names.
+
+    Args:
+        backend (SpringBackend): The entry's backend.
+        nodes (list): Controls to create the springs on.
+        entry (dict): Preset ``springs`` entry.
+        params (dict, optional): Base values, updated with the entry's
+            values (see :func:`entry_values`).
+
+    Returns:
+        list: The created :class:`registry.Spring` records.
+    """
+    values = dict(params or {})
+    values.update(entry_values(entry))
+    springs = backend.create(nodes, values, entry.get("options"))
+    backend.apply_preset_extras(springs, entry)
+    return springs
+
+
 def apply_values(preset, springs):
     """Apply only parameter values from a preset to springs.
 
@@ -598,14 +643,16 @@ def apply_values(preset, springs):
         int: Number of springs updated.
     """
     pairs = editable_springs(springs)
-    values = match_values(
+    entries = match_entries(
         preset, [(backend.name, spring.controls) for spring, backend in pairs]
     )
     count = 0
     with utils.undo_chunk("springManagerApplyValues"):
-        for (spring, backend), params in zip(pairs, values):
+        for (spring, backend), entry in zip(pairs, entries):
+            params = entry_values(entry)
             if params:
                 backend.set_params([spring], params)
+                backend.apply_preset_extras([spring], entry)
                 count += 1
     if pairs and not count:
         mgear.log(
