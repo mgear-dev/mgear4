@@ -245,6 +245,16 @@ SCHEMA = [
     ),
     # Joints
     Param(
+        "jointsFollowCurve",
+        "bool",
+        True,
+        label="Joints Rotate with Curve",
+        tooltip="The joints aim along the lip curve, with their up vector "
+        "in front. Off: the joints only translate along the lips and keep "
+        "the lips orientation, turning with the upper reference, or the "
+        "lower reference for the lower lip.",
+    ),
+    Param(
         "everyNVertex",
         "long",
         1,
@@ -348,7 +358,14 @@ FORM_GROUPS = (
     ),
     (
         "Joints",
-        ["everyNVertex", "fixedJoints", "fixedJointsNumber", "ropeCount", "upvOffset"],
+        [
+            "jointsFollowCurve",
+            "everyNVertex",
+            "fixedJoints",
+            "fixedJointsNumber",
+            "ropeCount",
+            "upvOffset",
+        ],
     ),
     ("Skin", ["doSkin", "rigidLoops", "falloffLoops", "skinSmooth"]),
 )
@@ -387,7 +404,7 @@ def loop_string(settings):
 
 
 # settings showing or hiding other settings in a settings form
-ROW_KEYS = ("loopType", "fixedJoints", "doSkin")
+ROW_KEYS = ("loopType", "jointsFollowCurve", "fixedJoints", "doSkin")
 
 
 def row_visibility(settings):
@@ -403,6 +420,7 @@ def row_visibility(settings):
     fixed = bool(settings["fixedJoints"])
     skin = bool(settings["doSkin"])
     return {
+        "upvOffset": bool(settings["jointsFollowCurve"]),
         "edgeLoop": not vertex,
         "vertexLoop": vertex,
         "everyNVertex": not fixed,

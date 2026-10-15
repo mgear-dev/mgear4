@@ -10,6 +10,7 @@ from maya import cmds
 import mgear.pymaya as pm
 from mgear.pymaya import datatypes
 
+from mgear.core import applyop
 from mgear.core import skin
 from mgear.core import transform
 
@@ -184,6 +185,65 @@ class FacialBuilder(object):
             str(group), translation=(0, 0, 0), rotation=(0, 0, 0), scale=(1, 1, 1)
         )
         return group, self._root_scale_node()
+
+    def _fixed_orientation(self, name, matrix):
+        """Create a transform giving translate only joint drivers their rotation.
+
+        Args:
+            name (str): Short transform name.
+            matrix (Matrix): Its world matrix, the joints rest orientation.
+
+        Returns:
+            tuple: (transform, decomposeMatrix of its world matrix)
+        """
+        b = self.backend
+        orient = b.add_transform(b.root, name, matrix)
+        decompose = self._create_node("decomposeMatrix", name + "_decomp")
+        pm.connectAttr(orient.attr("worldMatrix[0]"), decompose.attr("inputMatrix"))
+        return orient, decompose
+
+    def _add_path_driver(self, prefix, idx, rope, upv_rope, u, orientation=None):
+        """Create a joint driver sliding on a rope curve.
+
+        The driver aims X along the rope, with Y to an up vector sliding on
+        the up vector rope. With an orientation it only slides, and takes
+        the orientation rotation instead. It takes the rig scale.
+
+        Args:
+            prefix (str): Name prefix of the driver nodes.
+            idx (int): Index of the driver nodes.
+            rope (dagNode): Curve the driver slides on.
+            upv_rope (dagNode): Curve the up vector slides on.
+            u (float): Length ratio on the curves.
+            orientation (PyNode, optional): decomposeMatrix giving the
+                rotation of a translate only driver.
+
+        Returns:
+            dagNode: The driver, under the drivers root.
+        """
+        b = self.backend
+        rig_m = datatypes.Matrix(self.geometry.rig_matrix)
+        follow = orientation is None
+        driver = b.add_transform(self.drivers_root, prefix + "Drv", rig_m, idx=idx)
+        path = applyop.pathCns(driver, rope, u=u, tangent=follow)
+        self._name_node(path, prefix + "_motionPath", idx)
+        if follow:
+            upv = b.add_transform(self.drivers_root, prefix + "Upv", rig_m, idx=idx)
+            upv_path = applyop.pathCns(upv, upv_rope, u=u)
+            self._name_node(upv_path, prefix + "Upv_motionPath", idx)
+            # X along the rope, Y to the up vector
+            path.attr("worldUpType").set(1)
+            path.attr("frontAxis").set(0)
+            path.attr("upAxis").set(1)
+            pm.connectAttr(upv.attr("worldMatrix[0]"), path.attr("worldUpMatrix"))
+        else:
+            pm.connectAttr(
+                orientation.attr("outputRotate"), driver.attr("rotate"), force=True
+            )
+        pm.connectAttr(
+            self._root_scale_node().attr("outputScale"), driver.attr("scale")
+        )
+        return driver
 
     def _root_scale_node(self):
         """Get the decomposeMatrix of the rig root world matrix, created once.

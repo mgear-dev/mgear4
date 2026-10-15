@@ -126,6 +126,25 @@ def test_row_visibility(setup_path):
     assert rows["fixedJointsNumber"] and not rows["rigidLoops"]
 
 
+def test_follow_row_visibility(setup_path):
+    from mgear.core import settings_schema
+    from mgear.core.facial import lips_schema
+
+    settings = settings_schema.defaults(lips_schema.SCHEMA)
+    assert lips_schema.row_visibility(settings)["upvOffset"]
+    settings["jointsFollowCurve"] = False
+    assert not lips_schema.row_visibility(settings)["upvOffset"]
+
+
+def test_follow_curve_default_for_old_settings(setup_path):
+    from mgear.core.facial import lips_schema
+
+    # settings saved before the option build with the joints aiming
+    settings, warnings = lips_schema.settings_from_data({"edge_loop": "m.e[1:4]"})
+    assert settings["jointsFollowCurve"] is True
+    assert not warnings
+
+
 # ----------------------------------------------------------------------
 # solver
 
@@ -551,6 +570,97 @@ def test_lip_roll(lips_face):
 
     cmds.setAttr(_ctl("lower") + ".roll", 30)
     assert _follow_point(low_mid, rest[low_mid], low_edge)[2] > low_edge[2] + 0.01
+
+
+def _turn(rest, now):
+    """Get the rotation between two world matrices.
+
+    Returns:
+        tuple: (unit axis as a tuple, angle in degrees)
+    """
+    from maya.api import OpenMaya as om2
+
+    def quaternion(m):
+        return om2.MTransformationMatrix(m).rotation(asQuaternion=True)
+
+    axis, angle = (quaternion(rest).inverse() * quaternion(now)).asAxisAngle()
+    if angle > math.pi:
+        angle = 2.0 * math.pi - angle
+    return (axis.x, axis.y, axis.z), math.degrees(angle)
+
+
+def test_joints_translate_only(lips_face):
+    from maya import cmds
+
+    _build(lips_face, jointsFollowCurve=False)
+    upper, lower = _joints()
+    assert not cmds.ls("lips_C*_upLipUpv", "lips_C*_lowLipUpv")
+    rest = {joint: _world_matrix(joint) for joint in upper + lower}
+    rest_position = _position(upper[3])
+    cmds.setAttr(_ctl("upper") + ".ty", 0.1)
+    # the joints move but keep their orientation
+    assert _position(upper[3])[1] > rest_position[1] + 0.02
+    for joint in upper + lower:
+        assert _turn(rest[joint], _world_matrix(joint))[1] < 1e-2
+
+
+def test_translate_only_follows_refs(lips_face):
+    from maya import cmds
+
+    _build(lips_face, jointsFollowCurve=False)
+    upper, lower = _joints()
+    rest = {joint: _world_matrix(joint) for joint in upper + lower}
+    # the lower lip turns with the jaw, the upper lip and corners don't
+    cmds.setAttr(lips_face["jaw_jnt"] + ".rotateX", 20)
+    for joint in lower:
+        axis, angle = _turn(rest[joint], _world_matrix(joint))
+        assert angle == pytest.approx(20, abs=1e-2)
+        assert abs(axis[0]) == pytest.approx(1, abs=1e-3)
+    for joint in upper:
+        assert _turn(rest[joint], _world_matrix(joint))[1] < 1e-2
+
+
+def test_translate_only_rest_axes(lips_face):
+    from maya import cmds
+
+    _build(lips_face)
+    upper, _ = _joints()
+    aiming = _world_matrix(upper[len(upper) // 2])
+    cmds.delete("lips_C_root")
+    _build(lips_face, jointsFollowCurve=False)
+    upper, _ = _joints()
+    fixed = _world_matrix(upper[len(upper) // 2])
+    assert _turn(aiming, fixed)[1] < 2.0
+
+
+def test_translate_only_roll(lips_face):
+    from maya import cmds
+
+    _build(lips_face, thickness=0.05, jointsFollowCurve=False)
+    upper, _ = _joints()
+    mid = upper[len(upper) // 2]
+    rest = {joint: _world_matrix(joint) for joint in upper}
+    up_edge = [v - u for v, u in zip(_position(mid), (0, 0.05, 0))]
+    cmds.setAttr(_ctl("upper") + ".roll", 30)
+    axis, angle = _turn(rest[mid], _world_matrix(mid))
+    assert angle == pytest.approx(30, abs=0.5)
+    assert abs(axis[0]) == pytest.approx(1, abs=1e-3)
+    # the upper lip edge rolls out, forward
+    assert _follow_point(mid, rest[mid], up_edge)[2] > up_edge[2] + 0.01
+    for joint in (upper[0], upper[-1]):
+        assert _turn(rest[joint], _world_matrix(joint))[1] < 1e-2
+
+
+def test_joints_follow_curve(lips_face):
+    from maya import cmds
+
+    _build(lips_face)
+    upper, _ = _joints()
+    # between the corner and the upper control, where the curve bends
+    joint = upper[2]
+    rest = _world_matrix(joint)
+    cmds.setAttr(_ctl("upper") + ".ty", 0.1)
+    assert _turn(rest, _world_matrix(joint))[1] > 1.0
 
 
 def test_no_legacy_mult_node(lips_face):

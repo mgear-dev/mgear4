@@ -364,44 +364,21 @@ class BrowBuilder(FacialBuilder):
         s = self.settings
         g = self.geometry
         rig_m = datatypes.Matrix(g.rig_matrix)
-        self.drivers_root, root_scale = self._world_drivers_root()
-        follow = s["jointsFollowCurve"]
+        self.drivers_root, _ = self._world_drivers_root()
         orientation = None
-        if not follow:
+        if not s["jointsFollowCurve"]:
             # translate only: every joint keeps the brow frame, which turns
             # with the rig
-            orient = b.add_transform(b.root, "jointOrient", rig_m)
-            orientation = self._create_node("decomposeMatrix", "jointOrient_decomp")
-            pm.connectAttr(
-                orient.attr("worldMatrix[0]"), orientation.attr("inputMatrix")
-            )
+            _, orientation = self._fixed_orientation("jointOrient", rig_m)
         picks = select_joint_indices(
             len(g.path), s["everyNVertex"], s["fixedJoints"], s["fixedJointsNumber"]
         )
         for point_index, joint_index in picks:
             position = g.curve_points[point_index]
             u = curve.get_length_ratio_at_point(self.rope, position)
-            driver = b.add_transform(
-                self.drivers_root, "browDrv", rig_m, idx=joint_index
+            driver = self._add_path_driver(
+                "brow", joint_index, self.rope, self.rope_upv, u, orientation
             )
-            path = applyop.pathCns(driver, self.rope, u=u, tangent=follow)
-            self._name_node(path, "brow_motionPath", joint_index)
-            if follow:
-                upv = b.add_transform(
-                    self.drivers_root, "browUpv", rig_m, idx=joint_index
-                )
-                upv_path = applyop.pathCns(upv, self.rope_upv, u=u)
-                self._name_node(upv_path, "browUpv_motionPath", joint_index)
-                # X along the brow, Y to the up vector in front of it
-                path.attr("worldUpType").set(1)
-                path.attr("frontAxis").set(0)
-                path.attr("upAxis").set(1)
-                pm.connectAttr(upv.attr("worldMatrix[0]"), path.attr("worldUpMatrix"))
-            else:
-                pm.connectAttr(
-                    orientation.attr("outputRotate"), driver.attr("rotate"), force=True
-                )
-            pm.connectAttr(root_scale.attr("outputScale"), driver.attr("scale"))
             handle = b.add_deform_joint(
                 driver, "brow_jnt", idx=joint_index, parent="head"
             )

@@ -176,6 +176,9 @@ class LipsBuilder(FacialBuilder):
         self.joint_seeds = []
         self.up_rolls = []
         self.low_rolls = []
+        # {"up"|"low": (transform, decomposeMatrix)}: fixed lip orientations
+        # when the joints don't follow the curve
+        self.orients = {}
 
         # attributes
         self.jaw_follow = {}
@@ -322,59 +325,62 @@ class LipsBuilder(FacialBuilder):
         b = self.backend
         s = self.settings
         g = self.geometry
-        rig_m = datatypes.Matrix(g.rig_matrix)
-        self.drivers_root, root_scale = self._world_drivers_root()
+        self.drivers_root, _ = self._world_drivers_root()
         half_width = g.mouth_width * 0.5
-        for zipper, rope, upv_zipper, vertices, points, prefix, parent, rolls in (
+        if not s["jointsFollowCurve"]:
+            # translate only: the joints keep the rest axes of aiming joints,
+            # X along the lip, Y front and Z down, turning with their lip
+            # reference (see connect_refs)
+            frame = g.frame
+            orient_m = datatypes.Matrix(
+                vector.axes_matrix(
+                    frame["lateral"],
+                    frame["normal"],
+                    [-v for v in frame["up"]],
+                    g.rig_matrix[12:15],
+                )
+            )
+            for lip in ("up", "low"):
+                self.orients[lip] = self._fixed_orientation(lip + "LipOrient", orient_m)
+        for lip, zipper, rope, upv_zipper, vertices, points, parent, rolls in (
             (
+                "up",
                 self.up_zipper,
                 self.up_rope,
                 self.up_zipper_upv,
                 g.upper,
                 g.upper_curve_points,
-                "upLip",
                 "head",
                 self.up_rolls,
             ),
             (
+                "low",
                 self.low_zipper,
                 self.low_rope,
                 self.low_zipper_upv,
                 g.lower,
                 g.lower_curve_points,
-                "lowLip",
                 "jaw",
                 self.low_rolls,
             ),
         ):
+            prefix = lip + "Lip"
             # the lower lip shares the corners with the upper lip
             picks = select_joint_indices(
                 len(vertices),
                 s["everyNVertex"],
                 s["fixedJoints"],
                 s["fixedJointsNumber"],
-                skip_ends=prefix == "lowLip",
+                skip_ends=lip == "low",
             )
+            orientation = self.orients[lip][1] if self.orients else None
             for point_index, joint_index in picks:
                 position = points[point_index]
                 u = curve.get_length_ratio_at_point(rope, position)
-                upv = b.add_transform(
-                    self.drivers_root, prefix + "Upv", rig_m, idx=joint_index
-                )
                 # the up vectors zip with the lips, so zipping doesn't roll
-                path = applyop.pathCns(upv, upv_zipper, u=u)
-                self._name_node(path, prefix + "Upv_motionPath", joint_index)
-                driver = b.add_transform(
-                    self.drivers_root, prefix + "Drv", rig_m, idx=joint_index
+                driver = self._add_path_driver(
+                    prefix, joint_index, zipper, upv_zipper, u, orientation
                 )
-                path = applyop.pathCns(driver, zipper, u=u, tangent=True)
-                self._name_node(path, prefix + "_motionPath", joint_index)
-                # X along the lip, Y to the up vector in front of the lip
-                path.attr("worldUpType").set(1)
-                path.attr("frontAxis").set(0)
-                path.attr("upAxis").set(1)
-                pm.connectAttr(upv.attr("worldMatrix[0]"), path.attr("worldUpMatrix"))
-                pm.connectAttr(root_scale.attr("outputScale"), driver.attr("scale"))
                 roll = b.add_transform(
                     driver,
                     prefix + "Roll",
@@ -645,6 +651,10 @@ class LipsBuilder(FacialBuilder):
         ]
         applyop.matrix_constraint(refs[0], self.npos["upper"], "rt", offset=True)
         applyop.matrix_constraint(refs[1], self.npos["lower"], "rt", offset=True)
+        # translate only joints turn with their lip reference
+        for ref, lip in zip(refs, ("up", "low")):
+            if lip in self.orients:
+                applyop.matrix_constraint(ref, self.orients[lip][0], "r", offset=True)
         for name in CORNERS:
             blend = applyop.matrix_blend_constraint(
                 refs, self.npos[name], channels="rt", offset=True

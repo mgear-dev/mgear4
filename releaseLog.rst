@@ -2,6 +2,12 @@ Release Log
 ===========
 
 
+5.4.1
+------
+**Enhancements**
+	* Rigbits: Lips Rigger 3.0: Option to turn off the joints rotating with the lip curve, also in the lips_01 component
+
+
 5.4.0
 ------
 **New Features**

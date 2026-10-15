@@ -349,6 +349,25 @@ def test_thickness_from_lip_locator(lips_guide, lips_face):
     assert isinstance(geometry, lips_solver.LipsGeometry)
 
 
+def test_joints_translate_only(lips_guide):
+    from maya import cmds
+
+    head = _draw_control("head", (0, 0, 0))
+    root = lips_guide(parent=head)
+    assert cmds.getAttr(root + ".jointsFollowCurve") is True
+    cmds.setAttr(root + ".jointsFollowCurve", False)
+    _build()
+    assert not cmds.ls("lips_C0_*LipUpv*", type="transform")
+    upper = _joints("lips_C0_upLip*_jnt")
+    joint = upper[len(upper) // 2 - 2]
+    rest = cmds.xform(joint, query=True, worldSpace=True, matrix=True)
+    rest_position = _position(joint)
+    cmds.setAttr(_ctl("upper") + ".ty", 0.1)
+    now = cmds.xform(joint, query=True, worldSpace=True, matrix=True)
+    assert now[:11] == pytest.approx(rest[:11], abs=1e-4)
+    assert _position(joint)[1] > rest_position[1] + 0.02
+
+
 def test_squash_stretch(lips_guide):
     from maya import cmds
 
