@@ -1,5 +1,7 @@
 ## Contributing to mGear
 
+Tool UIs follow the [UI Style Guide](UI_STYLE_GUIDE.md): colour roles, window layout, which container to use, buttons, text and metrics.
+
 ### Code Formatter: Black
 
 We use **Black** for code formatting with its default **88 character line length**.

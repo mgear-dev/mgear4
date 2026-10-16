@@ -8,6 +8,7 @@ from mgear.vendor.Qt import QtCore, QtWidgets, QtGui
 from maya import cmds
 import maya.OpenMaya as api
 from mgear.core import pyqt
+from mgear.core import ui_style
 
 
 #################################################
@@ -1386,6 +1387,112 @@ def create_button(
         button.clicked.connect(changeIcon)
 
     return button
+
+
+def action_button(text, role="primary", tooltip=None, parent=None):
+    """Create a main action button styled with a UI role.
+
+    Args:
+        text (str): Button text, Title Case verb + noun ("Build Rig").
+        role (str, optional): ``"primary"``, ``"secondary"``, ``"danger"``,
+            or None for a plain button of the same height.
+        tooltip (str, optional): Button tooltip.
+        parent (QtWidgets.QWidget, optional): Parent widget.
+
+    Returns:
+        QtWidgets.QPushButton: The button.
+    """
+    button = QtWidgets.QPushButton(text, parent)
+    button.setAutoDefault(False)
+    button.setMinimumHeight(ui_style.scaled(ui_style.BUTTON_HEIGHT_PRIMARY)[0])
+    if role:
+        ui_style.set_role(button, role)
+    if tooltip:
+        button.setToolTip(tooltip)
+    return button
+
+
+class ActionBar(QtWidgets.QWidget):
+    """Row of main action buttons at the bottom of a tool window.
+
+    Buttons share the width in the order added; add the primary action last
+    so it sits on the right.
+
+    Example:
+        >>> bar = ActionBar()
+        >>> bar.add_button("Cancel", role=None)
+        >>> build_button = bar.add_button("Build", role="primary")
+    """
+
+    def __init__(self, parent=None):
+        """Initialize the action bar.
+
+        Args:
+            parent (QtWidgets.QWidget, optional): Parent widget.
+        """
+        super(ActionBar, self).__init__(parent)
+        self.main_layout = QtWidgets.QHBoxLayout(self)
+        self.main_layout.setContentsMargins(*ui_style.scaled(*ui_style.SECTION_MARGINS))
+        self.main_layout.setSpacing(ui_style.scaled(ui_style.S)[0])
+
+    def add_button(self, text, role="primary", tooltip=None):
+        """Add a button to the right end of the bar.
+
+        Args:
+            text (str): Button text.
+            role (str, optional): Button role, or None for a plain button.
+            tooltip (str, optional): Button tooltip.
+
+        Returns:
+            QtWidgets.QPushButton: The button.
+        """
+        button = action_button(text, role, tooltip, self)
+        self.add_widget(button)
+        return button
+
+    def add_widget(self, widget):
+        """Add any widget to the right end of the bar.
+
+        Args:
+            widget (QtWidgets.QWidget): The widget.
+        """
+        self.main_layout.addWidget(widget)
+
+
+class StatusLine(QtWidgets.QLabel):
+    """One-line status message at the bottom of a tool window.
+
+    Example:
+        >>> status = StatusLine()
+        >>> status.set_message("Built 12 joints", "text_success")
+    """
+
+    def __init__(self, parent=None):
+        """Initialize the status line.
+
+        Args:
+            parent (QtWidgets.QWidget, optional): Parent widget.
+        """
+        super(StatusLine, self).__init__(parent)
+        self.setWordWrap(True)
+        self.setContentsMargins(*ui_style.scaled(*ui_style.SECTION_MARGINS))
+        ui_style.set_role(self, "text_hint")
+
+    def set_message(self, text, role="text_hint"):
+        """Show a message.
+
+        Args:
+            text (str): The message.
+            role (str, optional): ``"text_hint"``, ``"text_success"``,
+                ``"text_warning"`` or ``"text_error"``.
+        """
+        ui_style.set_role(self, role)
+        self.setText(text)
+
+    def clear(self):
+        """Remove the message and go back to the hint role."""
+        ui_style.set_role(self, "text_hint")
+        super(StatusLine, self).clear()
 
 
 #########################
