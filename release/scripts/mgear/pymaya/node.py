@@ -914,6 +914,25 @@ class ObjectSet(_Node):
 nt.registerClass("objectSet", cls=ObjectSet)
 
 
+# Curve form names, indexed by the MFnNurbsCurve form value.
+CURVE_FORM_NAMES = ("invalid", "open", "closed", "periodic", "last")
+
+
+def curve_form(form):
+    """Return the index and name of an MFnNurbsCurve form value.
+
+    Args:
+        form (int): The ``MFnNurbsCurve.form`` value.
+
+    Returns:
+        tuple: (index, name), e.g. ``(3, "periodic")``. Unknown values give
+            ``(4, "last")``.
+    """
+    if 0 <= form < len(CURVE_FORM_NAMES) - 1:
+        return form, CURVE_FORM_NAMES[form]
+    return 4, CURVE_FORM_NAMES[4]
+
+
 class NurbsCurve(_Node):
     def __init__(self, nodename_or_mobject):
         super(NurbsCurve, self).__init__(nodename_or_mobject)
@@ -934,17 +953,7 @@ class NurbsCurve(_Node):
         return self.__fn_curve.getPointAtParam(p, mspace)
 
     def form(self):
-        frm = self.__fn_curve.form
-        if frm == OpenMaya.MFnNurbsCurve.kInvalid:
-            return attr.EnumValue(0, "invalid")
-        elif frm == OpenMaya.MFnNurbsCurve.kOpen:
-            return attr.EnumValue(1, "open")
-        elif frm == OpenMaya.MFnNurbsCurve.kClosed:
-            return attr.EnumValue(2, "closed")
-        elif frm == OpenMaya.MFnNurbsCurve.kPeriodic:
-            return attr.EnumValue(3, "periodic")
-        else:
-            return attr.EnumValue(4, "last")
+        return attr.EnumValue(*curve_form(self.__fn_curve.form))
 
     def degree(self):
         return self.__fn_curve.degree

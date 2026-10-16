@@ -5,6 +5,9 @@ from typing import List
 import maya.cmds as cmds
 import mgear.pymaya as pm
 
+# Characters cmds.ls reads as a pattern or a path instead of a plain name.
+_PATTERN_CHARS = frozenset("*?[]|")
+
 #############################################
 # DAG
 #############################################
@@ -110,7 +113,10 @@ def __findChild(node, name):
     """This find children function will stop search after first
      child found.child
 
-    This is a faster version of __findchildren
+    This is a faster version of __findchildren. A name that is unique
+    under the node is found through Maya's name lookup, so the cost doesn't
+    depend on the number of descendants. Names that clash under the node, and
+    names with pattern or path characters, scan the descendants instead.
 
     Arguments:
         node (dagNode): The input node to search
@@ -119,15 +125,49 @@ def __findChild(node, name):
     Returns:
         dagNode: Children node
     """
+    if isinstance(name, str) and not _PATTERN_CHARS.intersection(name):
+        if hasattr(node, "longName"):
+            root = [node.longName()]
+        else:
+            root = cmds.ls(node, long=True)
+        if len(root) == 1:
+            prefix = root[0] + "|"
+            matches = [
+                item
+                for item in cmds.ls(name, long=True, type="transform") or []
+                if item.startswith(prefix)
+            ]
+            if not matches:
+                return False
+            if len(matches) == 1:
+                return pm.PyNode(matches[0])
+
+    return __scanChild(node, name)
+
+
+def __scanChild(node, name):
+    """Find the first child with a matching name by listing all descendants.
+
+    Args:
+        node (dagNode): The input node to search
+        name (str): The name to search
+
+    Returns:
+        dagNode: Children node, or False if not found.
+    """
     try:
-        for item in cmds.listRelatives(node.name(),
-                                       allDescendents=True,
-                                       type="transform", fullPath=True):
+        for item in (
+            cmds.listRelatives(
+                node.name(), allDescendents=True, type="transform", fullPath=True
+            )
+            or []
+        ):
             if item.split("|")[-1] == name:
                 return pm.PyNode(item)
     except pm.MayaNodeError:
-        for item in node.listRelatives(allDescendents=True,
-                                       type="transform", fullPath=True):
+        for item in node.listRelatives(
+            allDescendents=True, type="transform", fullPath=True
+        ):
             if item.split("|")[-1] == name:
                 return item
 

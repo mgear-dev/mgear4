@@ -8,6 +8,7 @@ import getpass
 import os
 import subprocess
 import sys
+import time
 import timeit
 from functools import wraps
 
@@ -316,7 +317,7 @@ def undo_chunk(name=None):
 
 
 @contextlib.contextmanager
-def main_progress_bar(status, max_value, interruptable=False):
+def main_progress_bar(status, max_value, interruptable=False, redraw_interval=None):
     """Context manager - Drive Maya's main progress bar.
 
     Yields a ``step(status=None)`` callable that advances the bar by one
@@ -329,6 +330,9 @@ def main_progress_bar(status, max_value, interruptable=False):
         status (str): Initial status text.
         max_value (int): Total number of steps.
         interruptable (bool, optional): Let the user cancel with Esc.
+        redraw_interval (float, optional): Redraw Maya on ``step`` at most
+            once per this many seconds, so the bar updates during a long
+            loop without a redraw per step. None doesn't redraw.
 
     Yields:
         callable: ``step(status=None)`` function.
@@ -352,15 +356,57 @@ def main_progress_bar(status, max_value, interruptable=False):
         maxValue=max(max_value, 1),
     )
 
+    redraw = refresh_throttle(redraw_interval) if redraw_interval else None
+
     def step(status=None):
         kwargs = {"status": status} if status else {}
         cmds.progressBar(bar, edit=True, step=1, **kwargs)
+        if redraw:
+            redraw()
         return interruptable and cmds.progressBar(bar, query=True, isCancelled=True)
 
     try:
         yield step
     finally:
         cmds.progressBar(bar, edit=True, endProgress=True)
+
+
+def refresh_throttle(interval=0.1, refresh=None):
+    """Return a function that redraws Maya at most once per interval.
+
+    Use it in loops that refresh to show progress, so a long loop doesn't
+    spend its time redrawing the viewport after every item.
+
+    Args:
+        interval (float, optional): Minimum seconds between two redraws.
+        refresh (callable, optional): The redraw function. Defaults to
+            ``cmds.refresh``.
+
+    Returns:
+        callable: ``throttled(force=False)``. Redraws when ``interval``
+            seconds have passed since the last redraw, on the first call or
+            when ``force`` is True. Returns True when it redrew.
+
+    Example:
+        >>> refresh = refresh_throttle()
+        >>> for item in items:
+        ...     process(item)
+        ...     refresh()
+        >>> refresh(force=True)
+    """
+    refresh = refresh or cmds.refresh
+    last = None
+
+    def throttled(force=False):
+        nonlocal last
+        now = time.perf_counter()
+        if not force and last is not None and now - last < interval:
+            return False
+        refresh()
+        last = now
+        return True
+
+    return throttled
 
 
 def undo_off(func):

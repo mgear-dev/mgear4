@@ -394,11 +394,7 @@ class ComponentGuide(guide.Main):
                     if not node:
                         break
 
-                    self.tra[localName] = node.getMatrix(worldSpace=True)
-                    self.atra.append(node.getMatrix(worldSpace=True))
-                    self.pos[localName] = node.getTranslation(space="world")
-                    self.apos.append(node.getTranslation(space="world"))
-                    self.guide_locators.append(node.name())
+                    self._store_locator(localName, node)
 
                     i += 1
 
@@ -421,11 +417,7 @@ class ComponentGuide(guide.Main):
                     self.valid = False
                     continue
 
-                self.tra[name] = node.getMatrix(worldSpace=True)
-                self.atra.append(node.getMatrix(worldSpace=True))
-                self.pos[name] = node.getTranslation(space="world")
-                self.apos.append(node.getTranslation(space="world"))
-                self.guide_locators.append(node.name())
+                self._store_locator(name, node)
 
         for name in self.save_blade:
             if "#" in name:
@@ -466,6 +458,24 @@ class ComponentGuide(guide.Main):
                 self.blades[name] = vector.Blade(node.getMatrix(worldSpace=True))
 
         self.size = self.getSize()
+
+    def _store_locator(self, name, node):
+        """Store the world transform and position of a guide locator.
+
+        The dict and list entries get their own copies, so changing one
+        (e.g. ``symmetrize``) doesn't change the other.
+
+        Args:
+            name (str): Local name of the guide element.
+            node (dagNode): The guide locator.
+        """
+        matrix = node.getMatrix(worldSpace=True)
+        position = node.getTranslation(space="world")
+        self.tra[name] = matrix
+        self.atra.append(datatypes.Matrix(matrix))
+        self.pos[name] = position
+        self.apos.append(datatypes.Vector(position))
+        self.guide_locators.append(node.name())
 
     def set_from_dict(self, c_dict):
 

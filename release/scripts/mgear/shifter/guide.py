@@ -348,9 +348,13 @@ class Main(object):
         Arguments:
             node (dagNode): The object with the attributes.
         """
+        fn_node = utils.get_dependency_node(str(node))
+        # One query for the node. Only the parameters in this set can have
+        # a connection, so the others skip the per-parameter query.
+        connected = attribute.get_connected_input_attributes(fn_node)
 
         for scriptName, paramDef in self.paramDefs.items():
-            if not pm.attributeQuery(scriptName, node=node, exists=True):
+            if not fn_node.hasAttribute(scriptName):
                 if scriptName in OPTIONAL_PARAMS:
                     continue
                 mgear.log(
@@ -359,10 +363,13 @@ class Main(object):
                 )
                 self.valid = False
             else:
-                cnx = pm.listConnections(
-                    f"{node}.{scriptName}", destination=False, source=True
-                )
-                if isinstance(paramDef, attribute.FCurveParamDef):
+                is_fcurve = isinstance(paramDef, attribute.FCurveParamDef)
+                cnx = None
+                if is_fcurve or scriptName in connected:
+                    cnx = pm.listConnections(
+                        f"{node}.{scriptName}", destination=False, source=True
+                    )
+                if is_fcurve:
                     paramDef.value = fcurve.getFCurveValues(
                         cnx[0], self.get_divisions()
                     )

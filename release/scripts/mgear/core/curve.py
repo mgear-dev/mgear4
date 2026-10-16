@@ -9,6 +9,7 @@ from functools import wraps
 import mgear.pymaya as pm
 import maya.cmds as cmds
 from mgear.pymaya import datatypes
+from mgear.pymaya.node import curve_form
 import json
 import maya.mel as mel
 
@@ -517,15 +518,12 @@ def get_color(node):
     Returns:
         TYPE: Description
     """
-    shp = node.getShape()
-    if shp:
-        if shp.overrideRGBColors.get():
-            color = shp.overrideColorRGB.get()
-            color = [color.x, color.y, color.z]
-        else:
-            color = shp.overrideColor.get()
-
-        return color
+    shapes = cmds.listRelatives(str(node), shapes=True, fullPath=True)
+    if shapes:
+        shp = shapes[0]
+        if cmds.getAttr(shp + ".overrideRGBColors"):
+            return list(cmds.getAttr(shp + ".overrideColorRGB")[0])
+        return cmds.getAttr(shp + ".overrideColor")
 
 
 @utils.one_undo
@@ -572,23 +570,21 @@ def collect_curve_shapes(crv, rplStr=["", ""]):
     """
     shapes_names = []
     shapesDict = {}
-    for shape in crv.getShapes():
-        shape_name = shape.name()
+    for shape in cmds.listRelatives(str(crv), shapes=True, fullPath=True) or []:
+        dag_path = utils.get_dag_path(shape)
+        fn_curve = om2.MFnNurbsCurve(dag_path)
+        shape_name = dag_path.partialPathName()
         shapes_names.append(shape_name.replace(rplStr[0], rplStr[1]))
-        c_form = shape.form()
-        degree = shape.degree()
-        knots = list(shape.getKnots())
-        form = c_form.key
-        form_id = c_form.index
-        pnts = [[cv.x, cv.y, cv.z] for cv in shape.getCVs(space="object")]
-        lineWidth = shape.lineWidth.get()
+        form_id, form = curve_form(fn_curve.form)
         shapesDict[shape_name] = {
-            "points": pnts,
-            "degree": degree,
+            "points": [
+                [cv.x, cv.y, cv.z] for cv in fn_curve.cvPositions(om2.MSpace.kObject)
+            ],
+            "degree": fn_curve.degree,
             "form": form,
             "form_id": form_id,
-            "knots": knots,
-            "line_width": lineWidth,
+            "knots": list(fn_curve.knots()),
+            "line_width": cmds.getAttr(shape + ".lineWidth"),
         }
 
     return shapesDict, shapes_names

@@ -1964,6 +1964,35 @@ def delete_attrs(node, attrs):
             cmds.deleteAttr(node, attribute=attr)
 
 
+def get_connected_input_attributes(node):
+    """Return the top-level attributes of a node with an incoming connection.
+
+    A connection on a compound child or on an array element counts for its
+    top-level attribute. Makes one API query for the whole node, so it is a
+    cheap filter before querying attributes one by one.
+
+    Args:
+        node (str, PyNode or OpenMaya.MFnDependencyNode): The node. Pass a
+            function set the caller already has to skip the name lookup.
+
+    Returns:
+        set: Long and short names of the attributes with an incoming
+            connection on themselves, a child or an element.
+    """
+    if not isinstance(node, OpenMaya.MFnDependencyNode):
+        node = utils.get_dependency_node(str(node))
+    names = set()
+    for plug in node.getConnections():
+        if not plug.isDestination:
+            continue
+        while plug.isChild or plug.isElement:
+            plug = plug.parent() if plug.isChild else plug.array()
+        attr = OpenMaya.MFnAttribute(plug.attribute())
+        names.add(attr.name)
+        names.add(attr.shortName)
+    return names
+
+
 def has_input(plug):
     """Return True if a plug has an incoming connection.
 

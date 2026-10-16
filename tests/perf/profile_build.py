@@ -62,21 +62,64 @@ def parse_args(argv=None):
         help="Bundled template file name (shifter/component/_templates).",
     )
     parser.add_argument("--out", help="Write the cProfile stats to this file.")
-    parser.add_argument(
-        "--baseline", help="Compare the phase times with this baseline JSON."
-    )
-    parser.add_argument(
-        "--save-baseline", help="Write the phase times to this JSON file."
-    )
+    add_common_args(parser, top=30)
+    return parser.parse_args(argv)
+
+
+def add_common_args(parser, top=30):
+    """Add the baseline, profiling and report options shared by the harnesses.
+
+    Args:
+        parser (argparse.ArgumentParser): The parser to add the options to.
+        top (int, optional): Default number of cProfile entries to print.
+    """
+    parser.add_argument("--baseline", help="Compare the times with this baseline JSON.")
+    parser.add_argument("--save-baseline", help="Write the times to this JSON file.")
     parser.add_argument(
         "--no-profile",
         action="store_true",
-        help="Time the build without cProfile (closer to real build time).",
+        help="Time without cProfile (closer to the real time).",
     )
     parser.add_argument(
-        "--top", type=int, default=30, help="Number of cProfile entries to print."
+        "--top", type=int, default=top, help="Number of cProfile entries to print."
     )
-    return parser.parse_args(argv)
+
+
+def run_profiled(func, profile=True):
+    """Run a function, timing it and optionally profiling it.
+
+    Args:
+        func (callable): The function to run, without arguments.
+        profile (bool, optional): Run it under cProfile.
+
+    Returns:
+        tuple: (seconds, cProfile.Profile or None, the function result)
+    """
+    profiler = cProfile.Profile() if profile else None
+    start = time.perf_counter()
+    if profiler:
+        profiler.enable()
+    try:
+        value = func()
+    finally:
+        if profiler:
+            profiler.disable()
+    return time.perf_counter() - start, profiler, value
+
+
+def print_stats(profiler, top, out=None):
+    """Print the top cProfile entries by self time and optionally save them.
+
+    Args:
+        profiler (cProfile.Profile): The profiler to report.
+        top (int): Number of entries to print.
+        out (str, optional): Path of a .prof file to write.
+    """
+    stats = pstats.Stats(profiler)
+    stats.sort_stats("tottime").print_stats(top)
+    if out:
+        stats.dump_stats(out)
+        print("Profile written to {}".format(out))
 
 
 def start_maya():
@@ -161,14 +204,8 @@ def build_template(template, profile=True):
     cmds.select("guide")
 
     rig = shifter.Rig()
-    profiler = cProfile.Profile() if profile else None
-    start = time.perf_counter()
-    if profiler:
-        profiler.enable()
-    rig.buildFromSelection()
-    if profiler:
-        profiler.disable()
-    return time.perf_counter() - start, profiler, rig
+    seconds, profiler, _ = run_profiled(rig.buildFromSelection, profile)
+    return seconds, profiler, rig
 
 
 def report(result, baseline=None):
@@ -243,11 +280,7 @@ def main(argv=None):
     report(result, baseline)
 
     if profiler:
-        stats = pstats.Stats(profiler)
-        stats.sort_stats("tottime").print_stats(args.top)
-        if args.out:
-            stats.dump_stats(args.out)
-            print("Profile written to {}".format(args.out))
+        print_stats(profiler, args.top, args.out)
     if args.save_baseline:
         with open(args.save_baseline, "w") as f:
             json.dump(result, f, indent=4)

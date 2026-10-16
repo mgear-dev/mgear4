@@ -15,6 +15,7 @@ from mgear import shifter
 from mgear.shifter import utils as shifter_utils
 from mgear.core import curve
 from mgear.core import string
+from mgear.core import utils
 
 if sys.version_info[0] == 2:
     string_types = (basestring, )
@@ -162,44 +163,16 @@ def export_guide_template(filePath=None, meta=None, conf=None, *args):
             rig.guide.setFromHierarchy(selection[0])
             rig.guide.refresh_user_metadata()
 
-            # Progress bar for data collection
-            use_progress = not cmds.about(batch=True)
-            if use_progress:
-                num_comps = len(rig.guide.componentsIndex)
-                gMainProgressBar = pm.mel.eval(
-                    "$tmp = $gMainProgressBar"
-                )
-                cmds.progressBar(
-                    gMainProgressBar,
-                    edit=True,
-                    beginProgress=True,
-                    isInterruptable=False,
-                    status="Exporting guide template...",
-                    maxValue=num_comps + 1,
-                )
-
-                def _progress_cb(name):
-                    cmds.progressBar(
-                        gMainProgressBar,
-                        edit=True,
-                        step=1,
-                        status="Exporting: {}".format(name),
-                    )
-                    pm.refresh()
-            else:
-                _progress_cb = None
-
-            try:
+            # Progress bar for data collection. Its redraw is throttled, a
+            # redraw per component is slow on big guides.
+            num_comps = len(rig.guide.componentsIndex)
+            with utils.main_progress_bar(
+                "Exporting guide template...", num_comps + 1, redraw_interval=0.1
+            ) as step:
                 conf = rig.guide.get_guide_template_dict(
-                    meta, progress_callback=_progress_cb
+                    meta,
+                    progress_callback=lambda name: step("Exporting: {}".format(name)),
                 )
-            finally:
-                if use_progress:
-                    cmds.progressBar(
-                        gMainProgressBar,
-                        edit=True,
-                        endProgress=True,
-                    )
         else:
             pm.displayWarning(
                 "Guide root or guide component must be selected"

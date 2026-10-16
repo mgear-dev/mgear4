@@ -155,3 +155,54 @@ def test_cached_property_uses_stdlib(run_with_maya_standalone, setup_path):
 
     expected = getattr(functools, "cached_property", utils._CachedProperty)
     assert utils.cached_property is expected
+
+
+def test_refresh_throttle(setup_path, monkeypatch):
+    from mgear.core import utils
+
+    clock = [100.0]
+    monkeypatch.setattr(utils.time, "perf_counter", lambda: clock[0])
+    redraws = []
+    refresh = utils.refresh_throttle(0.1, refresh=lambda: redraws.append(clock[0]))
+
+    assert refresh()  # the first call redraws
+    clock[0] += 0.05
+    assert not refresh()  # within the interval
+    clock[0] += 0.06
+    assert refresh()  # 0.11s after the last redraw
+    assert refresh(force=True)  # forced, even within the interval
+    assert redraws == [100.0, 100.11, 100.11]
+
+
+def test_main_progress_bar_redraw_interval(setup_path, monkeypatch):
+    from maya import cmds
+
+    from mgear.core import utils
+
+    clock = [100.0]
+    redraws = []
+    real_about = cmds.about
+    monkeypatch.setattr(utils.time, "perf_counter", lambda: clock[0])
+    monkeypatch.setattr(utils.mel, "eval", lambda *args: "fakeBar")
+    monkeypatch.setattr(cmds, "progressBar", lambda *args, **kwargs: False)
+    monkeypatch.setattr(cmds, "refresh", lambda *args, **kwargs: redraws.append(1))
+    monkeypatch.setattr(
+        cmds,
+        "about",
+        lambda *args, **kwargs: (
+            False if kwargs.get("batch") else real_about(*args, **kwargs)
+        ),
+    )
+
+    with utils.main_progress_bar("test", 10, redraw_interval=0.1) as step:
+        for _ in range(10):
+            step()
+            clock[0] += 0.02
+    # the first step, then once after 0.1s (10 steps over 0.18s)
+    assert len(redraws) == 2
+
+    redraws[:] = []
+    with utils.main_progress_bar("test", 10) as step:
+        for _ in range(10):
+            step()
+    assert redraws == []
