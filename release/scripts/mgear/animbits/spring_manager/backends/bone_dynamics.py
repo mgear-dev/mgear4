@@ -457,6 +457,19 @@ def _plug(node, attr):
     return "{}.{}".format(node, attr)
 
 
+def _ignore_parent_transform(transform):
+    """Keep a transform at the world origin, whatever its parent does.
+
+    The boneDynamicsVisualizer draws in world space: a transform inherited
+    from its parent would offset the drawing from the bones.
+
+    Args:
+        transform (str): The visualizer transform.
+    """
+    cmds.setAttr(transform + ".inheritsTransform", False)
+    cmds.makeIdentity(transform, apply=False)
+
+
 def _add_message(node, attr, source=None, multi=False):
     """Add a message attribute, optionally connected from a node.
 
@@ -1563,6 +1576,11 @@ class BoneDynamicsBackend(SpringBackend):
                         )
                     continue
                 if existing:
+                    # repairs the visualizers of older scenes
+                    for transform in cmds.listRelatives(
+                        existing, parent=True, fullPath=True
+                    ):
+                        _ignore_parent_transform(transform)
                     continue
                 groups = attribute.get_message_inputs(spring.node, GROUP_ATTR)
                 group = groups[0] if groups else None
@@ -1577,11 +1595,11 @@ class BoneDynamicsBackend(SpringBackend):
                             )
                         cmds.setAttr(shape + ".overrideEnabled", True)
                         cmds.setAttr(shape + ".overrideDisplayType", 2)
+                        transform = cmds.listRelatives(shape, parent=True)[0]
                         # tidy outliner: the shape draws at the bones anyway
                         if group:
-                            cmds.parent(
-                                cmds.listRelatives(shape, parent=True)[0], group
-                            )
+                            transform = cmds.parent(transform, group, relative=True)[0]
+                        _ignore_parent_transform(transform)
                 registry.add_members(spring.node, created)
 
     # delete -----------------------------------------------------------------

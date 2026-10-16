@@ -308,6 +308,41 @@ def test_bdn_split_wind_visualizer(bdn):
     assert len(cmds.ls(type="boneDynamicsVisualizer")) == 0
 
 
+def _visualizer_world_matrices(cmds):
+    transforms = cmds.listRelatives(
+        cmds.ls(type="boneDynamicsVisualizer"), parent=True, fullPath=True
+    )
+    return [cmds.getAttr(transform + ".worldMatrix[0]") for transform in transforms]
+
+
+def test_bdn_visualizer_ignores_parent_motion(bdn):
+    """Issue #653: the visualizer draws in world space."""
+    from maya import cmds
+
+    identity = [1.0, 0, 0, 0, 0, 1.0, 0, 0, 0, 0, 1.0, 0, 0, 0, 0, 1.0]
+    _, controls = build_tail_rig(cmds)
+    cmds.currentTime(5)
+    spring = bdn.create([controls[0]], options={"visualizer": True})[0]
+    # the rig moves 20 in X from frame 1 to 10: the spring group follows it
+    for frame in (1, 10):
+        cmds.currentTime(frame)
+        matrices = _visualizer_world_matrices(cmds)
+        assert len(matrices) == 3
+        for matrix in matrices:
+            assert matrix == pytest.approx(identity, abs=1e-6)
+
+    # older scenes: an inherited transform is repaired by Visualizer On
+    transform = cmds.listRelatives(
+        cmds.ls(type="boneDynamicsVisualizer")[0], parent=True, fullPath=True
+    )[0]
+    cmds.setAttr(transform + ".inheritsTransform", True)
+    cmds.setAttr(transform + ".translateX", -5)
+    bdn.set_visualizer([spring], True)
+    assert len(cmds.ls(type="boneDynamicsVisualizer")) == 3
+    for matrix in _visualizer_world_matrices(cmds):
+        assert matrix == pytest.approx(identity, abs=1e-6)
+
+
 def test_bdn_rig_preset_round_trip(bdn, tmp_path):
     from maya import cmds
 
