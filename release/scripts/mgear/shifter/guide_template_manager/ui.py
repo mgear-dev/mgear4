@@ -244,15 +244,10 @@ class GuideTemplateManagerUI(
         """
         selection = pm.selected()
         if not selection:
-            cmds.warning(
-                "Please select a guide element to add to"
-            )
+            cmds.warning("Please select a guide element to add to")
             return
 
-        init_parent = selection[0]
-        shifter_io.import_partial_guide(
-            filePath=sgt_path, initParent=init_parent
-        )
+        shifter_io.import_guide_into(selection[0], filePath=sgt_path)
 
     def _on_import_partial(self, sgt_path):
         """Open the partial import dialog for component selection.
@@ -260,11 +255,10 @@ class GuideTemplateManagerUI(
         Args:
             sgt_path (str): Path to the .sgt file.
         """
-        components = core.get_components_from_template(sgt_path)
+        conf = core.read_template(sgt_path)
+        components = shifter_io.get_template_components(conf) if conf else []
         if not components:
-            cmds.warning(
-                "Could not read components from template"
-            )
+            cmds.warning("Could not read components from template")
             return
 
         dialog = ImportPartialDialog(components, self)
@@ -276,46 +270,17 @@ class GuideTemplateManagerUI(
             cmds.warning("No components selected")
             return
 
-        init_parent = None
         selection = pm.selected()
-        if selection:
-            init_parent = selection[0]
+        if not selection:
+            shifter_io.import_partial_guide(partial=roots, conf=conf)
+            return
 
-        match_position = (
-            dialog.get_action() == ImportPartialDialog.IMPORT_MATCH
-        )
-
-        target_pos = None
-        if match_position and init_parent:
-            target_pos = cmds.xform(
-                str(init_parent),
-                query=True,
-                worldSpace=True,
-                translation=True,
-            )
-
-        existing_roots = set(
-            cmds.ls("*_root", type="transform", long=True)
-        )
-
-        shifter_io.import_partial_guide(
-            filePath=sgt_path,
+        shifter_io.import_guide_into(
+            selection[0],
+            conf=conf,
             partial=roots,
-            initParent=init_parent,
+            snap=dialog.get_action() == ImportPartialDialog.IMPORT_MATCH,
         )
-
-        if target_pos and match_position:
-            current_roots = set(
-                cmds.ls("*_root", type="transform", long=True)
-            )
-            new_roots = current_roots - existing_roots
-            if new_roots:
-                first_root = sorted(new_roots)[0]
-                cmds.xform(
-                    first_root,
-                    worldSpace=True,
-                    translation=target_pos,
-                )
 
     # =================================================================
     # EXPORT

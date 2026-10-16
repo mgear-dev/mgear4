@@ -906,6 +906,8 @@ When creating a new custom step, mGear provides a template selection dialog that
 
 - **Blank**: Empty custom step with ``setup()`` and ``run()`` methods. Use this as a starting point for completely custom logic.
 
+- **Add Guide Templates**: Adds guide templates, whole or in part, under elements of the guide being built, with an optional snap (see :ref:`guide-templates-at-build`). Use it as a pre custom step.
+
 - **Import Skin Pack**: Imports skin weights from a ``.gSkinPack`` file. Useful for re-applying skin weights after rig rebuilds.
 
 - **Import Guide Visualizer Configuration**: Imports guide visualizer settings (display curves, colors, labels) from a JSON file.
@@ -1795,8 +1797,10 @@ Features
 - **Double-click or drag-and-drop**: Import guide into the scene
 - **Import**: Full guide import (right-click context menu)
 - **Import Add to Selection**: Add template as child of the selected guide element
-- **Import Partial to Selection**: Select specific components from a tree view with checkboxes, imports only the selected components and their children preserving the serialized hierarchy
-- **Import and Match Position**: Import partial and match the position to the selected guide element
+- **Import Partial to Selection**: Select specific components from a tree view with checkboxes, imports only the selected components and their children preserving the serialized hierarchy. A filter box above the tree finds components by name or type
+- **Import and Match Position**: Import partial and move the new roots so the first one sits on the selected guide element. The other roots keep their spacing
+
+Dropping a ``.sgt`` file on Maya, or using **Shifter > Import Guide Template**, offers the same add, partial and snap options in one window (see :ref:`guide-import-options`).
 
 **Search**
 
@@ -2175,6 +2179,78 @@ The imported guide can then be:
 - Saved as a new template
 
 Access from: **Shifter > Import Guide Template**
+
+With nothing selected, the template is drawn as a new guide. With a component root or locator of a guide selected, the Guide Import window opens after you pick the file, so you can add the template to that guide instead (see :ref:`guide-import-options`).
+
+.. _guide-import-options:
+
+Guide Import Options
+--------------------
+
+The **mGear Guide Import** window asks how to bring in a guide template. It opens when you drop a ``.sgt`` file on Maya with mGear file drop on (see :ref:`file-drop`), and from **Shifter > Import Guide Template** when a guide element is selected. Every choice is a button. Hover a button to see what it does.
+
+The options depend on the selection:
+
+- **Nothing selected**, or the guide top node selected: **Import**, **Build** (file drop only) and **Cancel**.
+- **A component root or locator of a guide selected**: the same buttons under **New guide**, plus **Add**, **Add & Snap** and **Partial...** under **Add to** the selected element.
+
+.. list-table::
+    :header-rows: 1
+    :widths: 25 75
+
+    * - Button
+      - What it does
+    * - **Import**
+      - Draws the template as a new guide.
+    * - **Build**
+      - Builds the rig from the template without drawing the guide.
+    * - **Add**
+      - Adds the whole template under the selected element, keeping the template positions.
+    * - **Add & Snap**
+      - Adds the whole template under the selected element and moves the new components so the first root sits on it.
+    * - **Partial...**
+      - Shows the template components in the same window, to add only some of them.
+    * - **Cancel**
+      - Closes the window without importing.
+
+**Adding Part of a Template**
+
+**Partial...** switches the window to a tree of the template components:
+
+- Check the components to add. Checking a component also checks its children, and children are always added with their parent.
+- Type in the **Filter components...** box to show only the components whose name or type contains the text, for example ``finger`` or ``arm_2jnt``. Their parents stay visible so you can see where they sit. Checks are kept while components are hidden.
+- **Select All** and **Deselect All** act on every component, or only on the ones the filter finds.
+- **Add Selected** adds the checked components under the selected element. **Add Selected & Snap** also moves them so the first root sits on the element.
+- **Back** returns to the import options.
+
+Snapping moves only the position. When several roots are added, they all move by the same offset, so they keep their spacing.
+
+.. _guide-templates-at-build:
+
+**Adding Guide Templates at Build Time**
+
+The same add, partial and snap operations can run during the build with the **Add Guide Templates** pre custom step template. In the step, ``self.operations`` lists the operations:
+
+.. code-block:: python
+
+    self.operations = [
+        {
+            "path": "hand_L.sgt",  # absolute, or relative to the step file
+            "target": "arm_L0_wrist",  # guide element to add under
+            "partial": None,  # or a list of components, like ["thumb_L0"]
+            "snap": True,  # move the first root onto the target
+        },
+    ]
+
+- It works the same for a guide in the scene and for a serialized guide (Rig Builder, **Build from File**). The templates are merged into the guide data when the build runs.
+- The scene guide is never changed, so rebuilding doesn't add copies.
+- The guide stored on the rig is the original guide, with the step still set. Rebuilding from it adds the templates again, once.
+- Added components get the next free index, and keep the control shapes stored in their template.
+- A target that isn't in the guide stops the build with an error naming it.
+- From any pre custom step, ``self.add_guide_template(target, path=..., partial=None, snap=False)`` registers one operation. It does nothing in a post custom step, because the guide is already built.
+
+.. note::
+    Scripts that call ``mgear.shifter.io.import_guide_template`` or ``import_partial_guide`` never open this window. ``import_guide_into(element, filePath, partial=None, snap=False)`` adds a template under a guide element from a script and returns the new component roots. ``merge_guide_template(guide_dict, template_dict, target, partial=None, snap=False)`` does the same on guide data and returns a new dictionary.
 
 Export Guide Template
 ----------------------

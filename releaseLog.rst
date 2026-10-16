@@ -7,6 +7,8 @@ Release Log
 **Enhancements**
 	* Rigbits: Lips Rigger 3.0: Option to turn off the joints rotating with the lip curve, also in the lips_01 component
 	* Animbits: Spring Manager: Fit Bone Radius fits a radius profile along Bone Dynamics chains, saved in presets, and branched chains no longer jump in radius and ramps between joints
+	* Shifter: Guide Import: Importing or dropping a guide with a guide element selected offers to add the template, whole or in part with a component filter, under that element with an optional snap
+	* Shifter: Custom Steps: New Add Guide Templates template that adds guide templates under guide elements at build time, for scene and serialized guide builds
 
 **Bug Fix**
 	* Animbits: Spring Manager: Bone Dynamics Target Controls now pose the chain as a chain and the pose blend keeps the bone lengths. Existing springs need a rebuild

@@ -1,5 +1,6 @@
 """Shifters Rig Main class."""
 import contextlib
+import copy
 import datetime
 import getpass
 import os.path
@@ -22,6 +23,7 @@ from mgear import shifter_epic_components
 from mgear.shifter import naming
 import importlib
 from mgear.core import utils as core_utils
+from mgear.core import curve
 
 PY2 = sys.version_info[0] == 2
 
@@ -233,6 +235,14 @@ class Rig(object):
 
         self.customStepDic = {}
 
+        # Guide templates merged into the guide at build time, registered
+        # by pre custom steps with add_guide_template
+        self.guide_template_merges = []
+        # Guide dict from before the merges, stored on the rig as guide_data
+        self.source_guide_dict = None
+        self._accept_guide_merges = False
+        self._merged_ctl_buffers = None
+
         self.build_data = {}
 
         # Joint name cache for faster lookups during build
@@ -267,6 +277,11 @@ class Rig(object):
         self.stopBuild = False
         self._slow_plugins_found = {}
         self._check_slow_plugins(SLOW_PLUGIN_BEFORE_BUILD)
+        self.guide_template_merges = []
+        self.source_guide_dict = None
+        self._merged_ctl_buffers = None
+        # Pre custom steps can't use mgearRun, they reach the builder here
+        self.customStepDic["mgearBuilder"] = self
 
     def _log_build_done(self, startTime):
         """Log the build time, then the slow plug-in summary if any.
@@ -470,6 +485,11 @@ class Rig(object):
         """
         self._initBuildCancel()
         try:
+            # Guide templates registered by the pre custom steps
+            self._apply_guide_template_merges()
+            if self.stopBuild:
+                return None
+
             # Use merged options to apply blueprint settings when enabled
             self.options = self.guide.getMergedOptions()
             self.guides = self.guide.components
@@ -491,10 +511,117 @@ class Rig(object):
             if self._checkBuildCancelled():
                 return None
             self.finalize()
+            self._apply_merged_ctl_buffers()
 
             return self.model
         finally:
             self._endBuildCancel()
+
+    @contextlib.contextmanager
+    def _guide_merges_open(self, is_open=True):
+        """Let the custom steps run inside register guide templates.
+
+        Args:
+            is_open (bool, optional): If False, does nothing. Used to run
+                the post custom steps through the same code.
+        """
+        self._accept_guide_merges = is_open
+        try:
+            yield
+        finally:
+            self._accept_guide_merges = False
+
+    def add_guide_template(
+        self, target, path=None, conf=None, partial=None, snap=False
+    ):
+        """Add a guide template to the guide being built.
+
+        Call it from a pre custom step. The template is merged into the
+        guide dictionary when the build starts, the same way for a scene
+        guide and a serialized guide. The scene guide and the guide data
+        stored on the rig are not changed.
+
+        Args:
+            target (str): Guide element to add the template under, like
+                ``arm_L0_wrist``.
+            path (str, optional): Path to the template file.
+            conf (dict, optional): Guide template dictionary. Used instead
+                of reading ``path``.
+            partial (list, optional): Names of the template components to
+                add, with their children. If None, adds all of them.
+            snap (bool, optional): If True, moves the added components so
+                the first root sits on the target.
+
+        Returns:
+            bool: True if the template was registered.
+        """
+        if not self._accept_guide_merges:
+            mgear.log(
+                "add_guide_template only works in pre custom steps, the "
+                "guide is already built. {} is skipped".format(target),
+                mgear.sev_warning,
+            )
+            return False
+        if conf is None:
+            if not path:
+                mgear.log(
+                    "add_guide_template needs a template path or "
+                    "dictionary. {} is skipped".format(target),
+                    mgear.sev_warning,
+                )
+                return False
+            from mgear.shifter import io
+
+            conf = io._import_guide_template(path)
+        self.guide_template_merges.append((target, conf, partial, snap))
+        return True
+
+    def _apply_guide_template_merges(self):
+        """Merge the registered guide templates into the guide.
+
+        The guide reloads the merged dictionary, and keeps its scene data
+        (control shape buffers, guide node). A target that is not in the
+        guide stops the build.
+        """
+        if not self.guide_template_merges:
+            return
+        from mgear.shifter import io
+
+        mgear.log("\n" + "= ADD GUIDE TEMPLATES " + "=" * 44)
+        merges = self.guide_template_merges
+        self.guide_template_merges = []
+        source = self.guide.guide_template_dict or self.guide.get_guide_template_dict()
+        merged = copy.deepcopy(source)
+        for target, conf, partial, snap in merges:
+            try:
+                io.merge_guide_template_into(
+                    merged, conf, target, partial=partial, snap=snap
+                )
+            except ValueError as e:
+                mgear.log(str(e), mgear.sev_error)
+                self.stopBuild = True
+                return
+            mgear.log("Added guide template under {}".format(target))
+
+        self.guide.set_from_dict(merged)
+        self.source_guide_dict = source
+
+        source_buffers = source.get("ctl_buffers_dict") or {}
+        merged_buffers = merged.get("ctl_buffers_dict") or {}
+        added = {
+            name: merged_buffers[name]
+            for name in merged_buffers.get("curves_names", [])
+            if name not in source_buffers
+        }
+        if added:
+            self._merged_ctl_buffers = dict(added, curves_names=list(added))
+
+    def _apply_merged_ctl_buffers(self):
+        """Apply the control shapes of the merged guide templates."""
+        if self._merged_ctl_buffers:
+            curve.update_curve_from_data(
+                self._merged_ctl_buffers, rplStr=["_controlBuffer", ""]
+            )
 
     def stepsList(self, checker, attr):
         if self.options[checker] and self.options[attr]:
@@ -670,7 +797,8 @@ class Rig(object):
         if p_val.get(pre_post, False):
             customSteps = p_val.get(pre_post_path, "")
             if customSteps:
-                self.customStep(self._parseCustomSteps(customSteps))
+                with self._guide_merges_open(pre):
+                    self.customStep(self._parseCustomSteps(customSteps))
 
     def customStep(self, customSteps=None):
         """Execute custom steps.
@@ -701,7 +829,8 @@ class Rig(object):
                 # use forward slash for OS compatibility
                 if sys.platform.startswith("darwin"):
                     customSteps = [cs.replace("\\", "/") for cs in customSteps]
-                self.customStep(customSteps)
+                with self._guide_merges_open():
+                    self.customStep(customSteps)
 
     def postCustomStep(self):
         customSteps = self.stepsList("doPostCustomStep", "postCustomStep")
@@ -719,6 +848,8 @@ class Rig(object):
         Returns:
             str: The guide data
         """
+        if self.source_guide_dict is not None:
+            return json.dumps(self.source_guide_dict)
         if self.guide.guide_template_dict:
             return json.dumps(self.guide.guide_template_dict)
         else:

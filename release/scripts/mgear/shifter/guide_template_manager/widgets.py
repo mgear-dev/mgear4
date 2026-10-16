@@ -10,6 +10,7 @@ import os
 from maya import cmds
 
 from mgear.core import pyqt
+from mgear.shifter import guide_import_dialog
 
 from mgear.vendor.Qt import QtWidgets
 from mgear.vendor.Qt import QtCore
@@ -740,13 +741,7 @@ class ImportPartialDialog(QtWidgets.QDialog):
             int(pyqt.dpi_scale(400)),
         )
 
-        self._components = components
         self._action = self.IMPORT
-
-        # Build parent lookup for hierarchy filtering
-        self._parent_map = {}
-        for comp in components:
-            self._parent_map[comp["name"]] = comp.get("parent")
 
         layout = QtWidgets.QVBoxLayout(self)
 
@@ -759,50 +754,23 @@ class ImportPartialDialog(QtWidgets.QDialog):
         info_label.setStyleSheet("color: #aaa;")
         layout.addWidget(info_label)
 
-        # Component tree
-        self.tree = QtWidgets.QTreeWidget()
-        self.tree.setHeaderLabels(["Component", "Type"])
-        self.tree.setColumnWidth(0, int(pyqt.dpi_scale(250)))
-        self.tree.setStyleSheet(
-            "QTreeWidget::indicator:unchecked {"
-            "    border: 1px solid #888;"
-            "    background-color: #333;"
-            "    width: 14px;"
-            "    height: 14px;"
-            "}"
-            "QTreeWidget::indicator:checked {"
-            "    border: 1px solid #5285a6;"
-            "    background-color: #5285a6;"
-            "    width: 14px;"
-            "    height: 14px;"
-            "}"
-        )
-        layout.addWidget(self.tree)
-
-        self._item_map = {}
-        self._populate_tree()
-
-        # Select All / Deselect All
-        sel_layout = QtWidgets.QHBoxLayout()
-        select_all_btn = QtWidgets.QPushButton("Select All")
-        select_all_btn.clicked.connect(self._select_all)
-        deselect_all_btn = QtWidgets.QPushButton("Deselect All")
-        deselect_all_btn.clicked.connect(self._deselect_all)
-        sel_layout.addWidget(select_all_btn)
-        sel_layout.addWidget(deselect_all_btn)
-        sel_layout.addStretch()
-        layout.addLayout(sel_layout)
+        # Component checklist
+        self.checklist = guide_import_dialog.ComponentChecklist(components)
+        self.tree = self.checklist.tree
+        layout.addWidget(self.checklist)
 
         # Action buttons
         btn_layout = QtWidgets.QHBoxLayout()
         btn_layout.addStretch()
         import_btn = QtWidgets.QPushButton("Import Selected")
-        import_btn.setStyleSheet("background-color: #4a7c4e;")
-        import_btn.clicked.connect(self._accept_import)
-        import_match_btn = QtWidgets.QPushButton(
-            "Import && Match Position"
+        import_btn.setStyleSheet(guide_import_dialog.IMPORT_STYLE)
+        import_btn.setToolTip(
+            "Import selected components under the selected guide "
+            "element, or as a new guide when nothing is selected"
         )
-        import_match_btn.setStyleSheet("background-color: #4a6c7e;")
+        import_btn.clicked.connect(self._accept_import)
+        import_match_btn = QtWidgets.QPushButton("Import && Match Position")
+        import_match_btn.setStyleSheet(guide_import_dialog.SNAP_STYLE)
         import_match_btn.setToolTip(
             "Import selected components and match the position "
             "of the root to the selected guide element"
@@ -814,96 +782,6 @@ class ImportPartialDialog(QtWidgets.QDialog):
         btn_layout.addWidget(import_match_btn)
         btn_layout.addWidget(cancel_btn)
         layout.addLayout(btn_layout)
-
-        # Connect check state changes
-        self.tree.itemChanged.connect(self._on_item_changed)
-
-    def _populate_tree(self):
-        """Build the component tree with checkboxes."""
-        # Build parent lookup
-        children_of = {}
-        for comp in self._components:
-            parent = comp.get("parent")
-            if parent not in children_of:
-                children_of[parent] = []
-            children_of[parent].append(comp)
-
-        # Add root components (no parent)
-        roots = children_of.get(None, [])
-        for comp in roots:
-            self._add_component(comp, self.tree, children_of)
-
-        self.tree.expandAll()
-
-    def _add_component(self, comp, parent_item, children_of):
-        """Add a component item to the tree.
-
-        Args:
-            comp (dict): Component info dict.
-            parent_item: Parent tree item or tree widget.
-            children_of (dict): Children lookup dict.
-        """
-        item = QtWidgets.QTreeWidgetItem(parent_item)
-        item.setText(0, comp["name"])
-        item.setText(1, comp["comp_type"])
-        item.setFlags(
-            item.flags() | QtCore.Qt.ItemIsUserCheckable
-        )
-        item.setCheckState(0, QtCore.Qt.Unchecked)
-        item.setData(0, QtCore.Qt.UserRole, comp["name"])
-
-        self._item_map[comp["name"]] = item
-
-        # Add children
-        children = children_of.get(comp["name"], [])
-        for child in children:
-            self._add_component(child, item, children_of)
-
-    def _on_item_changed(self, item, column):
-        """Auto-check/uncheck children when parent changes.
-
-        Args:
-            item: Changed tree item.
-            column: Column index.
-        """
-        if column != 0:
-            return
-
-        state = item.checkState(0)
-        self.tree.blockSignals(True)
-        self._set_children_state(item, state)
-        self.tree.blockSignals(False)
-
-    def _set_children_state(self, item, state):
-        """Recursively set check state on children.
-
-        Args:
-            item: Parent tree item.
-            state: Qt check state.
-        """
-        for i in range(item.childCount()):
-            child = item.child(i)
-            child.setCheckState(0, state)
-            self._set_children_state(child, state)
-
-    def _select_all(self):
-        """Check all items."""
-        self._set_all_check_state(QtCore.Qt.Checked)
-
-    def _deselect_all(self):
-        """Uncheck all items."""
-        self._set_all_check_state(QtCore.Qt.Unchecked)
-
-    def _set_all_check_state(self, state):
-        """Set check state on all items.
-
-        Args:
-            state: Qt check state constant.
-        """
-        self.tree.blockSignals(True)
-        for item in self._item_map.values():
-            item.setCheckState(0, state)
-        self.tree.blockSignals(False)
 
     def _accept_import(self):
         """Accept with standard import action."""
@@ -929,11 +807,7 @@ class ImportPartialDialog(QtWidgets.QDialog):
         Returns:
             list: List of component name strings.
         """
-        selected = []
-        for name, item in self._item_map.items():
-            if item.checkState(0) == QtCore.Qt.Checked:
-                selected.append(name)
-        return selected
+        return self.checklist.get_selected_components()
 
     def get_root_components(self):
         """Get only the top-level selected components.
@@ -946,10 +820,4 @@ class ImportPartialDialog(QtWidgets.QDialog):
         Returns:
             list: List of root component name strings.
         """
-        selected = set(self.get_selected_components())
-        roots = []
-        for name in selected:
-            parent = self._parent_map.get(name)
-            if parent not in selected:
-                roots.append(name)
-        return roots
+        return self.checklist.get_root_components()

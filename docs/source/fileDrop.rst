@@ -21,7 +21,7 @@ Supported Files
       - What a drop does
     * - ``.sgt``
       - Shifter guide template
-      - Asks to **Import** the guide or **Build** the rig from it.
+      - Asks to **Import** the guide or **Build** the rig from it. With a component root or locator of a guide selected, also offers to add the template, or some of its components, under that element, with or without snapping (see :ref:`guide-import-options`).
     * - ``.gSkinPack``
       - Skin pack
       - Imports the skin files of the pack. Opens the remap dialog for missing objects or joints.

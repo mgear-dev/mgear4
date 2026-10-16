@@ -135,6 +135,43 @@ class customShifterMainStep(object):
         """
         return name in self._step_dict
 
+    def add_guide_template(
+        self, target, path=None, conf=None, partial=None, snap=False
+    ):
+        """Add a guide template to the guide being built.
+
+        Only works in pre custom steps. See
+        ``mgear.shifter.Rig.add_guide_template``.
+
+        Args:
+            target (str): Guide element to add the template under, like
+                ``arm_L0_wrist``.
+            path (str, optional): Path to the template file.
+            conf (dict, optional): Guide template dictionary. Used instead
+                of reading ``path``.
+            partial (list, optional): Names of the template components to
+                add, with their children. If None, adds all of them.
+            snap (bool, optional): If True, moves the added components so
+                the first root sits on the target.
+
+        Returns:
+            bool: True if the template was registered.
+
+        Example:
+            self.add_guide_template("arm_L0_wrist", path="hand.sgt", snap=True)
+        """
+        builder = self._step_dict.get("mgearBuilder")
+        if not builder:
+            self.log(
+                "add_guide_template needs a Shifter build, "
+                "{} is skipped".format(target),
+                level="warning",
+            )
+            return False
+        return builder.add_guide_template(
+            target, path=path, conf=conf, partial=partial, snap=snap
+        )
+
     def run_sub_step(self, module_name, step_path=None):
         """Load and run a sub custom step from an external module.
 

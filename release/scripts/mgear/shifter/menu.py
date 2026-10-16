@@ -292,7 +292,7 @@ io.build_from_file(None)
 
 str_import_guide_template = """
 from mgear.shifter import io
-io.import_guide_template(None)
+io.import_guide_interactive()
 """
 
 str_export_guide_template = """

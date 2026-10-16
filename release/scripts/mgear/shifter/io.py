@@ -1,4 +1,5 @@
 # Shifter guides IO utility functions
+import copy
 import os
 import json
 import sys
@@ -254,13 +255,21 @@ def import_partial_guide(
             guide part of an existing guide.
         initParent (dagNode, optional): Initial parent. If None, will
             create a new initial heirarchy
+
+    Returns:
+        list: Long names of the component roots drawn directly under
+            ``initParent``, or under the new guide when it is None.
     """
     if not conf:
         conf = _import_guide_template(filePath)
     if conf:
         rig = shifter.Rig()
         rig.guide.set_from_dict(conf)
-        partial_names, partial_idx = rig.guide.draw_guide(partial, initParent)
+        drawn = rig.guide.draw_guide(partial, initParent)
+        if drawn is None:
+            # Not a valid initial parent, draw_guide warned
+            return []
+        partial_names, partial_idx = drawn
 
         # controls shapes buffer
         if not partial and conf["ctl_buffers_dict"]:
@@ -291,6 +300,8 @@ def import_partial_guide(
 
         # Drawing leaves the last component guide selected
         pm.select(clear=True)
+        return rig.guide.drawn_roots
+    return []
 
 
 def import_guide_template(filePath=None, conf=None, **kwargs):
@@ -298,8 +309,11 @@ def import_guide_template(filePath=None, conf=None, **kwargs):
 
     Args:
         filePath (str, optional): Path to the template file to import
+
+    Returns:
+        list: Long names of the drawn top component roots.
     """
-    import_partial_guide(filePath, conf=conf, **kwargs)
+    return import_partial_guide(filePath, conf=conf, **kwargs)
 
 
 def build_from_file(filePath=None, conf=False, *args):
@@ -324,27 +338,467 @@ def build_from_file(filePath=None, conf=False, *args):
         return rig
 
 
+# Import choices returned by the guide import options dialog
+IMPORT_NEW = "import"
+IMPORT_ADD = "add"
+IMPORT_BUILD = "build"
+IMPORT_CANCEL = "cancel"
+
+
+def get_selected_guide_element():
+    """Get the selected guide element to import a template into.
+
+    A guide element is a transform under a guide top node, like a
+    component root or a locator. The guide top node itself is not one.
+
+    Returns:
+        PyNode: The first selected guide element, or None.
+    """
+    selection = cmds.ls(selection=True, type="transform", long=True)
+    if not selection:
+        return None
+    node = selection[0]
+    top = "|" + node.split("|")[1]
+    if top == node or not cmds.attributeQuery("ismodel", node=top, exists=True):
+        return None
+    return pm.PyNode(node)
+
+
+def get_template_components(conf):
+    """Get the component information of a guide template.
+
+    Args:
+        conf (dict): Guide template dictionary.
+
+    Returns:
+        list: Dicts with the keys name, comp_type, parent and children,
+            in template order.
+    """
+    components = []
+    comp_dict = conf.get("components_dict", {})
+    for name in conf.get("components_list", []):
+        comp_data = comp_dict.get(name, {})
+        params = comp_data.get("param_values", {})
+        components.append(
+            {
+                "name": name,
+                "comp_type": params.get("comp_type", "unknown"),
+                "parent": comp_data.get("parent_fullName"),
+                "children": comp_data.get("child_components", []),
+            }
+        )
+    return components
+
+
+def snap_guide_roots(roots, target):
+    """Move guide roots so the first one sits on the target.
+
+    Every root moves by the same world-space offset, so several roots
+    keep their spacing.
+
+    Args:
+        roots (list): Names of the guide roots to move.
+        target (str or PyNode): Node to snap the first root to.
+    """
+    if not roots:
+        return
+    target_pos = cmds.xform(str(target), query=True, worldSpace=True, translation=True)
+    first_pos = cmds.xform(roots[0], query=True, worldSpace=True, translation=True)
+    offset = [t - f for t, f in zip(target_pos, first_pos)]
+    for root in roots:
+        pos = cmds.xform(root, query=True, worldSpace=True, translation=True)
+        cmds.xform(
+            root,
+            worldSpace=True,
+            translation=[p + o for p, o in zip(pos, offset)],
+        )
+
+
+def import_guide_into(init_parent, filePath=None, conf=None, partial=None, snap=False):
+    """Import a guide template under an element of an existing guide.
+
+    Args:
+        init_parent (str or PyNode): Guide element to draw the template
+            under, like a component root or a locator.
+        filePath (str, optional): Path to the template file to import.
+        conf (dict, optional): Guide template dictionary. Used instead of
+            reading ``filePath``.
+        partial (list, optional): Names of the components to import, with
+            their children. If None, imports the whole template.
+        snap (bool, optional): If True, moves the new roots so the first
+            one sits on ``init_parent``.
+
+    Returns:
+        list: Long names of the new component roots under ``init_parent``.
+    """
+    roots = import_partial_guide(
+        filePath, partial=partial, initParent=pm.PyNode(init_parent), conf=conf
+    )
+    if snap:
+        snap_guide_roots(roots, init_parent)
+    return roots
+
+
+def _ask_import_choice(file_name, components, target_name, allow_build):
+    """Show the guide import options dialog.
+
+    Args:
+        file_name (str): Template file name shown in the dialog.
+        components (list): Template components from
+            ``get_template_components``, for the partial page.
+        target_name (str): Name of the selected guide element, or None.
+        allow_build (bool): If True, offers to build the rig.
+
+    Returns:
+        tuple: The action (one of the ``IMPORT_*`` constants), the root
+            components picked for a partial import or None, and the snap
+            flag.
+    """
+    if cmds.about(batch=True):
+        return IMPORT_CANCEL, None, False
+    from mgear.shifter import guide_import_dialog
+
+    return guide_import_dialog.ask_import_choice(
+        file_name, components, target_name, allow_build
+    )
+
+
+def import_guide_interactive(filePath=None, allow_build=False):
+    """Import a guide template, asking where when a guide is selected.
+
+    With a guide element selected, the options dialog offers to import
+    a new guide, or to add the whole template or some components under
+    the element, with or without snapping. With nothing selected and
+    ``allow_build`` off, imports a new guide without asking.
+
+    Args:
+        filePath (str, optional): Path to the template file. If None,
+            asks for it with a file browser.
+        allow_build (bool, optional): If True, always shows the dialog
+            and offers to build the rig without drawing the guide.
+    """
+    if not filePath:
+        filePath = _get_file()
+        if not filePath:
+            return
+
+    target = get_selected_guide_element()
+    if not target and not allow_build:
+        import_guide_template(filePath=filePath)
+        return
+
+    conf = None
+    components = []
+    if target:
+        conf = _import_guide_template(filePath)
+        if not conf:
+            return
+        components = get_template_components(conf)
+
+    action, partial, snap = _ask_import_choice(
+        os.path.basename(filePath),
+        components,
+        target.name() if target else None,
+        allow_build,
+    )
+    if action == IMPORT_NEW:
+        import_guide_template(filePath=filePath, conf=conf)
+    elif action == IMPORT_ADD:
+        import_guide_into(target, conf=conf, partial=partial, snap=snap)
+    elif action == IMPORT_BUILD:
+        build_from_file(filePath=filePath, conf=conf)
+
+
 def guide_file_drop(filePath):
     """Ask what to do with a guide template file dropped on Maya.
 
-    Used by the mGear file drop: Import draws the guide, Build builds the
-    rig without drawing the guide.
+    Used by the mGear file drop. Offers Import and Build, and the add
+    options when a guide element is selected.
 
     Args:
         filePath (str): Guide template (.sgt) file path.
     """
-    result = cmds.confirmDialog(
-        title="mGear guide file",
-        message="Import or Build guide file?",
-        button=["Import", "Build", "Cancel"],
-        defaultButton="Import",
-        cancelButton="Cancel",
-        dismissString="Cancel",
+    import_guide_interactive(filePath, allow_build=True)
+
+
+def _component_full_name(param_values, index=None):
+    """Get the full name of a component from its parameter values.
+
+    Args:
+        param_values (dict): Component parameter values.
+        index (int, optional): Index to use instead of ``comp_index``.
+
+    Returns:
+        str: The full name, like ``arm_L0``.
+    """
+    if index is None:
+        index = param_values["comp_index"]
+    return "{}_{}{}".format(param_values["comp_name"], param_values["comp_side"], index)
+
+
+def _longest_component_prefix(components, name):
+    """Get the component whose ``<full name>_`` starts a node name.
+
+    Args:
+        components (iterable): Component full names.
+        name (str): Node name, like ``arm_L0_wrist``.
+
+    Returns:
+        str: The longest matching component full name, or None.
+    """
+    matches = [
+        comp
+        for comp in components
+        if name.startswith(comp + "_") and len(name) > len(comp) + 1
+    ]
+    return max(matches, key=len) if matches else None
+
+
+def resolve_guide_element(guide_dict, name):
+    """Get the component and local name of a guide element name.
+
+    Args:
+        guide_dict (dict): Guide template dictionary.
+        name (str): Guide element name, like ``arm_L0_wrist``.
+
+    Returns:
+        tuple: The component full name and the local name, like
+            ``("arm_L0", "wrist")``.
+
+    Raises:
+        ValueError: No component of the guide matches the name.
+    """
+    comp = _longest_component_prefix(guide_dict["components_dict"], name)
+    if not comp:
+        raise ValueError("Guide element {} is not in the guide".format(name))
+    return comp, name[len(comp) + 1 :]
+
+
+def _get_element_position(comp_dict, local_name):
+    """Get the stored world position of a component guide element.
+
+    Args:
+        comp_dict (dict): Component guide dictionary.
+        local_name (str): Local name of the element, like ``wrist``.
+
+    Returns:
+        list: The world position.
+
+    Raises:
+        ValueError: The component has no element with that name.
+    """
+    if local_name in comp_dict["tra"]:
+        return list(comp_dict["tra"][local_name][3][:3])
+    if local_name in comp_dict["pos"]:
+        return list(comp_dict["pos"][local_name])
+    raise ValueError("Guide element {} not found".format(local_name))
+
+
+def _offset_component(comp_dict, offset):
+    """Move all the stored transforms of a component guide.
+
+    Args:
+        comp_dict (dict): Component guide dictionary, changed in place.
+        offset (list): World offset to add.
+    """
+
+    def moved_vector(vector):
+        return [v + o for v, o in zip(vector, offset)] + list(vector[3:])
+
+    def moved_matrix(matrix):
+        rows = [list(row) for row in matrix]
+        rows[3] = moved_vector(rows[3])
+        return rows
+
+    for key in ("tra", "blade"):
+        comp_dict[key] = {
+            name: moved_matrix(matrix) for name, matrix in comp_dict[key].items()
+        }
+    comp_dict["atra"] = [moved_matrix(matrix) for matrix in comp_dict["atra"]]
+    comp_dict["pos"] = {
+        name: moved_vector(vector) for name, vector in comp_dict["pos"].items()
+    }
+    comp_dict["apos"] = [moved_vector(vector) for vector in comp_dict["apos"]]
+
+
+def _select_template_components(template_dict, partial):
+    """Get the template components to merge, in template order.
+
+    Args:
+        template_dict (dict): Guide template dictionary.
+        partial (list): Root component names, or None for all.
+
+    Returns:
+        list: Component full names.
+    """
+    comp_list = template_dict["components_list"]
+    if not partial:
+        return list(comp_list)
+    comp_dict = template_dict["components_dict"]
+    selected = set()
+    pending = list(partial)
+    while pending:
+        name = pending.pop()
+        if name in selected or name not in comp_dict:
+            continue
+        selected.add(name)
+        pending.extend(comp_dict[name]["child_components"])
+    return [name for name in comp_list if name in selected]
+
+
+def _rename_prefix(name, rename):
+    """Rename a node name that starts with a renamed component name.
+
+    Args:
+        name (str): Node name, like ``arm_C0_fk0_ctl_controlBuffer``.
+        rename (dict): New full names by old component full name.
+
+    Returns:
+        str: The renamed name, or None if no component matches.
+    """
+    comp = _longest_component_prefix(rename, name)
+    if not comp:
+        return None
+    return rename[comp] + name[len(comp) :]
+
+
+def _merge_ctl_buffers(guide_buffers, template_buffers, rename):
+    """Merge the control buffers of renamed components.
+
+    Args:
+        guide_buffers (dict): Control buffers of the guide, or None.
+            Changed in place when it is not None.
+        template_buffers (dict): Control buffers of the template, or None.
+        rename (dict): New full names by template full name.
+
+    Returns:
+        dict: The merged control buffers, or None if there are none.
+    """
+    if not template_buffers:
+        return guide_buffers
+    merged = guide_buffers or {"curves_names": []}
+    for crv in template_buffers["curves_names"]:
+        new_crv = _rename_prefix(crv, rename)
+        if not new_crv:
+            continue
+        crv_dict = copy.deepcopy(template_buffers[crv])
+        shape_names = {
+            shape: _rename_prefix(shape, rename) or shape
+            for shape in crv_dict["shapes"]
+        }
+        crv_dict["shapes"] = {
+            shape_names[shape]: data for shape, data in crv_dict["shapes"].items()
+        }
+        crv_dict["shapes_names"] = [
+            shape_names.get(shape, shape) for shape in crv_dict["shapes_names"]
+        ]
+        if new_crv not in merged:
+            merged["curves_names"].append(new_crv)
+        merged[new_crv] = crv_dict
+    return merged
+
+
+def merge_guide_template(guide_dict, template_dict, target, partial=None, snap=False):
+    """Merge a guide template into a guide dictionary under an element.
+
+    The dictionary version of ``import_guide_into``. Used to add guide
+    parts at build time, when the guide may only exist as a dictionary.
+
+    Limitations:
+        - The UI host and space switch references of the merged
+        components are not updated, like ``import_partial_guide``.
+
+    Args:
+        guide_dict (dict): Guide template dictionary to merge into.
+        template_dict (dict): Guide template dictionary to merge.
+        target (str): Guide element to add the template under, like
+            ``arm_L0_wrist``.
+        partial (list, optional): Names of the template components to
+            merge, with their children. If None, merges all of them.
+        snap (bool, optional): If True, moves the merged components so
+            the first root sits on the target.
+
+    Returns:
+        dict: A new guide dictionary. The inputs are not changed.
+
+    Raises:
+        ValueError: The target is not in the guide.
+    """
+    result = copy.deepcopy(guide_dict)
+    merge_guide_template_into(result, template_dict, target, partial, snap)
+    return result
+
+
+def merge_guide_template_into(
+    guide_dict, template_dict, target, partial=None, snap=False
+):
+    """Merge a guide template into a guide dictionary, in place.
+
+    Same as ``merge_guide_template``, without copying the guide first.
+    Use it to fold several templates into one copy of a guide.
+
+    Args:
+        guide_dict (dict): Guide template dictionary, changed in place.
+        template_dict (dict): Guide template dictionary to merge. Not
+            changed.
+        target (str): Guide element to add the template under.
+        partial (list, optional): Names of the template components to
+            merge, with their children. If None, merges all of them.
+        snap (bool, optional): If True, moves the merged components so
+            the first root sits on the target.
+
+    Raises:
+        ValueError: The target is not in the guide.
+    """
+    target_comp, target_local = resolve_guide_element(guide_dict, target)
+    comp_dict = guide_dict["components_dict"]
+    names = _select_template_components(template_dict, partial)
+
+    # Lowest free index from the template index, like setIndex
+    rename = {}
+    new_index = {}
+    taken = set(comp_dict)
+    for name in names:
+        values = template_dict["components_dict"][name]["param_values"]
+        index = values["comp_index"]
+        while _component_full_name(values, index) in taken:
+            index += 1
+        new_name = _component_full_name(values, index)
+        taken.add(new_name)
+        rename[name] = new_name
+        new_index[name] = index
+
+    roots = []
+    for name in names:
+        c_dict = copy.deepcopy(template_dict["components_dict"][name])
+        new_name = rename[name]
+        c_dict["param_values"]["comp_index"] = new_index[name]
+        comp_dict[new_name] = c_dict
+        guide_dict["components_list"].append(new_name)
+        c_dict["child_components"] = [
+            rename[child] for child in c_dict["child_components"] if child in rename
+        ]
+        parent = c_dict.get("parent_fullName")
+        if parent in rename:
+            c_dict["parent_fullName"] = rename[parent]
+        else:
+            c_dict["parent_fullName"] = target_comp
+            c_dict["parent_localName"] = target_local
+            comp_dict[target_comp]["child_components"].append(new_name)
+            roots.append(new_name)
+
+    if snap and roots:
+        target_pos = _get_element_position(comp_dict[target_comp], target_local)
+        root_pos = _get_element_position(comp_dict[roots[0]], "root")
+        offset = [t - r for t, r in zip(target_pos, root_pos)]
+        for name in names:
+            _offset_component(comp_dict[rename[name]], offset)
+
+    guide_dict["ctl_buffers_dict"] = _merge_ctl_buffers(
+        guide_dict.get("ctl_buffers_dict"),
+        template_dict.get("ctl_buffers_dict"),
+        rename,
     )
-    if result == "Import":
-        import_guide_template(filePath=filePath)
-    elif result == "Build":
-        build_from_file(filePath=filePath)
 
 
 # Sample import command

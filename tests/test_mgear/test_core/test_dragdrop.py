@@ -152,21 +152,32 @@ def test_skin_handlers(dragdrop, monkeypatch, default_import):
 
 
 def test_guide_file_drop(dragdrop, monkeypatch):
-    from maya import cmds
     from mgear.shifter import io
 
     calls = []
-    monkeypatch.setattr(cmds, "confirmDialog", lambda **kw: "Import")
+    asked = []
+
+    def ask(file_name, components, target_name, allow_build):
+        asked.append((file_name, target_name, allow_build))
+        return result[0]
+
+    result = [(io.IMPORT_NEW, None, False)]
+    monkeypatch.setattr(io, "_ask_import_choice", ask)
     monkeypatch.setattr(
-        io, "import_guide_template", lambda filePath=None: calls.append(filePath)
+        io,
+        "import_guide_template",
+        lambda filePath=None, conf=None: calls.append(filePath),
     )
     io.guide_file_drop("C:/x/biped.sgt")
     assert calls == ["C:/x/biped.sgt"]
+    # Nothing selected: Import / Build / Cancel only
+    assert asked == [("biped.sgt", None, True)]
     dragdrop.guide_file_prompt("C:/x/biped.sgt")
     assert calls == ["C:/x/biped.sgt"] * 2
-    monkeypatch.setattr(cmds, "confirmDialog", lambda **kw: "Cancel")
+    result[0] = (io.IMPORT_CANCEL, None, False)
     dragdrop.mgear_file_drop_action("C:/x/biped.sgt")
     assert calls == ["C:/x/biped.sgt"] * 2
+    assert len(asked) == 3
 
 
 def test_wire_to_skinning_drop(dragdrop, monkeypatch):

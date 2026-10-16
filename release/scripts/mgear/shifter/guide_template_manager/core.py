@@ -315,6 +315,22 @@ def capture_viewport_thumbnail(save_path, width=None, height=None):
 # =================================================================
 
 
+def read_template(sgt_path):
+    """Read a template file, warning when it can't be read.
+
+    Args:
+        sgt_path (str): Path to the .sgt file.
+
+    Returns:
+        dict: Guide template dictionary, or None on failure.
+    """
+    try:
+        return shifter_io._import_guide_template(sgt_path)
+    except Exception as e:
+        cmds.warning("Failed to read template {}: {}".format(sgt_path, e))
+        return None
+
+
 def get_components_from_template(sgt_path):
     """Extract component information from a template file.
 
@@ -325,41 +341,8 @@ def get_components_from_template(sgt_path):
         list: List of dicts with keys: name, comp_type,
             parent, children. Returns empty list on failure.
     """
-    try:
-        conf = shifter_io._import_guide_template(sgt_path)
-    except Exception as e:
-        cmds.warning(
-            "Failed to read template {}: {}".format(sgt_path, e)
-        )
-        return []
-
+    conf = read_template(sgt_path)
     if not conf:
         return []
 
-    return _extract_components(conf)
-
-
-def _extract_components(conf):
-    """Extract component data from a template config dict.
-
-    Args:
-        conf (dict): Template configuration dictionary.
-
-    Returns:
-        list: List of component info dicts.
-    """
-    components = []
-    comp_dict = conf.get("components_dict", {})
-    comp_list = conf.get("components_list", [])
-
-    for name in comp_list:
-        comp_data = comp_dict.get(name, {})
-        params = comp_data.get("param_values", {})
-        components.append({
-            "name": name,
-            "comp_type": params.get("comp_type", "unknown"),
-            "parent": comp_data.get("parent_fullName"),
-            "children": comp_data.get("child_components", []),
-        })
-
-    return components
+    return shifter_io.get_template_components(conf)

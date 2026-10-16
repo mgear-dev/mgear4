@@ -531,6 +531,8 @@ class Rig(Main):
         self.components = {}  # Keys are the component fullname (ie. 'arm_L0')
         self.componentsIndex = []
         self.parents = []
+        # Roots drawn directly under the initial parent by draw_guide
+        self.drawn_roots = []
 
         self.guide_template_dict = {}  # guide template dict to export guides
 
@@ -1333,6 +1335,8 @@ class Rig(Main):
         partial_components = None
         partial_components_idx = []
         parent = None
+        self.drawn_roots = []
+        drawn_top = []
 
         if partial:
             if not isinstance(partial, list):
@@ -1407,11 +1411,17 @@ class Rig(Main):
                 comp_guide.draw(parent)
 
                 partial_components_idx.append(comp_guide.values["comp_index"])
+                if parent == (initParent or self.model):
+                    drawn_top.append(comp_guide)
 
             if not partial:  # if not partial will build all the components
                 comp_guide.draw(parent)
+                if parent == (initParent or self.model):
+                    drawn_top.append(comp_guide)
 
         pm.progressWindow(e=True, endProgress=True)
+
+        self.drawn_roots = [str(comp_guide.root) for comp_guide in drawn_top]
 
         return partial_components, partial_components_idx
 

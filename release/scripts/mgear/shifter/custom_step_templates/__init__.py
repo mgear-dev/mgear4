@@ -11,6 +11,12 @@ TEMPLATES = {
         "description": "Empty custom step with setup() and run() methods",
         "module": "blank",
     },
+    "add_guide_templates": {
+        "name": "Add Guide Templates",
+        "description": "Add guide templates, whole or in part, under guide "
+        "elements (pre custom step)",
+        "module": "add_guide_templates",
+    },
     "import_skin_pack": {
         "name": "Import Skin Pack",
         "description": "Import skin weights from a .gSkinPack file",
