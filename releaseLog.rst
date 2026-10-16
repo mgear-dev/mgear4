@@ -12,6 +12,7 @@ Release Log
 
 **Bug Fix**
 	* Animbits: Spring Manager: Bone Dynamics Target Controls now pose the chain as a chain and the pose blend keeps the bone lengths. Existing springs need a rebuild
+	* Animbits: Spring Manager: Bone Dynamics visualizer stays on the bones when a parent control moves, and Visualizer On fixes existing scenes #653 (thanks akasaki1211)
 
 
 5.4.0
