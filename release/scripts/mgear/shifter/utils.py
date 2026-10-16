@@ -1,5 +1,8 @@
-from mgear import pymaya as pm
 from typing import Any, Iterable, List, Optional
+
+from maya import cmds
+
+from mgear import pymaya as pm
 
 
 def get_deformer_joint_grp(rigTopNode):
@@ -276,3 +279,34 @@ def find_component_root(node):
         current = parent
 
     return None
+
+
+def get_guide_x_ray_plug(guide_model):
+    """Return the guide x-ray plug that guide shapes draw on top with.
+
+    Args:
+        guide_model (str or PyNode): The guide root (model) node.
+
+    Returns:
+        str: The ``<guide>.guide_x_ray`` plug, or None when the guide has no
+            x-ray attribute.
+    """
+    guide_model = str(guide_model)
+    if not cmds.attributeQuery("guide_x_ray", node=guide_model, exists=True):
+        return None
+    return guide_model + ".guide_x_ray"
+
+
+def connect_guide_x_ray(shapes, x_ray_plug):
+    """Connect the guide x-ray plug to the alwaysDrawOnTop of guide shapes.
+
+    Shapes whose alwaysDrawOnTop is already connected are left as they are.
+
+    Args:
+        shapes (list of str): Shape names.
+        x_ray_plug (str): The plug from ``get_guide_x_ray_plug``.
+    """
+    for shape in shapes:
+        plug = shape + ".alwaysDrawOnTop"
+        if not cmds.listConnections(plug):
+            cmds.connectAttr(x_ray_plug, plug)

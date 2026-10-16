@@ -226,6 +226,12 @@ def cube(
         dagNode: The newly created icon.
 
     """
+    curves = _cube_curves(width, height, depth, pos_offset, rot_offset)
+    return _build_icon(parent, name, m, curves, color=color)
+
+
+def _cube_curves(width, height, depth, pos_offset=None, rot_offset=None):
+    """Curve specs of the CUBE icon. See ``_build_icon``."""
     lenX = width * 0.5
     lenY = height * 0.5
     lenZ = depth * 0.5
@@ -261,11 +267,7 @@ def cube(
 
     points = getPointArrayWithOffset(v_array, pos_offset, rot_offset)
 
-    node = curve.addCurve(parent, name, points, False, 1, m)
-
-    setcolor(node, color)
-
-    return node
+    return [("Shape", points, False, 1)]
 
 
 def pyramid(
@@ -348,6 +350,12 @@ def square(
         dagNode: The newly created icon.
 
     """
+    curves = _square_curves(width, depth, pos_offset, rot_offset)
+    return _build_icon(parent, name, m, curves, color=color)
+
+
+def _square_curves(width, depth, pos_offset=None, rot_offset=None):
+    """Curve specs of the SQUARE icon. See ``_build_icon``."""
     lenX = width * 0.5
     lenZ = depth * 0.5
 
@@ -358,11 +366,7 @@ def square(
 
     points = getPointArrayWithOffset([v0, v1, v2, v3], pos_offset, rot_offset)
 
-    node = curve.addCurve(parent, name, points, True, 1, m)
-
-    setcolor(node, color)
-
-    return node
+    return [("Shape", points, True, 1)]
 
 
 def flower(
@@ -531,36 +535,18 @@ def cylinder(
     v22 = datatypes.Vector(-dlen * offsetMult, -dhei, 0)
     v23 = datatypes.Vector(-dlen * offsetMult, dhei, 0)
 
-    points = getPointArrayWithOffset(
-        [v0, v1, v2, v3, v4, v5, v6, v7], pos_offset, rot_offset
-    )
-    node = curve.addCurve(parent, name, points, True, degree, m)
+    def offset(vectors):
+        return getPointArrayWithOffset(vectors, pos_offset, rot_offset)
 
-    points = getPointArrayWithOffset(
-        [v8, v9, v10, v11, v12, v13, v14, v15], pos_offset, rot_offset
-    )
-    crv_0 = curve.addCurve(parent, node + "_0crv", points, True, degree, m)
-
-    points = getPointArrayWithOffset([v16, v17], pos_offset, rot_offset)
-    crv_1 = curve.addCurve(parent, node + "_1crv", points, True, 1, m)
-
-    points = getPointArrayWithOffset([v18, v19], pos_offset, rot_offset)
-    crv_2 = curve.addCurve(parent, node + "_2crv", points, True, 1, m)
-
-    points = getPointArrayWithOffset([v20, v21], pos_offset, rot_offset)
-    crv_3 = curve.addCurve(parent, node + "_3crv", points, True, 1, m)
-
-    points = getPointArrayWithOffset([v22, v23], pos_offset, rot_offset)
-    crv_4 = curve.addCurve(parent, node + "_4crv", points, True, 1, m)
-
-    for crv in [crv_0, crv_1, crv_2, crv_3, crv_4]:
-        for shp in crv.listRelatives(shapes=True):
-            node.addChild(shp, add=True, shape=True)
-        pm.delete(crv)
-
-    setcolor(node, color)
-
-    return node
+    curves = [
+        ("Shape", offset([v0, v1, v2, v3, v4, v5, v6, v7]), True, degree),
+        ("_0crvShape", offset([v8, v9, v10, v11, v12, v13, v14, v15]), True, degree),
+        ("_1crvShape", offset([v16, v17]), True, 1),
+        ("_2crvShape", offset([v18, v19]), True, 1),
+        ("_3crvShape", offset([v20, v21]), True, 1),
+        ("_4crvShape", offset([v22, v23]), True, 1),
+    ]
+    return _build_icon(parent, name, m, curves, color=color)
 
 
 def compas(
@@ -778,6 +764,12 @@ def sphere(
         dagNode: The newly created icon.
 
     """
+    curves = _sphere_curves(width, pos_offset, rot_offset, degree)
+    return _build_icon(parent, name, m, curves, color=color)
+
+
+def _sphere_curves(width, pos_offset=None, rot_offset=None, degree=3):
+    """Curve specs of the SPHERE icon. See ``_build_icon``."""
     dlen = width * 0.5
 
     v0 = datatypes.Vector(0, 0, -dlen * 1.108)
@@ -791,10 +783,11 @@ def sphere(
 
     ro = datatypes.Vector([1.5708, 0, 0])
 
+    curves = []
     points = getPointArrayWithOffset(
         [v0, v1, v2, v3, v4, v5, v6, v7], pos_offset, rot_offset
     )
-    node = curve.addCurve(parent, name, points, True, degree, m)
+    curves.append(("Shape", points, True, degree))
 
     if rot_offset:
         rot_offset += ro
@@ -803,7 +796,7 @@ def sphere(
     points = getPointArrayWithOffset(
         [v0, v1, v2, v3, v4, v5, v6, v7], pos_offset, rot_offset
     )
-    crv_0 = curve.addCurve(parent, node + "_0crv", points, True, degree, m)
+    curves.append(("_0crvShape", points, True, degree))
 
     ro = datatypes.Vector([1.5708, 0, 1.5708])
     if rot_offset:
@@ -813,17 +806,9 @@ def sphere(
     points = getPointArrayWithOffset(
         [v0, v1, v2, v3, v4, v5, v6, v7], pos_offset, rot_offset + ro + ro
     )
+    curves.append(("_1crvShape", points, True, degree))
 
-    crv_1 = curve.addCurve(parent, node + "_1crv", points, True, degree, m)
-
-    for crv in [crv_0, crv_1]:
-        for shp in crv.listRelatives(shapes=True):
-            node.addChild(shp, add=True, shape=True)
-        pm.delete(crv)
-
-    setcolor(node, color)
-
-    return node
+    return curves
 
 
 def arrow(
@@ -1278,6 +1263,12 @@ def null(
         dagNode: The newly created icon.
 
     """
+    curves = _null_curves(width, pos_offset, rot_offset)
+    return _build_icon(parent, name, m, curves, base=name, color=color)
+
+
+def _null_curves(width, pos_offset=None, rot_offset=None):
+    """Curve specs of the NULL icon, x, y and z lines. See ``_build_icon``."""
     dlen = width * 0.5
 
     v0 = datatypes.Vector(dlen, 0, 0)
@@ -1287,23 +1278,7 @@ def null(
     v4 = datatypes.Vector(0, 0, dlen)
     v5 = datatypes.Vector(0, 0, -dlen)
 
-    points = getPointArrayWithOffset([v0, v1], pos_offset, rot_offset)
-    node = curve.addCurve(parent, name, points, False, 1, m)
-
-    points = getPointArrayWithOffset([v2, v3], pos_offset, rot_offset)
-    crv_0 = curve.addCurve(parent, name, points, False, 1, m)
-
-    points = getPointArrayWithOffset([v4, v5], pos_offset, rot_offset)
-    crv_1 = curve.addCurve(parent, name, points, False, 1, m)
-
-    for crv in [crv_0, crv_1]:
-        for shp in crv.listRelatives(shapes=True):
-            node.addChild(shp, add=True, shape=True)
-        pm.delete(crv)
-
-    setcolor(node, color)
-
-    return node
+    return _line_curves(([v0, v1], [v2, v3], [v4, v5]), pos_offset, rot_offset)
 
 
 def axis(
@@ -1332,6 +1307,15 @@ def axis(
         dagNode: The newly created icon.
 
     """
+    curves = _axis_curves(width, pos_offset, rot_offset)
+    node = _build_icon(parent, name, m, curves, base=name)
+    _color_axis_shapes(cmds.listRelatives(node.longName(), shapes=True, fullPath=True))
+
+    return node
+
+
+def _axis_curves(width, pos_offset=None, rot_offset=None):
+    """Curve specs of the AXIS icon, x, y and z lines. See ``_build_icon``."""
     dlen = width * 0.5
 
     v0 = datatypes.Vector(0, 0, 0)
@@ -1339,24 +1323,26 @@ def axis(
     v2 = datatypes.Vector(0, dlen, 0)
     v3 = datatypes.Vector(0, 0, dlen)
 
-    points = getPointArrayWithOffset([v0, v1], pos_offset, rot_offset)
-    node = curve.addCurve(parent, name, points, False, 1, m)
-    setcolor(node, 4)
+    return _line_curves(([v0, v1], [v0, v2], [v0, v3]), pos_offset, rot_offset)
 
-    points = getPointArrayWithOffset([v0, v2], pos_offset, rot_offset)
-    crv_0 = curve.addCurve(parent, name, points, False, 1, m)
-    setcolor(crv_0, 14)
 
-    points = getPointArrayWithOffset([v0, v3], pos_offset, rot_offset)
-    crv_1 = curve.addCurve(parent, name, points, False, 1, m)
-    setcolor(crv_1, 6)
+def _line_curves(lines, pos_offset=None, rot_offset=None):
+    """Curve specs of 2 point lines named Shape, 1Shape, 2Shape..."""
+    return [
+        (
+            "{}Shape".format(index or ""),
+            getPointArrayWithOffset(line, pos_offset, rot_offset),
+            False,
+            1,
+        )
+        for index, line in enumerate(lines)
+    ]
 
-    for crv in [crv_0, crv_1]:
-        for shp in crv.listRelatives(shapes=True):
-            node.addChild(shp, add=True, shape=True)
-        pm.delete(crv)
 
-    return node
+def _color_axis_shapes(shapes):
+    """Color the AXIS icon shapes: red x, green y, blue z."""
+    for shape, axis_color in zip(shapes, (4, 14, 6)):
+        curve.set_shapes_color([shape], axis_color)
 
 
 ##########################################################
@@ -1485,31 +1471,15 @@ def guideRootIcon(
         dagNode: The newly created icon.
 
     """
-    rootIco = null(parent, name, width, color, m, pos_offset, rot_offset)
     cubeWidth = width / 2.0
-    cubeIco = cube(
+    return _guide_icon(
         parent,
         name,
-        cubeWidth,
-        cubeWidth,
-        cubeWidth,
-        color,
         m,
-        pos_offset,
-        rot_offset,
+        color,
+        _null_curves(width, pos_offset, rot_offset),
+        _cube_curves(cubeWidth, cubeWidth, cubeWidth, pos_offset, rot_offset),
     )
-
-    for shp in cubeIco.listRelatives(shapes=True):
-        rootIco.addChild(shp, add=True, shape=True)
-    pm.delete(cubeIco)
-
-    attribute.setNotKeyableAttributes(rootIco)
-    rootIco.addAttr("isGearGuide", at="bool", dv=True)
-    # Set the control shapes isHistoricallyInteresting
-    for oShape in rootIco.getShapes():
-        oShape.isHistoricallyInteresting.set(False)
-
-    return rootIco
 
 
 def guideRootIcon2D(
@@ -1541,36 +1511,20 @@ def guideRootIcon2D(
         dagNode: The newly created icon.
 
     """
-    rootIco = null(parent, name, width, color, m, pos_offset, rot_offset)
-    pm.delete(rootIco.getShapes()[-1])  # Remove the z axis
-
     rot_offset_orig = datatypes.Vector(math.radians(90), 0, 0)
     if rot_offset:
         rot_offset_orig.rotateBy(rot_offset)
 
     squareWidth = width / 2.0
-    squareIco = square(
+    return _guide_icon(
         parent,
         name,
-        squareWidth,
-        squareWidth,
-        color,
         m,
-        pos_offset,
-        rot_offset_orig,
+        color,
+        # null without the z axis
+        _null_curves(width, pos_offset, rot_offset)[:2],
+        _square_curves(squareWidth, squareWidth, pos_offset, rot_offset_orig),
     )
-
-    for shp in squareIco.listRelatives(shapes=True):
-        rootIco.addChild(shp, add=True, shape=True)
-    pm.delete(squareIco)
-
-    attribute.setNotKeyableAttributes(rootIco)
-    rootIco.addAttr("isGearGuide", at="bool", dv=True)
-    # Set the control shapes isHistoricallyInteresting
-    for oShape in rootIco.getShapes():
-        oShape.isHistoricallyInteresting.set(False)
-
-    return rootIco
 
 
 def guideLocatorIcon(
@@ -1602,24 +1556,15 @@ def guideLocatorIcon(
         dagNode: The newly created icon.
 
     """
-    rootIco = null(parent, name, width, color, m, pos_offset, rot_offset)
     spheWidth = width / 2.0
-
-    sphereIco = sphere(
-        parent, name, spheWidth, color, m, pos_offset, rot_offset, degree=3
+    return _guide_icon(
+        parent,
+        name,
+        m,
+        color,
+        _null_curves(width, pos_offset, rot_offset),
+        _sphere_curves(spheWidth, pos_offset, rot_offset, degree=3),
     )
-
-    for shp in sphereIco.listRelatives(shapes=True):
-        rootIco.addChild(shp, add=True, shape=True)
-    pm.delete(sphereIco)
-
-    attribute.setNotKeyableAttributes(rootIco)
-    rootIco.addAttr("isGearGuide", at="bool", dv=True)
-    # Set the control shapes isHistoricallyInteresting
-    for oShape in rootIco.getShapes():
-        oShape.isHistoricallyInteresting.set(False)
-
-    return rootIco
 
 
 def guideBladeIcon(
@@ -1694,6 +1639,158 @@ def guideBladeIcon(
 # MISC
 ##########################################################
 # ========================================================
+
+
+def _build_icon(parent, name, m, curves, base=None, color=None):
+    """Create an icon transform with all its curve shapes.
+
+    The first curve creates the transform (``curve.addCurve``). The others
+    are added under it as extra shapes, with no temporary transforms.
+
+    Args:
+        parent (dagNode): The parent of the icon.
+        name (str): Name of the icon.
+        m (matrix): The global transformation of the icon.
+        curves (list of tuple): ``(suffix, points, close, degree)`` per
+            curve, from the ``_<icon>_curves`` functions.
+        base (str, optional): Name base of the extra shapes, see
+            ``_add_curves``.
+        color (int | list of float | tuple of float, optional): Icon color.
+            None leaves the shapes uncolored.
+
+    Returns:
+        dagNode: The icon transform.
+    """
+    _, points, close, degree = curves[0]
+    node = curve.addCurve(parent, name, points, close, degree, m)
+    _add_curves(node, curves[1:], base)
+    if color is not None:
+        setcolor(node, color)
+    return node
+
+
+def _guide_icon(parent, name, m, color, null_curves, extra_curves):
+    """Create a guide icon: a null with an extra shape (cube, sphere...).
+
+    Args:
+        parent (dagNode): The parent of the icon.
+        name (str): Name of the icon.
+        m (matrix): The global transformation of the icon.
+        color (int | list of float | tuple of float): The icon color.
+        null_curves (list of tuple): Curve specs of the null part.
+        extra_curves (list of tuple): Curve specs of the extra shape.
+
+    Returns:
+        dagNode: The guide icon.
+    """
+    node = _build_icon(parent, name, m, null_curves, base=name)
+    _add_curves(node, extra_curves, name + "3")
+    return _finish_guide_icon(node, color)
+
+
+def _add_curves(node, curves, base=None):
+    """Add curve shapes under an icon transform.
+
+    Icons used to build each extra curve as a temporary transform and move
+    its shape under the icon. The shapes keep the names they got that way:
+    ``<base><suffix>``.
+
+    Args:
+        node (str or dagNode): The icon transform.
+        curves (list of tuple): ``(suffix, points, close, degree)`` per
+            curve, in the icon's object space.
+        base (str, optional): Shape name base. Defaults to the icon name.
+
+    Returns:
+        list of str: Long names of the new shapes.
+    """
+    base = base or str(node).split("|")[-1]
+    return [
+        curve.add_curve_shape(node, points, close, degree, name=base + suffix)
+        for suffix, points, close, degree in curves
+    ]
+
+
+def add_icon_shapes(
+    node,
+    icon="sphere",
+    name=None,
+    width=1,
+    color=(0, 0, 0),
+    scale=None,
+    pos_offset=None,
+    rot_offset=None,
+    degree=3,
+):
+    """Add the curve shapes of an icon under an existing transform.
+
+    Creates no transform, so it is the cheap way to add a visual reference
+    (an axis, a sphere...) to an object that already exists.
+
+    Args:
+        node (str or dagNode): The transform to add the shapes to.
+        icon (str, optional): Icon type: "axis", "sphere", "null", "cube"
+            or "square".
+        name (str, optional): Shape name base. Defaults to the node name.
+        width (float, optional): Width of the icon.
+        color (int | list of float | tuple of float, optional): The color in
+            index base or RGB. The axis icon is always red, green, blue.
+        scale (list of float, optional): Per axis scale multiplied into the
+            points, e.g. to bake the node's world scale in the shapes.
+        pos_offset (vector, optional): The xyz position offset of the icon.
+        rot_offset (vector, optional): The xyz rotation offset of the icon,
+            in radians.
+        degree (int, optional): Curve degree of the sphere icon.
+
+    Returns:
+        list of str: Long names of the new shapes.
+    """
+    if icon == "axis":
+        curves = _axis_curves(width, pos_offset, rot_offset)
+    elif icon == "sphere":
+        curves = _sphere_curves(width, pos_offset, rot_offset, degree)
+    elif icon == "null":
+        curves = _null_curves(width, pos_offset, rot_offset)
+    elif icon == "cube":
+        curves = _cube_curves(width, width, width, pos_offset, rot_offset)
+    elif icon == "square":
+        curves = _square_curves(width, width, pos_offset, rot_offset)
+    else:
+        raise ValueError("Icon type {!r} can't be added as shapes".format(icon))
+
+    if scale is not None:
+        curves = [
+            (suffix, [[p[i] * scale[i] for i in range(3)] for p in points], close, d)
+            for suffix, points, close, d in curves
+        ]
+    shapes = _add_curves(node, curves, name)
+    if icon == "axis":
+        _color_axis_shapes(shapes)
+    else:
+        curve.set_shapes_color(shapes, color)
+    return shapes
+
+
+def _finish_guide_icon(node, color):
+    """Color a guide icon and set the guide icon channels and attributes.
+
+    Args:
+        node (dagNode): The guide icon transform.
+        color (int | list of float | tuple of float): The color in index
+            base or RGB.
+
+    Returns:
+        dagNode: The guide icon.
+    """
+    shapes = cmds.listRelatives(node.longName(), shapes=True, fullPath=True)
+    curve.set_shapes_color(shapes, color)
+    attribute.setNotKeyableAttributes(node)
+    cmds.addAttr(
+        node.longName(), longName="isGearGuide", attributeType="bool", defaultValue=True
+    )
+    for shape in shapes:
+        cmds.setAttr(shape + ".isHistoricallyInteresting", False)
+    return node
 
 
 def getPointArrayWithOffset(point_pos, pos_offset=None, rot_offset=None):

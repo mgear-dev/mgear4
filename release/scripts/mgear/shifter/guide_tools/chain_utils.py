@@ -366,34 +366,19 @@ def find_guide_model(node):
 def connect_x_ray(curve_node, guide_model):
     """Connect the guide_x_ray attribute to the curve shapes.
 
-    This replicates the behavior of guide.connect_x_ray method.
+    Same rule as the component guide ``connect_x_ray``.
 
     Args:
         curve_node: The curve transform (PyNode or str).
         guide_model (str): The guide model root node name.
     """
-    from mgear.pymaya import versions
+    from mgear.shifter import utils as shifter_utils
 
-    # Only for Maya 2022+
-    if versions.current() < 20220000:
+    x_ray_plug = shifter_utils.get_guide_x_ray_plug(guide_model)
+    if not x_ray_plug:
         return
-
-    # Check if guide model has guide_x_ray attribute
-    if not cmds.attributeQuery("guide_x_ray", node=guide_model, exists=True):
-        return
-
-    # Get curve as PyNode if it's a string
-    if isinstance(curve_node, str):
-        curve_node = pm.PyNode(curve_node)
-
-    # Connect to each shape
-    for shape in curve_node.getShapes():
-        # Check if alwaysDrawOnTop is already connected
-        if not shape.attr("alwaysDrawOnTop").listConnections():
-            pm.connectAttr(
-                "{}.guide_x_ray".format(guide_model),
-                shape.attr("alwaysDrawOnTop")
-            )
+    shapes = cmds.listRelatives(str(curve_node), shapes=True, fullPath=True)
+    shifter_utils.connect_guide_x_ray(shapes or [], x_ray_plug)
 
 
 def regenerate_display_curve(node):

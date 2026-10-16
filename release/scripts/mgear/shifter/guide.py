@@ -1376,9 +1376,12 @@ class Rig(Main):
             progress=0,
             max=len(self.components),
         )
+        # a redraw per component is slow on big guides
+        refresh = utils.refresh_throttle()
+        last_root = None
         for name in self.componentsIndex:
             pm.progressWindow(e=True, step=1, status="\nDrawing: %s" % name)
-            pm.refresh()
+            refresh()
             comp_guide = self.components[name]
 
             if comp_guide.parentComponent:
@@ -1422,22 +1425,46 @@ class Rig(Main):
                 elif not parent and initParent:
                     parent = initParent
 
-                comp_guide.draw(parent)
+                last_root = self._draw_component(comp_guide, parent)
 
                 partial_components_idx.append(comp_guide.values["comp_index"])
                 if parent == (initParent or self.model):
                     drawn_top.append(comp_guide)
 
             if not partial:  # if not partial will build all the components
-                comp_guide.draw(parent)
+                last_root = self._draw_component(comp_guide, parent)
                 if parent == (initParent or self.model):
                     drawn_top.append(comp_guide)
 
         pm.progressWindow(e=True, endProgress=True)
+        # drawing used to leave the last drawn component root selected
+        if last_root:
+            pm.select(last_root)
 
         self.drawn_roots = [str(comp_guide.root) for comp_guide in drawn_top]
 
         return partial_components, partial_components_idx
+
+    @staticmethod
+    def _draw_component(comp_guide, parent):
+        """Draw a component guide without selecting its root.
+
+        Callers drawing many components select once at the end, a selection
+        per component is slow in Maya's UI.
+
+        Args:
+            comp_guide (ComponentGuide): The component guide to draw.
+            parent (dagNode): The parent of the component.
+
+        Returns:
+            dagNode: The component root.
+        """
+        comp_guide.select_on_draw = False
+        try:
+            comp_guide.draw(parent)
+        finally:
+            comp_guide.select_on_draw = True
+        return comp_guide.root
 
     def update(self, sel, force=False):
         """Update the guide if a parameter is missing"""
@@ -1540,7 +1567,8 @@ class Rig(Main):
 
                 comp_guide.setIndex(self.model)
 
-                comp_guide.draw(parent)
+                # the first duplicated root is selected at the end
+                self._draw_component(comp_guide, parent)
         pm.select(self.components[self.componentsIndex[0]].root)
 
     def updateProperties(self, root, newName, newSide, newIndex):

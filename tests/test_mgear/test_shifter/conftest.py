@@ -102,3 +102,27 @@ def lips_guide(lips_face, rig_plugins):
         return root
 
     return draw
+
+
+@pytest.fixture
+def import_template(rig_plugins, setup_path, monkeypatch):
+    """Function importing a bundled guide template in a new scene.
+
+    Returns:
+        callable: Called with the template file name, returns the guide
+            root node.
+    """
+    from maya import cmds
+
+    import mgear
+    import mgear.pymaya as pm
+    from mgear.shifter import io
+
+    monkeypatch.setattr(mgear, "log", lambda *args, **kwargs: None)
+
+    def load(template):
+        cmds.file(new=True, force=True)
+        io.import_sample_template(template)
+        return pm.PyNode("guide")
+
+    return load

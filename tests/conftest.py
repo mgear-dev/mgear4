@@ -445,3 +445,151 @@ def brow_face(setup_path, load_repo_plugin):
             ),
         }
     return face
+
+
+# Rounding keeps golden comparisons stable across Maya versions.
+_GOLDEN_DECIMALS = 6
+_GOLDEN_UPDATE_ENV = "MGEAR_UPDATE_GOLDEN"
+
+
+def _normalize(value):
+    """Return a JSON-compatible copy of a value with rounded floats.
+
+    Args:
+        value (object): The value to normalize (dict, list, float...).
+
+    Returns:
+        object: The normalized value.
+    """
+    if isinstance(value, dict):
+        return {str(k): _normalize(v) for k, v in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [_normalize(v) for v in value]
+    if isinstance(value, float):
+        rounded = round(value, _GOLDEN_DECIMALS)
+        return 0.0 if rounded == 0 else rounded
+    return value
+
+
+def _first_difference(expected, actual, path="root"):
+    """Return the path of the first difference between two values.
+
+    Args:
+        expected (object): The expected value.
+        actual (object): The actual value.
+        path (str, optional): Path of the values, used in the message.
+
+    Returns:
+        str: A message naming the first difference, or None if equal.
+    """
+    if isinstance(expected, dict) and isinstance(actual, dict):
+        for key in sorted(set(expected) | set(actual)):
+            if key not in actual:
+                return "{}[{!r}] missing".format(path, key)
+            if key not in expected:
+                return "{}[{!r}] unexpected".format(path, key)
+            diff = _first_difference(
+                expected[key], actual[key], "{}[{!r}]".format(path, key)
+            )
+            if diff:
+                return diff
+        return None
+    if isinstance(expected, list) and isinstance(actual, list):
+        if len(expected) != len(actual):
+            return "{} length {} != {}".format(path, len(expected), len(actual))
+        for index, (exp, act) in enumerate(zip(expected, actual)):
+            diff = _first_difference(exp, act, "{}[{}]".format(path, index))
+            if diff:
+                return diff
+        return None
+    if expected != actual:
+        return "{}: {!r} != {!r}".format(path, expected, actual)
+    return None
+
+
+@pytest.fixture
+def check_golden(request):
+    """Function comparing data with a stored golden file, or recording it.
+
+    Golden files are gzipped JSON in a ``data`` folder next to the test
+    module. Floats are rounded, tuples become lists. With the
+    ``MGEAR_UPDATE_GOLDEN`` environment variable set, the data is recorded
+    and the test is skipped.
+
+    Returns:
+        callable: Called with the golden file name (without extension) and
+            the data. Fails the test naming the first difference.
+    """
+    import gzip
+    import json
+
+    folder = os.path.join(os.path.dirname(str(request.fspath)), "data")
+
+    def check(name, data):
+        path = os.path.join(folder, name + ".json.gz")
+        data = _normalize(data)
+        if os.environ.get(_GOLDEN_UPDATE_ENV):
+            os.makedirs(folder, exist_ok=True)
+            with gzip.open(path, "wt", encoding="utf-8") as f:
+                json.dump(data, f, sort_keys=True)
+            pytest.skip("Recorded {}".format(path))
+        with gzip.open(path, "rt", encoding="utf-8") as f:
+            expected = json.load(f)
+        diff = _first_difference(expected, data)
+        assert diff is None, diff
+
+    return check
+
+
+@pytest.fixture
+def describe_shapes():
+    """Function describing the shapes of a transform for comparisons.
+
+    Returns:
+        callable: Called with a transform name and ``names`` (bool, optional,
+            default True) to include the shape names. Returns a list with one
+            dict per shape, in order: name, type, degree, form, knots,
+            object space CVs, override colour settings, line width,
+            isHistoricallyInteresting and the source of alwaysDrawOnTop.
+    """
+    from maya import cmds
+    from maya.api import OpenMaya
+
+    def describe(transform, names=True):
+        shapes = []
+        for shape in cmds.listRelatives(transform, shapes=True, fullPath=True) or []:
+            data = {"type": cmds.nodeType(shape)}
+            if names:
+                data["name"] = shape.split("|")[-1]
+            if data["type"] == "nurbsCurve":
+                sel = OpenMaya.MSelectionList()
+                sel.add(shape)
+                fn = OpenMaya.MFnNurbsCurve(sel.getDagPath(0))
+                data["degree"] = fn.degree
+                data["form"] = fn.form
+                data["knots"] = list(fn.knots())
+                data["cvs"] = [
+                    [p.x, p.y, p.z] for p in fn.cvPositions(OpenMaya.MSpace.kObject)
+                ]
+            for attr in (
+                "overrideEnabled",
+                "overrideRGBColors",
+                "overrideColor",
+                "overrideDisplayType",
+                "lineWidth",
+                "isHistoricallyInteresting",
+                "visibility",
+            ):
+                if cmds.attributeQuery(attr, node=shape, exists=True):
+                    data[attr] = cmds.getAttr(shape + "." + attr)
+            data["overrideColorRGB"] = cmds.getAttr(shape + ".overrideColorRGB")[0]
+            for attr in ("alwaysDrawOnTop", "visibility"):
+                if cmds.attributeQuery(attr, node=shape, exists=True):
+                    src = cmds.listConnections(
+                        shape + "." + attr, source=True, destination=False, plugs=True
+                    )
+                    data[attr + "_input"] = src or None
+            shapes.append(data)
+        return shapes
+
+    return describe

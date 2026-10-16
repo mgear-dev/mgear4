@@ -3,125 +3,21 @@
 Reading a guide from the scene (``setFromHierarchy``) and exporting it
 (``get_guide_template_dict``) must give the same template dictionary as
 before the guide read performance change. The expected dictionaries are
-stored gzipped in ``data/``. To record them again with the current code::
+stored gzipped in ``data/`` (see the ``check_golden`` fixture). To record
+them again with the current code::
 
-    MGEAR_UPDATE_GUIDE_GOLDEN=1 mayapy -m pytest tests/test_mgear/test_shifter/test_guide_read.py
+    MGEAR_UPDATE_GOLDEN=1 mayapy -m pytest tests/test_mgear/test_shifter/test_guide_read.py
 """
 
-import gzip
-import json
 import os
 
 import pytest
 
-DATA = os.path.join(os.path.dirname(__file__), "data")
-UPDATE_ENV = "MGEAR_UPDATE_GUIDE_GOLDEN"
 TEMPLATES = ("biped.sgt", "EPIC_metahuman_y_up.sgt")
-# Rounding keeps the comparison stable across Maya versions.
-DECIMALS = 6
-
-
-def normalize(value):
-    """Return a JSON-compatible copy of a value with rounded floats.
-
-    Args:
-        value (object): The value to normalize (dict, list, float...).
-
-    Returns:
-        object: The normalized value.
-    """
-    if isinstance(value, dict):
-        return {str(k): normalize(v) for k, v in value.items()}
-    if isinstance(value, (list, tuple)):
-        return [normalize(v) for v in value]
-    if isinstance(value, float):
-        rounded = round(value, DECIMALS)
-        return 0.0 if rounded == 0 else rounded
-    return value
-
-
-def first_difference(expected, actual, path="root"):
-    """Return the path of the first difference between two values.
-
-    Args:
-        expected (object): The expected value.
-        actual (object): The actual value.
-        path (str, optional): Path of the values, used in the message.
-
-    Returns:
-        str: A message naming the first difference, or None if equal.
-    """
-    if isinstance(expected, dict) and isinstance(actual, dict):
-        for key in sorted(set(expected) | set(actual)):
-            if key not in actual:
-                return "{}[{!r}] missing".format(path, key)
-            if key not in expected:
-                return "{}[{!r}] unexpected".format(path, key)
-            diff = first_difference(
-                expected[key], actual[key], "{}[{!r}]".format(path, key)
-            )
-            if diff:
-                return diff
-        return None
-    if isinstance(expected, list) and isinstance(actual, list):
-        if len(expected) != len(actual):
-            return "{} length {} != {}".format(path, len(expected), len(actual))
-        for index, (exp, act) in enumerate(zip(expected, actual)):
-            diff = first_difference(exp, act, "{}[{}]".format(path, index))
-            if diff:
-                return diff
-        return None
-    if expected != actual:
-        return "{}: {!r} != {!r}".format(path, expected, actual)
-    return None
-
-
-def check_golden(name, data):
-    """Compare data with a stored golden file, or record it.
-
-    Args:
-        name (str): Golden file name, without extension.
-        data (object): The data to compare (normalized here).
-    """
-    path = os.path.join(DATA, name + ".json.gz")
-    data = normalize(data)
-    if os.environ.get(UPDATE_ENV):
-        os.makedirs(DATA, exist_ok=True)
-        with gzip.open(path, "wt", encoding="utf-8") as f:
-            json.dump(data, f, sort_keys=True)
-        pytest.skip("Recorded {}".format(path))
-    with gzip.open(path, "rt", encoding="utf-8") as f:
-        expected = json.load(f)
-    diff = first_difference(expected, data)
-    assert diff is None, diff
-
-
-@pytest.fixture
-def import_template(rig_plugins, setup_path, monkeypatch):
-    """Function importing a bundled guide template in a new scene.
-
-    Returns:
-        callable: Called with the template file name, returns the guide
-            root node.
-    """
-    from maya import cmds
-
-    import mgear
-    import mgear.pymaya as pm
-    from mgear.shifter import io
-
-    monkeypatch.setattr(mgear, "log", lambda *args, **kwargs: None)
-
-    def load(template):
-        cmds.file(new=True, force=True)
-        io.import_sample_template(template)
-        return pm.PyNode("guide")
-
-    return load
 
 
 @pytest.mark.parametrize("template", TEMPLATES)
-def test_read_and_export_unchanged(import_template, template):
+def test_read_and_export_unchanged(import_template, check_golden, template):
     from mgear import shifter
 
     guide_root = import_template(template)
@@ -134,7 +30,7 @@ def test_read_and_export_unchanged(import_template, template):
 
 
 @pytest.mark.parametrize("template", TEMPLATES)
-def test_control_buffer_data_unchanged(import_template, template):
+def test_control_buffer_data_unchanged(import_template, check_golden, template):
     from maya import cmds
 
     import mgear.pymaya as pm

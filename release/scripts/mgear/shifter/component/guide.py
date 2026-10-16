@@ -15,12 +15,12 @@ import mgear
 
 from mgear.core import string
 from mgear.core import node
-from mgear.pymaya import versions
 
 from mgear.core import dag, vector, transform, applyop, attribute, icon, pyqt, utils
 from mgear.core import upv_visualizer
 
 from mgear.shifter import guide, guide_manager
+from mgear.shifter import utils as shifter_utils
 from . import chain_guide_initializer
 
 from . import main_settings_ui as msui
@@ -40,6 +40,22 @@ ALIAS_NAME_DESCRIPTION_CUSTOM = ALIAS_NAME_DESCRIPTION + "_custom"
 ##########################################################
 # COMPONENT GUIDE
 ##########################################################
+
+
+def _world_scale(node):
+    """Return the world scale of a guide element.
+
+    Reference shapes bake it in their points, as they did when they were
+    drawn at the element's world matrix and had their scale frozen.
+
+    Args:
+        node (dagNode): The guide element.
+
+    Returns:
+        list of float: x, y and z scale.
+    """
+    matrix = datatypes.TransformationMatrix(node.getMatrix(worldSpace=True))
+    return matrix.getScale("world")
 
 
 class ComponentGuide(guide.Main):
@@ -150,6 +166,14 @@ class ComponentGuide(guide.Main):
         # duplicate symmetry testin if is R side, but not when the guide is re-imported
         # and postDraw is executed again
         self.duplicate_symmetry_status = False
+
+        # Guide x-ray plug, resolved once per draw. None: not resolved yet,
+        # "": the guide has no x-ray switch
+        self._x_ray_plug = None
+
+        # Select the root after drawing. Drawing many components (guide
+        # template import, duplicate) turns it off and selects once at the end
+        self.select_on_draw = True
 
         # Init the guide
         self.postInit()
@@ -551,9 +575,11 @@ class ComponentGuide(guide.Main):
         """
         self.parent = parent
         self.setIndex(self.parent)
+        self._x_ray_plug = None
         self.addObjects()
         self.postDraw()
-        pm.select(self.root)
+        if self.select_on_draw:
+            pm.select(self.root)
 
         # TODO: add function to scale the points of the icons
         # Set the size of the root
@@ -722,13 +748,22 @@ class ComponentGuide(guide.Main):
     # ====================================================
     # ELEMENTS
 
-    def connect_x_ray(self, loc):
-        for oShape in loc.getShapes():
-            # connecting the always draw shapes
-            if versions.current() >= 20220000 and self.model.hasAttr("guide_x_ray") and not oShape.attr("alwaysDrawOnTop").listConnections():
-                pm.connectAttr(
-                    self.model.guide_x_ray, oShape.attr("alwaysDrawOnTop")
-                )
+    def connect_x_ray(self, loc, shapes=None):
+        """Make the shapes of a guide element follow the guide x-ray switch.
+
+        Args:
+            loc (dagNode): The guide element.
+            shapes (list of str, optional): Only connect these shapes, e.g.
+                the ones just added to the element. Defaults to all its
+                shapes.
+        """
+        if self._x_ray_plug is None:
+            self._x_ray_plug = shifter_utils.get_guide_x_ray_plug(self.model) or ""
+        if not self._x_ray_plug:
+            return
+        if shapes is None:
+            shapes = cmds.listRelatives(str(loc), shapes=True, fullPath=True) or []
+        shifter_utils.connect_guide_x_ray(shapes, self._x_ray_plug)
 
     def addRoot(self):
         """Add a root object to the guide.
@@ -775,24 +810,23 @@ class ComponentGuide(guide.Main):
                 the visual ref
             inverted (bool, optional): if we need to negate the attr
         """
-        axis = icon.axis(
-            loc, self.getName("axis"), width=width, m=loc.getMatrix(worldSpace=True)
+        shapes = icon.add_icon_shapes(
+            loc,
+            "axis",
+            self.getName("axis"),
+            width=width,
+            scale=_world_scale(loc),
         )
-        pm.parent(axis, world=True)
-        pm.makeIdentity(axis, apply=True, t=False, r=False, s=True, n=0)
         if vis_attr and inverted:
             vis_node = node.createReverseNode(vis_attr)
             vis_attr = vis_node.outputX
 
-        for shp in axis.getShapes():
+        for shp in shapes:
             if vis_attr:
-                pm.connectAttr(vis_attr, shp.attr("visibility"))
-            shp.isHistoricallyInteresting.set(False)
-
-            shp.lineWidth.set(3)
-            loc.addChild(shp, add=True, shape=True)
-        self.connect_x_ray(loc)
-        pm.delete(axis)
+                pm.connectAttr(vis_attr, shp + ".visibility")
+            cmds.setAttr(shp + ".isHistoricallyInteresting", False)
+            cmds.setAttr(shp + ".lineWidth", 3)
+        self.connect_x_ray(loc, shapes)
 
     def add_ref_joint(self, loc, vis_attr=None, width=0.5):
         """Add a visual reference joint to a locator or root of the guide
@@ -803,24 +837,19 @@ class ComponentGuide(guide.Main):
                 the visual ref. Should be a list [attr1, attr2]
             width (float, optional): icon width
         """
-        add_ref_joint = icon.sphere(
+        shapes = icon.add_icon_shapes(
             loc,
+            "sphere",
             self.getName("joint"),
             width=width,
             color=[0, 1, 0],
-            m=loc.getMatrix(worldSpace=True),
+            scale=_world_scale(loc),
         )
-        pm.parent(add_ref_joint, world=True)
-        pm.makeIdentity(add_ref_joint, apply=True, t=False, r=False, s=True, n=0)
-
-        for shp in add_ref_joint.getShapes():
+        for shp in shapes:
             if vis_attr:
-                node.createMulNode(vis_attr[0], vis_attr[1], shp.attr("visibility"))
-            shp.isHistoricallyInteresting.set(False)
-
-            loc.addChild(shp, add=True, shape=True)
-        self.connect_x_ray(loc)
-        pm.delete(add_ref_joint)
+                node.createMulNode(vis_attr[0], vis_attr[1], shp + ".visibility")
+            cmds.setAttr(shp + ".isHistoricallyInteresting", False)
+        self.connect_x_ray(loc, shapes)
 
     def addLoc(self, name, parent, position=None, color=17, width=.5):
         """Add a loc object to the guide.

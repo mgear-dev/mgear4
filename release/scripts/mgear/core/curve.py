@@ -106,6 +106,67 @@ def addCurve(
     return node
 
 
+def add_curve_shape(parent, points, close=False, degree=3, name=None, knots=None):
+    """Create a NurbsCurve shape directly under an existing transform.
+
+    The shape matches the one ``addCurve`` creates for the same points,
+    close and degree, but no transform is created, reparented or deleted.
+    Use it to build icons made of several curves under one transform.
+    Undoable.
+
+    Args:
+        parent (str or dagNode): The transform to add the shape to.
+        points (list of float | list of datatypes.Vector | list of om2.MPoint):
+            Points of the curve in the parent's object space.
+        close (bool, optional): True to create a periodic curve.
+        degree (int, optional): 1 for linear curve, 3 for cubic.
+        name (str, optional): Shape name. Defaults to Maya's
+            ``<parent>Shape`` naming.
+        knots (list of float, optional): Knot vector, e.g. from stored
+            curve data. The points are then used as given: a periodic curve
+            must already repeat its first ``degree`` points at the end.
+            Defaults to the knots ``addCurve`` uses.
+
+    Returns:
+        str: Long name of the new shape.
+    """
+    points = [(p[0], p[1], p[2]) for p in points]
+    form = 2 if close else 0
+    if knots is not None:
+        knots = list(knots)
+    elif close:
+        points.extend(points[:degree])
+        knots = list(range(len(points) + degree - 1))
+    else:
+        # cmds.curve default knots: end knots repeated ``degree`` times
+        last = len(points) - degree
+        knots = [0] * degree + list(range(1, last)) + [last] * degree
+    parent_name = parent if isinstance(parent, str) else parent.longName()
+    shape = cmds.createNode(
+        "nurbsCurve",
+        parent=parent_name,
+        name=name or parent_name.split("|")[-1] + "Shape",
+        skipSelect=True,
+    )
+    cmds.setAttr(
+        shape + ".cached",
+        degree,
+        len(points) - degree,
+        form,
+        False,
+        3,
+        knots,
+        len(knots),
+        len(points),
+        *points,
+        type="nurbsCurve"
+    )
+    if parent_name.startswith("|"):
+        # the parent is a long name, no need to ask Maya
+        return parent_name + "|" + shape.split("|")[-1]
+    return cmds.ls(shape, long=True)[0]
+
+
 def createCurveFromOrderedEdges(
     edgeLoop, startVertex, name, parent=None, degree=3
 ):
@@ -536,19 +597,28 @@ def set_color(node, color):
 
 
     """
-    # on Maya version.
-    # version = mgear.core.getMayaver()
+    set_shapes_color(
+        cmds.listRelatives(str(node), shapes=True, fullPath=True) or [], color
+    )
 
-    if isinstance(color, int):
 
-        for shp in node.listRelatives(shapes=True):
-            shp.setAttr("overrideEnabled", True)
-            shp.setAttr("overrideColor", color)
-    else:
-        for shp in node.listRelatives(shapes=True):
-            shp.overrideEnabled.set(1)
-            shp.overrideRGBColors.set(1)
-            shp.overrideColorRGB.set(color[0], color[1], color[2])
+def set_shapes_color(shapes, color):
+    """Set the override color of shapes.
+
+    Same as ``set_color`` for a list of shapes, without an undo chunk of its
+    own, so icons can color some of their shapes or all of them at once.
+
+    Args:
+        shapes (list of str): The shape names.
+        color (int or list of float): The color in index base or RGB.
+    """
+    for shp in shapes:
+        cmds.setAttr(shp + ".overrideEnabled", True)
+        if isinstance(color, int):
+            cmds.setAttr(shp + ".overrideColor", color)
+        else:
+            cmds.setAttr(shp + ".overrideRGBColors", True)
+            cmds.setAttr(shp + ".overrideColorRGB", color[0], color[1], color[2])
 
 
 # ========================================
@@ -746,6 +816,9 @@ def create_curve_from_data_by_name(
         first_shape = first_shape[0]
         # clean old shapes
         pm.delete(first_shape.listRelatives(shapes=True))
+    # we dont use replace in order to support multiple shapes
+    nsh = crv.replace(rplStr[0], rplStr[1]).replace("Shape", "")
+    extra_shapes = 0
     for sh in crv_dict["shapes_names"]:
         points = shp_dict[sh]["points"]
         form = shp_dict[sh]["form"]
@@ -759,29 +832,37 @@ def create_curve_from_data_by_name(
         else:
             close = False
 
-        # we dont use replace in order to support multiple shapes
-        nsh = crv.replace(rplStr[0], rplStr[1])
-        obj = pm.curve(
-            name=nsh.replace("Shape", ""),
-            point=points,
-            periodic=close,
-            degree=degree,
-            knot=knots,
-        )
-        set_color(obj, color)
         # check for backwards compatibility
-        if "line_width" in shp_dict[sh]:
-            lineWidth = shp_dict[sh]["line_width"]
-            set_thickness(obj, lineWidth)
+        line_width = shp_dict[sh].get("line_width")
 
         # handle multiple shapes in the same transform
         if not first_shape:
-            first_shape = obj
+            first_shape = pm.curve(
+                name=nsh,
+                point=points,
+                periodic=close,
+                degree=degree,
+                knot=knots,
+            )
             first_shape.setTransformation(crv_transform)
+            shape = cmds.listRelatives(
+                first_shape.longName(), shapes=True, fullPath=True
+            )[0]
         else:
-            for extra_shp in obj.listRelatives(shapes=True):
-                first_shape.addChild(extra_shp, add=True, shape=True)
-                pm.delete(obj)
+            # extra shapes are named like the temporary curves they were
+            # made from before: <name>1Shape, <name>2Shape...
+            extra_shapes += 1
+            shape = add_curve_shape(
+                first_shape,
+                points,
+                close,
+                degree,
+                name="{}{}Shape".format(nsh, extra_shapes),
+                knots=knots,
+            )
+        set_shapes_color([shape], color)
+        if line_width is not None:
+            cmds.setAttr(shape + ".lineWidth", line_width)
 
     if rebuildHierarchy:
         crv_parenting(data, crv, rplStr, model)
