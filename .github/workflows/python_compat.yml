@@ -1,0 +1,38 @@
+# Workflow to check the code runs on the oldest supported Python
+# (Maya 2022 ships Python 3.7). vermin finds the minimum Python version each
+# file needs, so features like math.dist (3.8) fail here instead of in Maya.
+#
+# Run it locally with:
+#   pip install vermin==1.8.0
+#   vermin -q --target=3.7- --violations --no-tips --exclude long
+#     --exclude unicode --exclude dict.iteritems release/scripts/mgear tests
+#
+# The excluded names are Python 2 only and sit behind PY2 runtime checks.
+
+name: Python Compatibility
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  vermin:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.12"
+    - name: Install vermin
+      run: |
+        python -m pip install --upgrade pip
+        pip install vermin==1.8.0
+    - name: Check Python 3.7 compatibility (Maya 2022)
+      run: |
+        vermin -q --target=3.7- --violations --no-tips \
+          --exclude long --exclude unicode --exclude dict.iteritems \
+          release/scripts/mgear tests

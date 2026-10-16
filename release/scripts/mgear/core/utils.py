@@ -3,6 +3,7 @@
 
 import contextlib
 import datetime
+import functools
 import getpass
 import os
 import subprocess
@@ -23,6 +24,34 @@ import mgear
 ##########################################################
 # UTILS
 ##########################################################
+
+
+class _CachedProperty(object):
+    """Property computed on first access, then stored on the instance.
+
+    Pure Python version of functools.cached_property, which needs Python 3.8
+    (Maya 2022 is 3.7). Use cached_property, which picks the stdlib one when
+    it exists.
+
+    Args:
+        func (function): Method computing the value.
+    """
+
+    def __init__(self, func):
+        self.func = func
+        self.attrname = func.__name__
+        self.__doc__ = func.__doc__
+
+    def __get__(self, instance, owner=None):
+        if instance is None:
+            return self
+        value = self.func(instance)
+        # non data descriptor: the instance attribute wins from now on
+        instance.__dict__[self.attrname] = value
+        return value
+
+
+cached_property = getattr(functools, "cached_property", _CachedProperty)
 
 
 def as_pynode(obj):

@@ -6,8 +6,6 @@ axes and scene up axis checks of Eye Rigger 2.1, so tilted and side facing
 eyes work the same.
 """
 
-import math
-
 from maya import cmds
 
 from mgear.core import meshNavigation
@@ -93,7 +91,7 @@ def _inner_first(first, last, positions, by_front):
     """
     first_x = abs(positions[first][0])
     last_x = abs(positions[last][0])
-    width = math.dist(positions[first], positions[last]) or 1.0
+    width = vector.distance(positions[first], positions[last]) or 1.0
     if by_front and abs(first_x - last_x) < width * 0.1:
         front = _world_front()
         return vector._dot(positions[first], front) >= vector._dot(
@@ -150,7 +148,7 @@ def solve(settings, eye_center=None, aim=None, side=None):
     else:
         eye_center = tuple(eye_center)
         # eyeball about as wide as the eyelid opening
-        eye_size = 2.0 * max(math.dist(p, loop_center) for p in points)
+        eye_size = 2.0 * max(vector.distance(p, loop_center) for p in points)
 
     offset = settings.get("offset", 0.0)
     aim_distance = eye_size / 1.7
@@ -163,7 +161,7 @@ def solve(settings, eye_center=None, aim=None, side=None):
             vector.to_frame_coordinates(aim, frame)[2],
             0.0,
         )
-        aim_distance = math.dist(eye_center, aim)
+        aim_distance = vector.distance(eye_center, aim)
     else:
         normal_hint = tuple(loop_center[i] - eye_center[i] for i in range(3))
         lateral_hint = (1.0, 0.0, 0.0)

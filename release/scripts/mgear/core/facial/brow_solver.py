@@ -6,8 +6,6 @@ left end for the center brow. Brow Rigger 1.0 used world axes and built
 both sides and the center at once; 3.0 solves one brow in a brow frame.
 """
 
-import math
-
 from maya import cmds
 
 from mgear.core import meshNavigation
@@ -67,7 +65,7 @@ class BrowGeometry(object):
 
 
 def _length(points):
-    return sum(math.dist(a, b) for a, b in zip(points, points[1:]))
+    return sum(vector.distance(a, b) for a, b in zip(points, points[1:]))
 
 
 def solve(settings, center=None, aim=None, front=None, side=None):

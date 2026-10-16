@@ -7,8 +7,6 @@ world axes, which broke on tilted heads; the mouth frame makes them work the
 same at any angle.
 """
 
-import math
-
 from maya import cmds
 
 from mgear.core import meshNavigation
@@ -222,7 +220,9 @@ def solve(settings, center=None, aim=None, front=None):
     geometry.lower_curve_points = _lip_curve_points(
         geometry.lower_points, frame, thickness, upper=False
     )
-    geometry.mouth_width = math.dist(positions[r_corner], positions[l_corner]) or 1.0
+    geometry.mouth_width = (
+        vector.distance(positions[r_corner], positions[l_corner]) or 1.0
+    )
     if aim is not None:
         geometry.control_offset = max(vector.to_frame_coordinates(aim, frame)[2], 0.0)
     else:

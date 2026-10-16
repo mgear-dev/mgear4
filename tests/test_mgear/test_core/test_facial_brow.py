@@ -122,6 +122,17 @@ def test_edge_and_vertex_path(brow_face):
     assert edge.path == vertex.path
 
 
+def test_solve_without_math_dist(brow_face, monkeypatch):
+    # Maya 2022 runs Python 3.7, which has no math.dist
+    from mgear.core.facial import brow_solver
+
+    reference = brow_solver.solve(_settings(brow_face))
+    monkeypatch.delattr(math, "dist", raising=False)
+    geometry = brow_solver.solve(_settings(brow_face))
+    assert geometry.path == reference.path
+    assert geometry.length == pytest.approx(reference.length)
+
+
 def test_side_override(brow_face):
     from mgear.core.facial import brow_schema
     from mgear.core.facial import brow_solver
@@ -265,13 +276,14 @@ def test_builder_uses_backend(brow_face):
 
 def test_rest_pose(brow_face):
     from mgear.core import meshNavigation
+    from mgear.core import vector
 
     _build(brow_face, "L")
     points = meshNavigation.get_vertex_world_positions(
         brow_face["mesh"], brow_face["L"]["vertices"]
     )
     for joint, point in zip(_joints(), points):
-        assert math.dist(_position(joint), point) < 1e-3
+        assert vector.distance(_position(joint), point) < 1e-3
 
 
 def test_squeeze(brow_face):

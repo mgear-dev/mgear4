@@ -107,9 +107,24 @@ def test_guide_params(lips_guide):
     assert cmds.getAttr(root + ".loopType") == 1
 
 
+def test_guide_solve_without_math_dist(lips_face, monkeypatch):
+    # Maya 2022 runs Python 3.7, which has no math.dist
+    from mgear.shifter_classic_components.lips_01 import guide
+
+    values = {"vertexLoop": lips_face["vertex_loop"]}
+    positions = {"root": (0, 0, 0.75), "aim": (0, 0, 1.2), "lip": (0, 0, 0.8)}
+    reference, _ = guide.solve(values, positions)
+    monkeypatch.delattr(math, "dist", raising=False)
+    settings, geometry = guide.solve(values, positions)
+    assert settings["thickness"] == pytest.approx(0.05)
+    assert settings["thickness"] == pytest.approx(reference["thickness"])
+    assert geometry.upper
+
+
 def test_standard_build(lips_guide, lips_face):
     from maya import cmds
     from mgear.core import meshNavigation
+    from mgear.core import vector
     from mgear.core.facial import lips_solver
     from mgear.shifter_classic_components.lips_01 import guide
 
@@ -131,7 +146,7 @@ def test_standard_build(lips_guide, lips_face):
         lips_face["mesh"], geometry.upper
     )
     for joint, point in zip(upper, points):
-        assert math.dist(_position(joint), point) < 1e-3
+        assert vector.distance(_position(joint), point) < 1e-3
     # the corners follow the parent
     rest = _position(_ctl("corner_L"))
     cmds.setAttr("head_C0_ctl.ty", 0.5)
@@ -141,6 +156,7 @@ def test_standard_build(lips_guide, lips_face):
 
 def test_lower_ref(lips_guide):
     from maya import cmds
+    from mgear.core import vector
 
     head = _draw_control("head", (0, 0, 0))
     _draw_control("jaw", (0, 0, 0))
@@ -149,8 +165,8 @@ def test_lower_ref(lips_guide):
     rest = {name: _position(_ctl(name)) for name in ("upper", "lower", "corner_L")}
     cmds.setAttr("jaw_C0_ctl.rx", 20)
     assert _position(_ctl("upper")) == pytest.approx(rest["upper"], abs=1e-5)
-    assert math.dist(_position(_ctl("lower")), rest["lower"]) > 0.05
-    corner = math.dist(_position(_ctl("corner_L")), rest["corner_L"])
+    assert vector.distance(_position(_ctl("lower")), rest["lower"]) > 0.05
+    corner = vector.distance(_position(_ctl("corner_L")), rest["corner_L"])
     assert corner > 0.01
     cmds.setAttr(_ctl("corner_L") + ".jawFollow", 0)
     assert _position(_ctl("corner_L")) == pytest.approx(rest["corner_L"], abs=1e-5)
@@ -159,6 +175,7 @@ def test_lower_ref(lips_guide):
 def test_mouth_connector(lips_guide):
     from maya import cmds
 
+    from mgear.core import vector
     from mgear.shifter import guide
 
     guide.Rig().drawNewComponent(None, "mouth_01", showUI=False)
@@ -172,15 +189,15 @@ def test_mouth_connector(lips_guide):
     # the mouth jaw control opens the jaw with ty
     cmds.setAttr("mouth_C0_jaw_ctl.ty", -0.5)
     moved = [_position("mouth_C0_liplow_ctl")[i] - lower_lip[i] for i in range(3)]
-    assert math.dist(moved, (0, 0, 0)) > 0.01
+    assert vector.distance(moved, (0, 0, 0)) > 0.01
     # the mouth lipup control follows the jaw a little, liplow all the way
-    upper = math.dist(_position(_ctl("upper")), rest["upper"])
-    lower = math.dist(_position(_ctl("lower")), rest["lower"])
+    upper = vector.distance(_position(_ctl("upper")), rest["upper"])
+    lower = vector.distance(_position(_ctl("lower")), rest["lower"])
     assert lower > 0.01
     assert upper < lower * 0.5
-    corner = math.dist(_position(_ctl("corner_L")), rest["corner_L"])
+    corner = vector.distance(_position(_ctl("corner_L")), rest["corner_L"])
     cmds.setAttr(_ctl("corner_L") + ".jawFollow", 1)
-    assert math.dist(_position(_ctl("corner_L")), rest["corner_L"]) > corner
+    assert vector.distance(_position(_ctl("corner_L")), rest["corner_L"]) > corner
 
 
 def test_mouth_connector_without_mouth(lips_guide, count_calls):

@@ -1,5 +1,7 @@
 """mgear.core.vector test"""
 
+import math
+
 import pytest
 
 
@@ -30,6 +32,19 @@ def test_get_distance(run_with_maya_standalone, setup_path):
     expected = cmds.getAttr(distance + ".distance")
     result = vector.getDistance(vector.get_mvector(a), vector.get_mvector(b))
     assert result == pytest.approx(expected)
+
+
+def test_distance(run_with_maya_standalone, setup_path):
+    from mgear.core import vector
+
+    assert vector.distance((0, 0, 0), (3, 4, 0)) == pytest.approx(5.0)
+    assert vector.distance([1, 2, 3], [1, 2, 3]) == 0.0
+    assert vector.distance((-1, -2, -2), (0, 0, 0)) == pytest.approx(3.0)
+    a = (1.2, -3.4, 5.6)
+    b = (-7.8, 9.1, 2.3)
+    expected = math.sqrt(9.0**2 + 12.5**2 + 3.3**2)
+    assert vector.distance(a, b) == pytest.approx(expected)
+    assert vector.distance(a, b) == vector.distance(b, a)
 
 
 def test_get_plane_binormal(run_with_maya_standalone, setup_path):

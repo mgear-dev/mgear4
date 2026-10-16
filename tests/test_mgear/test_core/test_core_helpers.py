@@ -115,3 +115,43 @@ def test_viewport_message_batch(setup_path):
     from mgear.core import utils
 
     assert utils.viewport_message("Keyed <hl>Arms</hl>") is None
+
+
+def test_cached_property_fallback(run_with_maya_standalone, setup_path):
+    # functools.cached_property needs Python 3.8; Maya 2022 runs 3.7
+    from mgear.core import utils
+
+    class Node(object):
+        def __init__(self, value):
+            self.value = value
+            self.calls = 0
+
+        @utils._CachedProperty
+        def double(self):
+            """int: Twice the value."""
+            self.calls += 1
+            return self.value * 2
+
+    a = Node(2)
+    b = Node(5)
+    assert a.double == 4
+    assert a.double == 4
+    assert a.calls == 1
+    assert b.double == 10
+    assert b.calls == 1
+    assert isinstance(Node.double, utils._CachedProperty)
+    assert Node.double.__doc__ == "int: Twice the value."
+    # the stored value can be dropped to compute it again
+    del a.double
+    a.value = 3
+    assert a.double == 6
+    assert a.calls == 2
+
+
+def test_cached_property_uses_stdlib(run_with_maya_standalone, setup_path):
+    import functools
+
+    from mgear.core import utils
+
+    expected = getattr(functools, "cached_property", utils._CachedProperty)
+    assert utils.cached_property is expected

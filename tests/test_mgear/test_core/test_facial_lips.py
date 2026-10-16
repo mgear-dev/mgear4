@@ -176,7 +176,7 @@ def test_solve_lips(lips_face):
     assert abs(up_mid[0]) < 1e-3 and up_mid[1] > 0
     assert abs(low_mid[0]) < 1e-3 and low_mid[1] < 0
     assert g.mouth_width == pytest.approx(
-        math.dist(g.upper_points[0], g.upper_points[-1])
+        vector.distance(g.upper_points[0], g.upper_points[-1])
     )
     frame = g.frame
     for axis, expected in (("lateral", (1, 0, 0)), ("up", (0, 1, 0))):
@@ -190,6 +190,17 @@ def test_edge_and_vertex_input(lips_face):
     vertex = lips_solver.solve(_settings(lips_face, "vertex"))
     assert edge.upper == vertex.upper
     assert edge.lower == vertex.lower
+
+
+def test_solve_without_math_dist(lips_face, monkeypatch):
+    # Maya 2022 runs Python 3.7, which has no math.dist
+    from mgear.core.facial import lips_solver
+
+    reference = lips_solver.solve(_settings(lips_face))
+    monkeypatch.delattr(math, "dist", raising=False)
+    geometry = lips_solver.solve(_settings(lips_face))
+    assert geometry.upper == reference.upper
+    assert geometry.mouth_width == pytest.approx(reference.mouth_width)
 
 
 def test_thickness_along_frame(lips_face):
@@ -429,6 +440,7 @@ def test_tool_rig(lips_face):
 
 def test_rest_pose(lips_face):
     from mgear.core import meshNavigation
+    from mgear.core import vector
     from mgear.core.facial import lips_solver
 
     _build(lips_face, thickness=0.0)
@@ -438,11 +450,12 @@ def test_rest_pose(lips_face):
     for joints, vertices in ((upper, g.upper), (lower, g.lower[1:-1])):
         points = meshNavigation.get_vertex_world_positions(mesh, vertices)
         for jnt, point in zip(joints, points):
-            assert math.dist(_position(jnt), point) < 1e-3
+            assert vector.distance(_position(jnt), point) < 1e-3
 
 
 def test_jaw_follow(lips_face):
     from maya import cmds
+    from mgear.core import vector
 
     _build(lips_face)
     jaw = lips_face["jaw_jnt"]
@@ -458,7 +471,7 @@ def test_jaw_follow(lips_face):
         delta = [_position(corner)[i] - rest["corner_L"][i] for i in range(3)]
         assert delta == pytest.approx([m * ratio for m in moved], abs=1e-4)
     assert _position(_ctl("upper")) == pytest.approx(rest["upper"], abs=1e-5)
-    assert math.dist(_position(_ctl("lower")), rest["lower"]) > 0.01
+    assert vector.distance(_position(_ctl("lower")), rest["lower"]) > 0.01
 
 
 def _zipper_rig(face):

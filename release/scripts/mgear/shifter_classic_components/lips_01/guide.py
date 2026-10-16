@@ -1,12 +1,11 @@
 """Guide Lips 01 module"""
 
-import math
-
 from maya import cmds
 
 from mgear.shifter.component import guide
 from mgear.shifter.component import facial_guide
 from mgear.core import transform
+from mgear.core import vector
 from mgear.core.facial import lips_schema
 from mgear.core.facial import lips_solver
 from mgear.core.settings_schema import Param
@@ -77,7 +76,7 @@ def solve(values, positions):
         ValueError: If the guide doesn't describe valid lips.
     """
     settings = lips_settings(values)
-    settings["thickness"] = math.dist(positions["root"], positions["lip"])
+    settings["thickness"] = vector.distance(positions["root"], positions["lip"])
     geometry = lips_solver.solve(
         settings, center=tuple(positions["root"]), aim=tuple(positions["aim"])
     )

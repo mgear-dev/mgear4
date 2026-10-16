@@ -275,6 +275,7 @@ def test_external_tracking(eye_face):
 
 
 def test_solver_aim_override(eye_face):
+    from mgear.core import vector
     from mgear.core.facial import eyelid_solver
 
     settings = _settings(eye_face, "L", mirrorBehavior=True)
@@ -286,7 +287,7 @@ def test_solver_aim_override(eye_face):
     geometry = eyelid_solver.solve(settings, eye_center=center, aim=aim)
     assert geometry.frame["normal"] == pytest.approx((0.0, 0.0, 1.0), abs=1e-6)
     assert geometry.offset == pytest.approx(0.3, abs=1e-6)
-    assert geometry.aim_distance == pytest.approx(math.dist(center, aim))
+    assert geometry.aim_distance == pytest.approx(vector.distance(center, aim))
     assert geometry.upper == reference.upper
     # no eyeball mesh needed with the guide center
     settings_no_mesh = dict(settings, eyeMesh="")
@@ -330,6 +331,25 @@ def test_solver_without_overrides_unchanged(eye_face):
     geometry = eyelid_solver.solve(settings)
     assert geometry.offset == pytest.approx(0.07)
     assert geometry.aim_distance == pytest.approx(geometry.eye_size / 1.7)
+
+
+def test_solver_without_math_dist(eye_face, monkeypatch):
+    # Maya 2022 runs Python 3.7, which has no math.dist
+    from mgear.core.facial import eyelid_solver
+
+    settings = _settings(eye_face, "L")
+    center = (1.0, 0.0, 0.75)
+    aim = (1.0, 0.0, 1.2)
+    reference = eyelid_solver.solve(settings)
+    reference_aim = eyelid_solver.solve(settings, eye_center=center, aim=aim)
+    monkeypatch.delattr(math, "dist", raising=False)
+    geometry = eyelid_solver.solve(settings)
+    assert geometry.upper == reference.upper
+    assert geometry.lower == reference.lower
+    geometry = eyelid_solver.solve(settings, eye_center=center, aim=aim)
+    assert geometry.upper == reference_aim.upper
+    assert geometry.eye_size == pytest.approx(reference_aim.eye_size)
+    assert geometry.aim_distance == pytest.approx(reference_aim.aim_distance)
 
 
 def test_row_visibility(setup_path):

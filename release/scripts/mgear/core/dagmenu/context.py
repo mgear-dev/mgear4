@@ -1,11 +1,10 @@
 """Right-click context of the dag menu."""
 
-from functools import cached_property
-
 from maya import cmds
 
 from mgear.core import anim_utils
 from mgear.core.pickWalk import get_controls_with_children
+from mgear.core.utils import cached_property
 
 IKFK_SUFFIXES = ("_blend", "_switch")
 SPACE_SUFFIXES = ("ref", "follow")

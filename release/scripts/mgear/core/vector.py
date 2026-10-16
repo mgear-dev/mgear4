@@ -287,6 +287,22 @@ def _cross(a, b):
     )
 
 
+def distance(a, b):
+    """Get the distance between 2 points given as plain sequences.
+
+    Same result as math.dist, which needs Python 3.8 (Maya 2022 is 3.7).
+
+    Args:
+        a (tuple or list): First point as 3 floats.
+        b (tuple or list): Second point as 3 floats.
+
+    Returns:
+        float: Distance between the points.
+    """
+    offset = (a[0] - b[0], a[1] - b[1], a[2] - b[2])
+    return math.sqrt(_dot(offset, offset))
+
+
 def _unit(v):
     length = math.sqrt(_dot(v, v))
     if length < 1e-12:
