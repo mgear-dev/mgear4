@@ -420,3 +420,24 @@ def test_report_subset_keys_by_kind(setup_path):
     assert not sub.geometry
     assert list(sub.influences) == ["body"]
     assert sub.influence_pool == ["|a"]
+
+
+def test_import_skin_or_pack(run_with_maya_standalone, setup_path, tmp_path):
+    import mgear.pymaya as pm
+    from mgear.core import skin
+
+    cmds = _scene()
+    mesh, joints = _make_rig(cmds)
+    _set_weights(cmds, mesh, joints)
+    expected = _weights_by_short(mesh)
+    path = str(tmp_path / "body.jSkin")
+    skin.exportSkin(path, [pm.PyNode(mesh)])
+    pack = str(tmp_path / "body.gSkinPack")
+    skin.exportSkinPack(pack, [pm.PyNode(mesh)])
+
+    for skin_path in (path, pack):
+        cluster = skin.getSkinCluster(mesh).name()
+        cmds.skinPercent(cluster, mesh, transformValue=[("jA", 1.0)])
+        assert _weights_by_short(mesh) != expected
+        skin.import_skin_or_pack(skin_path, on_missing="error")
+        assert _weights_by_short(mesh) == expected

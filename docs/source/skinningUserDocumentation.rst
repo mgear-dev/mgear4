@@ -235,6 +235,9 @@ Namespaces don't need a prefix: they are already ignored when matching, and the 
     # Force a namespace ("" for the root namespace)
     skin.importSkin(path, namespace="char:")
 
+    # Skin file or skin pack, chosen from the extension
+    skin.import_skin_or_pack(path, on_missing="error")
+
 ``on_missing`` accepts ``"skip"`` (default), ``"error"`` (raises ``skin.SkinRemapError``), ``"ui"`` (remap dialog) or a function that receives the ``skin.SkinRemapReport`` and returns a mapping (``{"geometry": {...}, "influences": {...}}``) or ``None`` to cancel.
 
 **Vertex Count Mismatch Handling:**

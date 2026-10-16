@@ -65,3 +65,40 @@ def curve_data_calls(setup_path, count_calls):
         "collect_curve_data",
         record=lambda args, kwargs: args[0] if args else None,
     )
+
+
+@pytest.fixture
+def lips_guide(lips_face, rig_plugins):
+    """Function drawing a lips_01 guide for the lips_face mouth.
+
+    Returns:
+        callable: Called with parent (guide locator, optional), aim (aim
+            locator world position), lip (lip locator height above the
+            root: the thickness) and guide settings. Returns the guide root
+            name.
+    """
+    from maya import cmds
+
+    import mgear.pymaya as pm
+    from mgear.shifter import guide
+
+    def draw(parent=None, aim=(0, 0, 1.2), lip=0.03, **settings):
+        before = set(cmds.ls("*_root", type="transform"))
+        guide.Rig().drawNewComponent(
+            pm.PyNode(parent) if parent else None, "lips_01", showUI=False
+        )
+        root = (set(cmds.ls("*_root", type="transform")) - before).pop()
+        cmds.xform(root, worldSpace=True, translation=(0, 0, 0.75))
+        cmds.xform(root.replace("_root", "_aim"), worldSpace=True, translation=aim)
+        cmds.xform(
+            root.replace("_root", "_lip"), worldSpace=True, translation=(0, lip, 0.75)
+        )
+        cmds.setAttr(root + ".vertexLoop", lips_face["vertex_loop"], type="string")
+        for key, value in settings.items():
+            if isinstance(value, str):
+                cmds.setAttr("{}.{}".format(root, key), value, type="string")
+            else:
+                cmds.setAttr("{}.{}".format(root, key), value)
+        return root
+
+    return draw

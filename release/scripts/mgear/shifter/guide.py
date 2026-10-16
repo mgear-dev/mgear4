@@ -25,6 +25,8 @@ from . import naming_rules_ui as naui
 from . import blueprint_tab_ui as btui
 from . import naming
 from . import custom_step_widget as csw
+from .component import AUTOSKIN_TIMINGS
+from .component import AUTOSKIN_FINALIZE
 
 # pyside
 from maya.app.general.mayaMixin import MayaQDockWidget
@@ -113,7 +115,11 @@ def check_guide_cancelled():
 
 # Guide parameters added after guides were saved: an older guide without
 # them keeps their default instead of being invalid
-OPTIONAL_PARAMS = ("stop_build_on_validation_fail", "autoskin")
+OPTIONAL_PARAMS = (
+    "stop_build_on_validation_fail",
+    "autoskin",
+    "autoskin_timing",
+)
 
 # Blueprint section settings mapping - defines which attributes belong to each section
 OVERRIDE_SECTION_ATTRS = {
@@ -122,7 +128,6 @@ OVERRIDE_SECTION_ATTRS = {
         "mode",
         "step",
         "stop_build_on_validation_fail",
-        "autoskin",
     ],
     "override_anim_channels": [
         "proxyChannels", "classicChannelNames", "attrPrefixName"
@@ -131,7 +136,7 @@ OVERRIDE_SECTION_ATTRS = {
         "worldCtl", "world_ctl_name"
     ],
     "override_skinning": [
-        "importSkin", "skin"
+        "importSkin", "skin", "autoskin", "autoskin_timing"
     ],
     "override_joint_settings": [
         "joint_rig", "joint_worldOri", "force_uniScale",
@@ -552,6 +557,9 @@ class Rig(Main):
             "stop_build_on_validation_fail", "bool", True
         )
         self.pAutoskin = self.addParam("autoskin", "bool", True)
+        self.pAutoskinTiming = self.addEnumParam(
+            "autoskin_timing", list(AUTOSKIN_TIMINGS), AUTOSKIN_FINALIZE
+        )
         self.pStep = self.addEnumParam(
             "step",
             [
@@ -819,7 +827,6 @@ class Rig(Main):
                 "mode",
                 "step",
                 "stop_build_on_validation_fail",
-                "autoskin",
             ],
             "override_anim_channels": [
                 "proxyChannels", "classicChannelNames", "attrPrefixName"
@@ -828,7 +835,7 @@ class Rig(Main):
                 "worldCtl", "world_ctl_name"
             ],
             "override_skinning": [
-                "importSkin", "skin"
+                "importSkin", "skin", "autoskin", "autoskin_timing"
             ],
             "override_joint_settings": [
                 "joint_rig", "joint_worldOri", "force_uniScale",
@@ -1935,6 +1942,19 @@ class GuideSettings(MayaQWidgetDockableMixin, csw.CustomStepMixin, GuideMainSett
             attribute.addAttribute(self.root, "autoskin", "bool", True)
         self.populateCheck(
             self.guideSettingsTab.autoskin_checkBox, "autoskin"
+        )
+        if not self.root.hasAttr("autoskin_timing"):
+            attribute.addEnumAttribute(
+                self.root,
+                "autoskin_timing",
+                AUTOSKIN_FINALIZE,
+                list(AUTOSKIN_TIMINGS),
+            )
+        self.guideSettingsTab.autoskinTiming_comboBox.setCurrentIndex(
+            self.root.attr("autoskin_timing").get()
+        )
+        self.guideSettingsTab.autoskinTiming_comboBox.setEnabled(
+            self.root.attr("autoskin").get()
         )
         self.populateCheck(
             self.guideSettingsTab.proxyChannels_checkBox, "proxyChannels"
@@ -3194,6 +3214,14 @@ class GuideSettings(MayaQWidgetDockableMixin, csw.CustomStepMixin, GuideMainSett
                 "autoskin",
             )
         )
+        tap.autoskin_checkBox.toggled.connect(tap.autoskinTiming_comboBox.setEnabled)
+        tap.autoskinTiming_comboBox.currentIndexChanged.connect(
+            partial(
+                self.updateComboBox,
+                tap.autoskinTiming_comboBox,
+                "autoskin_timing",
+            )
+        )
         tap.proxyChannels_checkBox.stateChanged.connect(
             partial(
                 self.updateCheck, tap.proxyChannels_checkBox, "proxyChannels"
@@ -3275,6 +3303,9 @@ class GuideSettings(MayaQWidgetDockableMixin, csw.CustomStepMixin, GuideMainSett
         )
 
         tap.loadSkinPath_pushButton.clicked.connect(self.skinLoad)
+        tap.skin_lineEdit.editingFinished.connect(
+            partial(self.updateLineEditPath, tap.skin_lineEdit, "skin")
+        )
         tap.dataCollectorPath_pushButton.clicked.connect(
             self.data_collector_path
         )
@@ -3843,7 +3874,7 @@ class GuideSettings(MayaQWidgetDockableMixin, csw.CustomStepMixin, GuideMainSett
             fileMode=1,
             startingDirectory=startDir,
             okc="Apply",
-            fileFilter="mGear skin (*%s)" % skin.FILE_EXT,
+            fileFilter=skin.SKIN_OR_PACK_FILE_FILTER,
         )
         if not filePath:
             return

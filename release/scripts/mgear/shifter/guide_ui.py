@@ -1,6 +1,8 @@
 """Guide Settings UI - Main settings tab for Shifter guide configuration."""
 
 import mgear.core.pyqt as gqt
+from mgear.shifter.component import AUTOSKIN_TIMINGS
+
 QtGui, QtCore, QtWidgets, wrapInstance = gqt.qt_import()
 
 
@@ -97,21 +99,6 @@ class Ui_Form(object):
         )
         self.formLayout.setWidget(
             3, QtWidgets.QFormLayout.FieldRole, self.stopOnValidation_checkBox
-        )
-
-        # Run the autoskin of the components that have one, whatever the
-        # autoskin type, each one still needing its own option on
-        self.autoskin_checkBox = QtWidgets.QCheckBox(self.groupBox)
-        self.autoskin_checkBox.setObjectName("autoskin_checkBox")
-        self.autoskin_checkBox.setText("Autoskin")
-        self.autoskin_checkBox.setToolTip(
-            "Run the autoskin of the components that have it on, whatever the "
-            "autoskin type (for example the topological autoskin of the "
-            "eyelid, lips and brow). Off: no autoskin runs, for example once "
-            "the final skin is imported by a custom step."
-        )
-        self.formLayout.setWidget(
-            4, QtWidgets.QFormLayout.FieldRole, self.autoskin_checkBox
         )
 
         self.gridLayout_3.addLayout(self.formLayout, 0, 0, 1, 1)
@@ -242,6 +229,10 @@ class Ui_Form(object):
         self.importSkin_checkBox = QtWidgets.QCheckBox(self.groupBox_2)
         self.importSkin_checkBox.setObjectName("importSkin_checkBox")
         self.importSkin_checkBox.setText("Import Skin")
+        self.importSkin_checkBox.setToolTip(
+            "Import the skin of the Skin Path at the end of the rig finalize, "
+            "before the post custom steps."
+        )
         self.verticalLayout.addWidget(self.importSkin_checkBox)
 
         self.horizontalLayout = QtWidgets.QHBoxLayout()
@@ -250,18 +241,65 @@ class Ui_Form(object):
         self.skin_label = QtWidgets.QLabel(self.groupBox_2)
         self.skin_label.setObjectName("skin_label")
         self.skin_label.setText("Skin Path")
+        skin_path_tip = (
+            "Skin file (.gSkin, .jSkin) or skin pack (.gSkinPack) imported "
+            "when Import Skin is on. A skin pack imports all its skin files."
+        )
+        self.skin_label.setToolTip(skin_path_tip)
         self.horizontalLayout.addWidget(self.skin_label)
 
         self.skin_lineEdit = QtWidgets.QLineEdit(self.groupBox_2)
         self.skin_lineEdit.setObjectName("skin_lineEdit")
+        self.skin_lineEdit.setToolTip(skin_path_tip)
         self.horizontalLayout.addWidget(self.skin_lineEdit)
 
         self.loadSkinPath_pushButton = QtWidgets.QPushButton(self.groupBox_2)
         self.loadSkinPath_pushButton.setObjectName("loadSkinPath_pushButton")
         self.loadSkinPath_pushButton.setText("Load Path")
+        self.loadSkinPath_pushButton.setToolTip(
+            "Browse for a skin file or a skin pack."
+        )
         self.horizontalLayout.addWidget(self.loadSkinPath_pushButton)
 
         self.verticalLayout.addLayout(self.horizontalLayout)
+
+        # Run the autoskin of the components that have one, whatever the
+        # autoskin type, each one still needing its own option on
+        self.autoskin_checkBox = QtWidgets.QCheckBox(self.groupBox_2)
+        self.autoskin_checkBox.setObjectName("autoskin_checkBox")
+        self.autoskin_checkBox.setText("Autoskin")
+        self.autoskin_checkBox.setToolTip(
+            "Run the autoskin of the components that have it on, whatever the "
+            "autoskin type (for example the topological autoskin of the "
+            "eyelid, lips and brow). Off: no autoskin runs, for example once "
+            "the final skin is imported."
+        )
+        self.verticalLayout.addWidget(self.autoskin_checkBox)
+
+        # When the component autoskin runs in the build
+        self.autoskinTiming_horizontalLayout = QtWidgets.QHBoxLayout()
+        self.autoskinTiming_label = QtWidgets.QLabel(self.groupBox_2)
+        self.autoskinTiming_label.setObjectName("autoskinTiming_label")
+        self.autoskinTiming_label.setText("Autoskin Timing")
+        self.autoskinTiming_horizontalLayout.addWidget(self.autoskinTiming_label)
+        self.autoskinTiming_comboBox = QtWidgets.QComboBox(self.groupBox_2)
+        self.autoskinTiming_comboBox.setObjectName("autoskinTiming_comboBox")
+        self.autoskinTiming_comboBox.addItems(AUTOSKIN_TIMINGS)
+        autoskin_timing_tip = (
+            "When the component autoskin runs in the build.\n"
+            "Component Finalize: in the component Finalize step, before the "
+            "skin import, so an imported skin replaces its weights.\n"
+            "After Rig Finalize: after the rig finalize and its skin import, "
+            "on top of the imported skin, before the post custom steps.\n"
+            "After Post Custom Steps: once the post custom steps are done, on "
+            "top of the skin they create (for example a base skin to the head "
+            "joint)."
+        )
+        self.autoskinTiming_label.setToolTip(autoskin_timing_tip)
+        self.autoskinTiming_comboBox.setToolTip(autoskin_timing_tip)
+        self.autoskinTiming_horizontalLayout.addWidget(self.autoskinTiming_comboBox, 1)
+        self.verticalLayout.addLayout(self.autoskinTiming_horizontalLayout)
+
         self.gridLayout_4.addLayout(self.verticalLayout, 0, 0, 1, 1)
         self.gridLayout_2.addWidget(self.groupBox_2, 3, 0, 1, 1)
 

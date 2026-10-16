@@ -2,6 +2,17 @@ Release Log
 ===========
 
 
+5.4.2
+------
+**Enhancements**
+	* Shifter: Guide Settings: Autoskin Timing runs the component autoskin in the component Finalize, after the rig finalize or after the post custom steps; the autoskin options moved to Skinning Settings
+	* Shifter: Guide Settings: The Skin Path accepts skin packs
+	* Core: UI Style: New UI style guide for tool windows, with shared colour roles and ActionBar and StatusLine widgets
+
+**Bug Fix**
+	* Shifter: Guide Settings: A Skin Path typed in the field is now saved, Load Path also lists .jSkin files, and a missing skin file is skipped with a warning instead of stopping the build
+
+
 5.4.1
 ------
 **Enhancements**

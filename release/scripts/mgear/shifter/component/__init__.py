@@ -22,6 +22,16 @@ from mgear.core import attribute, applyop, node, icon
 
 from mgear.shifter import naming
 
+# Guide autoskin_timing choices, and their values
+AUTOSKIN_TIMINGS = (
+    "Component Finalize",
+    "After Rig Finalize",
+    "After Post Custom Steps",
+)
+AUTOSKIN_FINALIZE = 0
+AUTOSKIN_AFTER_RIG_FINALIZE = 1
+AUTOSKIN_AFTER_POST_STEPS = 2
+
 #############################################
 # COMPONENT
 #############################################
@@ -2427,6 +2437,26 @@ class Main(object):
             attribute.lockAttribute(t)
 
         return
+
+    def run_autoskin(self, func):
+        """Run an autoskin now, or queue it for later in the build.
+
+        Use it from the component ``finalize()`` so the guide options decide
+        if and when the autoskin runs: nothing runs with ``autoskin`` off,
+        "Component Finalize" calls it right away, "After Rig Finalize" and
+        "After Post Custom Steps" queue it on the rig, which runs it after
+        the rig finalize (and its skin import) or after the post custom
+        steps.
+
+        Args:
+            func (callable): The autoskin to run, called without arguments.
+        """
+        if not self.options.get("autoskin", True):
+            return
+        if self.options.get("autoskin_timing", AUTOSKIN_FINALIZE) == AUTOSKIN_FINALIZE:
+            func()
+        else:
+            self.rig.deferred_autoskins.append((self, func))
 
     def postScript(self):
         """

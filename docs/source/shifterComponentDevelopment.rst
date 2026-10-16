@@ -875,16 +875,26 @@ ComponentBackend``, which maps the same calls to ``getName``, ``addCtl`` and
 
         def finalize(self):
             super(Component, self).finalize()
-            if self.options["joint_rig"] and self.options.get(
-                "autoskin", True
-            ):
-                self.builder.build_skin()
+            if self.options["joint_rig"]:
+                self.run_autoskin(self.builder.build_skin)
 
 A component autoskin is a starting point: the final skin is usually exported
-and imported again by a custom step. The guide option **Autoskin**
-(``autoskin``, on by default) turns every component autoskin off at once,
-whatever its type. Components with an autoskin check it with ``options.get``, so guides
-saved before the option keep skinning.
+and imported again. Run it through ``run_autoskin(func)`` from the component
+``finalize()``, so the guide **Skinning Settings** decide if and when it runs:
+
+- **Autoskin** (``autoskin``, on by default) turns every component autoskin
+  off at once, whatever its type. ``run_autoskin`` then does nothing.
+- **Autoskin Timing** (``autoskin_timing``) picks the build point.
+  ``Component Finalize`` calls ``func`` right away. ``After Rig Finalize`` and
+  ``After Post Custom Steps`` queue it on the rig, which runs the queue in
+  component order after the rig finalize (and its skin import) or after the
+  post custom steps. An error in one queued autoskin is logged and the others
+  still run.
+
+``func`` is called without arguments, so pass a bound method, and keep the
+data it needs on the component or its builder. The timing values are the
+``AUTOSKIN_FINALIZE``, ``AUTOSKIN_AFTER_RIG_FINALIZE`` and
+``AUTOSKIN_AFTER_POST_STEPS`` constants of ``mgear.shifter.component``.
 
 Guide locators instead of settings
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

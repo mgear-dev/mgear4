@@ -343,15 +343,6 @@ components check their mesh loop. When a component guide can't build, this
 option (on by default) stops the build with a clear message. Off: that
 component is skipped and the rest of the rig builds.
 
-**Autoskin**
-
-Runs the autoskin of the components that have it on, whatever the autoskin
-type (for example the topological autoskin of ``eyelid_01``, ``lips_01`` and
-``brow_01``). It is on by default. A component autoskin is a starting point:
-once the final skin is exported and imported again by a custom step, turn it
-off so the build doesn't compute it every time. Each component keeps its own
-autoskin setting.
-
 World Control
 ++++++++++++++++++
 
@@ -406,11 +397,40 @@ Skinning
 
 **Import Skin**
 
-Automatically load pre-saved skin weights during rig build.
+Imports the skin of the **Skin Path** at the end of the rig finalize, before
+the post custom steps.
 
 **Skin Path**
 
-Path to the ``.gSkin`` file containing skin weight data.
+Path to a skin file (``.gSkin`` or ``.jSkin``) or a skin pack
+(``.gSkinPack``). A skin pack imports all its skin files. Type the path or
+use **Load Path** to browse for it. A missing or invalid file is skipped with
+a warning.
+
+**Autoskin**
+
+Runs the autoskin of the components that have it on, whatever the autoskin
+type (for example the topological autoskin of ``eyelid_01``, ``lips_01`` and
+``brow_01``). It is on by default. A component autoskin is a starting point:
+once the final skin is exported and imported again, turn it off so the build
+doesn't compute it every time. Each component keeps its own autoskin setting.
+
+**Autoskin Timing**
+
+When the component autoskin runs in the build. The autoskin blends the
+component joints with the skin the mesh already has, so the timing decides
+which skin it builds on:
+
+- **Component Finalize** (default): in the component Finalize step, before
+  the skin import and the post custom steps. An imported skin replaces the
+  autoskin weights, and the post custom steps see them.
+- **After Rig Finalize**: after the rig finalize and its skin import, before
+  the post custom steps. Use it to import a base skin (for example the head)
+  with **Import Skin** and add the autoskin on top.
+- **After Post Custom Steps**: once the post custom steps are done, on top of
+  the skin they create. The build data collection runs after it.
+
+It is disabled while **Autoskin** is off.
 
 Color Settings
 ++++++++++++++++++

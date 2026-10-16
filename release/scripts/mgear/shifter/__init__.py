@@ -255,6 +255,10 @@ class Rig(object):
         # Known slow plug-ins found in this build: name -> when it was loaded
         self._slow_plugins_found = {}
 
+        # (component, callable) autoskins queued by the components to run
+        # after the post custom steps, see run_deferred_autoskins
+        self.deferred_autoskins = []
+
     def _check_slow_plugins(self, source, warn=True):
         """Record, and warn once per build about, loaded known slow plug-ins.
 
@@ -276,6 +280,7 @@ class Rig(object):
         """Reset the per-build state at the start of a build entry point."""
         self.stopBuild = False
         self._slow_plugins_found = {}
+        self.deferred_autoskins = []
         self._check_slow_plugins(SLOW_PLUGIN_BEFORE_BUILD)
         self.guide_template_merges = []
         self.source_guide_dict = None
@@ -413,6 +418,7 @@ class Rig(object):
             return None
 
         self.from_dict_custom_step(merged_options, pre=False)
+        self.run_deferred_autoskins(component.AUTOSKIN_AFTER_POST_STEPS)
         # Collect post-build data
         if self.options["data_collector_embedded"] or self.options["data_collector"]:
             build_data = self.collect_build_data()
@@ -468,6 +474,7 @@ class Rig(object):
 
             if ismodel:
                 self.postCustomStep()
+            self.run_deferred_autoskins(component.AUTOSKIN_AFTER_POST_STEPS)
 
             # Collect post-build data
             if self.options["data_collector_embedded"] or self.options["data_collector"]:
@@ -512,6 +519,7 @@ class Rig(object):
                 return None
             self.finalize()
             self._apply_merged_ctl_buffers()
+            self.run_deferred_autoskins(component.AUTOSKIN_AFTER_RIG_FINALIZE)
 
             return self.model
         finally:
@@ -621,6 +629,56 @@ class Rig(object):
         if self._merged_ctl_buffers:
             curve.update_curve_from_data(
                 self._merged_ctl_buffers, rplStr=["_controlBuffer", ""]
+            )
+
+    def run_deferred_autoskins(self, timing):
+        """Run the autoskins the components queued, at their build point.
+
+        The components queue them with ``component.Main.run_autoskin`` when
+        the guide ``autoskin_timing`` is "After Rig Finalize" or "After Post
+        Custom Steps". The build calls this at both points; the queue only
+        runs at the point matching the guide timing. Each autoskin runs
+        once, in component build order, and an error in one is logged
+        without stopping the others.
+
+        Args:
+            timing (int): The build point calling it, one of the
+                ``component.AUTOSKIN_*`` values.
+        """
+        if self.options.get("autoskin_timing") != timing:
+            return
+        autoskins = self.deferred_autoskins
+        self.deferred_autoskins = []
+        if not autoskins or self.stopBuild:
+            return
+        mgear.log("\n" + "= AUTOSKIN " + "=" * 46)
+        # Only suspend the refresh: inside build() the viewport is already
+        # off, and turning it off again would turn it back on mid-build
+        with core_utils.viewport_suspended():
+            for comp, func in autoskins:
+                self._run_component_step("Autoskin", comp, func)
+
+    def _run_component_step(self, name, comp, func):
+        """Run a build step of a component, logging it and any error.
+
+        An error is logged with its traceback and doesn't stop the build.
+
+        Args:
+            name (str): The step name for the log, e.g. "Objects".
+            comp (component.Main): The component the step belongs to.
+            func (callable): The step to run, called without arguments.
+        """
+        mgear.log(name + " : " + comp.fullName + " (" + comp.type + ")")
+        try:
+            func()
+        except Exception:
+            import traceback
+
+            mgear.log(
+                "Error in {} : {} ({})\n{}".format(
+                    name, comp.fullName, comp.type, traceback.format_exc()
+                ),
+                mgear.sev_error,
             )
 
     def stepsList(self, checker, attr):
@@ -1077,23 +1135,7 @@ class Rig(object):
                     return
 
                 comp = self.components[compName]
-                mgear.log(
-                    name + " : " + comp.fullName + " (" + comp.type + ")"
-                )
-                try:
-                    comp.stepMethods[i]()
-                except Exception as e:
-                    import traceback
-
-                    mgear.log(
-                        "Error in {} : {} ({})\n{}".format(
-                            name,
-                            comp.fullName,
-                            comp.type,
-                            traceback.format_exc(),
-                        ),
-                        mgear.sev_error,
-                    )
+                self._run_component_step(name, comp, comp.stepMethods[i])
 
             if self.options["step"] >= 1 and i >= self.options["step"] - 1:
                 break
@@ -1205,13 +1247,13 @@ class Rig(object):
                 # catch error in case we build from serialized guide
                 pass
 
-        # Bind skin re-apply
+        # Bind skin re-apply, from a skin file or a skin pack
         if self.options["importSkin"]:
             try:
                 pm.displayInfo("Importing Skin")
-                skin.importSkin(self.options["skin"])
+                skin.import_skin_or_pack(self.options["skin"])
 
-            except RuntimeError:
+            except (RuntimeError, OSError):
                 pm.displayWarning(
                     "Skin doesn't exist or is not correct. "
                     + self.options["skin"]

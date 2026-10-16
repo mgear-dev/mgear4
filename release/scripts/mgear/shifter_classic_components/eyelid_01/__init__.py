@@ -123,5 +123,5 @@ class Component(component.Main):
     def finalize(self):
         """Lock the npo transforms and skin when the autoskin is on."""
         super(Component, self).finalize()
-        if self.options["joint_rig"] and self.options.get("autoskin", True):
-            self.builder.build_skin()
+        if self.options["joint_rig"]:
+            self.run_autoskin(self.builder.build_skin)

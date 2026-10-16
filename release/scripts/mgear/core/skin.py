@@ -38,6 +38,17 @@ FILE_JSON_EXT = ".jSkin"
 PACK_EXT = ".gSkinPack"
 MAP_EXT = ".gSkinMap"
 
+# File dialog filters
+SKIN_FILE_FILTER = (
+    "mGear Skin (*{0} *{1});;gSkin Binary (*{0});;jSkin ASCII (*{1});;"
+    "All Files (*.*)"
+).format(FILE_EXT, FILE_JSON_EXT)
+PACK_FILE_FILTER = "mGear skinPack (*{})".format(PACK_EXT)
+SKIN_OR_PACK_FILE_FILTER = (
+    "mGear Skin or Skin Pack (*{0} *{1} *{2});;gSkin Binary (*{0});;"
+    "jSkin ASCII (*{1});;mGear skinPack (*{2})"
+).format(FILE_EXT, FILE_JSON_EXT, PACK_EXT)
+
 # Results of the missing-items policy for one skin file
 REMAP_APPLY = "apply"
 REMAP_SKIP_FILE = "skip_file"
@@ -720,9 +731,7 @@ def exportSkinPack(packPath=None, objs=None, use_json=False, storePositions=Fals
     packDic = {"packFiles": [], "rootPath": []}
 
     if packPath is None:
-        packPath = pm.fileDialog2(
-            fileMode=0, fileFilter="mGear skinPack (*%s)" % PACK_EXT
-        )
+        packPath = pm.fileDialog2(fileMode=0, fileFilter=PACK_FILE_FILTER)
         if not packPath:
             return
         packPath = packPath[0]
@@ -1320,13 +1329,7 @@ def _load_skin_file(filePath):
 def _getObjsFromSkinFile(filePath=None, *args):
     # retrive the object names inside gSkin file
     if not filePath:
-        f1 = "mGear Skin (*{0} *{1})".format(FILE_EXT, FILE_JSON_EXT)
-        f2 = ";;gSkin Binary (*{0});;jSkin ASCII  (*{1})".format(
-            FILE_EXT, FILE_JSON_EXT
-        )
-        f3 = ";;All Files (*.*)"
-        fileFilters = f1 + f2 + f3
-        filePath = pm.fileDialog2(fileMode=1, fileFilter=fileFilters)
+        filePath = pm.fileDialog2(fileMode=1, fileFilter=SKIN_FILE_FILTER)
     if not filePath:
         return
     if not isinstance(filePath, string_types):
@@ -2069,13 +2072,7 @@ def importSkin(
             Empty list if all objects used standard index-based import.
     """
     if not filePath:
-        f1 = "mGear Skin (*{0} *{1})".format(FILE_EXT, FILE_JSON_EXT)
-        f2 = ";;gSkin Binary (*{0});;jSkin ASCII  (*{1})".format(
-            FILE_EXT, FILE_JSON_EXT
-        )
-        f3 = ";;All Files (*.*)"
-        fileFilters = f1 + f2 + f3
-        filePath = pm.fileDialog2(fileMode=1, fileFilter=fileFilters)
+        filePath = pm.fileDialog2(fileMode=1, fileFilter=SKIN_FILE_FILTER)
     if not filePath:
         return []
     if not isinstance(filePath, string_types):
@@ -2124,9 +2121,7 @@ def importSkinPack(
             unresolved items.
     """
     if not filePath:
-        filePath = pm.fileDialog2(
-            fileMode=1, fileFilter="mGear skinPack (*%s)" % PACK_EXT
-        )
+        filePath = pm.fileDialog2(fileMode=1, fileFilter=PACK_FILE_FILTER)
     if not filePath:
         return []
     if not isinstance(filePath, string_types):
@@ -3096,10 +3091,23 @@ def drop_file(path):
     Args:
         path (str): ``.gSkinPack``, ``.gSkin`` or ``.jSkin`` file path.
     """
-    if path.lower().endswith(PACK_EXT.lower()):
-        importSkinPack(path, on_missing="ui")
-    else:
-        importSkin(path, on_missing="ui")
+    import_skin_or_pack(path, on_missing="ui")
+
+
+def import_skin_or_pack(filePath, **kwargs):
+    """Import a skin file or a skin pack, chosen from the file extension.
+
+    Args:
+        filePath (str): ``.gSkinPack``, ``.gSkin`` or ``.jSkin`` file path.
+        **kwargs: Import options passed to importSkinPack or importSkin
+            (vertexMismatchMode, namespace, on_missing, mapping).
+
+    Returns:
+        list: Object names that were imported using the volume method.
+    """
+    if filePath.lower().endswith(PACK_EXT.lower()):
+        return importSkinPack(filePath, **kwargs)
+    return importSkin(filePath, **kwargs)
 
 
 ######################################
