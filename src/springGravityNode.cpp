@@ -244,14 +244,35 @@ MStatus mgear_springGravityNode::compute(const MPlug& plug, MDataBlock& data)
 	double springIntensity = data.inputValue(aSpringIntensity, &status).asDouble();
 	double colliderStrength = 1.0 - data.inputValue(aColliderSoftness, &status).asDouble();
 
+	// colliders as (x, y, z, radius) and the ground, read before the step to
+	// know if they moved
+	MDoubleArray colliders;
+	MArrayDataHandle arrayHandle = data.inputArrayValue(aColliderList, &status);
+	McheckErr(status, "arrayHandle construction for aColliderList failed\n");
+	unsigned count = arrayHandle.elementCount();
+	for( unsigned i = 0; i < count; i++) {
+		arrayHandle.jumpToArrayElement(i);
+		h = arrayHandle.inputValue(&status);
+		McheckErr(status, "handle evaluation failed\n");
+		MFloatVector colliderInput = h.child(aCollider).asFloatVector();
+		colliders.append(colliderInput.x);
+		colliders.append(colliderInput.y);
+		colliders.append(colliderInput.z);
+		colliders.append(h.child(aColliderRadius).asDouble());
+	}
+	MMatrix groundPlaneTransform = data.inputValue(aGroundPlaneTransform, &status).asMatrix();
+
 
 	if (_initialized == false) {
 		// Initialize the point states
 		//MGlobal::displayInfo( "mc_spring: Initialize the point states" );
 		_previousPosition = goal;
 		_currentPosition = goal;
-		_frameStartPrevious = goal;
-		_frameStartCurrent = goal;
+		_stepStartPrevious = goal;
+		_stepStartCurrent = goal;
+		_lastGoal = goal;
+		_lastColliders = colliders;
+		_lastGround = groundPlaneTransform;
 		_previousTime = currentTime;
     colliderStrength = 1.0;
 		//return MS::kSuccess;
@@ -269,15 +290,26 @@ MStatus mgear_springGravityNode::compute(const MPlug& plug, MDataBlock& data)
 	}
 
 	// One step per frame: an evaluation on the same frame (bake, viewport,
-	// attribute editor) solves the frame again from its start state,
-	// instead of advancing the simulation once more
-	if (timeDifference == 0.0) {
-		_previousPosition = _frameStartPrevious;
-		_currentPosition = _frameStartCurrent;
+	// attribute editor) solves the step again from its start state,
+	// instead of advancing the simulation once more. A goal, collider or
+	// ground moved on a paused frame (a dragged control) is a new step, so
+	// the spring reacts while dragging
+	bool inputsMoved = !goal.isEquivalent(_lastGoal, SPRING_DRAG_TOLERANCE)
+		|| !groundPlaneTransform.isEquivalent(_lastGround, SPRING_DRAG_TOLERANCE)
+		|| colliders.length() != _lastColliders.length();
+	for (unsigned i = 0; !inputsMoved && i < colliders.length(); i++) {
+		inputsMoved = fabs(colliders[i] - _lastColliders[i]) > SPRING_DRAG_TOLERANCE;
+	}
+	_lastGoal = goal;
+	_lastColliders = colliders;
+	_lastGround = groundPlaneTransform;
+	if (timeDifference == 0.0 && !inputsMoved) {
+		_previousPosition = _stepStartPrevious;
+		_currentPosition = _stepStartCurrent;
 	}
 	else {
-		_frameStartPrevious = _previousPosition;
-		_frameStartCurrent = _currentPosition;
+		_stepStartPrevious = _previousPosition;
+		_stepStartCurrent = _currentPosition;
 	}
 
 	// computation
@@ -294,15 +326,9 @@ MStatus mgear_springGravityNode::compute(const MPlug& plug, MDataBlock& data)
 	MVector distFromCollider;
 	double colliderRadius;
   double collideAmount;
-	MArrayDataHandle arrayHandle = data.inputArrayValue(aColliderList, &status);
-	McheckErr(status, "arrayHandle construction for aColliderList failed\n");
-	unsigned count = arrayHandle.elementCount();
-	for( unsigned i = 0; i < count; i++) {
-		arrayHandle.jumpToArrayElement(i);
-		h = arrayHandle.inputValue(&status);
-		McheckErr(status, "handle evaluation failed\n");
-		colliderPos = h.child(aCollider).asFloatVector();
-		colliderRadius = h.child(aColliderRadius).asDouble();
+	for( unsigned i = 0; i < colliders.length(); i += 4) {
+		colliderPos = MVector(colliders[i], colliders[i + 1], colliders[i + 2]);
+		colliderRadius = colliders[i + 3];
 		distFromCollider = newPosition - colliderPos;
 		collideAmount = (colliderRadius - distFromCollider.length()) / distFromCollider.length() * colliderStrength;
 		collideAmount = collideAmount > 0 ? collideAmount : 0;   // Only push outward
@@ -310,7 +336,6 @@ MStatus mgear_springGravityNode::compute(const MPlug& plug, MDataBlock& data)
 	}
 
 
-	MMatrix groundPlaneTransform = data.inputValue(aGroundPlaneTransform, &status).asMatrix();
 	MMatrix groundPlaneInv = groundPlaneTransform.inverse();
 
   // Collide with the XZ plane of the ground transform: in the plane space

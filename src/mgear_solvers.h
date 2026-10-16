@@ -115,6 +115,9 @@ Date:       2016 / 10 / 10
 
 
 #define PI 3.14159265
+// smallest move of a spring driving input (goal, collider, ground) seen as
+// a drag on a paused frame: smaller changes are evaluation noise
+#define SPRING_DRAG_TOLERANCE 1.0e-5
 
 
 /////////////////////////////////////////////////
@@ -545,10 +548,12 @@ public:
     MTime _previousTime;
     MFloatVector _currentPosition;
     MFloatVector _previousPosition;
-    // state at the start of the current frame: a same-frame evaluation
+    // state at the start of the current step: a same-frame evaluation
     // re-solves from it instead of stepping again
-    MFloatVector _frameStartCurrent;
-    MFloatVector _frameStartPrevious;
+    MFloatVector _stepStartCurrent;
+    MFloatVector _stepStartPrevious;
+    // goal of the last evaluation: a goal moved on a paused frame steps
+    MVector _lastGoal;
 
 };
 
@@ -592,10 +597,15 @@ public:
 	MTime _previousTime;
 	MPoint _currentPosition;
 	MPoint _previousPosition;
-	// state at the start of the current frame: a same-frame evaluation
+	// state at the start of the current step: a same-frame evaluation
 	// re-solves from it instead of stepping again
-	MPoint _frameStartCurrent;
-	MPoint _frameStartPrevious;
+	MPoint _stepStartCurrent;
+	MPoint _stepStartPrevious;
+	// driving inputs of the last evaluation: a goal, collider or ground
+	// moved on a paused frame steps
+	MVector _lastGoal;
+	MDoubleArray _lastColliders;
+	MMatrix _lastGround;
 
 };
 

@@ -166,8 +166,9 @@ MStatus mgear_springNode::compute(const MPlug& plug, MDataBlock& data)
 		//MGlobal::displayInfo( "mc_spring: Initialize the point states" );
 		_previousPosition = goal;
 		_currentPosition = goal;
-		_frameStartPrevious = goal;
-		_frameStartCurrent = goal;
+		_stepStartPrevious = goal;
+		_stepStartCurrent = goal;
+		_lastGoal = goal;
 		_previousTime = currentTime;
 		_initialized = true;
 		//return MS::kSuccess;
@@ -184,15 +185,19 @@ MStatus mgear_springNode::compute(const MPlug& plug, MDataBlock& data)
 	}
 
 	// One step per frame: an evaluation on the same frame (bake, viewport,
-	// attribute editor) solves the frame again from its start state,
-	// instead of advancing the simulation once more
-	if (timeDifference == 0.0) {
-		_previousPosition = _frameStartPrevious;
-		_currentPosition = _frameStartCurrent;
+	// attribute editor) solves the step again from its start state,
+	// instead of advancing the simulation once more. A goal moved on a
+	// paused frame (a dragged control) is a new step, so the spring reacts
+	// while dragging
+	bool goalMoved = !goal.isEquivalent(_lastGoal, SPRING_DRAG_TOLERANCE);
+	_lastGoal = goal;
+	if (timeDifference == 0.0 && !goalMoved) {
+		_previousPosition = _stepStartPrevious;
+		_currentPosition = _stepStartCurrent;
 	}
 	else {
-		_frameStartPrevious = _previousPosition;
-		_frameStartCurrent = _currentPosition;
+		_stepStartPrevious = _previousPosition;
+		_stepStartCurrent = _currentPosition;
 	}
 
 	// computation

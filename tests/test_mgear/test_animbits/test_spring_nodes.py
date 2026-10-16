@@ -63,6 +63,72 @@ def test_same_frame_uses_current_inputs(solvers):
     assert cmds.getAttr(node + ".output")[0] == pytest.approx(first, abs=1e-5)
 
 
+def _drag(cmds, node, attr, positions, read_node=None):
+    """Move an input on the paused frame, reading the output after each move.
+
+    Args:
+        attr (str): Attribute of ``node`` moved, as a dragged control does.
+        positions (list): Positions set one after the other.
+        read_node (str, optional): Node whose output is read, ``node`` if
+            None.
+
+    Returns:
+        tuple: The output after the last move.
+    """
+    value = None
+    for position in positions:
+        cmds.setAttr(node + attr, *position)
+        value = cmds.getAttr((read_node or node) + ".output")[0]
+    return value
+
+
+def _drag_goal(steps=20):
+    return [(10.0 * (i + 1) / steps, 0.0, 0.0) for i in range(steps)]
+
+
+@pytest.mark.parametrize("node_type", NODE_TYPES)
+def test_drag_on_paused_frame_steps(solvers, node_type):
+    cmds = solvers
+    node = _spring(cmds, node_type)
+    _play(cmds, node, range(1, 6), lambda f: (0.0, 0.0, 0.0))
+    # each move of the goal is a step: the spring follows the drag (one
+    # re-solved step from the frame start would stay at 3.0)
+    value = _drag(cmds, node, ".goal", _drag_goal())
+    assert value[0] > 8.0
+    # re-reads without a move don't step
+    cmds.dgdirty(node)
+    assert cmds.getAttr(node + ".output")[0] == pytest.approx(value, abs=1e-5)
+    # the next frame continues from the dragged state
+    cmds.currentTime(6)
+    assert cmds.getAttr(node + ".output")[0][0] > value[0]
+
+
+def test_drag_chained_springs(solvers):
+    cmds = solvers
+    first = _spring(cmds, "mgear_springNode")
+    second = _spring(cmds, "mgear_springNode")
+    cmds.connectAttr(first + ".output", second + ".goal")
+    _play(cmds, first, range(1, 6), lambda f: (0.0, 0.0, 0.0))
+    cmds.getAttr(second + ".output")
+    # the second spring's goal moves with the first one: it steps too
+    value = _drag(cmds, first, ".goal", _drag_goal(), read_node=second)
+    assert value[0] > 8.0
+
+
+def test_drag_collider_on_paused_frame_steps(solvers):
+    cmds = solvers
+    node = _spring(cmds, "mgear_springGravityNode")
+    collider = node + ".colliders_list[0]"
+    cmds.setAttr(collider + ".collide_radius", 2.0)
+    cmds.setAttr(collider + ".collider", -3.0, 0.0, 0.0)
+    _play(cmds, node, range(1, 6), lambda f: (0.0, 0.0, 0.0))
+    # the collider pushes the point a bit more on each move (a single
+    # re-solved push would stay at 0.5)
+    moves = [(-3.0 + 0.2 * i, 0.0, 0.0) for i in range(11)]
+    value = _drag(cmds, node, ".colliders_list[0].collider", moves)
+    assert value[0] > 0.65
+
+
 def _ground_spring(cmds, ground_y):
     node = _spring(cmds, "mgear_springGravityNode")
     cmds.setAttr(node + ".gravity", 2.0)

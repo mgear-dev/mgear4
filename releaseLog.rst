@@ -13,6 +13,7 @@ Release Log
 
 **Bug Fix**
 	* Shifter: Guide Settings: A Skin Path typed in the field is now saved, Load Path also lists .jSkin files, and a missing skin file is skipped with a warning instead of stopping the build
+	* Solvers: Spring nodes: Springs react again while dragging a control on a paused frame, a regression from 5.4.0 (Windows only)
 
 
 5.4.1
