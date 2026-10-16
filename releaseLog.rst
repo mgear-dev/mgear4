@@ -8,6 +8,8 @@ Release Log
 	* Shifter: Guide Settings: Autoskin Timing runs the component autoskin in the component Finalize, after the rig finalize or after the post custom steps; the autoskin options moved to Skinning Settings
 	* Shifter: Guide Settings: The Skin Path accepts skin packs
 	* Core: UI Style: New UI style guide for tool windows, with shared colour roles and ActionBar and StatusLine widgets
+	* Shifter: Guide: Guide read and export are about 6x faster and component duplicate about 4x faster on large guides (313 component guide: export 11.2s to 1.9s)
+	* Shifter: Guide: Guide drawing on template import, duplicate and new components is about 2x faster (313 component guide: 19s to 8s)
 
 **Bug Fix**
 	* Shifter: Guide Settings: A Skin Path typed in the field is now saved, Load Path also lists .jSkin files, and a missing skin file is skipped with a warning instead of stopping the build
