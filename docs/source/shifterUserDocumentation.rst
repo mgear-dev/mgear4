@@ -125,8 +125,8 @@ Filter components by name and type using space-separated search terms. All terms
 
 When enabled, provides bidirectional selection synchronization between the scene and the tree view:
 
-- Selecting in the tree updates the Maya selection
-- Selecting in Maya updates the tree selection
+- Selecting in the tree selects the guide or component root in Maya
+- Selecting in Maya selects the matching component in the tree. The Maya selection is kept, so selecting a guide locator shows its component settings and the locator stays selected
 
 Component Tree
 ++++++++++++++++++
@@ -139,6 +139,10 @@ The tree view displays your guide hierarchy with three columns:
 
 The root item shows the guide name with a character icon, while child components display with a gear icon.
 
+The tree follows the scene. It updates when components are added or deleted, and labels and visibility icons update when a component is renamed or hidden. Changes elsewhere in the scene, such as creating a locator or painting skin weights, don't refresh the tree. The selected component stays selected after an update. Press **R** to force a full refresh.
+
+When a blueprint is active, component names are colored by their blueprint status (see :ref:`blueprint-guide`).
+
 Settings Panel
 ++++++++++++++++++
 
@@ -147,6 +151,8 @@ The right panel dynamically displays settings for the selected item:
 - **Guide Root Selected**: Shows guide-level settings
 - **Component Selected**: Shows component-specific settings
 - **Nothing Selected**: Shows a placeholder message
+
+Opening a settings panel doesn't change the Maya selection.
 
 Context Menu
 ++++++++++++++++++
@@ -166,7 +172,7 @@ Right-click on items in the tree to access:
 - **Delete**: Delete the selected component (Del)
 - **Select Component**: Select the component in the scene (F)
 - **Refresh**: Refresh the tree from the scene (R)
-- **Update Component Type**: Change the component type
+- **Update Component Type**: Change the component type (Ctrl+T)
 
 Keyboard Shortcuts
 ++++++++++++++++++
@@ -180,6 +186,7 @@ Keyboard Shortcuts
 - **C**: Toggle control visibility
 - **J**: Toggle joint visibility
 - **F**: Select component in scene
+- **Ctrl+T**: Update component type
 
 .. _templates-tab:
 
