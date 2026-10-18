@@ -17,6 +17,8 @@ import sys
 # Pytest imports
 import pytest
 
+import qt_helpers
+
 _SCRIPTS = os.path.abspath(
     os.path.join(os.path.dirname(__file__), os.pardir, "release", "scripts")
 )
@@ -33,16 +35,7 @@ def pytest_configure(config):
     collection, so before the run_with_maya_standalone fixture. Skipped when
     no PySide binding is installed (e.g. CI without Maya).
     """
-    try:
-        from PySide6 import QtWidgets
-    except ImportError:
-        try:
-            from PySide2 import QtWidgets
-        except ImportError:
-            return
-    config._mgear_qt_app = QtWidgets.QApplication.instance() or (
-        QtWidgets.QApplication([])
-    )
+    config._mgear_qt_app = qt_helpers.start_qt()
 
 
 @pytest.fixture(scope="session")

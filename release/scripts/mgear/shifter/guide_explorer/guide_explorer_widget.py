@@ -5,14 +5,12 @@ from typing import Optional
 
 from mgear.shifter.guide_explorer import guide_tree_widget
 from mgear.shifter.guide_explorer.models import ShifterComponent
-from mgear.shifter.guide_explorer.utils import TempSelection
 from mgear.shifter import guide as shifter_guide
 from mgear.shifter import utils as shifter_utils
 
 from mgear import shifter
 
 from mgear.core import pyqt
-import mgear.pymaya as pm
 
 logger = logging.getLogger("Guide Explorer")
 
@@ -250,30 +248,34 @@ class GuideExplorerWidget(QtWidgets.QWidget):
         if isinstance(close_button, QtWidgets.QPushButton):
             close_button.clicked.connect(self.show_placeholder)
 
-    def open_guide_widget(self, data=None) -> None:
+    def _remember_tab_index(self) -> None:
         """
-        Build and display the guide settings panel on the right side.
+        Store the current tab index of the shown settings panel.
 
-        :param data: ShifterComponent describing the selected component.
+        Guide and component panels keep separate indices, so switching
+        between them restores the last tab of each kind.
+
         :return: None
         """
-        self.remember_and_restore_split(restore=False)
+        if not self.current_widget or not hasattr(self.current_widget, "tabs"):
+            return
+        index = self.current_widget.tabs.currentIndex()
+        if isinstance(self.current_widget, shifter_guide.GuideSettings):
+            self.previous_guide_tab_index = index
+        else:
+            self.previous_comp_tab_index = index
 
-        if self.current_key == "__GUIDE__" and self.current_widget:
-            self.previous_guide_tab_index = self.current_widget.tabs.currentIndex()
+    def _show_panel(self, panel: QtWidgets.QWidget, key: str, tab_index: int) -> None:
+        """
+        Replace the right side panel with a new settings panel.
 
-        if data is None:
-            item = self.guide_tree_widget.topLevelItem(0)
-            data = item.data(0, guide_tree_widget.DATA_ROLE) if item else None
-
-        # -- Temporarily select the guide root only while building the panel
-        # -- If we do not select the item then the data is not loaded in.
-        with TempSelection(data):
-            panel = shifter_guide.GuideSettings(parent=self.right_widget)
-
+        :param panel: The guide or component settings panel.
+        :param key: Uuid of the node the panel was built for.
+        :param tab_index: Tab to show, clamped to the panel tab count.
+        :return: None
+        """
         panel.setWindowFlags(QtCore.Qt.Widget)
         panel.setAttribute(QtCore.Qt.WA_DeleteOnClose, False)
-        panel.setObjectName("guide_settings_panel")
 
         self.on_panel_close_button(panel=panel)
 
@@ -284,52 +286,71 @@ class GuideExplorerWidget(QtWidgets.QWidget):
         self.clear_right()
         self.remove_placeholder()
         self.current_widget = panel
-        self.current_key = "__GUIDE__"
+        self.current_key = key
         self.right_layout.addWidget(panel)
 
-        # -- Set the last known index for the guide
-        panel.tabs.setCurrentIndex(self.previous_guide_tab_index)
+        # -- The stored index can be higher than the new panel tab count
+        panel.tabs.setCurrentIndex(min(tab_index, max(0, panel.tabs.count() - 1)))
+
+    def open_guide_widget(self, data=None, force=False) -> None:
+        """
+        Build and display the guide settings panel on the right side.
+
+        The panel is built for the guide node without changing the Maya
+        selection. Nothing is rebuilt when the panel of this guide is already
+        shown, unless ``force`` is True.
+
+        :param data: Guide root node. Defaults to the tree guide item node.
+        :param force: Rebuild the panel even if it is already shown.
+        :return: None
+        """
+        if data is None:
+            item = self.guide_tree_widget.topLevelItem(0)
+            data = item.data(0, guide_tree_widget.DATA_ROLE) if item else None
+        if data is None:
+            self.show_placeholder()
+            return
+
+        key = shifter_utils.get_uuids([str(data)])[0]
+        if not force and self.current_widget and self.current_key == key:
+            return
+
+        self.remember_and_restore_split(restore=False)
+        self._remember_tab_index()
+
+        with shifter_guide.settings_root(data):
+            panel = shifter_guide.GuideSettings(parent=self.right_widget)
+        panel.setObjectName("guide_settings_panel")
+        self._show_panel(panel, key, self.previous_guide_tab_index)
 
         self.remember_and_restore_split(restore=True)
 
-    def open_component_widget(self, comp: ShifterComponent) -> None:
+    def open_component_widget(self, comp: ShifterComponent, force=False) -> None:
         """
         Build and display the component settings panel on the right side.
 
+        The panel is built for the component root without changing the Maya
+        selection. Nothing is rebuilt when the panel of this component is
+        already shown, unless ``force`` is True.
+
         :param comp: ShifterComponent describing the selected component.
+        :param force: Rebuild the panel even if it is already shown.
         :return: None
         """
-        # -- If leaving the guide, remember current tab index
-        if self.current_key == "__GUIDE__" and self.current_widget and hasattr(self.current_widget, "tabs"):
-            self.previous_guide_tab_index = self.current_widget.tabs.currentIndex()
-
-        # -- No need to rebuild if this component is already shown
-        if self.current_key == comp.full_name and self.current_widget:
+        if not force and self.current_widget and self.current_key == comp.uuid:
             return
 
-        if self.current_widget and self.current_key != "__GUIDE__":
-            self.previous_comp_tab_index = self.current_widget.tabs.currentIndex()
-
         self.remember_and_restore_split(restore=False)
+        self._remember_tab_index()
 
         # -- Resolve the scene node from the UUID
-        try:
-            root_node = pm.ls(comp.uuid, uuid=True)[0]
-        except Exception:
+        root_node = shifter_utils.node_from_uuid(uuid=comp.uuid)
+        if root_node is None:
             logger.warning(f"Could not resolve component root from uuid '{comp.uuid}' for component '{comp.full_name}' "
                            f"The node may have been deleted or renamed.")
             self.show_placeholder()
             self.remember_and_restore_split(restore=True)
             return
-
-        # -- Keep the dataclass in sync if the node has been renamed
-        if root_node.name() != comp.root_name:
-            comp = ShifterComponent(full_name=comp.full_name,
-                                    comp_type=comp.comp_type,
-                                    root_name=root_node.name(),
-                                    side=comp.side,
-                                    index=comp.index,
-                                    uuid=comp.uuid)
 
         # -- Import the component guide module and try to get its UI class.
         component_instance = shifter.importComponentGuide(comp.comp_type)
@@ -339,33 +360,10 @@ class GuideExplorerWidget(QtWidgets.QWidget):
             self.remember_and_restore_split(restore=True)
             return
 
-        # -- Temporarily select the component root only while building the panel
-        # -- If we do not select the item then the data is not loaded in.
-        with TempSelection(comp.root_name):
+        with shifter_guide.settings_root(root_node):
             panel = SettingsCls(parent=self.right_widget)
-
-        panel.setWindowFlags(QtCore.Qt.Widget)
-        panel.setAttribute(QtCore.Qt.WA_DeleteOnClose, False)
         panel.setObjectName(f"{comp.full_name}_settings")
-
-        self.on_panel_close_button(panel=panel)
-
-        panel_min_width = max(panel.minimumSizeHint().width(), panel.sizeHint().width())
-        self.set_right_min_width(panel_min_width)
-
-        self.clear_right()
-        self.remove_placeholder()
-        self.current_widget = panel
-        self.current_key = comp.full_name
-        self.right_layout.addWidget(panel)
-
-        # -- Want to get the current tab count as the stored index could be
-        # -- Higher than the new component tab count.
-        tab_count = panel.tabs.count()
-        if self.previous_comp_tab_index >= tab_count:
-            self.previous_comp_tab_index = max(0, tab_count - 1)
-
-        panel.tabs.setCurrentIndex(self.previous_comp_tab_index)
+        self._show_panel(panel, comp.uuid, self.previous_comp_tab_index)
 
         self.remember_and_restore_split(restore=True)
 
@@ -391,26 +389,6 @@ class GuideExplorerWidget(QtWidgets.QWidget):
             comb = f"{item.text(0)} {item.text(1)}".lower()
             item.setHidden(not all(t in comb for t in search_terms))
 
-    def component_exists(self, full_name: str) -> bool:
-        """
-        Check whether a component with the given full name exists in the tree.
-
-        :param full_name: Full name of the component to look for.
-        :return: True if the component is found, otherwise False.
-        """
-        # -- This is the mGear guide
-        root = self.guide_tree_widget.topLevelItem(0)
-        if not root:
-            return False
-
-        # -- Iterate over all the child items and ensure that the component full name exists
-        for i in range(root.childCount()):
-            data = root.child(i).data(0, guide_tree_widget.DATA_ROLE)
-            if isinstance(data, ShifterComponent) and data.full_name == full_name:
-                return True
-
-        return False
-
     def refresh_selected_widget(self) -> None:
         """
         Reload the panel for the currently selected item.
@@ -427,9 +405,9 @@ class GuideExplorerWidget(QtWidgets.QWidget):
 
         data = items[-1].data(0, guide_tree_widget.DATA_ROLE)
         if isinstance(data, ShifterComponent):
-            self.open_component_widget(data)
+            self.open_component_widget(data, force=True)
         else:
-            self.open_guide_widget(data)
+            self.open_guide_widget(data, force=True)
 
     def refresh_widget_titles(self) -> None:
         """
@@ -474,14 +452,13 @@ class GuideExplorerWidget(QtWidgets.QWidget):
         """
         Update the tree to reflect the current scene state.
 
-        Reloads the guide data from the scene and resets the view if the
-        previously selected component no longer exists.
+        The tree is rebuilt only when the guide or its components changed.
+        The rebuild keeps the selected items, and the settings panel follows
+        the tree selection.
 
         :return: None
         """
-        self.guide_tree_widget.get_guide_from_scene()
-        if self.current_key and not self.component_exists(self.current_key):
-            self.show_placeholder()
+        self.guide_tree_widget.refresh()
 
     def _update_right_panel_from_selection(self) -> None:
         """
@@ -497,11 +474,18 @@ class GuideExplorerWidget(QtWidgets.QWidget):
 
         data = items[-1].data(0, guide_tree_widget.DATA_ROLE)
 
+        # -- With Sync Selection, a tree click selects the node in Maya. A tree
+        # -- change that follows a Maya selection keeps the Maya selection.
+        select_in_scene = (
+            self.sync_checkbox.isChecked()
+            and not self.guide_tree_widget.syncing_from_scene
+        )
+
         # -- Shifter Component Instance
         if isinstance(data, ShifterComponent) and data.root_name:
             self.open_component_widget(data)
 
-            if self.sync_checkbox.isChecked():
+            if select_in_scene:
                 shifter_utils.select_by_uuid(uuid=data.uuid)
 
             return
@@ -510,7 +494,7 @@ class GuideExplorerWidget(QtWidgets.QWidget):
         if self._is_pymaya_node(data) or isinstance(data, str):
             self.open_guide_widget(data)
 
-            if self.sync_checkbox.isChecked():
+            if select_in_scene:
                 shifter_utils.select_items(items=[data])
             return
 

@@ -1390,7 +1390,7 @@ class jointNameDescriptor(NameDescriptor):
     def __init__(self, parent=None):
         super(jointNameDescriptor, self).__init__()
 
-        self.root = pm.selected()[0]
+        self.root = guide.get_settings_root()
         self.d_names = self.root.attr(JOINT_NAME_DESCRIPTION).get()
         self.d_names = ast.literal_eval(self.d_names)
         self.descriptor_name_custom = JOINT_NAME_DESCRIPTION_CUSTOM
@@ -1407,7 +1407,7 @@ class CtlNameDescriptor(NameDescriptor):
     def __init__(self, parent=None):
         super(CtlNameDescriptor, self).__init__()
 
-        self.root = pm.selected()[0]
+        self.root = guide.get_settings_root()
         self.d_names = self.root.attr(CTL_NAME_DESCRIPTION).get()
         self.d_names = ast.literal_eval(self.d_names)
         self.descriptor_name_custom = CTL_NAME_DESCRIPTION_CUSTOM
@@ -1424,7 +1424,7 @@ class AliasNameDescriptor(NameDescriptor):
     def __init__(self, parent=None):
         super(AliasNameDescriptor, self).__init__()
 
-        self.root = pm.selected()[0]
+        self.root = guide.get_settings_root()
         self.d_names = self.root.attr(ALIAS_NAME_DESCRIPTION).get()
         self.d_names = ast.literal_eval(self.d_names)
         self.descriptor_name_custom = ALIAS_NAME_DESCRIPTION_CUSTOM
@@ -1444,7 +1444,7 @@ class componentMainSettings(QtWidgets.QDialog, guide.helperSlots):
         super(componentMainSettings, self).__init__()
         # the inspectSettings function set the current selection to the
         # component root before open the settings dialog
-        self.root = pm.selected()[0]
+        self.root = guide.get_settings_root()
 
         self.mainSettingsTab = mainSettingsTab()
         if self.root.hasAttr(JOINT_NAME_DESCRIPTION):

@@ -1,8 +1,7 @@
 from mgear.vendor.Qt import QtCore, QtWidgets, QtGui
 from typing import Optional
 
-from mgear.shifter.guide_explorer import utils as guide_explorer_utils
-
+from mgear.core import pyqt
 
 class GuideTreeWidgetItem(QtWidgets.QTreeWidgetItem):
     """
@@ -55,8 +54,7 @@ class ComponentTreeWidgetItem(QtWidgets.QTreeWidgetItem):
         self.component_name: str = component
         self.component_type: str = comp_type
 
-        icon_path = str(guide_explorer_utils.get_mgear_icon_path("mgear_gear.png"))
-        self.setIcon(0, QtGui.QIcon(icon_path))
+        self.setIcon(0, pyqt.get_cached_icon("mgear_gear.png"))
 
         self.setToolTip(0, component)
 

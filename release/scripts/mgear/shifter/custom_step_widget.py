@@ -3957,7 +3957,7 @@ class CustomStepMixin(object):
         )
         csTap.printConfig_action.triggered.connect(self.print_configuration)
         csTap.refreshReferences_action.triggered.connect(
-            self.refreshReferencedGroups
+            lambda: self.refreshReferencedGroups()
         )
 
         # Event filters for drag/drop order changes
@@ -5064,11 +5064,15 @@ class CustomStepMixin(object):
             "Referenced {} groups from: {}".format(count, filePath)
         )
 
-    def refreshReferencedGroups(self):
+    def refreshReferencedGroups(self, quiet=False):
         """Refresh all referenced groups from their source .scs files.
 
         Updates the embedded step data in referenced groups by re-reading
         their source .scs files. This affects both pre and post custom steps.
+
+        Args:
+            quiet (bool, optional): Don't print the info messages. Failed
+                refreshes are still reported as a warning.
         """
         csTap = self.customStepTab
         pre_widget = csTap.preCustomStep_listWidget
@@ -5079,40 +5083,43 @@ class CustomStepMixin(object):
 
         # Refresh pre custom step referenced groups
         pre_refreshed, pre_failed = self._refreshReferencedGroupsInWidget(
-            pre_widget, "preCustomStep"
+            pre_widget, "preCustomStep", quiet
         )
         total_refreshed += pre_refreshed
         total_failed += pre_failed
 
         # Refresh post custom step referenced groups
         post_refreshed, post_failed = self._refreshReferencedGroupsInWidget(
-            post_widget, "postCustomStep"
+            post_widget, "postCustomStep", quiet
         )
         total_refreshed += post_refreshed
         total_failed += post_failed
 
-        if total_refreshed > 0 or total_failed > 0:
-            if total_failed == 0:
-                pm.displayInfo(
-                    "Refreshed {} referenced group(s) successfully.".format(
-                        total_refreshed
-                    )
+        if total_failed:
+            pm.displayWarning(
+                "Refreshed {} group(s), {} failed to refresh.".format(
+                    total_refreshed, total_failed
                 )
-            else:
-                pm.displayWarning(
-                    "Refreshed {} group(s), {} failed to refresh.".format(
-                        total_refreshed, total_failed
-                    )
-                )
+            )
+        elif quiet:
+            return
+        elif total_refreshed:
+            pm.displayInfo(
+                "Refreshed {} referenced group(s) successfully.".format(total_refreshed)
+            )
         else:
             pm.displayInfo("No referenced groups found to refresh.")
 
-    def _refreshReferencedGroupsInWidget(self, stepWidget, stepAttr):
+    def _refreshReferencedGroupsInWidget(self, stepWidget, stepAttr, quiet=False):
         """Refresh referenced groups in a step widget.
+
+        The Maya attribute is only written when a group differs from its
+        source file.
 
         Args:
             stepWidget: The CustomStepListWidget to refresh
             stepAttr (str): The Maya attribute name ('preCustomStep' or 'postCustomStep')
+            quiet (bool, optional): Don't print a message per refreshed group.
 
         Returns:
             tuple: (number of groups refreshed, number of failures)
@@ -5175,19 +5182,20 @@ class CustomStepMixin(object):
                     )
                     continue
 
-                # Update the group's items with fresh data
-                group_data._items = source_group_data.items
-
-                # Update the group widget to reflect the new items
-                group_widget._refresh_step_widgets()
+                # Update the group's items with fresh data, if they changed
+                source_items = [item.to_dict() for item in source_group_data.items]
+                if source_items != [item.to_dict() for item in group_data.items]:
+                    group_data._items = source_group_data.items
+                    group_widget._refresh_step_widgets()
+                    changed = True
 
                 refreshed += 1
-                changed = True
-                pm.displayInfo(
-                    "Refreshed group '{}' from: {}".format(
-                        group_name, resolved_source
+                if not quiet:
+                    pm.displayInfo(
+                        "Refreshed group '{}' from: {}".format(
+                            group_name, resolved_source
+                        )
                     )
-                )
 
             except json.JSONDecodeError as e:
                 failed += 1

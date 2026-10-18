@@ -1,17 +1,19 @@
 from mgear.vendor.Qt import QtCore, QtWidgets, QtGui
 
+import contextlib
 import logging
 from dataclasses import dataclass
 from functools import partial
 from typing import Any, List, Optional
 
+from maya import cmds
 from maya.api import OpenMaya as om
 
+import mgear.pymaya as pm
 from mgear import shifter
 from mgear.core import callbackManager as cb
+from mgear.core import pyqt
 
-from mgear.shifter import guide_manager
-from mgear.shifter import guide as shifter_guide
 from mgear.shifter import utils as shifter_utils
 from mgear.shifter.guide_explorer import guide_tree_widget_items
 from mgear.shifter.guide_explorer import guide_visibility_delegate
@@ -28,12 +30,18 @@ BLUEPRINT_COLOR_NOT_IN = None  # Default color - not in blueprint
 logger = logging.getLogger("Guide Explorer - Tree Widget")
 
 DATA_ROLE = QtCore.Qt.UserRole + 1
+# -- Uuid of the scene node of an item, the key of every item lookup
+UUID_ROLE = QtCore.Qt.UserRole + 2
 
 # -- We use shorthand name for the attribute callback as
 # -- the callback manager takes in short names and not long names
 # -- "comp_name" and others have the same long and short names.
-ATTRS_GUIDE = ["rig_name", "v"]
-ATTRS_COMP  = ["comp_name", "comp_side", "comp_index", "v"]
+ATTRS_GUIDE = ["rig_name"]
+ATTRS_COMP = ["comp_name", "comp_side", "comp_index"]
+ATTR_VISIBILITY = "v"
+# -- Attributes the blueprint colours of the component items depend on
+ATTRS_GUIDE_BLUEPRINT = ["use_blueprint", "blueprint_path"]
+ATTRS_COMP_BLUEPRINT = ["blueprint_local_override"]
 
 
 class GuideTreeWidget(QtWidgets.QTreeWidget):
@@ -61,9 +69,9 @@ class GuideTreeWidget(QtWidgets.QTreeWidget):
 
         self._attr_cb_manager = cb.CallbackManager()
         self._selection_cb_manager = cb.CallbackManager()
-        self._node_to_item = {}
         self._uuid_to_item = {}
         self._guide = guide
+        self._scene_state = guide_explorer_utils.GuideSceneState()
         self.component_manager = None
 
         self._block_scene_selection_sync = False
@@ -132,7 +140,7 @@ class GuideTreeWidget(QtWidgets.QTreeWidget):
         self.select_component_action.setShortcutContext(QtCore.Qt.WidgetWithChildrenShortcut)
 
         self.update_component_type_action = QtWidgets.QAction("Update Component Type", self)
-        self.update_component_type_action.setShortcut(QtGui.QKeySequence("Ctrl+U"))
+        self.update_component_type_action.setShortcut(QtGui.QKeySequence("Ctrl+T"))
         self.update_component_type_action.setShortcutContext(QtCore.Qt.WidgetWithChildrenShortcut)
 
         # -- Register actions on the dialog so their shortcuts stay active.
@@ -222,23 +230,9 @@ class GuideTreeWidget(QtWidgets.QTreeWidget):
 
         :return: None
         """
-        selection: List[str] = []
-
-        # -- Get the UI selection
-        items = self.selectedItems()
-        for item in items:
-            comp_data = item.data(0, DATA_ROLE)
-
-            if hasattr(comp_data, "root_name"):
-                node = comp_data.root_name
-            else:
-                node = comp_data
-
-            node_name = node.name() if hasattr(node, "name") else str(node)
-            selection.append(node_name)
-
-        # -- Select all our items
-        shifter_utils.select_items(selection)
+        # -- Select the scene nodes of the UI selection
+        nodes = [self._item_node(item) for item in self.selectedItems()]
+        shifter_utils.select_items([node for node in nodes if node])
 
         # -- Do the rig build
         rig = shifter.Rig()
@@ -270,7 +264,7 @@ class GuideTreeWidget(QtWidgets.QTreeWidget):
 
         :return: None
         """
-        self.get_guide_from_scene()
+        self.refresh(force=True)
 
     def on_mirror_action_clicked(self) -> None:
         """
@@ -319,38 +313,22 @@ class GuideTreeWidget(QtWidgets.QTreeWidget):
 
         :return: None
         """
-        selection: List[str] = []
-
         # -- Get the UI selection
         items = self.selectedItems()
         if not items:
             logger.warning("No item in the UI has been selected for deletion.")
             return
 
-        for item in items:
-            comp_data = item.data(0, DATA_ROLE)
+        # -- Delete the guide or component roots, resolved by uuid
+        nodes = [self._item_node(item) for item in items]
+        shifter_utils.delete_nodes([node for node in nodes if node])
 
-            # -- Component roots
-            if hasattr(comp_data, "root_name"):
-                node = comp_data.root_name
-            else:
-                # -- Root guide node
-                node = comp_data
-
-            selection.append(node)
-
-        # -- Do the deletion of the node
-        shifter_utils.delete_nodes(selection)
-
-        self.get_guide_from_scene()
+        # -- The node removed callback refresh that follows finds no change
+        self.refresh()
 
     def on_guide_visibility_action_clicked(self) -> None:
         """
         Toggle the visibility of the selected guide or component roots.
-
-        For each selected tree item, resolves the stored DATA_ROLE data:
-        - If it is a ShifterComponent, uses its root node.
-        - Otherwise treats the data as a node-like object.
 
         :return: None
         """
@@ -360,15 +338,7 @@ class GuideTreeWidget(QtWidgets.QTreeWidget):
             return
 
         for item in items:
-            comp_data = item.data(0, DATA_ROLE)
-
-            if isinstance(comp_data, ShifterComponent):
-                node = shifter_utils.node_from_uuid(uuid=comp_data.uuid)
-            else:
-                node = shifter_utils.node_from_name(name=comp_data)
-
-            visibility = node.visibility.get()
-            node.visibility.set(not visibility)
+            self.on_visibility_icon_clicked(item)
 
     def on_unhide_all_action_clicked(self) -> None:
         """
@@ -381,7 +351,7 @@ class GuideTreeWidget(QtWidgets.QTreeWidget):
         :return: None
         """
         # -- If there is no guide loaded, nothing to do
-        if not self._guide:
+        if self._guide is None:
             return
 
         root = self.invisibleRootItem()
@@ -400,27 +370,16 @@ class GuideTreeWidget(QtWidgets.QTreeWidget):
             for i in range(item.childCount()):
                 stack.append(item.child(i))
 
-            data = item.data(0, DATA_ROLE)
-            if isinstance(data, ShifterComponent):
-                node = shifter_utils.node_from_uuid(uuid=data.uuid)
-            else:
-                node = shifter_utils.node_from_name(name=data)
-
+            node = self._item_node(item)
             if not node:
                 continue
 
-            # -- Only touch nodes that actually have a visibility attribute
-            try:
-                vis_attr = node.visibility
-            except Exception:
-                continue
-
             # -- Force visible
-            if not vis_attr.get():
-                vis_attr.set(True)
+            if not cmds.getAttr(node + ".visibility"):
+                cmds.setAttr(node + ".visibility", True)
 
             # -- Keep the UI button in sync
-            self.update_visibility_widget(item)
+            self.update_visibility_widget(item, node)
 
     def on_control_visibility_action_clicked(self) -> None:
         """
@@ -483,97 +442,207 @@ class GuideTreeWidget(QtWidgets.QTreeWidget):
 
         shifter_utils.select_items(selection_list, replace=True)
 
-    def get_guide_from_scene(self) -> None:
-        """
-        Query the scene for the active mGear guide and populate the tree.
+    def refresh(self, force=False, select=None):
+        """Rebuild the tree when the scene guide or its components changed.
 
-        Clears the tree, resolves the guide, rig name and component metadata,
-        then creates a root item followed by child items for each component.
-        The root item is selected by default.
+        A pending refresh from the node added/removed callbacks is dropped,
+        as the tree now matches the scene.
 
-        :return: None
+        Args:
+            force (bool, optional): Rebuild even if nothing changed.
+            select (list of str, optional): Uuids of the items to select after
+                the rebuild, instead of the currently selected items.
+
+        Returns:
+            bool: True if the tree was rebuilt.
         """
+        self._pending_scene_refresh = False
+        self._node_added_timer.stop()
+        if not self._scene_state.update() and not force:
+            return False
+        self._rebuild(select)
+        return True
+
+    def get_guide_from_scene(self):
+        """Rebuild the tree from the scene guide, whether it changed or not."""
+        self.refresh(force=True)
+
+    @contextlib.contextmanager
+    def _one_selection_signal(self):
+        """Emit ``itemSelectionChanged`` once for the selection changes inside."""
+        self.blockSignals(True)
+        try:
+            yield
+        finally:
+            self.blockSignals(False)
+        self.itemSelectionChanged.emit()
+
+    def _rebuild(self, select=None):
+        """Rebuild the tree and restore the selected items.
+
+        The selected items are restored by uuid; when none of them exist
+        anymore, the guide root is selected. ``itemSelectionChanged`` is
+        emitted once.
+
+        Args:
+            select (list of str, optional): Uuids of the items to select,
+                instead of the currently selected items.
+        """
+        current = self.currentItem()
+        current_uuid = current.data(0, UUID_ROLE) if current else None
+        if select is None:
+            select = [item.data(0, UUID_ROLE) for item in self.selectedItems()]
+        else:
+            current_uuid = select[-1] if select else None
+
+        with self._one_selection_signal():
+            self._populate()
+            items = [
+                self._uuid_to_item[uuid]
+                for uuid in select
+                if uuid in self._uuid_to_item
+            ]
+            root_item = self.topLevelItem(0)
+            if not items and root_item:
+                items = [root_item]
+            for item in items:
+                item.setSelected(True)
+            current = self._uuid_to_item.get(current_uuid)
+            if current is None and items:
+                current = items[-1]
+            if current is not None:
+                self.setCurrentItem(current, 0, QtCore.QItemSelectionModel.NoUpdate)
+
+    def _populate(self):
+        """Clear the tree and create the items of the last scanned guide."""
         self._attr_cb_manager.removeAllManagedCB()
         self.clear()
-        self._node_to_item.clear()
         self._uuid_to_item.clear()
+        self._guide = None
 
-        self._guide = shifter_utils.get_guide()
-        if not self._guide:
+        state = self._scene_state
+        if not state.guide:
             logger.warning("No Guide has been found in the scene.")
             return
 
-        guide_name = self._guide[0].node()
-        rig_name = shifter_utils.get_rig_name(guide_name)
-        components = shifter_utils.get_components(guide_name)
+        self._guide = pm.PyNode(state.guide)
 
-        # Load blueprint data if blueprint is enabled
-        blueprint_components = {}
-        use_blueprint = False
+        root_item = guide_tree_widget_items.GuideTreeWidgetItem(
+            parent=self, rig_name=cmds.getAttr(state.guide + ".rig_name")
+        )
+        root_item.setData(0, DATA_ROLE, self._guide)
+        self._add_item(
+            root_item,
+            state.guide,
+            state.snapshot[0],
+            ATTRS_GUIDE,
+            ATTRS_GUIDE_BLUEPRINT,
+        )
+
+        for node, root_uuid in zip(state.components, state.snapshot[1:]):
+            data = self._component_data(node, root_uuid)
+            comp_item = guide_tree_widget_items.ComponentTreeWidgetItem(
+                root_item, data.full_name, data.comp_type
+            )
+            comp_item.setData(0, DATA_ROLE, data)
+            self._add_item(comp_item, node, root_uuid, ATTRS_COMP, ATTRS_COMP_BLUEPRINT)
+
+        self._update_blueprint_colors(state.components)
+
+    @staticmethod
+    def _component_data(node, uuid):
+        """Read the tree data of a component root.
+
+        Args:
+            node (str): Name of the component root.
+            uuid (str): Uuid of the component root.
+
+        Returns:
+            ShifterComponent: The component data.
+        """
+        comp_side = cmds.getAttr(node + ".comp_side")
+        comp_index = cmds.getAttr(node + ".comp_index")
+        return ShifterComponent(
+            full_name="{}_{}{}".format(
+                cmds.getAttr(node + ".comp_name"), comp_side, comp_index
+            ),
+            comp_type=cmds.getAttr(node + ".comp_type"),
+            root_name=cmds.ls(node)[0],
+            side=comp_side,
+            index=comp_index,
+            uuid=uuid,
+        )
+
+    def _add_item(self, item, node, uuid, label_attrs, blueprint_attrs):
+        """Register a new tree item for a scene node.
+
+        Args:
+            item (QtWidgets.QTreeWidgetItem): The item.
+            node (str): Long name of the guide or component root.
+            uuid (str): Uuid of the node.
+            label_attrs (list of str): Short names of the attributes the item
+                label is made of.
+            blueprint_attrs (list of str): Short names of the node attributes
+                the blueprint colours depend on.
+        """
+        item.setData(0, UUID_ROLE, uuid)
+        self._uuid_to_item[uuid] = item
+        self._create_attr_callbacks(node, uuid, label_attrs, blueprint_attrs)
+        self.update_visibility_widget(item, node)
+
+    def _blueprint_components(self, guide):
+        """Return the blueprint components of the guide, if it uses one.
+
+        Args:
+            guide (str): Long name of the guide root.
+
+        Returns:
+            dict: Blueprint components by full name, empty if the guide
+                doesn't use a blueprint.
+        """
         try:
-            if guide_name.hasAttr("use_blueprint"):
-                use_blueprint = guide_name.attr("use_blueprint").get()
-                if use_blueprint and guide_name.hasAttr("blueprint_path"):
-                    blueprint_path = guide_name.attr("blueprint_path").get()
-                    if blueprint_path:
-                        blueprint_conf = shifter_guide.load_blueprint_guide(blueprint_path)
-                        if blueprint_conf:
-                            blueprint_components = blueprint_conf.get("components_dict", {})
+            for attr in ("use_blueprint", "blueprint_path"):
+                if not cmds.attributeQuery(attr, node=guide, exists=True):
+                    return {}
+            if not cmds.getAttr(guide + ".use_blueprint"):
+                return {}
+            path = cmds.getAttr(guide + ".blueprint_path")
+            if not path:
+                return {}
+            return guide_explorer_utils.load_blueprint_components(path)
         except Exception as e:
             logger.debug(f"Could not load blueprint data: {e}")
+            return {}
 
-        root_item = guide_tree_widget_items.GuideTreeWidgetItem(parent=self,
-                                                                rig_name=rig_name)
+    def _update_blueprint_colors(self, nodes=None) -> None:
+        """
+        Color the component items by their blueprint status.
 
-        root_item.setData(0, QtCore.Qt.UserRole, "guide")
-        root_item.setData(0, DATA_ROLE, guide_name)
-        self._node_to_item[str(guide_name)] = root_item
+        Called after a rebuild and when the guide blueprint settings or a
+        component local override change.
 
-        self._create_attr_callbacks(str(guide_name), ATTRS_GUIDE)
+        :param nodes: Long names of the component roots, in item order.
+            Resolved from the item uuids when not given.
+        :return: None
+        """
+        root_item = self.topLevelItem(0)
+        guide = self._item_node(root_item) if root_item else None
+        if not guide:
+            return
 
-        self.create_visibility_widget(root_item)
+        blueprint_components = self._blueprint_components(guide)
+        for index in range(root_item.childCount()):
+            item = root_item.child(index)
+            node = nodes[index] if nodes else self._item_node(item)
+            if node:
+                self._apply_blueprint_color(item, node, blueprint_components)
 
-        for comp in components:
-
-            root_node = comp.node().name()
-            comp_type = comp.comp_type.get()
-            comp_name = comp.comp_name.get()
-            comp_side = comp.comp_side.get()
-            comp_index = comp.comp_index.get()
-            root_uuid = shifter_utils.uuid_from_node(node=root_node)
-
-            full_name = f"{comp_name}_{comp_side}{comp_index}"
-
-            comp_item = guide_tree_widget_items.ComponentTreeWidgetItem(root_item,
-                                                                        full_name,
-                                                                        comp_type)
-            comp_item.setData(0, QtCore.Qt.UserRole, root_node)
-            comp_item.setData(0, DATA_ROLE, ShifterComponent(full_name=full_name,
-                                                             comp_type=comp_type,
-                                                             root_name=root_node,
-                                                             side=comp_side,
-                                                             index=comp_index,
-                                                             uuid=root_uuid))
-
-            self._node_to_item[root_node] = comp_item
-            self._uuid_to_item[root_uuid] = comp_item
-            # -- watch naming attrs on this component root
-            self._create_attr_callbacks(root_node, ATTRS_COMP)
-
-            self.create_visibility_widget(comp_item)
-
-            # Apply blueprint status color
-            if use_blueprint:
-                self._apply_blueprint_color(comp_item, comp, full_name, blueprint_components)
-
-        # -- Select root so settings show on first open
-        if root_item is not None:
-            root_item.setSelected(True)
-            self.setCurrentItem(root_item)
-
-    def _apply_blueprint_color(self, item: QtWidgets.QTreeWidgetItem,
-                                comp, full_name: str,
-                                blueprint_components: dict) -> None:
+    def _apply_blueprint_color(
+        self,
+        item: QtWidgets.QTreeWidgetItem,
+        node: str,
+        blueprint_components: dict,
+    ) -> None:
         """
         Apply text color to component item based on blueprint status.
 
@@ -583,50 +652,76 @@ class GuideTreeWidget(QtWidgets.QTreeWidget):
         - Default: Component not in blueprint
 
         :param item: Tree widget item to color
-        :param comp: Maya component node
-        :param full_name: Component full name (e.g., "arm_L0")
+        :param node: Long name of the component root
         :param blueprint_components: Dict of components from blueprint
         :return: None
         """
+        full_name = item.data(0, DATA_ROLE).full_name
+        color = None
+        tooltip = full_name
         if full_name in blueprint_components:
             # Check if local override is enabled
             has_local_override = False
-            try:
-                if comp.hasAttr("blueprint_local_override"):
-                    has_local_override = comp.attr("blueprint_local_override").get()
-            except Exception:
-                pass
+            if cmds.attributeQuery("blueprint_local_override", node=node, exists=True):
+                has_local_override = cmds.getAttr(node + ".blueprint_local_override")
 
             if has_local_override:
                 # Yellow - has local override
                 color = BLUEPRINT_COLOR_OVERRIDE
-                tooltip_suffix = " (Blueprint: Local Override)"
+                tooltip += " (Blueprint: Local Override)"
             else:
                 # Blue - using blueprint settings
                 color = BLUEPRINT_COLOR_ACTIVE
-                tooltip_suffix = " (Blueprint: Active)"
+                tooltip += " (Blueprint: Active)"
 
-            item.setForeground(0, QtGui.QBrush(color))
-            item.setForeground(1, QtGui.QBrush(color))
-            item.setToolTip(0, full_name + tooltip_suffix)
-        # else: keep default color - not in blueprint
+        # -- No colour: back to the default text colour
+        brush = QtGui.QBrush(color) if color else None
+        item.setData(0, QtCore.Qt.ForegroundRole, brush)
+        item.setData(1, QtCore.Qt.ForegroundRole, brush)
+        item.setToolTip(0, tooltip)
 
-    def _create_attr_callbacks(self, node_name, short_attrs):
+    def _create_attr_callbacks(self, node, uuid, label_attrs, blueprint_attrs):
         """
-        Register attribute change callbacks for the given node and attributes.
+        Register the label, visibility and blueprint change callbacks of a node.
 
-        :param node_name: Name of the node to watch.
-        :param short_attrs: List of attribute names to track.
+        :param node: Name of the node to watch.
+        :param uuid: Uuid of the node, passed to the callbacks.
+        :param label_attrs: Short names of the attributes of the item label.
+        :param blueprint_attrs: Short names of the attributes the blueprint
+            colours depend on.
         :return: None
         """
         # -- Create a unique name so this manager can cleanly remove them later
-        callback_namespace = f"GuideOverview.{node_name}"
-        for attr in short_attrs:
-            fn = partial(self._on_attr_changed, node_name, attr)
-            self._attr_cb_manager.attributeChangedCB(f"{callback_namespace}.{attr}",
-                                                     fn,
-                                                     node_name,
-                                                     [attr])
+        callback_namespace = f"GuideOverview.{uuid}"
+        self._attr_cb_manager.attributeChangedCB(
+            f"{callback_namespace}.label",
+            partial(self._on_label_changed, uuid),
+            node,
+            label_attrs,
+        )
+        self._attr_cb_manager.attributeChangedCB(
+            f"{callback_namespace}.{ATTR_VISIBILITY}",
+            partial(self._on_visibility_changed, uuid),
+            node,
+            [ATTR_VISIBILITY],
+        )
+        self._attr_cb_manager.attributeChangedCB(
+            f"{callback_namespace}.blueprint",
+            self._update_blueprint_colors,
+            node,
+            blueprint_attrs,
+        )
+
+    def _item_node(self, item):
+        """
+        Return the long name of the scene node of a tree item.
+
+        :param item: Tree item.
+        :return: Long name of the node, or None if it no longer exists.
+        """
+        uuid = item.data(0, UUID_ROLE)
+        nodes = cmds.ls(uuid, long=True) if uuid else None
+        return nodes[0] if nodes else None
 
     def _register_node_added_callback(self) -> None:
         """
@@ -645,66 +740,47 @@ class GuideTreeWidget(QtWidgets.QTreeWidget):
             self._node_removed_cb_id = om.MDGMessage.addNodeRemovedCallback(self._on_node_removed,
                                                                             "transform")
 
-    def _on_attr_changed(self, node_name: str, attr: str) -> None:
-        """
-        Handle guide or component attribute changes and refresh the tree item.
+    @property
+    def syncing_from_scene(self):
+        """bool: True while the tree selection follows a Maya selection change."""
+        return self._block_scene_selection_sync
 
-        :param node_name: Name of the node whose attribute changed.
-        :param attr: Short attribute name that triggered the callback.
+    def _on_visibility_changed(self, uuid: str) -> None:
+        """
+        Update the eye icon when a guide or component root visibility changes.
+
+        :param uuid: Uuid of the node whose visibility changed.
         :return: None
         """
-        item = self._node_to_item.get(node_name)
-        if not item:
-            return
-
-        # -- If only visibility changed, just update the eye icon
-        if attr == "v":
+        item = self._uuid_to_item.get(uuid)
+        if item:
             self.update_visibility_widget(item)
+
+    def _on_label_changed(self, uuid: str) -> None:
+        """
+        Update the item label when a guide or component naming attribute changes.
+
+        :param uuid: Uuid of the node whose attribute changed.
+        :return: None
+        """
+        item = self._uuid_to_item.get(uuid)
+        node = self._item_node(item) if item else None
+        if not node:
             return
 
-        data = item.data(0, DATA_ROLE)
-
-        if isinstance(data, ShifterComponent):
-
-            node = shifter_utils.node_from_uuid(uuid=data.uuid)
-
-            comp_name = node.attr("comp_name").get()
-            comp_side = node.attr("comp_side").get()
-            comp_index = node.attr("comp_index").get()
-            comp_type = node.attr("comp_type").get()
-
-            new_full_name = f"{comp_name}_{comp_side}{comp_index}"
-            new_node_name = node.name()
-
-            self.blockSignals(True)
-
-            item.setText(0, new_full_name)
-            item.setData(0, DATA_ROLE, ShifterComponent(full_name=new_full_name,
-                                                        comp_type=comp_type,
-                                                        root_name=new_node_name,
-                                                        side=comp_side,
-                                                        index=comp_index,
-                                                        uuid=data.uuid))
-
-            # -- Update the node name mapping if the transform was renamed
-            if new_node_name != node_name:
-                self._node_to_item[new_node_name] = item
-
+        self.blockSignals(True)
+        try:
+            if isinstance(item.data(0, DATA_ROLE), ShifterComponent):
+                data = self._component_data(node, uuid)
+                item.setText(0, data.full_name)
+                item.setData(0, DATA_ROLE, data)
+                # -- The new name can be in the blueprint or not
+                self._update_blueprint_colors()
+            else:
+                rig_name = cmds.getAttr(node + ".rig_name")
+                item.setText(0, f"guide ({rig_name})")
+        finally:
             self.blockSignals(False)
-
-        # -- Either guide or component
-        else:
-
-            node = shifter_utils.node_from_name(name=data)
-
-            rig_name = node.attr("rig_name").get()
-
-            self.blockSignals(True)
-            item.setText(0, f"guide ({rig_name})")
-            self.blockSignals(False)
-
-        # -- Keep visibility button in sync with the node state
-        self.update_visibility_widget(item)
 
         self.labelsUpdated.emit()
         if self.currentItem() is item:
@@ -714,53 +790,40 @@ class GuideTreeWidget(QtWidgets.QTreeWidget):
         """
         Sync the tree selection from the current Maya selection.
 
-        Called whenever the Maya selection changes.
+        Called whenever the Maya selection changes. The tree emits one
+        ``itemSelectionChanged`` while ``syncing_from_scene`` is True.
 
         :return: None
         """
         if not self._scene_sync_enabled or self._block_scene_selection_sync:
             return
 
-        selection = shifter_utils.get_selection()
+        selection = cmds.ls(selection=True, long=True)
         if not selection:
             return
 
-        # -- Take the last selected object
-        last_item = selection[-1]
+        # -- The component root of the last selected object, or the object
+        # -- itself when it is the guide root
+        try:
+            comp_root = shifter_utils.find_component_root(selection[-1])
+            node = comp_root.name() if comp_root else selection[-1]
+            uuid = shifter_utils.get_uuids([node])[0]
+        except Exception:
+            return
 
-        # -- Try to find the component root for this object
-        comp_root = shifter_utils.find_component_root(last_item)
-        if not comp_root:
-            # Might be the guide root itself
-            try:
-                node_name = last_item.name()
-            except Exception:
-                node_name = str(last_item)
+        item = self._uuid_to_item.get(uuid)
+        if not item:
+            return
 
-            item = self._node_to_item.get(node_name)
-            if not item:
-                return
-        else:
-            # -- Use uuid mapping if possible, more robust and less prone to name clashes.
-            root_node_name = comp_root.node().name()
-            try:
-                root_uuid = shifter_utils.uuid_from_node(node=root_node_name)
-                item = self._uuid_to_item.get(root_uuid)
-            except Exception:
-                item = self._node_to_item.get(root_node_name)
-
-            if not item:
-                return
-
-        # -- Update tree selection without causing extra noise
         self._block_scene_selection_sync = True
         try:
-            self.clearSelection()
-            self.setCurrentItem(item)
-            self.scrollToItem(item)
-            parent = item.parent()
-            if parent:
-                self.expandItem(parent)
+            with self._one_selection_signal():
+                self.clearSelection()
+                self.setCurrentItem(item)
+                self.scrollToItem(item)
+                parent = item.parent()
+                if parent:
+                    self.expandItem(parent)
         finally:
             self._block_scene_selection_sync = False
 
@@ -808,7 +871,8 @@ class GuideTreeWidget(QtWidgets.QTreeWidget):
         Handle any pending scene refresh requested by the node-added callback.
 
         Called by the debounce timer once there have been no new nodes added
-        for the timer interval.
+        for the timer interval. The tree is only rebuilt when the guide or
+        its components changed.
 
         :return: None
         """
@@ -828,8 +892,7 @@ class GuideTreeWidget(QtWidgets.QTreeWidget):
         if not self.isVisible():
             return
 
-        # -- Rebuild the tree from the scene
-        self.get_guide_from_scene()
+        self.refresh()
 
     def on_update_component_type_action_clicked(self) -> None:
         """
@@ -870,21 +933,9 @@ class GuideTreeWidget(QtWidgets.QTreeWidget):
         # -- Update the component type
         compatible_comp_dagmenu.update_component_type_and_update_guide_with_dagmenu()
 
-        # -- Rebuild the tree so UI/model and callbacks are correct
-        self.get_guide_from_scene()
-
-        self._block_scene_selection_sync = True
-        try:
-            self.clearSelection()
-            new_item = self._node_to_item.get(data.root_name)
-            print(new_item)
-            if not new_item:
-                return
-
-            self.setCurrentItem(new_item)
-            new_item.setSelected(True)
-        finally:
-            self._block_scene_selection_sync = False
+        # -- Rebuild the tree and select the updated component, which has a
+        # -- new root node with the same name
+        self.refresh(force=True, select=cmds.ls(data.root_name, uuid=True))
 
     def on_visibility_icon_clicked(self, item: QtWidgets.QTreeWidgetItem) -> None:
         """
@@ -893,65 +944,35 @@ class GuideTreeWidget(QtWidgets.QTreeWidget):
         :param item: Tree item whose visibility button was clicked.
         :return: None
         """
-        data = item.data(0, DATA_ROLE)
-
-        if isinstance(data, ShifterComponent):
-            node = shifter_utils.node_from_uuid(uuid=data.uuid)
-        else:
-            node = shifter_utils.node_from_name(name=data)
-
+        node = self._item_node(item)
         if not node:
             return
 
-        try:
-            vis_attr = node.visibility
-        except Exception:
-            return
+        attr = node + ".visibility"
+        cmds.setAttr(attr, not cmds.getAttr(attr))
+        self.update_visibility_widget(item, node)
 
-        vis_attr.set(not vis_attr.get())
-        self.update_visibility_widget(item)
-
-    def create_visibility_widget(self, item: QtWidgets.QTreeWidgetItem) -> None:
-        """
-        Initialize the visibility icon for the given item.
-
-        We no longer use a QPushButton or QToolButton. The icon is set
-        directly on the tree item in column 2 and made clickable through
-        mousePressEvent.
-        """
-        self.update_visibility_widget(item)
-
-    def update_visibility_widget(self, item: QtWidgets.QTreeWidgetItem) -> None:
+    def update_visibility_widget(
+        self, item: QtWidgets.QTreeWidgetItem, node=None
+    ) -> None:
         """
         Update the visibility icon for the given item.
 
         :param item: Tree item to refresh.
+        :param node: Long name of the item node, resolved from the item uuid
+            when not given.
         """
-        data = item.data(0, DATA_ROLE)
-
-        if isinstance(data, ShifterComponent):
-            node = shifter_utils.node_from_uuid(uuid=data.uuid)
-        else:
-            node = shifter_utils.node_from_name(name=data)
-
+        if node is None:
+            node = self._item_node(item)
         if not node:
             item.setDisabled(True)
             return
 
-        try:
-            vis_attr = node.visibility
-        except Exception:
-            item.setDisabled(True)
-            return
-
-        is_visible = bool(vis_attr.get())
+        is_visible = bool(cmds.getAttr(node + ".visibility"))
         item.setDisabled(False)
 
-        visible_icon_path = str(guide_explorer_utils.get_mgear_icon_path("mgear_eye.svg"))
-        hidden_icon_path = str(guide_explorer_utils.get_mgear_icon_path("mgear_eye-off.svg"))
-
-        icon = QtGui.QIcon(visible_icon_path) if is_visible else QtGui.QIcon(hidden_icon_path)
-        item.setIcon(2, icon)
+        icon_name = "mgear_eye.svg" if is_visible else "mgear_eye-off.svg"
+        item.setIcon(2, pyqt.get_cached_icon(icon_name))
         item.setToolTip(2, "Visible" if is_visible else "Hidden")
 
     def _enable_scene_callbacks(self) -> None:
@@ -1019,7 +1040,7 @@ class GuideTreeWidget(QtWidgets.QTreeWidget):
         :param point: Position of the click in viewport coordinates.
         :return: None
         """
-        has_guide = bool(self._guide) and hasattr(self._guide[0], "node") and self._guide[0].node()
+        has_guide = self._guide is not None
         rig_list = shifter_utils.get_rig()
         has_rig = bool(rig_list) and hasattr(rig_list[0], "node") and rig_list[0].node()
 
@@ -1072,7 +1093,6 @@ class GuideTreeWidget(QtWidgets.QTreeWidget):
 
         # -- Clear tree items and maps
         self.clear()
-        self._node_to_item.clear()
         self._uuid_to_item.clear()
         self._guide = None
 

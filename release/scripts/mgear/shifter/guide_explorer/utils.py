@@ -1,90 +1,74 @@
+"""Qt-free helpers of the Guide Explorer: guide scene state and blueprint cache."""
+
 import os
-from typing import List, Optional, Sequence, Union
-from pathlib import Path
-import mgear.pymaya as pm
+
+from mgear.shifter import guide as shifter_guide
+from mgear.shifter import utils as shifter_utils
+
+# Parsed blueprint components, by resolved path: (mtime, components dict)
+_blueprint_cache = {}
 
 
-class TempSelection:
+class GuideSceneState(object):
+    """What the Guide Explorer tree shows of the scene guide.
+
+    Tells whether the guide or its components changed since the tree was
+    last built, so scene callbacks only rebuild the tree when needed. The
+    names read by the last update are kept for the rebuild.
+
+    Attributes:
+        guide (str): Long name of the guide root, None without a guide.
+        components (list of str): Long names of the component roots, in
+            tree order.
+        snapshot (tuple of str): The guide root uuid followed by the
+            component root uuids. Empty without a guide, None before the
+            first update.
     """
-    Context manager that temporarily replaces the Maya selection.
 
-    Restores the previous selection when leaving the context.
+    def __init__(self):
+        self.guide = None
+        self.components = []
+        self.snapshot = None
+
+    def update(self):
+        """Read the scene guide and its components again.
+
+        Returns:
+            bool: True if the snapshot differs from the previous one.
+        """
+        self.guide = shifter_utils.get_guide_root_name()
+        if self.guide:
+            self.components = shifter_utils.get_component_root_names(self.guide)
+            snapshot = shifter_utils.get_uuids([self.guide] + self.components)
+        else:
+            self.components = []
+            snapshot = ()
+        changed = snapshot != self.snapshot
+        self.snapshot = snapshot
+        return changed
+
+
+def load_blueprint_components(path):
+    """Return the components of a blueprint guide, reading the file once.
+
+    The parsed file is cached by its resolved path and read again only when
+    its modification time changes.
+
+    Args:
+        path (str): Blueprint path, as stored on the guide.
+
+    Returns:
+        dict: The blueprint ``components_dict``, empty if the file can't be
+            loaded.
     """
-    def __init__(self, nodes: Union[pm.PyNode, Sequence[pm.PyNode]]) -> None:
-        """
-        :param nodes: Node or sequence of nodes to select while in context.
-        """
-        self._nodes = nodes if isinstance(nodes, (list, tuple)) else [nodes]
-        self._prev: List[pm.PyNode] = []
-
-    def __enter__(self) -> "TempSelection":
-        """
-        Store current selection and select the temporary nodes.
-
-        :return: This context manager instance.
-        """
-        try:
-            # -- Store current selection (PyNodes)
-            self._prev = pm.ls(selection=True)
-        except Exception:
-            self._prev = []
-        try:
-            pm.select(self._nodes, replace=True)
-        except Exception:
-            pass
-        return self
-
-    def __exit__(self, exc_type, exc, tb):
-        """
-        Restore the previous selection on context exit.
-
-        :return: None
-        """
-        try:
-            if self._prev:
-                pm.select(self._prev, replace=True)
-            else:
-                pm.select(clear=True)
-        except Exception:
-            pass
-
-
-def get_mgear_icon_search_paths() -> List[Path]:
-    """
-    Return all mGear-related icon search paths from XBMLANGPATH.
-
-    These paths represent the effective icon directories Maya is using
-    after module resolution.
-
-    :return: List of icon search paths containing "mgear".
-    """
-    paths: List[Path] = []
-
-    xbm_lang_path = os.environ.get("XBMLANGPATH", "")
-    if not xbm_lang_path:
-        return paths
-
-    for entry in xbm_lang_path.split(os.pathsep):
-        if "mgear" not in entry.lower():
-            continue
-
-        p = Path(entry)
-        if p.is_dir() and p not in paths:
-            paths.append(p)
-
-    return paths
-
-
-def get_mgear_icon_path(filename: str) -> Optional[Path]:
-    """
-    Resolve a full path to an mGear icon file using Maya's resolved icon paths.
-
-    :param filename: Icon file name (e.g. "visibility_on.svg").
-    :return: Absolute Path to the icon if found, otherwise None.
-    """
-    for base_path in get_mgear_icon_search_paths():
-        candidate = base_path / filename
-        if candidate.is_file():
-            return candidate
-
-    return None
+    resolved = shifter_guide.resolve_blueprint_path(path)
+    if not resolved:
+        return {}
+    mtime = os.path.getmtime(resolved)
+    cached = _blueprint_cache.get(resolved)
+    if cached and cached[0] == mtime:
+        return cached[1]
+    conf = shifter_guide.load_blueprint_guide(resolved) or {}
+    components = conf.get("components_dict", {})
+    _blueprint_cache[resolved] = (mtime, components)
+    return components

@@ -35,6 +35,8 @@ except ImportError:
 UI_EXT = "ui"
 
 _LOGICAL_DPI_KEY = "_LOGICAL_DPI"
+# QIcons of the icons folder, by file name
+_ICON_CACHE = {}
 
 #################
 # Old qt importer
@@ -503,6 +505,25 @@ def get_icon_path(icon_name=None):
         return "{0}/icons/{1}".format(file_dir, icon_name)
     else:
         return "{}/icons".format(file_dir)
+
+
+def get_cached_icon(file_name):
+    """Return a QIcon of a file in the mGear icons folder, loaded once.
+
+    Later calls with the same file name return the same QIcon, so views
+    with many items don't load the file again for each item.
+
+    Args:
+        file_name (str): Icon file name with extension, e.g. "mgear_eye.svg".
+
+    Returns:
+        QtGui.QIcon: The icon.
+    """
+    icon = _ICON_CACHE.get(file_name)
+    if icon is None:
+        icon = QtGui.QIcon(get_icon_path(file_name))
+        _ICON_CACHE[file_name] = icon
+    return icon
 
 
 def get_icon(icon, size=24):

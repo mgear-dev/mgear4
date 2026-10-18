@@ -1,6 +1,7 @@
 from typing import Any, Iterable, List, Optional
 
 from maya import cmds
+from maya.api import OpenMaya as om
 
 from mgear import pymaya as pm
 
@@ -91,31 +92,66 @@ def get_rig_name(guide: str) -> [str]:
     return pm.getAttr(f"{guide}.rig_name")
 
 
+def get_guide_root_name():
+    """Return the long name of the scene guide root.
+
+    Returns:
+        str: Long name of the first node with an ``ismodel`` attribute, or
+            None if the scene has no guide.
+    """
+    guides = cmds.ls("*.ismodel", objectsOnly=True, long=True)
+    return guides[0] if guides else None
+
+
+def get_uuids(nodes):
+    """Return the uuids of nodes, in the same order.
+
+    Args:
+        nodes (list of str): Node names.
+
+    Returns:
+        tuple of str: The uuids.
+    """
+    sel = om.MSelectionList()
+    for node in nodes:
+        sel.add(node)
+    fn = om.MFnDependencyNode()
+    uuids = []
+    for index in range(sel.length()):
+        fn.setObject(sel.getDependNode(index))
+        uuids.append(fn.uuid().asString())
+    return tuple(uuids)
+
+
+def get_component_root_names(guide_name):
+    """Return the long names of the component roots under a guide.
+
+    Uses one hierarchy query and one ``comp_type`` attribute query instead
+    of checking every transform under the guide.
+
+    Args:
+        guide_name (str or PyNode): The guide root.
+
+    Returns:
+        list of str: Long names of the component roots, depth first in
+            child order.
+    """
+    descendants = cmds.ls(str(guide_name), dag=True, type="transform", long=True)
+    roots = set(
+        cmds.ls("*.comp_type", recursive=True, objectsOnly=True, long=True) or []
+    )
+    return [node for node in descendants if node in roots]
+
+
 def get_components(guide_name: str) -> List[pm.PyNode]:
     """
     Return all valid component transforms under the given guide.
-
-    Traverses all descendant transforms of the guide and filters out
-    nodes that do not have a 'comp_type' attribute.
 
     :param guide_name: Name of the guide root.
     :return: List of component transform nodes that have 'comp_type'.
     :rtype: list
     """
-    components = pm.listRelatives(guide_name,
-                                  children=True,
-                                  allDescendents=True,
-                                  type="transform",
-                                  fullPath=True)
-
-    valid_components: List[pm.PyNode] = []
-    # -- Filter out components
-    for cmp in components:
-        if not cmp.hasAttr("comp_type"):
-            continue
-        valid_components.append(cmp)
-
-    return valid_components
+    return [pm.PyNode(node) for node in get_component_root_names(guide_name)]
 
 
 def obj_exists(node: str) -> bool:

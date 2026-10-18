@@ -1,4 +1,5 @@
 # Built-in
+import contextlib
 import datetime
 import json
 import os
@@ -111,6 +112,48 @@ def check_guide_cancelled():
         except Exception:
             pass
     return False
+
+
+# =============================================================================
+# Settings Panel Root
+# =============================================================================
+# Root node override for the guide and component settings panels
+_settings_root = None
+
+
+@contextlib.contextmanager
+def settings_root(node):
+    """Build guide or component settings panels for a given root node.
+
+    The settings panels take their root from ``get_settings_root``. Inside
+    this context it is the given node, so a panel can be built without
+    changing the Maya selection. Contexts can be nested.
+
+    Args:
+        node (PyNode): Guide root or component root of the panels to build.
+
+    Yields:
+        PyNode: The root node.
+    """
+    global _settings_root
+    previous = _settings_root
+    _settings_root = node
+    try:
+        yield node
+    finally:
+        _settings_root = previous
+
+
+def get_settings_root():
+    """Return the root node a settings panel is built for.
+
+    Returns:
+        PyNode: The node set by ``settings_root``, else the first selected
+            node.
+    """
+    if _settings_root is not None:
+        return pm.PyNode(_settings_root)
+    return pm.selected()[0]
 
 
 # Guide parameters added after guides were saved: an older guide without
@@ -1904,7 +1947,7 @@ class GuideSettings(MayaQWidgetDockableMixin, csw.CustomStepMixin, GuideMainSett
         super(GuideSettings, self).__init__(parent=parent)
         # the inspectSettings function set the current selection to the
         # component root before open the settings dialog
-        self.root = pm.selected()[0]
+        self.root = get_settings_root()
 
         # Initialize blueprint custom steps state flags
         self._showing_blueprint_pre = False
@@ -1920,7 +1963,7 @@ class GuideSettings(MayaQWidgetDockableMixin, csw.CustomStepMixin, GuideMainSett
         self.populate_controls()
         self.create_layout()
         self.create_connections()
-        self.refreshReferencedGroups()
+        self.refreshReferencedGroups(quiet=True)
 
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose, True)
 
